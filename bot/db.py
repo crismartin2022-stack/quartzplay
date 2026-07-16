@@ -15,58 +15,58 @@ async def get_pool():
 
 async def _create_schema(pool):
     async with pool.acquire() as conn:
-        await conn.execute(
-            "CREATE TABLE IF NOT EXISTS users ("
-            "id BIGSERIAL PRIMARY KEY,"
-            "telegram_id BIGINT UNIQUE NOT NULL,"
-            "username TEXT,"
-            "first_name TEXT,"
-            "balance BIGINT DEFAULT 0,"
-            "plan TEXT DEFAULT 'free',"
-            "xp INT DEFAULT 0,"
-            "level INT DEFAULT 1,"
-            "created_at TIMESTAMPTZ DEFAULT NOW(),"
-            "last_seen TIMESTAMPTZ DEFAULT NOW()"
-            ")"
-        )
-        await conn.execute(
-            "CREATE TABLE IF NOT EXISTS sports_bets ("
-            "id BIGSERIAL PRIMARY KEY,"
-            "user_id BIGINT REFERENCES users(id),"
-            "picks TEXT NOT NULL,"
-            "stake BIGINT NOT NULL,"
-            "odd_total NUMERIC(8,3) NOT NULL,"
-            "potential_win BIGINT NOT NULL,"
-            "actual_win BIGINT DEFAULT 0,"
-            "status TEXT DEFAULT 'active',"
-            "mode TEXT DEFAULT 'prematch',"
-            "created_at TIMESTAMPTZ DEFAULT NOW()"
-            ")"
-        )
-        await conn.execute(
-            "CREATE TABLE IF NOT EXISTS wallet_transactions ("
-            "id BIGSERIAL PRIMARY KEY,"
-            "user_id BIGINT REFERENCES users(id),"
-            "type TEXT NOT NULL,"
-            "amount BIGINT NOT NULL,"
-            "method TEXT,"
-            "status TEXT DEFAULT 'pending',"
-            "created_at TIMESTAMPTZ DEFAULT NOW()"
-            ")"
-        )
-        await conn.execute(
-            "CREATE TABLE IF NOT EXISTS casino_rounds ("
-            "id BIGSERIAL PRIMARY KEY,"
-            "user_id BIGINT REFERENCES users(id),"
-            "game TEXT,"
-            "provider TEXT,"
-            "stake BIGINT DEFAULT 0,"
-            "win BIGINT DEFAULT 0,"
-            "ggr BIGINT DEFAULT 0,"
-            "external_tx TEXT UNIQUE,"
-            "created_at TIMESTAMPTZ DEFAULT NOW()"
-            ")"
-        )
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id BIGSERIAL PRIMARY KEY,
+                telegram_id BIGINT UNIQUE NOT NULL,
+                username TEXT,
+                first_name TEXT,
+                balance BIGINT DEFAULT 0,
+                plan TEXT DEFAULT 'free',
+                xp INT DEFAULT 0,
+                level INT DEFAULT 1,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                last_seen TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS sports_bets (
+                id BIGSERIAL PRIMARY KEY,
+                user_id BIGINT REFERENCES users(id),
+                picks TEXT NOT NULL,
+                stake BIGINT NOT NULL,
+                odd_total NUMERIC(8,3) NOT NULL,
+                potential_win BIGINT NOT NULL,
+                actual_win BIGINT DEFAULT 0,
+                status TEXT DEFAULT 'active',
+                mode TEXT DEFAULT 'prematch',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS wallet_transactions (
+                id BIGSERIAL PRIMARY KEY,
+                user_id BIGINT REFERENCES users(id),
+                type TEXT NOT NULL,
+                amount BIGINT NOT NULL,
+                method TEXT,
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS casino_rounds (
+                id BIGSERIAL PRIMARY KEY,
+                user_id BIGINT REFERENCES users(id),
+                game TEXT,
+                provider TEXT,
+                stake BIGINT DEFAULT 0,
+                win BIGINT DEFAULT 0,
+                ggr BIGINT DEFAULT 0,
+                external_tx TEXT UNIQUE,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_users_tg ON users(telegram_id)"
         )
