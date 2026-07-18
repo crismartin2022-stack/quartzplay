@@ -85,6 +85,23 @@ async def _create_schema(pool):
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )
         """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS betslips (
+                id BIGSERIAL PRIMARY KEY,
+                code TEXT UNIQUE NOT NULL,
+                user_id BIGINT REFERENCES users(id),
+                picks TEXT NOT NULL,
+                stake BIGINT DEFAULT 0,
+                odd_total NUMERIC(8,3) NOT NULL,
+                potential_win BIGINT DEFAULT 0,
+                status TEXT DEFAULT 'pending',
+                inf_code TEXT,
+                paid_at TIMESTAMPTZ,
+                paid_by TEXT,
+                expires_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_users_tg ON users(telegram_id)"
         )
@@ -93,5 +110,8 @@ async def _create_schema(pool):
         )
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_inf_events ON influencer_events(influencer_code)"
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_betslips_code ON betslips(code)"
         )
         log.info("Schema listo")
