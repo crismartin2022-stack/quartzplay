@@ -102,6 +102,32 @@ async def _create_schema(pool):
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )
         """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS agencias (
+                id BIGSERIAL PRIMARY KEY,
+                code TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                address TEXT,
+                phone TEXT,
+                status TEXT DEFAULT 'active',
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                last_login TIMESTAMPTZ
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS agencia_tickets (
+                id BIGSERIAL PRIMARY KEY,
+                agencia_code TEXT NOT NULL,
+                betslip_code TEXT NOT NULL,
+                tipo TEXT NOT NULL,
+                stake BIGINT DEFAULT 0,
+                potential_win BIGINT DEFAULT 0,
+                status TEXT DEFAULT 'active',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_users_tg ON users(telegram_id)"
         )
@@ -113,5 +139,14 @@ async def _create_schema(pool):
         )
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_betslips_code ON betslips(code)"
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_agencias_code ON agencias(code)"
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_agencias_user ON agencias(username)"
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_agencia_tickets ON agencia_tickets(agencia_code)"
         )
         log.info("Schema listo")
