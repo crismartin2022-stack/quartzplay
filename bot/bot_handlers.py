@@ -1,4 +1,5 @@
-import os, logging
+import os, logging, random, string
+from datetime import datetime, timedelta, timezone
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 from db import get_pool
@@ -7,6 +8,10 @@ from odds_api import get_all_odds_cached
 log = logging.getLogger(__name__)
 
 def ars(n): return f"${round(n or 0):,.0f}".replace(",",".")
+
+def gen_code():
+    """Genera código único QP-XXXXX"""
+    return "QP-" + "".join(random.choices(string.digits, k=5))
 
 async def track(pool, code, uid, event, amount=0):
     try:
@@ -21,6 +26,26 @@ async def track(pool, code, uid, event, amount=0):
                 """, code, user_id, event, amount)
     except Exception as e:
         log.error(f"Error tracking {code}: {e}")
+
+async def save_betslip(pool, uid, picks, stake, odd_total, inf_code=None):
+    """Guarda el betslip en DB y devuelve el código QP-XXXXX"""
+    code = gen_code()
+    expires = datetime.now(timezone.utc) + timedelta(hours=24)
+    pot_win = round(stake * odd_total)
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO betslips
+                (code, user_id, picks, stake, odd_total,
+                 potential_win, status, inf_code, expires_at)
+            SELECT $1, id, $2, $3, $4, $5, 'pending', $6, $7
+            FROM users WHERE telegram_id=$8
+        """,
+            code,
+            str([{"home":p["home"],"away":p["away"],
+                  "sel":p["label"],"odd":p["odd"],"sport":"Sports"} for p in picks]),
+            stake, odd_total, pot_win, inf_code, expires, uid
+        )
+    return code, pot_win
 
 async def cmd_start(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid  = u.effective_user.id
@@ -79,7 +104,7 @@ async def cb_combo_deeplink(u, ctx, name, balance, inf_code=None):
             if o["L"] and 1.20 <= o["L"] <= 2.50:
                 picks.append({
                     "ev_id": ev["id"],
-                    "label": f"{ev['home']} vs {ev['away']} - {ev['home']} gana",
+                    "label": f"{ev['home']} gana",
                     "odd":   o["L"],
                     "home":  ev["home"],
                     "away":  ev["away"],
@@ -101,23 +126,70 @@ async def cb_combo_deeplink(u, ctx, name, balance, inf_code=None):
 
     text = f"QuartzPlay - Hola {name}\n\nAI COMBO del dia\n\n"
     for p in picks:
-        text += f"- {p['label']} @ {p['odd']}\n"
-    text += f"\nCuota total: {tot:.2f}x\nTu saldo: {ars(balance)} ARS\n\nElegi cuanto apostar:"
+        text += f"- {p['home']} vs {p['away']} - {p['label']} @ {p['odd']}\n"
+    text += (
+        f"\nCuota total: {tot:.2f}x\n"
+        f"Tu saldo: {ars(balance)} ARS\n\n"
+        f"Elegi como apostar:"
+    )
 
     await u.message.reply_text(
         text,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton(
-                f"Apostar $5K - ret ${round(5000*tot):,}",
+                f"Apostar $5K online - ret ${round(5000*tot):,}",
                 callback_data="confirm_bet_500000")],
             [InlineKeyboardButton(
-                f"Apostar $10K - ret ${round(10000*tot):,}",
+                f"Apostar $10K online - ret ${round(10000*tot):,}",
                 callback_data="confirm_bet_1000000")],
             [InlineKeyboardButton(
-                f"Apostar $20K - ret ${round(20000*tot):,}",
+                f"Apostar $20K online - ret ${round(20000*tot):,}",
                 callback_data="confirm_bet_2000000")],
+            [InlineKeyboardButton(
+                "Generar codigo para local",
+                callback_data="gen_code_local")],
             [InlineKeyboardButton("Ver mas eventos", callback_data="menu_sports")],
         ]),
+    )
+
+async def cb_gen_code_local(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Genera código QP-XXXXX para ir a pagar en el local"""
+    q = u.callback_query
+    await q.answer()
+    uid    = u.effective_user.id
+    pool   = ctx.bot_data["db_pool"]
+    ticket = ctx.user_data.get("ticket", [])
+    inf_code = ctx.user_data.get("inf_code")
+
+    if not ticket:
+        await q.answer("No hay picks seleccionados", show_alert=True)
+        return
+
+    tot = 1
+    for p in ticket:
+        tot *= p["odd"]
+
+    # Guardar en DB con stake=0 (se define en el local)
+    code, _ = await save_betslip(pool, uid, ticket, 0, tot, inf_code)
+
+    text = (
+        f"Tu codigo de apuesta\n\n"
+        f"*{code}*\n\n"
+        f"Lleva este codigo al local fisico.\n"
+        f"El agente ingresa el codigo, vos elegis el monto y te dan el ticket.\n\n"
+        f"Valido 24 horas.\n\n"
+        f"Tu combinada:\n"
+    )
+    for p in ticket:
+        text += f"- {p['home']} vs {p['away']} @ {p['odd']}\n"
+    text += f"\nCuota total: {tot:.2f}x"
+
+    await q.edit_message_text(
+        text, parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("Ver mis apuestas", callback_data="menu_stats"),
+            InlineKeyboardButton("Menu", callback_data="back_main"),
+        ]]),
     )
 
 async def cb_sports(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -188,7 +260,8 @@ async def cb_bet(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     ctx.user_data["ticket"] = existing + [{
         "ev_id": ev_id, "side": side, "odd": odd,
-        "label": f"{ev['home']} vs {ev['away']} - {side_name}",
+        "label": f"{ev['home']} gana",
+        "home": ev["home"], "away": ev["away"],
     }]
     ticket = ctx.user_data["ticket"]
     tot = 1
@@ -196,7 +269,7 @@ async def cb_bet(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         tot *= b["odd"]
     text = f"Boleto ({len(ticket)} picks)\n\n"
     for b in ticket:
-        text += f"- {b['label']} @ {b['odd']}\n"
+        text += f"- {b['home']} vs {b['away']} @ {b['odd']}\n"
     text += f"\nCuota: {tot:.2f}x"
     await q.edit_message_text(
         text,
@@ -210,6 +283,9 @@ async def cb_bet(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(
                 f"Apostar $20K - ret ${round(20000*tot):,}",
                 callback_data="confirm_bet_2000000")],
+            [InlineKeyboardButton(
+                "Generar codigo para local",
+                callback_data="gen_code_local")],
             [InlineKeyboardButton("Limpiar", callback_data="clear_ticket"),
              InlineKeyboardButton("Volver",  callback_data="menu_sports")],
         ]),
@@ -246,15 +322,28 @@ async def cb_confirm_bet(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
             RETURNING id
         """, uid, str([b["label"] for b in ticket]), stake, tot, ret)
 
+    # Generar codigo QP para el comprobante
+    code, _ = await save_betslip(
+        pool, uid, ticket, stake, tot,
+        ctx.user_data.get("inf_code"))
+
     inf_code = ctx.user_data.get("inf_code")
     if inf_code:
         await track(pool, inf_code, uid, "apuesta", stake)
 
     ctx.user_data["ticket"] = []
-    text = f"Apuesta registrada #{bet_id}\n\n"
+    text = (
+        f"Apuesta registrada\n\n"
+        f"Codigo: {code}\n\n"
+    )
     for b in ticket:
-        text += f"- {b['label']} @ {b['odd']}\n"
-    text += f"\nApostado: {ars(stake)} ARS\nCuota: {tot:.2f}x\nRetorno pot: {ars(ret)} ARS"
+        text += f"- {b['home']} vs {b['away']} @ {b['odd']}\n"
+    text += (
+        f"\nApostado: {ars(stake)} ARS\n"
+        f"Cuota: {tot:.2f}x\n"
+        f"Retorno pot: {ars(ret)} ARS\n\n"
+        f"Podes cobrar en cualquier agencia con el codigo {code}"
+    )
     await q.edit_message_text(
         text,
         reply_markup=InlineKeyboardMarkup([[
@@ -311,13 +400,14 @@ async def cb_soon(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await q.answer("Proximamente", show_alert=True)
 
 def register_bot_handlers(app):
-    app.add_handler(CommandHandler("start",      cmd_start))
-    app.add_handler(CallbackQueryHandler(cb_sports,      pattern="^menu_sports$"))
-    app.add_handler(CallbackQueryHandler(cb_bet,         pattern="^bet_"))
-    app.add_handler(CallbackQueryHandler(cb_confirm_bet, pattern="^confirm_bet_"))
-    app.add_handler(CallbackQueryHandler(cb_stats,       pattern="^menu_stats$"))
-    app.add_handler(CallbackQueryHandler(cb_back,        pattern="^back_main$"))
-    app.add_handler(CallbackQueryHandler(cb_clear,       pattern="^clear_ticket$"))
+    app.add_handler(CommandHandler("start",       cmd_start))
+    app.add_handler(CallbackQueryHandler(cb_sports,        pattern="^menu_sports$"))
+    app.add_handler(CallbackQueryHandler(cb_bet,           pattern="^bet_"))
+    app.add_handler(CallbackQueryHandler(cb_confirm_bet,   pattern="^confirm_bet_"))
+    app.add_handler(CallbackQueryHandler(cb_gen_code_local,pattern="^gen_code_local$"))
+    app.add_handler(CallbackQueryHandler(cb_stats,         pattern="^menu_stats$"))
+    app.add_handler(CallbackQueryHandler(cb_back,          pattern="^back_main$"))
+    app.add_handler(CallbackQueryHandler(cb_clear,         pattern="^clear_ticket$"))
     app.add_handler(CallbackQueryHandler(cb_soon,
         pattern="^(sports_pool|sports_p2p|sports_combo|menu_wallet)$"))
     log.info("Handlers registrados")
