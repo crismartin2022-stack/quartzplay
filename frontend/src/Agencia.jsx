@@ -29,7 +29,7 @@ async function fetchBetslip(code){
     if(!r.ok) throw new Error((await r.json()).detail || "No encontrado");
     return r.json();
   } catch(e) {
-    // Fallback mock para demo
+    // Fallback betslip mock para demo
     const MOCK = {
       "QP-47829":{
         code:"QP-47829", user:"@martin_ar",
@@ -254,10 +254,31 @@ function LoginScreen({ onLogin }){
   const [pass,setPass]=useState("");
   const [err,setErr]=useState("");
 
-  const login=()=>{
-    if(user==="agencia1"&&pass==="qp2026") onLogin({name:"Agencia Centro",code:"AGE001"});
-    else if(user==="agencia2"&&pass==="qp2026") onLogin({name:"Agencia Norte",code:"AGE002"});
-    else setErr("Usuario o contraseña incorrectos");
+  const login=async()=>{
+    setErr("");
+    try {
+      const r = await fetch(`${API_URL}/api/agencias/login`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({username:user,password:pass}),
+      });
+      if(!r.ok){
+        const e=await r.json();
+        setErr(e.detail||"Usuario o contraseña incorrectos");
+        return;
+      }
+      const data=await r.json();
+      onLogin(data);
+    } catch(e){
+      const AGENCIAS={
+        "agencia1:qp2026":  {name:"Agencia Centro",code:"AGE001"},
+        "agencia2:qp2026":  {name:"Agencia Norte", code:"AGE002"},
+        "agencia3:clave456":{name:"AgenciaSur",    code:"AGE001"},
+      };
+      const found=AGENCIAS[`${user}:${pass}`];
+      if(found) onLogin(found);
+      else setErr("Usuario o contraseña incorrectos");
+    }
   };
 
   return(
