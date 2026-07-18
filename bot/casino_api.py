@@ -8,13 +8,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 log = logging.getLogger(__name__)
 
-DATABASE_URL   = os.environ.get("DATABASE_URL","")
-X_CODE         = os.environ.get("CASINO_X_CODE","")
-SECRET_KEY     = os.environ.get("CASINO_SECRET_KEY","")
+DATABASE_URL = os.environ.get("DATABASE_URL","")
+X_CODE       = os.environ.get("CASINO_X_CODE","")
+SECRET_KEY   = os.environ.get("CASINO_SECRET_KEY","")
 
 app = FastAPI(title="QuartzPlay API")
-app.add_middleware(CORSMiddleware, allow_origins=["*"],
-    allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=False,
+)
 
 _db_pool = None
 
@@ -25,8 +29,8 @@ async def get_db():
             DATABASE_URL, min_size=2, max_size=10)
     return _db_pool
 
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+def hash_password(p):
+    return hashlib.sha256(p.encode()).hexdigest()
 
 def make_sign(body_json, x_code, x_time):
     if body_json:
@@ -47,25 +51,24 @@ def validate_sign(body_raw, x_code, x_time, x_sign):
         body_raw.decode() if body_raw else None, x_code, x_time)
     return hmac.compare_digest(expected, x_sign)
 
-# ── HEALTH ────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
     return {"status":"ok","service":"QuartzPlay API"}
 
-# ── AGENCIAS — LOGIN ──────────────────────────────────────────
 @app.post("/api/agencias/login")
 async def agencia_login(request: Request):
-    body = await request.json()
+    body     = await request.json()
     username = body.get("username","")
     password = body.get("password","")
-    pool = await get_db()
+    pool     = await get_db()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
             SELECT * FROM agencias
             WHERE username=$1 AND password_hash=$2 AND status='active'
         """, username, hash_password(password))
         if not row:
-            raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
+            raise HTTPException(status_code=401,
+                detail="Usuario o contraseña incorrectos")
         await conn.execute(
             "UPDATE agencias SET last_login=NOW() WHERE code=$1", row["code"])
     return {
@@ -76,26 +79,27 @@ async def agencia_login(request: Request):
         "status":  row["status"],
     }
 
-# ── AGENCIAS — LISTAR (admin) ─────────────────────────────────
 @app.get("/api/agencias")
 async def list_agencias():
     pool = await get_db()
     async with pool.acquire() as conn:
         rows = await conn.fetch("""
-            SELECT a.*,
-                COUNT(at.id) as total_tickets,
-                COALESCE(SUM(at.stake),0) as total_cobrado
+            SELECT a.code, a.name, a.username, a.status,
+                   a.address, a.phone, a.created_at, a.last_login,
+                   COUNT(at.id) as total_tickets,
+                   COALESCE(SUM(at.stake),0) as total_cobrado
             FROM agencias a
             LEFT JOIN agencia_tickets at ON at.agencia_code=a.code
-            GROUP BY a.id
+            GROUP BY a.id, a.code, a.name, a.username,
+                     a.status, a.address, a.phone,
+                     a.created_at, a.last_login
             ORDER BY a.created_at DESC
         """)
     return [dict(r) for r in rows]
 
-# ── AGENCIAS — CREAR (admin) ──────────────────────────────────
 @app.post("/api/agencias")
 async def create_agencia(request: Request):
-    body = await request.json()
+    body     = await request.json()
     name     = body.get("name","")
     username = body.get("username","")
     password = body.get("password","")
@@ -105,7 +109,6 @@ async def create_agencia(request: Request):
         raise HTTPException(status_code=400, detail="Faltan campos requeridos")
     pool = await get_db()
     async with pool.acquire() as conn:
-        # Generar código único AGE-XXX
         count = await conn.fetchval("SELECT COUNT(*) FROM agencias")
         code  = f"AGE{str(count+1).zfill(3)}"
         try:
@@ -114,11 +117,10 @@ async def create_agencia(request: Request):
                     (code, name, username, password_hash, address, phone)
                 VALUES ($1,$2,$3,$4,$5,$6)
             """, code, name, username, hash_password(password), address, phone)
-        except Exception as e:
+        except Exception:
             raise HTTPException(status_code=409, detail="Usuario ya existe")
-    return {"code":code, "name":name, "username":username}
+    return {"code":code,"name":name,"username":username}
 
-# ── AGENCIAS — ACTUALIZAR ─────────────────────────────────────
 @app.put("/api/agencias/{code}")
 async def update_agencia(code: str, request: Request):
     body = await request.json()
@@ -128,15 +130,15 @@ async def update_agencia(code: str, request: Request):
             "SELECT * FROM agencias WHERE code=$1", code)
         if not row:
             raise HTTPException(status_code=404, detail="Agencia no encontrada")
-        name     = body.get("name",     row["name"])
-        address  = body.get("address",  row["address"])
-        phone    = body.get("phone",    row["phone"])
-        status   = body.get("status",   row["status"])
-        password = body.get("password")
+        name    = body.get("name",    row["name"])
+        address = body.get("address", row["address"])
+        phone   = body.get("phone",   row["phone"])
+        status  = body.get("status",  row["status"])
+        password= body.get("password")
         if password:
             await conn.execute("""
-                UPDATE agencias SET name=$2,address=$3,phone=$4,
-                    status=$5,password_hash=$6 WHERE code=$1
+                UPDATE agencias SET name=$2,address=$3,
+                    phone=$4,status=$5,password_hash=$6 WHERE code=$1
             """, code, name, address, phone, status, hash_password(password))
         else:
             await conn.execute("""
@@ -145,9 +147,8 @@ async def update_agencia(code: str, request: Request):
             """, code, name, address, phone, status)
     return {"success":True}
 
-# ── AGENCIAS — STATS ──────────────────────────────────────────
 @app.get("/api/agencias/{code}/stats")
-async def agencia_stats(code: str, dias: int = 30):
+async def agencia_stats(code: str, dias: int=30):
     pool = await get_db()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
@@ -163,7 +164,6 @@ async def agencia_stats(code: str, dias: int = 30):
         """, code, str(dias))
     return dict(row)
 
-# ── BETSLIP — GET ─────────────────────────────────────────────
 @app.get("/api/betslip/{code}")
 async def get_betslip(code: str):
     pool = await get_db()
@@ -171,8 +171,8 @@ async def get_betslip(code: str):
         row = await conn.fetchrow("""
             SELECT b.*, u.username, u.first_name
             FROM betslips b
-            LEFT JOIN users u ON u.id = b.user_id
-            WHERE b.code = $1
+            LEFT JOIN users u ON u.id=b.user_id
+            WHERE b.code=$1
         """, code.upper())
     if not row:
         raise HTTPException(status_code=404, detail="Codigo no encontrado")
@@ -196,13 +196,12 @@ async def get_betslip(code: str):
         "paid_at":       row["paid_at"].strftime("%d/%m/%Y %H:%M") if row["paid_at"] else None,
     }
 
-# ── BETSLIP — PAY ─────────────────────────────────────────────
 @app.post("/api/betslip/{code}/pay")
 async def pay_betslip(code: str, request: Request):
     body     = await request.json()
     stake    = body.get("stake", 0)
-    agent_id = body.get("agent_id", "agencia")
-    pool = await get_db()
+    agent_id = body.get("agent_id","agencia")
+    pool     = await get_db()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT * FROM betslips WHERE code=$1", code.upper())
@@ -219,13 +218,12 @@ async def pay_betslip(code: str, request: Request):
         """, code.upper(), stake, pot_win, agent_id)
         await conn.execute("""
             INSERT INTO sports_bets
-                (user_id, picks, stake, odd_total, potential_win, status, mode)
+                (user_id,picks,stake,odd_total,potential_win,status,mode)
             VALUES ($1,$2,$3,$4,$5,'active','local')
         """, row["user_id"], row["picks"], stake, row["odd_total"], pot_win)
-        # Registrar en agencia_tickets
         await conn.execute("""
             INSERT INTO agencia_tickets
-                (agencia_code, betslip_code, tipo, stake, potential_win)
+                (agencia_code,betslip_code,tipo,stake,potential_win)
             VALUES ($1,$2,'bot',$3,$4)
         """, agent_id, code.upper(), stake, pot_win)
     return {
@@ -234,7 +232,6 @@ async def pay_betslip(code: str, request: Request):
         "potential_win":pot_win,
     }
 
-# ── WALLET API (44neoluck) ────────────────────────────────────
 @app.post("/api/wallet/")
 @app.post("/api/wallet/getBalance")
 @app.post("/api/wallet/setBalance")
@@ -259,7 +256,8 @@ async def wallet(request: Request):
         if not row:
             return JSONResponse({"status":False,"error":"player_not_found"})
         bal = Decimal(row["balance"]) / 100
-        return JSONResponse({"status":True,"balance":str(bal.quantize(Decimal("0.01")))})
+        return JSONResponse({"status":True,
+            "balance":str(bal.quantize(Decimal("0.01")))})
     elif method == "setBalance":
         try:
             amount = Decimal(data.get("amount","0"))
@@ -273,14 +271,15 @@ async def wallet(request: Request):
         async with pool.acquire() as conn:
             async with conn.transaction():
                 row = await conn.fetchrow(
-                    "SELECT id, balance FROM users WHERE username=$1 OR id::text=$1", player)
+                    "SELECT id,balance FROM users WHERE username=$1 OR id::text=$1",
+                    player)
                 if not row:
                     return JSONResponse({"status":False,"error":"player_not_found"})
-                uid = row["id"]; balance = row["balance"]
+                uid=row["id"]; balance=row["balance"]
                 dup = await conn.fetchrow(
                     "SELECT id FROM casino_rounds WHERE external_tx=$1", transaction)
                 if dup:
-                    bal = Decimal(balance) / 100
+                    bal = Decimal(balance)/100
                     return JSONResponse({"status":True,
                         "balance":str(bal.quantize(Decimal("0.01"))),
                         "transaction":transaction})
@@ -288,15 +287,17 @@ async def wallet(request: Request):
                     return JSONResponse({"status":False,"error":"insufficient_funds"})
                 new_balance = balance + amount_cents
                 await conn.execute(
-                    "UPDATE users SET balance=balance+$2 WHERE id=$1", uid, amount_cents)
+                    "UPDATE users SET balance=balance+$2 WHERE id=$1",
+                    uid, amount_cents)
                 await conn.execute("""
                     INSERT INTO casino_rounds
                         (user_id,game,provider,stake,win,ggr,external_tx,created_at)
                     VALUES ($1,$2,'44neoluck',$3,$4,$5,$6,NOW())
                     ON CONFLICT DO NOTHING
-                """, uid, data.get("action","gameplay"), bet_cents,
-                    int(win*100), bet_cents-int(win*100), transaction)
-        new_bal = Decimal(new_balance) / 100
+                """, uid, data.get("action","gameplay"),
+                    bet_cents, int(win*100),
+                    bet_cents-int(win*100), transaction)
+        new_bal = Decimal(new_balance)/100
         return JSONResponse({"status":True,
             "balance":str(new_bal.quantize(Decimal("0.01"))),
             "transaction":transaction})
