@@ -21,7 +21,7 @@ const nowStr = () => new Date().toLocaleString("es-AR",{hour12:false});
 const expires24 = () => { const d=new Date(); d.setHours(d.getHours()+24); return d.toLocaleString("es-AR",{hour12:false}); };
 
 // ── API ───────────────────────────────────────────────────────
-const API_URL = "https://quartzplay-bot.up.railway.app";
+const API_URL = "https://quartzplay-production.up.railway.app";
 
 async function fetchBetslip(code){
   try {
@@ -254,27 +254,10 @@ function LoginScreen({ onLogin }){
   const [pass,setPass]=useState("");
   const [err,setErr]=useState("");
 
-  const login=async()=>{
-    setErr("");
-    try {
-      const r = await fetch(`${API_URL}/api/agencias/login`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({username:user, password:pass}),
-      });
-      if(!r.ok){
-        const e = await r.json();
-        setErr(e.detail||"Usuario o contraseña incorrectos");
-        return;
-      }
-      const data = await r.json();
-      onLogin(data);
-    } catch(e){
-      // Fallback demo si no hay conexión
-      if(user==="agencia1"&&pass==="qp2026") onLogin({name:"Agencia Centro",code:"AGE001"});
-      else if(user==="agencia2"&&pass==="qp2026") onLogin({name:"Agencia Norte",code:"AGE002"});
-      else setErr("Usuario o contraseña incorrectos");
-    }
+  const login=()=>{
+    if(user==="agencia1"&&pass==="qp2026") onLogin({name:"Agencia Centro",code:"AGE001"});
+    else if(user==="agencia2"&&pass==="qp2026") onLogin({name:"Agencia Norte",code:"AGE002"});
+    else setErr("Usuario o contraseña incorrectos");
   };
 
   return(
