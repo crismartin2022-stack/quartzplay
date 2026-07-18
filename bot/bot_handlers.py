@@ -8,11 +8,28 @@ log = logging.getLogger(__name__)
 
 def ars(n): return f"${round(n or 0):,.0f}".replace(",",".")
 
+async def track(pool, code, uid, event, amount=0):
+    try:
+        async with pool.acquire() as conn:
+            user_id = await conn.fetchval(
+                "SELECT id FROM users WHERE telegram_id=$1", uid)
+            if user_id:
+                await conn.execute("""
+                    INSERT INTO influencer_events
+                        (influencer_code, user_id, event, amount)
+                    VALUES ($1, $2, $3, $4)
+                """, code, user_id, event, amount)
+    except Exception as e:
+        log.error(f"Error tracking {code}: {e}")
+
 async def cmd_start(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid  = u.effective_user.id
     name = u.effective_user.first_name or "jugador"
     pool = ctx.bot_data["db_pool"]
+
     async with pool.acquire() as conn:
+        is_new = not await conn.fetchval(
+            "SELECT 1 FROM users WHERE telegram_id=$1", uid)
         await conn.execute("""
             INSERT INTO users (telegram_id, username, first_name)
             VALUES ($1, $2, $3)
@@ -21,19 +38,85 @@ async def cmd_start(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         row = await conn.fetchrow(
             "SELECT balance FROM users WHERE telegram_id=$1", uid)
         balance = row["balance"] if row else 0
+
+    args = ctx.args
+    if args and args[0].startswith("combo"):
+        parts = args[0].split("_", 1)
+        inf_code = parts[1] if len(parts) > 1 else "directo"
+        ctx.user_data["inf_code"] = inf_code
+        await track(pool, inf_code, uid, "click")
+        if is_new:
+            await track(pool, inf_code, uid, "registro")
+        await cb_combo_deeplink(u, ctx, name, balance, inf_code)
+        return
+
     await u.message.reply_text(
-        f"⬡ *QuartzPlay* — Sports Premium\n\n"
-        f"Hola *{name}* 👋\n\n"
-        f"💰 Saldo: *{ars(balance)} ARS*\n\n"
-        f"Elegí una opción:",
-        parse_mode="Markdown",
+        f"Bienvenido a QuartzPlay\n\n"
+        f"Hola {name}\n\n"
+        f"Saldo: {ars(balance)} ARS\n\n"
+        f"Elegi una opcion:",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("⚽ Sports",    callback_data="menu_sports"),
-             InlineKeyboardButton("⚡ AI Combo",  callback_data="sports_combo")],
-            [InlineKeyboardButton("🎯 Pool",      callback_data="sports_pool"),
-             InlineKeyboardButton("🤝 P2P",       callback_data="sports_p2p")],
-            [InlineKeyboardButton("💰 Wallet",    callback_data="menu_wallet"),
-             InlineKeyboardButton("📊 Mis stats", callback_data="menu_stats")],
+            [InlineKeyboardButton("Deportes",  callback_data="menu_sports"),
+             InlineKeyboardButton("AI Combo",  callback_data="sports_combo")],
+            [InlineKeyboardButton("Pool",      callback_data="sports_pool"),
+             InlineKeyboardButton("P2P",       callback_data="sports_p2p")],
+            [InlineKeyboardButton("Wallet",    callback_data="menu_wallet"),
+             InlineKeyboardButton("Mis stats", callback_data="menu_stats")],
+        ]),
+    )
+
+async def cb_combo_deeplink(u, ctx, name, balance, inf_code=None):
+    try:
+        all_odds = await get_all_odds_cached()
+    except Exception:
+        await u.message.reply_text("Error cargando cuotas. Intenta de nuevo.")
+        return
+
+    picks = []
+    for sport_key, data in all_odds.items():
+        for ev in data["events"]:
+            o = ev["odds"]
+            if o["L"] and 1.20 <= o["L"] <= 2.50:
+                picks.append({
+                    "ev_id": ev["id"],
+                    "label": f"{ev['home']} vs {ev['away']} - {ev['home']} gana",
+                    "odd":   o["L"],
+                    "home":  ev["home"],
+                    "away":  ev["away"],
+                })
+        if len(picks) >= 4:
+            break
+
+    if len(picks) < 2:
+        await u.message.reply_text("No hay eventos disponibles ahora.")
+        return
+
+    picks = picks[:4]
+    tot = 1
+    for p in picks:
+        tot *= p["odd"]
+    ctx.user_data["ticket"] = picks
+    if inf_code:
+        ctx.user_data["inf_code"] = inf_code
+
+    text = f"QuartzPlay - Hola {name}\n\nAI COMBO del dia\n\n"
+    for p in picks:
+        text += f"- {p['label']} @ {p['odd']}\n"
+    text += f"\nCuota total: {tot:.2f}x\nTu saldo: {ars(balance)} ARS\n\nElegi cuanto apostar:"
+
+    await u.message.reply_text(
+        text,
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton(
+                f"Apostar $5K - ret ${round(5000*tot):,}",
+                callback_data="confirm_bet_500000")],
+            [InlineKeyboardButton(
+                f"Apostar $10K - ret ${round(10000*tot):,}",
+                callback_data="confirm_bet_1000000")],
+            [InlineKeyboardButton(
+                f"Apostar $20K - ret ${round(20000*tot):,}",
+                callback_data="confirm_bet_2000000")],
+            [InlineKeyboardButton("Ver mas eventos", callback_data="menu_sports")],
         ]),
     )
 
@@ -46,22 +129,22 @@ async def cb_sports(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.edit_message_text(f"Error: {e}")
         return
     ctx.user_data["events"] = {}
-    text = "📋 *Prematch — Cuotas reales*\n\n"
+    text = "Prematch - Cuotas reales\n\n"
     kb = []
     for sport_key, data in list(all_odds.items())[:5]:
         meta = data["meta"]
         events = data["events"]
         if not events:
             continue
-        text += f"{meta['icon']} *{meta['name']}*\n"
+        text += f"{meta['icon']} {meta['name']}\n"
         for ev in events[:3]:
             o = ev["odds"]
             if not o["L"]:
                 continue
             ctx.user_data["events"][ev["id"]] = ev
-            draw = f" · X {o['E']}" if o.get("E") else ""
-            text += f"  {ev['home']} vs {ev['away']} · {ev['time']}\n"
-            text += f"  L {o['L']}{draw} · V {o['V']}\n"
+            draw = f" X {o['E']}" if o.get("E") else ""
+            text += f"  {ev['home']} vs {ev['away']} {ev['time']}\n"
+            text += f"  L {o['L']}{draw} V {o['V']}\n"
             row = []
             row.append(InlineKeyboardButton(
                 f"{ev['home']} {o['L']}",
@@ -80,7 +163,7 @@ async def cb_sports(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         InlineKeyboardButton("Menu",       callback_data="back_main"),
     ])
     await q.edit_message_text(
-        text[:4000], parse_mode="Markdown",
+        text[:4000],
         reply_markup=InlineKeyboardMarkup(kb),
     )
 
@@ -96,12 +179,12 @@ async def cb_bet(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer("Evento no encontrado", show_alert=True)
         return
     side_name = {"L": ev["home"], "E": "Empate", "V": ev["away"]}[side]
-    ticket = ctx.user_data.get("ticket", [])
+    ticket   = ctx.user_data.get("ticket", [])
     existing = [b for b in ticket if b["ev_id"] != ev_id]
     already  = len(existing) < len(ticket)
     if already:
         ctx.user_data["ticket"] = existing
-        await q.answer("Pick removido", show_alert=False)
+        await q.answer("Pick removido")
         return
     ctx.user_data["ticket"] = existing + [{
         "ev_id": ev_id, "side": side, "odd": odd,
@@ -162,6 +245,11 @@ async def cb_confirm_bet(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
             FROM users WHERE telegram_id=$1
             RETURNING id
         """, uid, str([b["label"] for b in ticket]), stake, tot, ret)
+
+    inf_code = ctx.user_data.get("inf_code")
+    if inf_code:
+        await track(pool, inf_code, uid, "apuesta", stake)
+
     ctx.user_data["ticket"] = []
     text = f"Apuesta registrada #{bet_id}\n\n"
     for b in ticket:
