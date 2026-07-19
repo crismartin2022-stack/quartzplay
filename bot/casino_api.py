@@ -324,6 +324,37 @@ async def live_football_league(league_id: str):
         log.error(f"Football league error: {e}")
     return {"error": "No disponible"}
 
+
+# ── TEAM LOGO PROXY ───────────────────────────────────────────
+_logo_cache = {}
+
+@app.get("/api/team-logo")
+async def team_logo(name: str):
+    """Busca el logo de un equipo por nombre"""
+    if name in _logo_cache:
+        return _logo_cache[name]
+    try:
+        async with httpx.AsyncClient(timeout=8) as c:
+            r = await c.get(
+                f"{FOOTBALL_API}/football-search-all-teams",
+                headers=FOOTBALL_HEADERS,
+                params={"search": name},
+            )
+            if r.status_code == 200:
+                data = r.json()
+                teams = data.get("response",{}).get("teams",[])
+                if teams:
+                    team = teams[0]
+                    team_id = team.get("id") or team.get("teamId")
+                    if team_id:
+                        logo_url = f"{FOOTBALL_API}/football-get-team-image?teamId={team_id}"
+                        result = {"url": logo_url, "teamId": team_id, "name": name}
+                        _logo_cache[name] = result
+                        return result
+    except Exception as e:
+        log.error(f"Team logo error: {e}")
+    return {"url": None}
+
 # ── WALLET API (44neoluck) ────────────────────────────────────
 @app.post("/api/wallet/")
 @app.post("/api/wallet/getBalance")
