@@ -330,30 +330,46 @@ _logo_cache = {}
 
 @app.get("/api/team-logo/{team_id}")
 async def team_logo_by_id(team_id: str):
-    """Devuelve el logo de un equipo por teamId — proxy para ocultar el API key"""
+    """Proxy de imagen del equipo — devuelve la imagen directamente"""
+    from fastapi.responses import Response, RedirectResponse
     if team_id in _logo_cache:
-        return _logo_cache[team_id]
+        cached = _logo_cache[team_id]
+        if cached:
+            return RedirectResponse(url=cached)
     try:
-        async with httpx.AsyncClient(timeout=8) as c:
+        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as c:
             r = await c.get(
                 f"{FOOTBALL_API}/football-team-logo",
                 headers=FOOTBALL_HEADERS,
                 params={"teamid": team_id},
             )
             if r.status_code == 200:
-                # La API devuelve la imagen directamente o una URL
                 content_type = r.headers.get("content-type","")
                 if "image" in content_type:
-                    from fastapi.responses import Response
                     _logo_cache[team_id] = None
-                    return Response(content=r.content, media_type=content_type)
-                data = r.json()
-                result = data
-                _logo_cache[team_id] = result
-                return result
+                    return Response(
+                        content=r.content,
+                        media_type=content_type,
+                        headers={"Cache-Control":"public, max-age=86400",
+                                 "Access-Control-Allow-Origin":"*"}
+                    )
+                # Si devuelve JSON con URL
+                try:
+                    data = r.json()
+                    img_url = data.get("url") or data.get("logo") or data.get("image")
+                    if img_url:
+                        _logo_cache[team_id] = img_url
+                        return RedirectResponse(url=img_url)
+                except:
+                    pass
     except Exception as e:
-        log.error(f"Team logo error: {e}")
-    return {"error": "No disponible"}
+        log.error(f"Team logo error {team_id}: {e}")
+    # Fallback — imagen genérica
+    return Response(
+        content=b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><circle cx="12" cy="12" r="10" fill="#7C3AED" opacity="0.3" stroke="#7C3AED" stroke-width="1.5"/><text x="12" y="16" text-anchor="middle" font-size="12" fill="#00F0FF">⚽</text></svg>',
+        media_type="image/svg+xml",
+        headers={"Access-Control-Allow-Origin":"*"}
+    )
 
 @app.get("/api/team-logo")
 async def team_logo_by_name(name: str):
@@ -584,6 +600,134 @@ async def live_combined():
 
     _football_cache[cache_key] = ({"matches": result, "count": len(result)}, now)
     return {"matches": result, "count": len(result)}
+
+
+@app.get("/api/live/markets/{sport_key}")
+async def live_markets(sport_key: str):
+    """Todos los mercados disponibles para un deporte"""
+    ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
+    cache_key = f"markets_{sport_key}"
+    now = time.time()
+    if cache_key in _football_cache:
+        data, ts = _football_cache[cache_key]
+        if now - ts < 60:
+            return data
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.get(
+                f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
+                params={
+                    "apiKey": ODDS_API_KEY,
+                    "regions": "eu",
+                    "markets": "h2h,spreads,totals,btts",
+                    "oddsFormat": "decimal",
+                    "dateFormat": "iso",
+                }
+            )
+            if r.status_code == 200:
+                result = {"events": r.json(), "sport": sport_key}
+                _football_cache[cache_key] = (result, now)
+                return result
+    except Exception as e:
+        log.error(f"Markets error: {e}")
+    return {"events": [], "sport": sport_key}
+
+@app.get("/api/live/all-markets")
+async def all_markets():
+    """Todos los mercados de todos los deportes — prematch y live"""
+    ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
+    SPORTS = [
+        "soccer_argentina_primera_division",
+        "soccer_fifa_world_cup",
+        "soccer_uefa_champs_league",
+        "soccer_spain_la_liga",
+        "soccer_epl",
+        "basketball_nba",
+        "americanfootball_nfl",
+        "mma_mixed_martial_arts",
+        "icehockey_nhl",
+        "tennis_atp_wimbledon",
+    ]
+    cache_key = "all_markets"
+    now = time.time()
+    if cache_key in _football_cache:
+        data, ts = _football_cache[cache_key]
+        if now - ts < 120:
+            return data
+
+    SPORT_NAMES = {
+        "soccer_argentina_primera_division": {"name":"Liga Argentina","icon":"🇦🇷"},
+        "soccer_fifa_world_cup":             {"name":"Mundial 2026",  "icon":"🏆"},
+        "soccer_uefa_champs_league":         {"name":"Champions",     "icon":"⚽"},
+        "soccer_spain_la_liga":              {"name":"La Liga",       "icon":"🇪🇸"},
+        "soccer_epl":                        {"name":"Premier",       "icon":"🏴"},
+        "basketball_nba":                    {"name":"NBA",           "icon":"🏀"},
+        "americanfootball_nfl":              {"name":"NFL",           "icon":"🏈"},
+        "mma_mixed_martial_arts":            {"name":"MMA/UFC",       "icon":"🥊"},
+        "icehockey_nhl":                     {"name":"NHL",           "icon":"🏒"},
+        "tennis_atp_wimbledon":              {"name":"Wimbledon",     "icon":"🎾"},
+    }
+
+    result = {"sports": []}
+    try:
+        async with httpx.AsyncClient(timeout=20) as c:
+            for sport_key in SPORTS:
+                r = await c.get(
+                    f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
+                    params={
+                        "apiKey": ODDS_API_KEY,
+                        "regions": "eu",
+                        "markets": "h2h,totals,btts",
+                        "oddsFormat": "decimal",
+                        "dateFormat": "iso",
+                    }
+                )
+                if r.status_code == 200:
+                    events_raw = r.json()[:8]
+                    events = []
+                    for ev in events_raw:
+                        home = ev.get("home_team","")
+                        away = ev.get("away_team","")
+                        markets = {}
+                        for bm in ev.get("bookmakers",[]):
+                            for mkt in bm.get("markets",[]):
+                                key = mkt["key"]
+                                if key not in markets:
+                                    markets[key] = {}
+                                    for o in mkt.get("outcomes",[]):
+                                        markets[key][o["name"]] = round(o["price"],2)
+                            if markets: break
+                        try:
+                            from datetime import datetime
+                            dt=datetime.fromisoformat(ev.get("commence_time","").replace("Z","+00:00"))
+                            fecha=dt.astimezone().strftime("%d/%m %H:%M")
+                        except:
+                            fecha="--/-- --:--"
+                        events.append({
+                            "id": ev.get("id",""),
+                            "h": home, "a": away,
+                            "time": fecha,
+                            "markets": markets,
+                            "odds": {
+                                "L": markets.get("h2h",{}).get(home),
+                                "E": markets.get("h2h",{}).get("Draw"),
+                                "V": markets.get("h2h",{}).get(away),
+                            }
+                        })
+                    if events:
+                        meta = SPORT_NAMES.get(sport_key,{"name":sport_key,"icon":"⚽"})
+                        result["sports"].append({
+                            "key": sport_key,
+                            "name": meta["name"],
+                            "icon": meta["icon"],
+                            "events": events,
+                        })
+                await asyncio.sleep(0.3)
+    except Exception as e:
+        log.error(f"All markets error: {e}")
+
+    _football_cache[cache_key] = (result, now)
+    return result
 
 # ── WALLET API (44neoluck) ────────────────────────────────────
 @app.post("/api/wallet/")
