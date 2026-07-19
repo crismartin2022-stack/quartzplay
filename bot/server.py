@@ -9,16 +9,12 @@ log = logging.getLogger(__name__)
 
 def run_api():
     port = int(os.environ.get("PORT", 8000))
-    config = uvicorn.Config(
+    uvicorn.run(
         "casino_api:app",
         host="0.0.0.0",
         port=port,
         log_level="info",
-        access_log=True,
-        loop="asyncio",
     )
-    server = uvicorn.Server(config)
-    asyncio.run(server.serve())
 
 async def run_bot():
     from telegram.ext import Application
@@ -48,5 +44,5 @@ async def run_bot():
 if __name__ == "__main__":
     api_thread = threading.Thread(target=run_api, daemon=True)
     api_thread.start()
-    log.info(f"API iniciando en puerto {os.environ.get('PORT',8000)}")
+    log.info(f"API en puerto {os.environ.get('PORT',8000)}")
     asyncio.run(run_bot())
