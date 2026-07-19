@@ -1,4 +1,4 @@
-import os, time, hashlib, hmac, json, logging, ast
+import os, time, hashlib, asyncio, hmac, json, logging, ast
 from decimal import Decimal
 from datetime import datetime, timezone
 import asyncpg
@@ -384,6 +384,206 @@ async def team_logo_by_name(name: str):
     except Exception as e:
         log.error(f"Team search error: {e}")
     return {"teamId": None}
+
+
+@app.get("/api/live/prematch")
+async def prematch_odds():
+    """Cuotas prematch de todas las ligas via The Odds API"""
+    ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
+    SPORTS_MAP = {
+        "soccer_argentina_primera_division": {"name":"Liga Argentina","icon":"ARG"},
+        "soccer_fifa_world_cup":             {"name":"Mundial 2026",  "icon":"MUN"},
+        "soccer_uefa_champs_league":         {"name":"Champions",     "icon":"UCL"},
+        "basketball_nba":                    {"name":"NBA",           "icon":"NBA"},
+        "americanfootball_nfl":              {"name":"NFL",           "icon":"NFL"},
+        "mma_mixed_martial_arts":            {"name":"MMA/UFC",       "icon":"MMA"},
+    }
+    now = time.time()
+    cache_key = "prematch_all"
+    if cache_key in _football_cache:
+        data, ts = _football_cache[cache_key]
+        if now - ts < 300:  # 5 min cache
+            return data
+
+    result = {"sports": []}
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            for sport_key, meta in SPORTS_MAP.items():
+                r = await c.get(
+                    "https://api.the-odds-api.com/v4/sports/{}/odds/".format(sport_key),
+                    params={"apiKey":ODDS_API_KEY,"regions":"eu","markets":"h2h",
+                            "oddsFormat":"decimal","dateFormat":"iso"}
+                )
+                if r.status_code == 200:
+                    events = r.json()[:6]
+                    mapped = []
+                    for ev in events:
+                        home = ev.get("home_team","")
+                        away = ev.get("away_team","")
+                        h_odd=None; d_odd=None; a_odd=None
+                        for bm in ev.get("bookmakers",[]):
+                            for mkt in bm.get("markets",[]):
+                                if mkt["key"]=="h2h":
+                                    for o in mkt.get("outcomes",[]):
+                                        if o["name"]==home: h_odd=round(o["price"],2)
+                                        elif o["name"]==away: a_odd=round(o["price"],2)
+                                        elif o["name"]=="Draw": d_odd=round(o["price"],2)
+                                    break
+                            if h_odd: break
+                        try:
+                            from datetime import datetime
+                            dt=datetime.fromisoformat(ev.get("commence_time","").replace("Z","+00:00"))
+                            fecha=dt.astimezone().strftime("%d/%m %H:%M")
+                        except:
+                            fecha="--/-- --:--"
+                        if h_odd:
+                            mapped.append({"id":ev.get("id",""),"h":home,"a":away,
+                                "time":fecha,"live":False,"odds":{"L":h_odd,"E":d_odd,"V":a_odd}})
+                    if mapped:
+                        result["sports"].append({"name":meta["name"],"icon":meta["icon"],
+                            "events":mapped})
+                await asyncio.sleep(0.3)
+    except Exception as e:
+        log.error(f"Prematch error: {e}")
+
+    _football_cache[cache_key] = (result, now)
+    return result
+
+
+# ── LIVE COMBINED (scores + cuotas en vivo) ───────────────────
+def normalize_name(name):
+    """Normaliza nombre de equipo para matching"""
+    import re
+    name = name.lower()
+    # Remover sufijos comunes
+    for suffix in [" fc", " cf", " sc", " ac", " united", " city", " athletic"]:
+        name = name.replace(suffix, "")
+    # Remover caracteres especiales
+    name = re.sub(r'[^a-z0-9 ]', '', name)
+    return name.strip()
+
+def match_teams(name1, name2):
+    """Compara dos nombres de equipos con fuzzy matching"""
+    n1 = normalize_name(name1)
+    n2 = normalize_name(name2)
+    if n1 == n2: return True
+    if n1 in n2 or n2 in n1: return True
+    # Comparar primeras palabras
+    w1 = n1.split()[0] if n1.split() else ""
+    w2 = n2.split()[0] if n2.split() else ""
+    return w1 == w2 and len(w1) > 3
+
+@app.get("/api/live/combined")
+async def live_combined():
+    """
+    Combina scores en vivo (Football API) con cuotas en vivo (The Odds API)
+    Devuelve partidos en vivo con marcador + cuotas reales
+    """
+    ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
+    now = time.time()
+    cache_key = "live_combined"
+    if cache_key in _football_cache:
+        data, ts = _football_cache[cache_key]
+        if now - ts < 30:  # 30 seg cache
+            return data
+
+    # 1. Traer scores en vivo de Football API
+    live_scores = []
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            r = await c.get(
+                f"{FOOTBALL_API}/football-current-live",
+                headers=FOOTBALL_HEADERS,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                live_scores = data.get("response",{}).get("live",[])
+    except Exception as e:
+        log.error(f"Football live error: {e}")
+
+    # 2. Traer cuotas en vivo de The Odds API (todos los deportes)
+    live_odds = {}
+    LIVE_SPORTS = [
+        "soccer_argentina_primera_division",
+        "soccer_fifa_world_cup",
+        "soccer_uefa_champs_league",
+        "soccer_spain_la_liga",
+        "soccer_epl",
+        "basketball_nba",
+        "americanfootball_nfl",
+        "mma_mixed_martial_arts",
+    ]
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            for sport_key in LIVE_SPORTS:
+                r = await c.get(
+                    f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
+                    params={
+                        "apiKey": ODDS_API_KEY,
+                        "regions": "eu",
+                        "markets": "h2h",
+                        "oddsFormat": "decimal",
+                        "dateFormat": "iso",
+                    }
+                )
+                if r.status_code == 200:
+                    for ev in r.json():
+                        home = ev.get("home_team","")
+                        away = ev.get("away_team","")
+                        h_odd=None; d_odd=None; a_odd=None
+                        for bm in ev.get("bookmakers",[]):
+                            for mkt in bm.get("markets",[]):
+                                if mkt["key"]=="h2h":
+                                    for o in mkt.get("outcomes",[]):
+                                        if o["name"]==home: h_odd=round(o["price"],2)
+                                        elif o["name"]==away: a_odd=round(o["price"],2)
+                                        elif o["name"]=="Draw": d_odd=round(o["price"],2)
+                                    break
+                            if h_odd: break
+                        if h_odd:
+                            live_odds[f"{home}|{away}"] = {
+                                "L": h_odd, "E": d_odd, "V": a_odd,
+                                "sport": sport_key,
+                            }
+                await asyncio.sleep(0.2)
+    except Exception as e:
+        log.error(f"Odds live error: {e}")
+
+    # 3. Combinar scores + cuotas
+    result = []
+    for match in live_scores:
+        home_name = match.get("home",{}).get("name","")
+        away_name = match.get("away",{}).get("name","")
+
+        # Buscar cuotas matcheando por nombre
+        odds = {"L": None, "E": None, "V": None}
+        for key, odd_data in live_odds.items():
+            parts = key.split("|")
+            if len(parts) == 2:
+                if (match_teams(home_name, parts[0]) and
+                    match_teams(away_name, parts[1])):
+                    odds = {"L": odd_data["L"], "E": odd_data["E"], "V": odd_data["V"]}
+                    break
+
+        result.append({
+            "id":        str(match.get("id","")),
+            "home":      home_name,
+            "away":      away_name,
+            "homeId":    match.get("home",{}).get("id"),
+            "awayId":    match.get("away",{}).get("id"),
+            "homeScore": match.get("home",{}).get("score",0),
+            "awayScore": match.get("away",{}).get("score",0),
+            "scoreStr":  match.get("scoreStr","0 - 0"),
+            "minute":    match.get("liveTime",{}).get("short",""),
+            "minuteLong":match.get("liveTime",{}).get("long",""),
+            "status":    "live",
+            "ongoing":   match.get("ongoing",True),
+            "odds":      odds,
+            "hasOdds":   odds["L"] is not None,
+        })
+
+    _football_cache[cache_key] = ({"matches": result, "count": len(result)}, now)
+    return {"matches": result, "count": len(result)}
 
 # ── WALLET API (44neoluck) ────────────────────────────────────
 @app.post("/api/wallet/")
