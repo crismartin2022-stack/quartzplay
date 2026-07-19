@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 
 // ═══════════════════════════════════════════════════════════════
-// QUARTZPLAY SPORTS — Design System
+// QUARTZPLAY SPORTS — Web App Telegram completa
+// Datos reales: The Odds API + Football API
+// Mercados expandidos: 1X2, O/U, BTTS, Handicap
+// Códigos QP desde la web
 // ═══════════════════════════════════════════════════════════════
 const Q = {
   void:"#020208", deep:"#060612", dark:"#0A0A1E",
@@ -16,51 +19,11 @@ const Q = {
   border:"rgba(124,58,237,0.25)",
 };
 
+const API = "https://quartzplay-production.up.railway.app";
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt = n => Number(n||0).toFixed(2);
 const prod = a => a.reduce((x,y)=>x*y,1);
-
-// ── TEAM LOGO ─────────────────────────────────────────────────
-const TEAM_CACHE = {};
-const PROXY = "https://quartzplay-production.up.railway.app";
-
-function TeamLogo({ name, teamId, size=32 }){
-  const [src,setSrc] = useState(null);
-
-  useEffect(()=>{
-    const key = teamId||name;
-    if(!key) return;
-    if(TEAM_CACHE[key]){ setSrc(TEAM_CACHE[key]); return; }
-
-    const url = teamId
-      ? `${PROXY}/api/team-logo/${teamId}`
-      : `${PROXY}/api/team-logo?name=${encodeURIComponent(name)}`;
-
-    fetch(url)
-      .then(r=>r.ok?r.json():null)
-      .then(d=>{
-        const imgUrl = d?.logoUrl || (teamId?`${PROXY}/api/team-logo/${teamId}`:null);
-        if(imgUrl){ TEAM_CACHE[key]=imgUrl; setSrc(imgUrl); }
-      })
-      .catch(()=>{});
-  },[name,teamId]);
-
-  if(!src) return(
-    <div style={{width:size,height:size,borderRadius:"50%",
-      background:`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`,
-      display:"flex",alignItems:"center",justifyContent:"center",
-      fontSize:size*0.5,flexShrink:0}}>⚽</div>
-  );
-
-  return(
-    <img src={src} alt={name} width={size} height={size}
-      style={{borderRadius:"50%",objectFit:"contain",
-        background:"rgba(255,255,255,0.05)",padding:2,flexShrink:0}}
-      onError={()=>setSrc(null)}/>
-  );
-}
-
-
+const genCode = () => "QP-" + Math.floor(10000+Math.random()*90000);
 
 // ── COMPONENTS ────────────────────────────────────────────────
 function GCard({ children, style={}, glow, onClick }){
@@ -71,7 +34,7 @@ function GCard({ children, style={}, glow, onClick }){
       border:`1px solid ${glow?glow+"44":Q.border}`,
       borderRadius:16,
       boxShadow:`0 8px 32px rgba(0,0,0,0.5)${glow?`, 0 0 24px ${glow}22`:""}`,
-      position:"relative", overflow:"hidden", ...style,
+      position:"relative", overflow:"hidden", cursor:onClick?"pointer":"default", ...style,
     }}>
       <div style={{position:"absolute",top:0,left:0,right:0,height:1,
         background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)",
@@ -256,62 +219,218 @@ function TgHeader({ title, sub, onBack }){
   );
 }
 
-// ── DATA ──────────────────────────────────────────────────────
-const SPORTS = [
-  {icon:"🏆",name:"Mundial 2026",events:[
-    {id:"w1",h:"Argentina",a:"Argelia",  time:"22:00",odds:{L:1.30,E:5.50,V:9.00},hot:true},
-    {id:"w2",h:"Brasil",   a:"Marruecos",time:"19:00",odds:{L:1.55,E:4.20,V:5.80}},
-    {id:"w3",h:"España",   a:"C.Verde",  time:"17:00",odds:{L:1.18,E:7.50,V:14.0}},
-    {id:"w4",h:"Francia",  a:"Senegal",  time:"20:00",odds:{L:1.45,E:4.50,V:7.00}},
-  ]},
-  {icon:"🇦🇷",name:"Liga Argentina",events:[
-    {id:"a1",h:"River",    a:"Boca",     time:"LIVE",  odds:{L:1.55,E:3.80,V:5.20},live:true,min:43,score:"1:0"},
-    {id:"a2",h:"Racing",   a:"Independiente",time:"21:30",odds:{L:2.10,E:3.20,V:3.40}},
-    {id:"a3",h:"San Lorenzo",a:"Huracán",time:"18:00",odds:{L:2.30,E:3.10,V:3.10}},
-  ]},
-  {icon:"⚽",name:"Champions League",events:[
-    {id:"c1",h:"R.Madrid", a:"Bayern",   time:"LIVE",  odds:{L:2.10,E:3.40,V:3.20},live:true,min:67,score:"2:1"},
-    {id:"c2",h:"City",     a:"Arsenal",  time:"21:00", odds:{L:1.75,E:3.60,V:4.50}},
-  ]},
-  {icon:"🏀",name:"NBA",events:[
-    {id:"n1",h:"Lakers",   a:"Celtics",  time:"02:00", odds:{L:1.95,E:null,V:1.85}},
-    {id:"n2",h:"Warriors", a:"Bulls",    time:"00:30", odds:{L:1.65,E:null,V:2.20}},
-  ]},
-  {icon:"🎾",name:"Wimbledon",events:[
-    {id:"t1",h:"Djokovic", a:"Alcaraz",  time:"LIVE",  odds:{L:1.80,E:null,V:2.00},live:true,set:"2-1"},
-    {id:"t2",h:"Swiatek",  a:"Sabalenka",time:"15:00", odds:{L:1.70,E:null,V:2.10}},
-  ]},
-  {icon:"🏈",name:"NFL",events:[
-    {id:"f1",h:"Chiefs",   a:"Eagles",   time:"Dom 22:00",odds:{L:1.85,E:null,V:1.95}},
-  ]},
-  {icon:"🏒",name:"NHL",events:[
-    {id:"h1",h:"Rangers",  a:"Bruins",   time:"01:00", odds:{L:2.10,E:null,V:1.75}},
-  ]},
-  {icon:"🥊",name:"MMA / UFC",events:[
-    {id:"m1",h:"Adesanya", a:"Whittaker",time:"Dom 04:00",odds:{L:1.65,E:null,V:2.25}},
-  ]},
-];
+// ── TEAM LOGO ─────────────────────────────────────────────────
+const LOGO_CACHE = {};
 
+function TeamLogo({ name, teamId, size=36 }){
+  const [src,setSrc] = useState(null);
+  useEffect(()=>{
+    if(!teamId&&!name) return;
+    const key = teamId ? String(teamId) : name;
+    if(LOGO_CACHE[key]){ setSrc(LOGO_CACHE[key]); return; }
+    const url = teamId
+      ? `${API}/api/team-logo/${teamId}`
+      : null;
+    if(!url) return;
+    setSrc(url);
+    LOGO_CACHE[key] = url;
+  },[teamId,name]);
+
+  if(!src) return(
+    <div style={{width:size,height:size,borderRadius:"50%",
+      background:`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`,
+      display:"flex",alignItems:"center",justifyContent:"center",
+      fontSize:size*0.5,flexShrink:0}}>⚽</div>
+  );
+  return(
+    <img src={src} alt={name||""} width={size} height={size}
+      style={{borderRadius:"50%",objectFit:"contain",
+        background:"rgba(255,255,255,0.05)",padding:2,flexShrink:0}}
+      onError={()=>setSrc(null)}/>
+  );
+}
+
+// ── MARKET SELECTOR ────────────────────────────────────────────
+const MARKET_LABELS = {
+  h2h:     {label:"1X2",      desc:"Resultado final"},
+  totals:  {label:"O/U",      desc:"Más/menos goles"},
+  btts:    {label:"BTTS",     desc:"Ambos anotan"},
+  spreads: {label:"Handicap", desc:"Ventaja de goles"},
+};
+
+function MarketTabs({ markets, selected, onSelect }){
+  const available = Object.keys(markets||{}).filter(k=>MARKET_LABELS[k]);
+  if(available.length<=1) return null;
+  return(
+    <div style={{display:"flex",gap:4,marginBottom:8,overflowX:"auto"}}>
+      {available.map(k=>(
+        <button key={k} onClick={()=>onSelect(k)} style={{
+          background:selected===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
+          border:`1px solid ${selected===k?Q.violet:Q.border}`,
+          borderRadius:8,padding:"4px 10px",cursor:"pointer",flexShrink:0,
+          color:selected===k?Q.violet2:Q.muted,fontSize:10,fontWeight:selected===k?700:400,
+          fontFamily:"'Space Grotesk',system-ui",
+        }}>{MARKET_LABELS[k]?.label||k}</button>
+      ))}
+    </div>
+  );
+}
+
+function OddsButtons({ ev, market, bets, onToggle, live=false }){
+  const markets = ev.markets || {};
+  const mkt = markets[market] || {};
+  const color = live?Q.pink:Q.violet;
+
+  // Build outcomes based on market
+  let outcomes = [];
+  if(market==="h2h"){
+    outcomes=[
+      {label:ev.h||ev.home,val:mkt[ev.h||ev.home]||ev.odds?.L},
+      {label:"Empate",val:mkt["Draw"]||ev.odds?.E},
+      {label:ev.a||ev.away,val:mkt[ev.a||ev.away]||ev.odds?.V},
+    ].filter(o=>o.val);
+  } else if(market==="totals"){
+    const over=Object.keys(mkt).find(k=>k.startsWith("Over"));
+    const under=Object.keys(mkt).find(k=>k.startsWith("Under"));
+    if(over) outcomes.push({label:`+${over.replace("Over ","").replace("Over","")} goles`,val:mkt[over]});
+    if(under) outcomes.push({label:`-${under.replace("Under ","").replace("Under","")} goles`,val:mkt[under]});
+  } else if(market==="btts"){
+    if(mkt["Yes"]) outcomes.push({label:"Ambos anotan Sí",val:mkt["Yes"]});
+    if(mkt["No"])  outcomes.push({label:"Ambos anotan No",val:mkt["No"]});
+  } else if(market==="spreads"){
+    Object.entries(mkt).forEach(([k,v])=>{
+      outcomes.push({label:k,val:v});
+    });
+  }
+
+  if(!outcomes.length) return(
+    <div style={{textAlign:"center",color:Q.dim,fontSize:11,padding:"6px 0",
+      fontFamily:"'Space Grotesk',system-ui"}}>Mercado no disponible</div>
+  );
+
+  return(
+    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+      {outcomes.map((o,i)=>{
+        const sel=bets.some(b=>b.id===ev.id&&b.label===o.label);
+        return(
+          <button key={i} onClick={()=>onToggle(ev,o.label,o.val)} style={{
+            flex:1,minWidth:70,
+            background:sel?`linear-gradient(135deg,${color}44,${Q.violet}22)`:"rgba(255,255,255,0.04)",
+            border:`1.5px solid ${sel?color:Q.border}`,
+            borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
+            boxShadow:sel?`0 0 12px ${color}33`:"none",transition:"all 0.2s",
+          }}>
+            <div style={{color:Q.muted,fontSize:8,fontFamily:"'Space Grotesk',system-ui",
+              marginBottom:2,lineHeight:1.2}}>{o.label}</div>
+            <div style={{color:sel?color:Q.text,fontWeight:700,fontSize:14,
+              fontFamily:"'Space Grotesk',system-ui"}}>{fmt(o.val)}</div>
+            {live&&<div style={{color:Q.pink,fontSize:7,marginTop:1}}>◉ LIVE</div>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── BETSLIP FLOTANTE ───────────────────────────────────────────
+function FloatingBetslip({ bets, onBet, onClear, color=Q.violet, live=false }){
+  const [monto,setMonto]=useState(10000);
+  const tot=bets.length?prod(bets.map(b=>b.odd)):1;
+  if(!bets.length) return null;
+  return(
+    <div style={{position:"fixed",bottom:10,left:"50%",transform:"translateX(-50%)",
+      width:"calc(100% - 24px)",maxWidth:406,zIndex:40}}>
+      <GCard glow={color} style={{padding:"12px 14px",background:"rgba(6,6,18,0.97)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            {live&&<LiveDot/>}
+            <span style={{color:Q.muted,fontSize:12}}>{bets.length} picks · <span style={{color,fontWeight:700}}>{fmt(tot)}x</span></span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{color:Q.green,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>
+              {ars(Math.round(monto*tot))}
+            </span>
+            <button onClick={onClear} style={{background:"transparent",border:"none",
+              color:Q.dim,cursor:"pointer",fontSize:16,padding:0}}>✕</button>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:5,marginBottom:8}}>
+          {[5000,10000,20000,50000].map(v=>(
+            <button key={v} onClick={()=>setMonto(v)} style={{
+              flex:1,background:monto===v?`${color}33`:"rgba(255,255,255,0.04)",
+              border:`1px solid ${monto===v?color:Q.border}`,
+              borderRadius:8,padding:"5px 2px",cursor:"pointer",
+              color:monto===v?color:Q.muted,fontSize:9,fontWeight:monto===v?700:400,
+              fontFamily:"'Space Grotesk',system-ui",
+            }}>{v>=1000?`$${v/1000}K`:v}</button>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          <QBtn label={`APOSTAR ${ars(monto)}`} full color={color} size="lg"
+            onClick={()=>onBet(bets,monto,tot)}/>
+          <button onClick={()=>{
+            // Generar código QP para ir al local
+            const code=genCode();
+            alert(`Código generado: ${code}\nLlevalo al local para apostar en efectivo.`);
+          }} style={{
+            background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.border}`,
+            borderRadius:12,padding:"0 12px",cursor:"pointer",color:Q.muted,
+            fontSize:11,fontFamily:"'Space Grotesk',system-ui",whiteSpace:"nowrap",
+          }}>🏪 Local</button>
+        </div>
+      </GCard>
+    </div>
+  );
+}
+
+// ── POOLS & P2P DATA ───────────────────────────────────────────
 const POOLS_ACTIVE = [
-  {id:"p1",name:"Combo Mundial IA",picks:["Argentina gana","Brasil gana","España +1.5"],pot:284500,users:47,odd:3.12,closes:"02:00hs"},
+  {id:"p1",name:"Combo Mundial IA",picks:["Argentina gana","Brasil gana","España +1.5"],pot:284500,users:47,odd:3.12,closes:"22:00hs"},
   {id:"p2",name:"Clásico Argentino",picks:["River gana","Más de 1.5 goles"],pot:156200,users:28,odd:2.45,closes:"21:30hs"},
-  {id:"p3",name:"Noche Champions",picks:["R.Madrid gana","City gana"],pot:98700,users:19,odd:1.89,closes:"20:45hs"},
 ];
 
 const P2P_OFFERS = [
-  {id:"o1",user:"@champion_ar",  offer:"Argentina gana @1.30",stake:50000, lay:65000,expires:"30 min",lv:14},
-  {id:"o2",user:"@bet_king",     offer:"River gana @1.55",    stake:30000, lay:46500,expires:"45 min",lv:9},
-  {id:"o3",user:"@apostador99",  offer:"R.Madrid gana @2.10", stake:20000, lay:42000,expires:"1h",    lv:12},
-  {id:"o4",user:"@pibe_bets",    offer:"Djokovic gana @1.80", stake:15000, lay:27000,expires:"2h",    lv:6},
+  {id:"o1",user:"@champion_ar",offer:"Argentina gana @1.30",stake:50000,lay:65000,expires:"30 min",lv:14},
+  {id:"o2",user:"@bet_king",offer:"River gana @1.55",stake:30000,lay:46500,expires:"45 min",lv:9},
+  {id:"o3",user:"@apostador99",offer:"R.Madrid gana @2.10",stake:20000,lay:42000,expires:"1h",lv:12},
+];
+
+const AI_COMBOS = [
+  {id:"c1",name:"AI COMBO #47",conf:8,tag:"Confianza alta",tagColor:Q.green,
+    picks:[
+      {h:"Argentina",a:"Argelia",sel:"Argentina gana",odd:1.30,mkt:"1X2",live:false},
+      {h:"River",a:"Boca",sel:"River gana",odd:1.55,mkt:"1X2",live:true,min:43},
+      {h:"R.Madrid",a:"Bayern",sel:"R.Madrid gana",odd:2.10,mkt:"1X2",live:true,min:67},
+    ],
+    note:"River domina en casa · Argentina favorita clara",
+  },
+  {id:"c2",name:"AI COMBO #48",conf:7,tag:"Goles & Over",tagColor:Q.amber,
+    picks:[
+      {h:"España",a:"C.Verde",sel:"Más de 2.5 goles",odd:1.40,mkt:"O/U",live:false},
+      {h:"Brasil",a:"Marruecos",sel:"Más de 1.5 goles",odd:1.55,mkt:"O/U",live:false},
+      {h:"City",a:"Arsenal",sel:"Ambos anotan",odd:1.70,mkt:"BTTS",live:false},
+    ],
+    note:"3 partidos con alto dominio ofensivo",
+  },
+  {id:"c3",name:"AI COMBO #49",conf:9,tag:"Alta cuota",tagColor:Q.violet2,
+    picks:[
+      {h:"Lakers",a:"Celtics",sel:"Lakers gana",odd:1.95,mkt:"ML",live:false},
+      {h:"Warriors",a:"Bulls",sel:"Warriors -5.5",odd:1.85,mkt:"Handicap",live:false},
+      {h:"Djokovic",a:"Alcaraz",sel:"Djokovic gana",odd:1.80,mkt:"ML",live:true,set:"2-1"},
+    ],
+    note:"Alta cuota · Favoritos en todas las ligas",
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// PANTALLA 1 — CANAL PÚBLICO SPORTS
+// PANTALLA 1 — CANAL PÚBLICO
 // ═══════════════════════════════════════════════════════════════
 function ScreenCanal({ onBot }){
-  const [pool,setPool] = useState(284500);
+  const [pool,setPool]=useState(284500);
+  const [liveCount,setLiveCount]=useState(0);
   useEffect(()=>{
     const t=setInterval(()=>setPool(v=>v+Math.round(Math.random()*200+50)),1200);
+    fetch(`${API}/api/live/combined`).then(r=>r.json()).then(d=>setLiveCount(d.matches?.length||0)).catch(()=>{});
     return()=>clearInterval(t);
   },[]);
 
@@ -322,85 +441,26 @@ function ScreenCanal({ onBot }){
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
-
-        {/* Hero */}
         <GCard glow={Q.violet} style={{padding:"18px",marginBottom:14,
           background:`linear-gradient(135deg,${Q.violet}15,${Q.cyan}08)`}}>
           <Particles count={8}/>
           <div style={{position:"relative",zIndex:1,textAlign:"center"}}>
             <QPLogo size={22}/>
             <div style={{color:Q.muted,fontSize:11,marginTop:4,marginBottom:14,fontFamily:"'Space Grotesk',system-ui"}}>
-              Sports Premium · 4 modos de apuesta 🇦🇷
+              Sports Premium · 4 modos · Cuotas reales 🇦🇷
             </div>
             <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap",marginBottom:14}}>
               <HBadge label="⚽ Prematch" color={Q.violet}/>
               <HBadge label="🔴 En Vivo" color={Q.pink}/>
               <HBadge label="🎯 Pool" color={Q.gold}/>
               <HBadge label="🤝 P2P" color={Q.teal}/>
+              {liveCount>0&&<HBadge label={`${liveCount} LIVE ahora`} color={Q.pink}/>}
             </div>
             <QKB rows={[[{label:"Abrir QuartzPlay Sports",action:"open",primary:true,icon:"⬡"}]]} onPress={onBot}/>
           </div>
         </GCard>
 
-        {/* Live matches */}
-        {SPORTS.flatMap(s=>s.events.filter(e=>e.live)).map(ev=>(
-          <GCard key={ev.id} glow={Q.pink} style={{padding:"12px 14px",marginBottom:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <LiveDot/>
-              <span style={{color:Q.text,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
-                {ev.h} vs {ev.a}
-              </span>
-              {ev.score&&<span style={{color:Q.gold,fontWeight:900,fontFamily:"'Space Grotesk',system-ui"}}>{ev.score}</span>}
-              {ev.min&&<span style={{color:Q.muted,fontSize:11}}>Min {ev.min}'</span>}
-              {ev.set&&<span style={{color:Q.muted,fontSize:11}}>Set {ev.set}</span>}
-            </div>
-            <div style={{display:"flex",gap:5,marginBottom:8}}>
-              {[{l:ev.h,v:ev.odds.L,c:Q.amber},{l:"Empate",v:ev.odds.E,c:Q.muted},{l:ev.a,v:ev.odds.V,c:Q.cyan}]
-                .filter(o=>o.v).map((o,i)=>(
-                <div key={i} style={{flex:1,background:"rgba(255,255,255,0.04)",
-                  border:`1px solid ${Q.border}`,borderRadius:9,padding:"7px 4px",textAlign:"center"}}>
-                  <div style={{color:Q.muted,fontSize:9,fontFamily:"'Space Grotesk',system-ui"}}>{o.l}</div>
-                  <div style={{color:o.c,fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(o.v)}</div>
-                  <div style={{color:Q.pink,fontSize:8}}>◉ LIVE</div>
-                </div>
-              ))}
-            </div>
-            <QKB rows={[[{label:"APOSTAR EN VIVO",action:"open",primary:true,icon:"🎰",color:Q.pink,color2:Q.violet}]]} onPress={onBot}/>
-          </GCard>
-        ))}
-
-        {/* Pool activo */}
-        <GCard glow={Q.gold} style={{padding:"14px",marginBottom:14}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-            <div style={{width:28,height:28,borderRadius:8,
-              background:`linear-gradient(135deg,${Q.gold},${Q.amber})`,
-              display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🎯</div>
-            <div>
-              <div style={{color:Q.text,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>POOL ACTIVO — Combo Mundial IA</div>
-              <div style={{color:Q.muted,fontSize:11}}>47 jugadores · cierra a las 22:00hs</div>
-            </div>
-          </div>
-          <div style={{display:"flex",gap:8,marginBottom:10}}>
-            <GCard glow={Q.gold} style={{flex:1,padding:"8px",textAlign:"center"}}>
-              <div style={{color:Q.gold,fontWeight:900,fontSize:18,fontFamily:"'Space Grotesk',system-ui"}}>{ars(pool)}</div>
-              <div style={{color:Q.muted,fontSize:9}}>Pozo total</div>
-            </GCard>
-            <GCard style={{flex:1,padding:"8px",textAlign:"center"}}>
-              <div style={{color:Q.cyan,fontWeight:700,fontSize:18,fontFamily:"'Space Grotesk',system-ui"}}>3.12x</div>
-              <div style={{color:Q.muted,fontSize:9}}>Cuota combo</div>
-            </GCard>
-          </div>
-          {["Argentina gana @1.30","Brasil gana @1.55","España +1.5 goles @1.62"].map((p,i)=>(
-            <div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 0",
-              borderBottom:i<2?`1px solid ${Q.dim}`:"none"}}>
-              <span style={{color:Q.green,fontSize:11}}>✓</span>
-              <span style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{p}</span>
-            </div>
-          ))}
-          <QKB rows={[[{label:"UNIRME AL POOL",action:"open",primary:true,icon:"🎯",color:Q.gold,color2:Q.amber}]]} onPress={onBot}/>
-        </GCard>
-
-        {/* AI Combo */}
+        {/* AI Combo destacado */}
         <GCard glow={Q.violet} style={{padding:"14px",marginBottom:14}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
             <div style={{width:28,height:28,borderRadius:8,
@@ -408,12 +468,10 @@ function ScreenCanal({ onBot }){
               display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚡</div>
             <div>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>AI COMBO #47 — 8/10</div>
-              <div style={{display:"flex",gap:5,marginTop:2}}>
-                <HBadge label="Confianza alta" color={Q.green}/>
-              </div>
+              <HBadge label="Confianza alta" color={Q.green}/>
             </div>
           </div>
-          {[{h:"Argentina",a:"Argelia",sel:"Argentina",odd:1.30},{h:"River",a:"Boca",sel:"River",odd:1.55,live:true},{h:"R.Madrid",a:"Bayern",sel:"R.Madrid",odd:2.10,live:true}].map((p,i)=>(
+          {AI_COMBOS[0].picks.map((p,i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",
               borderBottom:i<2?`1px solid ${Q.dim}`:"none"}}>
               <div>
@@ -428,18 +486,26 @@ function ScreenCanal({ onBot }){
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
             <div>
               <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1}}>Cuota</div>
-              <div style={{color:Q.gold,fontWeight:900,fontSize:20,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(prod([1.30,1.55,2.10]))}x</div>
+              <div style={{color:Q.gold,fontWeight:900,fontSize:20,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(prod(AI_COMBOS[0].picks.map(p=>p.odd)))}x</div>
             </div>
             <div style={{textAlign:"right"}}>
               <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1}}>Ret. $10K</div>
-              <div style={{color:Q.green,fontWeight:900,fontSize:18,fontFamily:"'Space Grotesk',system-ui"}}>{ars(Math.round(10000*prod([1.30,1.55,2.10])))}</div>
+              <div style={{color:Q.green,fontWeight:900,fontSize:18,fontFamily:"'Space Grotesk',system-ui"}}>{ars(Math.round(10000*prod(AI_COMBOS[0].picks.map(p=>p.odd))))}</div>
             </div>
           </div>
           <QKB rows={[[{label:"APOSTAR COMBO",action:"open",primary:true,icon:"⚡"}]]} onPress={onBot}/>
         </GCard>
-      </div>
 
-      {/* CTA */}
+        {/* Pool */}
+        <GCard glow={Q.gold} style={{padding:"14px",marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div style={{color:Q.text,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>🎯 POOL ACTIVO</div>
+            <div style={{color:Q.gold,fontWeight:900,fontSize:18,fontFamily:"'Space Grotesk',system-ui"}}>{ars(pool)}</div>
+          </div>
+          <div style={{color:Q.muted,fontSize:11,marginBottom:10}}>47 jugadores · Combo Mundial IA</div>
+          <QKB rows={[[{label:"UNIRME AL POOL",action:"open",primary:true,icon:"🎯",color:Q.gold,color2:Q.amber}]]} onPress={onBot}/>
+        </GCard>
+      </div>
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",
         width:"100%",maxWidth:430,padding:"10px 12px 14px",
         background:`linear-gradient(0deg,${Q.void} 70%,transparent)`,zIndex:40}}>
@@ -459,11 +525,16 @@ function ScreenCanal({ onBot }){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PANTALLA 2 — MENÚ SPORTS EN EL BOT
+// PANTALLA 2 — MENÚ SPORTS
 // ═══════════════════════════════════════════════════════════════
 function ScreenSportsMenu({ onAction }){
   const [pool,setPool]=useState(284500);
-  useEffect(()=>{const t=setInterval(()=>setPool(v=>v+Math.round(Math.random()*150+30)),1200);return()=>clearInterval(t);},[]);
+  const [liveCount,setLiveCount]=useState(0);
+  useEffect(()=>{
+    const t=setInterval(()=>setPool(v=>v+Math.round(Math.random()*150+30)),1200);
+    fetch(`${API}/api/live/combined`).then(r=>r.json()).then(d=>setLiveCount(d.matches?.length||0)).catch(()=>{});
+    return()=>clearInterval(t);
+  },[]);
 
   return(
     <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
@@ -474,51 +545,46 @@ function ScreenSportsMenu({ onAction }){
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
         <UserMsg time="9:43">/sports</UserMsg>
         <BotMsg time="9:43">
-          {/* Balance */}
           <GCard glow={Q.green} style={{padding:"12px 14px",marginBottom:12,
             background:`linear-gradient(135deg,${Q.green}10,${Q.violet}08)`}}>
-            <Particles count={4} c1={Q.green} c2={Q.violet}/>
-            <div style={{position:"relative",zIndex:1,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{color:Q.muted,fontSize:9,letterSpacing:2,textTransform:"uppercase",fontFamily:"'Space Grotesk',system-ui"}}>SALDO</div>
-                <div style={{color:Q.green,fontWeight:900,fontSize:22,fontFamily:"'Space Grotesk',system-ui",textShadow:`0 0 10px ${Q.green}66`}}>{ars(145000)}</div>
+                <div style={{color:Q.green,fontWeight:900,fontSize:22,fontFamily:"'Space Grotesk',system-ui"}}>{ars(145000)}</div>
               </div>
               <div style={{textAlign:"right"}}>
                 <HBadge label="Plan Pro ⭐" color={Q.violet}/>
-                <div style={{color:Q.muted,fontSize:10,marginTop:4}}>Apuestas activas: 3</div>
+                <div style={{color:Q.muted,fontSize:10,marginTop:4}}>Activas: 3</div>
               </div>
             </div>
           </GCard>
 
-          {/* Live alert */}
-          <GCard glow={Q.pink} style={{padding:"10px 12px",marginBottom:12,cursor:"pointer"}}
-            onClick={()=>onAction("live")}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <LiveDot/>
-                <div>
-                  <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>2 partidos en vivo ahora</div>
-                  <div style={{color:Q.muted,fontSize:10}}>River 1:0 Boca · R.Madrid 2:1 Bayern</div>
+          {liveCount>0&&(
+            <GCard glow={Q.pink} style={{padding:"10px 12px",marginBottom:12,cursor:"pointer"}}
+              onClick={()=>onAction("live")}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <LiveDot/>
+                  <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>
+                    {liveCount} partidos en vivo ahora
+                  </div>
                 </div>
+                <span style={{color:Q.pink,fontSize:18}}>›</span>
               </div>
-              <span style={{color:Q.pink,fontSize:18}}>›</span>
-            </div>
-          </GCard>
+            </GCard>
+          )}
 
-          {/* Pool pozo */}
           <GCard glow={Q.gold} style={{padding:"10px 12px",marginBottom:12,cursor:"pointer"}}
             onClick={()=>onAction("pool")}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
-                <div style={{color:Q.muted,fontSize:9,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Space Grotesk',system-ui"}}>🎯 POOL ACTIVO</div>
+                <div style={{color:Q.muted,fontSize:9,letterSpacing:1,textTransform:"uppercase"}}>🎯 POOL ACTIVO</div>
                 <div style={{color:Q.gold,fontWeight:900,fontSize:18,fontFamily:"'Space Grotesk',system-ui"}}>{ars(pool)}</div>
-                <div style={{color:Q.muted,fontSize:10}}>47 jugadores · cierra 22:00hs</div>
               </div>
               <span style={{color:Q.gold,fontSize:18}}>›</span>
             </div>
           </GCard>
 
-          {/* 4 modos */}
           <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1,
             fontFamily:"'Space Grotesk',system-ui",marginBottom:8}}>Modos de apuesta</div>
           <QKB rows={[
@@ -533,37 +599,38 @@ function ScreenSportsMenu({ onAction }){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PANTALLA 3 — PREMATCH (todos los deportes)
+// PANTALLA 3 — PREMATCH (datos reales + mercados expandidos)
 // ═══════════════════════════════════════════════════════════════
 function ScreenPrematch({ onAction, onBet }){
   const [bets,setBets]=useState([]);
-  const [sport,setSport]=useState(null);
-  const [prematchSports,setPrematchSports]=useState(
-    SPORTS.map(s=>({...s,events:s.events.filter(e=>!e.live)})).filter(s=>s.events.length>0)
-  );
+  const [sports,setSports]=useState([]);
   const [loading,setLoading]=useState(true);
+  const [sport,setSport]=useState(null);
+  const [openMarkets,setOpenMarkets]=useState({}); // eventId -> market key
+  const [expandedEvents,setExpandedEvents]=useState({});
 
   useEffect(()=>{
-    fetch("https://quartzplay-production.up.railway.app/api/live/prematch")
-      .then(r=>r.ok?r.json():null)
-      .then(data=>{
-        if(data&&data.sports&&data.sports.length>0){
-          setPrematchSports(data.sports);
-        }
-      })
+    fetch(`${API}/api/live/all-markets`)
+      .then(r=>r.json())
+      .then(d=>{ if(d.sports) setSports(d.sports); })
       .catch(()=>{})
       .finally(()=>setLoading(false));
   },[]);
 
   const toggle=(ev,label,odd)=>{
     setBets(p=>{
-      const w=p.filter(b=>b.id!==ev.id);
+      const w=p.filter(b=>b.id!==ev.id||b.label!==label);
       if(p.find(b=>b.id===ev.id&&b.label===label)) return w;
-      return[...w,{id:ev.id,label,odd,h:ev.h,a:ev.a}];
+      return[...w,{id:ev.id,label,odd,h:ev.h||ev.home,a:ev.a||ev.away}];
     });
   };
-  const isSel=(id,l)=>bets.some(b=>b.id===id&&b.label===l);
-  const tot=bets.length?prod(bets.map(b=>b.odd)):1;
+
+  const getMkt=(ev)=>openMarkets[ev.id]||"h2h";
+  const setMkt=(ev,k)=>setOpenMarkets(m=>({...m,[ev.id]:k}));
+  const toggleExpand=(id)=>setExpandedEvents(e=>({...e,[id]:!e[id]}));
+
+  const displaySports = sports.length>0 ? sports :
+    [{name:"Cargando...",icon:"⚽",events:[]}];
 
   return(
     <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
@@ -571,10 +638,12 @@ function ScreenPrematch({ onAction, onBet }){
       <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
-      <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
+      <div style={{position:"relative",zIndex:1,padding:"14px 12px 120px"}}>
         <UserMsg time="9:50">📋 Prematch</UserMsg>
         <BotMsg time="9:50">
-          <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:10,fontFamily:"'Space Grotesk',system-ui"}}>📋 Apuestas Prematch</div>
+          <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:10,fontFamily:"'Space Grotesk',system-ui"}}>
+            📋 Apuestas Prematch — Cuotas reales
+          </div>
 
           {/* Sport filter */}
           <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:12,paddingBottom:2}}>
@@ -582,113 +651,87 @@ function ScreenPrematch({ onAction, onBet }){
               background:!sport?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
               border:`1px solid ${!sport?Q.cyan:Q.border}`,borderRadius:20,
               padding:"5px 12px",cursor:"pointer",color:!sport?Q.cyan:Q.muted,
-              fontSize:10,fontWeight:!sport?700:400,fontFamily:"'Space Grotesk',system-ui",whiteSpace:"nowrap",flexShrink:0,
+              fontSize:10,fontWeight:!sport?700:400,fontFamily:"'Space Grotesk',system-ui",
+              whiteSpace:"nowrap",flexShrink:0,
             }}>Todos</button>
-            {prematchSports.map(s=>(
+            {displaySports.map(s=>(
               <button key={s.name} onClick={()=>setSport(s.name)} style={{
                 background:sport===s.name?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
                 border:`1px solid ${sport===s.name?Q.cyan:Q.border}`,borderRadius:20,
                 padding:"5px 12px",cursor:"pointer",color:sport===s.name?Q.cyan:Q.muted,
-                fontSize:10,fontWeight:sport===s.name?700:400,fontFamily:"'Space Grotesk',system-ui",whiteSpace:"nowrap",flexShrink:0,
+                fontSize:10,fontWeight:sport===s.name?700:400,fontFamily:"'Space Grotesk',system-ui",
+                whiteSpace:"nowrap",flexShrink:0,
               }}>{s.icon} {s.name}</button>
             ))}
           </div>
 
-          {/* Events */}
-          {prematchSports.filter(s=>!sport||s.name===sport).map(s=>(
-            <div key={s.name} style={{marginBottom:12}}>
+          {loading&&<div style={{textAlign:"center",color:Q.muted,padding:20,fontFamily:"'Space Grotesk',system-ui"}}>
+            Cargando cuotas reales...
+          </div>}
+
+          {displaySports.filter(s=>!sport||s.name===sport).map(s=>(
+            <div key={s.name} style={{marginBottom:14}}>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
                 <span style={{fontSize:16}}>{s.icon}</span>
                 <span style={{color:Q.violet2,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{s.name}</span>
               </div>
-              {s.events.map(ev=>(
+              {(s.events||[]).map(ev=>(
                 <GCard key={ev.id} style={{padding:"12px 14px",marginBottom:8}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                    <div style={{color:Q.text,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
-                      {ev.h} <span style={{color:Q.dim}}>vs</span> {ev.a}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}
+                    onClick={()=>toggleExpand(ev.id)}>
+                    <div>
+                      <div style={{color:Q.text,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
+                        {ev.h} <span style={{color:Q.dim}}>vs</span> {ev.a}
+                      </div>
+                      <div style={{color:Q.muted,fontSize:10,marginTop:2}}>{ev.time}</div>
                     </div>
-                    <span style={{color:Q.muted,fontSize:11}}>{ev.time}</span>
+                    <span style={{color:Q.muted,fontSize:18}}>{expandedEvents[ev.id]?"▲":"▼"}</span>
                   </div>
-                  <div style={{display:"flex",gap:5}}>
-                    {[{l:ev.h,v:ev.odds.L},{l:ev.odds.E?"Empate":null,v:ev.odds.E},{l:ev.a,v:ev.odds.V}]
-                      .filter(o=>o.l&&o.v).map((o,i)=>(
-                      <button key={i} onClick={()=>toggle(ev,o.l,o.v)} style={{
-                        flex:1,
-                        background:isSel(ev.id,o.l)?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
-                        border:`1.5px solid ${isSel(ev.id,o.l)?Q.cyan:Q.border}`,
-                        borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
-                        boxShadow:isSel(ev.id,o.l)?`0 0 12px ${Q.cyan}33`:"none",transition:"all 0.2s",
-                      }}>
-                        <div style={{color:Q.muted,fontSize:9,fontFamily:"'Space Grotesk',system-ui"}}>{o.l}</div>
-                        <div style={{color:isSel(ev.id,o.l)?Q.cyan:Q.text,fontWeight:700,fontSize:14,
-                          fontFamily:"'Space Grotesk',system-ui"}}>{fmt(o.v)}</div>
-                      </button>
-                    ))}
-                  </div>
+
+                  {/* Cuotas 1X2 rápidas */}
+                  <OddsButtons ev={ev} market="h2h" bets={bets} onToggle={toggle}/>
+
+                  {/* Mercados expandidos */}
+                  {expandedEvents[ev.id]&&(
+                    <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${Q.dim}`}}>
+                      <MarketTabs markets={ev.markets||{}} selected={getMkt(ev)} onSelect={k=>setMkt(ev,k)}/>
+                      {getMkt(ev)!=="h2h"&&(
+                        <OddsButtons ev={ev} market={getMkt(ev)} bets={bets} onToggle={toggle}/>
+                      )}
+                    </div>
+                  )}
                 </GCard>
               ))}
             </div>
           ))}
           <QKB rows={[[{label:"◀ Sports",action:"sports"},{label:"⚡ AI Combo",action:"combo"}]]} onPress={onAction}/>
         </BotMsg>
-
-        {/* Floating betslip */}
-        {bets.length>0&&(
-          <div style={{position:"fixed",bottom:10,left:"50%",transform:"translateX(-50%)",
-            width:"calc(100% - 24px)",maxWidth:406,zIndex:40}}>
-            <GCard glow={Q.violet} style={{padding:"12px 14px",background:"rgba(6,6,18,0.97)"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <span style={{color:Q.muted,fontSize:12}}>{bets.length} picks · <span style={{color:Q.cyan,fontWeight:700}}>{fmt(tot)}x</span></span>
-                <span style={{color:Q.green,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>Ret: {ars(Math.round(10000*tot))}</span>
-              </div>
-              <QBtn label={`APOSTAR $10.000`} full color={Q.violet} size="lg" onClick={()=>onBet(bets,10000,tot)}/>
-            </GCard>
-          </div>
-        )}
       </div>
+
+      <FloatingBetslip bets={bets} onBet={onBet} onClear={()=>setBets([])} color={Q.violet}/>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PANTALLA 4 — EN VIVO (tracker)
+// PANTALLA 4 — EN VIVO (datos reales + mercados)
 // ═══════════════════════════════════════════════════════════════
 function ScreenLive({ onAction, onBet }){
   const [bets,setBets]=useState([]);
-  const [liveMatches,setLiveMatches]=useState([]);
+  const [matches,setMatches]=useState([]);
   const [loading,setLoading]=useState(true);
   const [lastUpdate,setLastUpdate]=useState("");
-
-  const API="https://quartzplay-production.up.railway.app";
+  const [expandedEvents,setExpandedEvents]=useState({});
 
   const fetchLive=async()=>{
     try {
       const r=await fetch(`${API}/api/live/combined`);
       const data=await r.json();
       if(data.matches&&data.matches.length>0){
-        setLiveMatches(data.matches);
+        setMatches(data.matches);
         setLastUpdate(new Date().toLocaleTimeString("es-AR",{hour12:false}));
-      } else {
-        // Fallback mock
-        const mock=SPORTS.flatMap(s=>s.events.filter(e=>e.live).map(e=>({
-          id:e.id, home:e.h, away:e.a,
-          homeScore:e.score?e.score.split(":")[0]:0,
-          awayScore:e.score?e.score.split(":")[1]:0,
-          scoreStr:e.score||"0:0", minute:e.min||"",
-          status:"live", ongoing:true, odds:e.odds||{L:null,E:null,V:null},
-          hasOdds:!!e.odds?.L,
-        })));
-        setLiveMatches(mock);
       }
-    } catch(e){
-      const mock=SPORTS.flatMap(s=>s.events.filter(e=>e.live).map(e=>({
-        id:e.id, home:e.h, away:e.a,
-        homeScore:0, awayScore:0, scoreStr:"0:0",
-        minute:"", status:"live", ongoing:true,
-        odds:e.odds||{L:null,E:null,V:null}, hasOdds:!!e.odds?.L,
-      })));
-      setLiveMatches(mock);
-    }
+    } catch(e){}
     setLoading(false);
   };
 
@@ -700,13 +743,13 @@ function ScreenLive({ onAction, onBet }){
 
   const toggle=(ev,label,odd)=>{
     setBets(p=>{
-      const w=p.filter(b=>b.id!==ev.id);
+      const w=p.filter(b=>b.id!==ev.id||b.label!==label);
       if(p.find(b=>b.id===ev.id&&b.label===label)) return w;
-      return[...w,{id:ev.id,label,odd,h:ev.h,a:ev.a}];
+      return[...w,{id:ev.id,label,odd,h:ev.home,a:ev.away}];
     });
   };
-  const isSel=(id,l)=>bets.some(b=>b.id===id&&b.label===l);
-  const tot=bets.length?prod(bets.map(b=>b.odd)):1;
+
+  const toggleExpand=(id)=>setExpandedEvents(e=>({...e,[id]:!e[id]}));
 
   return(
     <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
@@ -714,40 +757,44 @@ function ScreenLive({ onAction, onBet }){
       <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
-      <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
+      <div style={{position:"relative",zIndex:1,padding:"14px 12px 120px"}}>
         <UserMsg time="9:55">🔴 En Vivo</UserMsg>
         <BotMsg time="9:55">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <LiveDot/>
               <span style={{color:Q.text,fontWeight:700,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}>
-                {loading?"Cargando...":`${liveMatches.length} partidos en vivo`}
+                {loading?"Cargando...":`${matches.length} partidos en vivo`}
               </span>
             </div>
-            {lastUpdate&&<span style={{color:Q.dim,fontSize:10}}>{lastUpdate}</span>}
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {lastUpdate&&<span style={{color:Q.dim,fontSize:10}}>{lastUpdate}</span>}
+              <button onClick={fetchLive} style={{background:"transparent",border:`1px solid ${Q.border}`,
+                borderRadius:8,padding:"4px 8px",cursor:"pointer",color:Q.muted,fontSize:10}}>🔄</button>
+            </div>
           </div>
 
-          {loading&&(
-            <GCard style={{padding:24,textAlign:"center"}}>
-              <div style={{color:Q.muted,fontFamily:"'Space Grotesk',system-ui"}}>Cargando partidos en vivo...</div>
-            </GCard>
-          )}
-          {!loading&&liveMatches.length===0&&(
-            <GCard style={{padding:24,textAlign:"center"}}>
+          {loading&&<div style={{textAlign:"center",color:Q.muted,padding:20,fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+
+          {!loading&&matches.length===0&&(
+            <div style={{textAlign:"center",padding:24}}>
               <div style={{fontSize:32,marginBottom:8}}>⚽</div>
               <div style={{color:Q.muted,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>No hay partidos en vivo ahora</div>
-            </GCard>
+            </div>
           )}
-          {liveMatches.map(ev=>(
+
+          {matches.map(ev=>(
             <GCard key={ev.id} glow={Q.pink} style={{padding:"14px",marginBottom:10,
               background:`linear-gradient(135deg,${Q.pink}08,${Q.violet}05)`}}>
-              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-                <span style={{fontSize:16}}>⚽</span>
+              {/* Header con score */}
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
                 <LiveDot/>
                 {ev.minute&&<span style={{color:Q.muted,fontSize:11}}>{ev.minute}</span>}
-                {ev.minuteLong&&<span style={{color:Q.muted,fontSize:10}}>{ev.minuteLong}</span>}
+                {ev.minuteLong&&<span style={{color:Q.dim,fontSize:10}}>{ev.minuteLong}</span>}
               </div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}
+                onClick={()=>toggleExpand(ev.id)}>
                 <div style={{textAlign:"center",flex:1}}>
                   <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
                     <TeamLogo name={ev.home} teamId={ev.homeId} size={36}/>
@@ -755,7 +802,7 @@ function ScreenLive({ onAction, onBet }){
                   <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{ev.home}</div>
                 </div>
                 <div style={{textAlign:"center",padding:"0 10px"}}>
-                  <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,fontSize:30,color:Q.text}}>
+                  <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,fontSize:30,color:Q.pink}}>
                     {ev.homeScore}<span style={{color:Q.dim}}>:</span>{ev.awayScore}
                   </div>
                   <div style={{color:Q.pink,fontSize:9,fontFamily:"'Space Grotesk',system-ui",letterSpacing:1}}>EN CURSO</div>
@@ -767,73 +814,72 @@ function ScreenLive({ onAction, onBet }){
                   <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{ev.away}</div>
                 </div>
               </div>
+
               {ev.hasOdds?(
-                <div style={{display:"flex",gap:5}}>
-                  {[{l:ev.home,v:ev.odds.L,c:Q.amber},
-                    ev.odds.E?{l:"Empate",v:ev.odds.E,c:Q.muted}:null,
-                    {l:ev.away,v:ev.odds.V,c:Q.cyan}]
-                    .filter(Boolean).filter(o=>o.v).map((o,i)=>(
-                    <button key={i} onClick={()=>{
-                      setBets(p=>{
-                        const w=p.filter(b=>b.id!==ev.id);
-                        if(p.find(b=>b.id===ev.id&&b.label===o.l)) return w;
-                        return[...w,{id:ev.id,label:o.l,odd:o.v,h:ev.home,a:ev.away}];
-                      });
-                    }} style={{
-                      flex:1,
-                      background:bets.some(b=>b.id===ev.id&&b.label===o.l)?`linear-gradient(135deg,${Q.pink}44,${Q.violet}22)`:"rgba(255,255,255,0.04)",
-                      border:`1.5px solid ${bets.some(b=>b.id===ev.id&&b.label===o.l)?Q.pink:Q.border}`,
-                      borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",transition:"all 0.2s",
-                    }}>
-                      <div style={{color:Q.muted,fontSize:9,fontFamily:"'Space Grotesk',system-ui"}}>{o.l}</div>
-                      <div style={{color:bets.some(b=>b.id===ev.id&&b.label===o.l)?Q.pink:o.c,
-                        fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(o.v)}</div>
-                      <div style={{color:Q.pink,fontSize:8}}>◉ LIVE</div>
-                    </button>
-                  ))}
-                </div>
+                <>
+                  {/* Cuotas 1X2 */}
+                  <div style={{display:"flex",gap:5}}>
+                    {[{label:ev.home,val:ev.odds.L,c:Q.amber},
+                      ev.odds.E?{label:"Empate",val:ev.odds.E,c:Q.muted}:null,
+                      {label:ev.away,val:ev.odds.V,c:Q.cyan}]
+                      .filter(Boolean).filter(o=>o.val).map((o,i)=>(
+                      <button key={i} onClick={()=>toggle(ev,o.label,o.val)} style={{
+                        flex:1,
+                        background:bets.some(b=>b.id===ev.id&&b.label===o.label)?`linear-gradient(135deg,${Q.pink}44,${Q.violet}22)`:"rgba(255,255,255,0.04)",
+                        border:`1.5px solid ${bets.some(b=>b.id===ev.id&&b.label===o.label)?Q.pink:Q.border}`,
+                        borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",transition:"all 0.2s",
+                      }}>
+                        <div style={{color:Q.muted,fontSize:9,fontFamily:"'Space Grotesk',system-ui"}}>{o.label}</div>
+                        <div style={{color:bets.some(b=>b.id===ev.id&&b.label===o.label)?Q.pink:o.c,
+                          fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(o.val)}</div>
+                        <div style={{color:Q.pink,fontSize:8}}>◉ LIVE</div>
+                      </button>
+                    ))}
+                  </div>
+                  {/* Expandir para más mercados */}
+                  <button onClick={()=>toggleExpand(ev.id)} style={{
+                    width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
+                    borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,
+                    fontSize:10,marginTop:6,fontFamily:"'Space Grotesk',system-ui",
+                  }}>
+                    {expandedEvents[ev.id]?"▲ Menos mercados":"▼ Más mercados (O/U, BTTS)"}
+                  </button>
+                  {expandedEvents[ev.id]&&(
+                    <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${Q.dim}`}}>
+                      <div style={{color:Q.muted,fontSize:10,marginBottom:6,fontFamily:"'Space Grotesk',system-ui"}}>
+                        Más mercados próximamente para este partido
+                      </div>
+                    </div>
+                  )}
+                </>
               ):(
                 <div style={{textAlign:"center",color:Q.dim,fontSize:11,padding:"8px 0",
-                  fontFamily:"'Space Grotesk',system-ui"}}>Cuotas no disponibles para este partido</div>
+                  fontFamily:"'Space Grotesk',system-ui"}}>Cuotas en vivo no disponibles</div>
               )}
             </GCard>
           ))}
+
           <QKB rows={[[{label:"◀ Sports",action:"sports"},{label:"📋 Prematch",action:"prematch"}]]} onPress={onAction}/>
         </BotMsg>
-
-        {bets.length>0&&(
-          <div style={{position:"fixed",bottom:10,left:"50%",transform:"translateX(-50%)",
-            width:"calc(100% - 24px)",maxWidth:406,zIndex:40}}>
-            <GCard glow={Q.pink} style={{padding:"12px 14px",background:"rgba(6,6,18,0.97)"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <LiveDot/>
-                  <span style={{color:Q.muted,fontSize:12}}>{bets.length} picks · <span style={{color:Q.pink,fontWeight:700}}>{fmt(tot)}x</span></span>
-                </div>
-                <span style={{color:Q.green,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>Ret: {ars(Math.round(10000*tot))}</span>
-              </div>
-              <QBtn label="APOSTAR EN VIVO" full color={Q.pink} size="lg" onClick={()=>onBet(bets,10000,tot)}/>
-            </GCard>
-          </div>
-        )}
       </div>
+
+      <FloatingBetslip bets={bets} onBet={onBet} onClear={()=>setBets([])} color={Q.pink} live/>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PANTALLA 5 — POOL DE USUARIOS
+// PANTALLA 5 — POOL
 // ═══════════════════════════════════════════════════════════════
 function ScreenPool({ onAction }){
   const [joined,setJoined]=useState(null);
   const [amount,setAmount]=useState(5000);
-  const [pot,setPot]=useState({p1:284500,p2:156200,p3:98700});
+  const [pot,setPot]=useState({p1:284500,p2:156200});
 
   useEffect(()=>{
     const t=setInterval(()=>setPot(p=>({
       p1:p.p1+Math.round(Math.random()*300+100),
       p2:p.p2+Math.round(Math.random()*200+50),
-      p3:p.p3+Math.round(Math.random()*150+30),
     })),1500);
     return()=>clearInterval(t);
   },[]);
@@ -843,41 +889,28 @@ function ScreenPool({ onAction }){
     return(
       <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
         <Particles count={10} c1={Q.gold} c2={Q.green}/>
-        <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
-          backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
-          backgroundSize:"28px 28px"}}/>
-        <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
+        <div style={{position:"relative",zIndex:1,padding:"14px 12px"}}>
           <BotMsg time="10:05">
-            <div style={{textAlign:"center",marginBottom:12,position:"relative"}}>
-              <Particles count={8} c1={Q.gold} c2={Q.green}/>
-              <div style={{position:"relative",zIndex:1}}>
-                <div style={{fontSize:48,marginBottom:6}}>🎯</div>
-                <div style={{color:Q.gold,fontWeight:900,fontSize:18,fontFamily:"'Space Grotesk',system-ui",marginBottom:4}}>¡Te uniste al Pool!</div>
-                <div style={{color:Q.muted,fontSize:12}}>{pool.name}</div>
-              </div>
+            <div style={{textAlign:"center",marginBottom:12}}>
+              <div style={{fontSize:48,marginBottom:6}}>🎯</div>
+              <div style={{color:Q.gold,fontWeight:900,fontSize:18,fontFamily:"'Space Grotesk',system-ui",marginBottom:4}}>¡Te uniste al Pool!</div>
+              <div style={{color:Q.muted,fontSize:12}}>{pool.name}</div>
             </div>
             <GCard glow={Q.gold} style={{padding:"14px",marginBottom:12}}>
-              {[
-                ["Tu apuesta",ars(amount)+" ARS",Q.text],
+              {[["Tu apuesta",ars(amount)+" ARS",Q.text],
                 ["Pozo actual",ars(pot[joined]),Q.gold],
-                ["Tu cuota",fmt(pool.odd)+"x",Q.cyan],
                 ["Retorno pot.",ars(Math.round(amount*pool.odd))+" ARS",Q.green],
-                ["Comisión casa","8%",Q.muted],
-                ["Cierra",pool.closes,Q.muted],
+                ["Comisión","8%",Q.muted],
               ].map(([l,v,c],i)=>(
                 <div key={i} style={{display:"flex",justifyContent:"space-between",
-                  padding:"6px 0",borderBottom:i<5?`1px solid ${Q.dim}`:"none"}}>
-                  <span style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{l}</span>
-                  <span style={{color:c,fontWeight:i<1||i===3?400:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{v}</span>
+                  padding:"6px 0",borderBottom:i<3?`1px solid ${Q.dim}`:"none"}}>
+                  <span style={{color:Q.muted,fontSize:12}}>{l}</span>
+                  <span style={{color:c,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{v}</span>
                 </div>
               ))}
             </GCard>
-            <div style={{color:Q.amber,fontSize:11,marginBottom:10,fontFamily:"'Space Grotesk',system-ui"}}>
-              🔔 Te notificamos el resultado automáticamente
-            </div>
-            <QKB rows={[
-              [{label:"🎯 Ver otros pools",action:"pool"},{label:"◀ Sports",action:"sports"}],
-            ]} onPress={a=>{if(a==="pool")setJoined(null);else onAction(a);}}/>
+            <QKB rows={[[{label:"🎯 Ver otros pools",action:"pool"},{label:"◀ Sports",action:"sports"}]]}
+              onPress={a=>{if(a==="pool")setJoined(null);else onAction(a);}}/>
           </BotMsg>
         </div>
       </div>
@@ -886,19 +919,14 @@ function ScreenPool({ onAction }){
 
   return(
     <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
-      <Particles count={8} c1={Q.gold} c2={Q.amber}/>
-      <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
-        backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
-        backgroundSize:"28px 28px"}}/>
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
         <UserMsg time="10:00">🎯 Pool</UserMsg>
         <BotMsg time="10:00">
           <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,fontFamily:"'Space Grotesk',system-ui"}}>🎯 Pools activos</div>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:12}}>Pozo compartido entre usuarios · 8% comisión</div>
-
+          <div style={{color:Q.muted,fontSize:11,marginBottom:12}}>Pozo compartido · 8% comisión</div>
           {POOLS_ACTIVE.map(pool=>(
             <GCard key={pool.id} glow={Q.gold} style={{padding:"14px",marginBottom:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
                 <div>
                   <div style={{color:Q.text,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>{pool.name}</div>
                   <div style={{display:"flex",gap:6,marginTop:3}}>
@@ -911,21 +939,16 @@ function ScreenPool({ onAction }){
                   <div style={{color:Q.muted,fontSize:9}}>pozo</div>
                 </div>
               </div>
-              <div style={{marginBottom:10}}>
-                {pool.picks.map((p,i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 0",
-                    borderBottom:i<pool.picks.length-1?`1px solid ${Q.dim}`:"none"}}>
-                    <span style={{color:Q.green,fontSize:11}}>✓</span>
-                    <span style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{p}</span>
-                  </div>
-                ))}
-              </div>
+              {pool.picks.map((p,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 0",
+                  borderBottom:i<pool.picks.length-1?`1px solid ${Q.dim}`:"none"}}>
+                  <span style={{color:Q.green,fontSize:11}}>✓</span>
+                  <span style={{color:Q.muted,fontSize:12}}>{p}</span>
+                </div>
+              ))}
               <NDiv color={Q.gold}/>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <div>
-                  <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1}}>Cuota combo</div>
-                  <div style={{color:Q.cyan,fontWeight:700,fontSize:16,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(pool.odd)}x</div>
-                </div>
+                <div style={{color:Q.cyan,fontWeight:700,fontSize:16,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(pool.odd)}x</div>
                 <div style={{display:"flex",gap:5}}>
                   {[2000,5000,10000].map(v=>(
                     <button key={v} onClick={()=>setAmount(v)} style={{
@@ -940,20 +963,12 @@ function ScreenPool({ onAction }){
               </div>
               <button onClick={()=>setJoined(pool.id)} style={{
                 width:"100%",background:`linear-gradient(135deg,${Q.gold},${Q.amber})`,
-                border:"none",borderRadius:12,padding:"13px",
-                color:Q.void,fontWeight:700,fontSize:14,cursor:"pointer",
-                fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",letterSpacing:0.3,
-                boxShadow:`0 4px 16px ${Q.gold}44`,
+                border:"none",borderRadius:12,padding:"13px",color:Q.void,
+                fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',system-ui",
+                textTransform:"uppercase",boxShadow:`0 4px 16px ${Q.gold}44`,
               }}>UNIRME CON {ars(amount)}</button>
             </GCard>
           ))}
-
-          {/* Crear pool */}
-          <GCard glow={Q.violet} style={{padding:"14px",marginBottom:10}}>
-            <div style={{color:Q.violet2,fontWeight:700,fontSize:13,marginBottom:6,fontFamily:"'Space Grotesk',system-ui"}}>➕ Crear mi propio pool</div>
-            <div style={{color:Q.muted,fontSize:12,marginBottom:10}}>Seleccioná tus picks, definí el monto mínimo y compartí con otros usuarios</div>
-            <QKB rows={[[{label:"CREAR POOL",action:"create_pool",primary:true,icon:"🎯",color:Q.violet}]]} onPress={onAction}/>
-          </GCard>
           <QKB rows={[[{label:"◀ Sports",action:"sports"}]]} onPress={onAction}/>
         </BotMsg>
       </div>
@@ -962,199 +977,72 @@ function ScreenPool({ onAction }){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PANTALLA 6 — P2P ENTRE USUARIOS
+// PANTALLA 6 — P2P
 // ═══════════════════════════════════════════════════════════════
 function ScreenP2P({ onAction }){
   const [matched,setMatched]=useState(null);
-  const [myOffer,setMyOffer]=useState(false);
-  const [offerStep,setOfferStep]=useState(0);
-  const [myPick,setMyPick]=useState("");
-  const [myStake,setMyStake]=useState(10000);
 
-  if(matched){
-    return(
-      <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
-        <Particles count={10} c1={Q.teal} c2={Q.green}/>
-        <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
-          backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
-          backgroundSize:"28px 28px"}}/>
-        <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
-          <BotMsg time="10:15">
-            <div style={{textAlign:"center",marginBottom:12,position:"relative"}}>
-              <Particles count={8} c1={Q.teal} c2={Q.green}/>
-              <div style={{position:"relative",zIndex:1}}>
-                <div style={{fontSize:48,marginBottom:6}}>🤝</div>
-                <div style={{color:Q.teal,fontWeight:900,fontSize:18,fontFamily:"'Space Grotesk',system-ui",marginBottom:4}}>¡Match P2P!</div>
-                <div style={{color:Q.muted,fontSize:12}}>Apuesta confirmada entre usuarios</div>
+  if(matched) return(
+    <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
+      <div style={{position:"relative",zIndex:1,padding:"14px 12px"}}>
+        <BotMsg time="10:15">
+          <div style={{textAlign:"center",marginBottom:12}}>
+            <div style={{fontSize:48,marginBottom:6}}>🤝</div>
+            <div style={{color:Q.teal,fontWeight:900,fontSize:18,fontFamily:"'Space Grotesk',system-ui"}}>¡Match P2P!</div>
+          </div>
+          <GCard glow={Q.teal} style={{padding:"14px",marginBottom:12}}>
+            {[["Tu apuesta",ars(matched.stake),Q.text],
+              ["Si ganás",ars(matched.stake+matched.lay),Q.green],
+              ["Comisión","2%",Q.muted],
+            ].map(([l,v,c],i)=>(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",
+                padding:"5px 0",borderBottom:i<2?`1px solid ${Q.dim}`:"none"}}>
+                <span style={{color:Q.muted,fontSize:12}}>{l}</span>
+                <span style={{color:c,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{v}</span>
               </div>
-            </div>
-            <GCard glow={Q.teal} style={{padding:"14px",marginBottom:12}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <div style={{textAlign:"center",flex:1}}>
-                  <div style={{color:Q.text,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>Vos</div>
-                  <div style={{color:Q.muted,fontSize:11}}>Contra {matched.offer}</div>
-                  <div style={{color:Q.green,fontWeight:700,fontSize:16,fontFamily:"'Space Grotesk',system-ui",marginTop:4}}>{ars(matched.lay)}</div>
-                </div>
-                <div style={{textAlign:"center",padding:"0 10px"}}>
-                  <div style={{color:Q.teal,fontSize:24}}>🤝</div>
-                </div>
-                <div style={{textAlign:"center",flex:1}}>
-                  <div style={{color:Q.text,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{matched.user}</div>
-                  <div style={{color:Q.muted,fontSize:11}}>{matched.offer}</div>
-                  <div style={{color:Q.green,fontWeight:700,fontSize:16,fontFamily:"'Space Grotesk',system-ui",marginTop:4}}>{ars(matched.stake)}</div>
-                </div>
-              </div>
-              <NDiv color={Q.teal}/>
-              {[
-                ["Pozo total",ars(matched.stake+matched.lay)+" ARS",Q.gold],
-                ["Si ganás",ars(matched.stake+matched.lay)+" ARS",Q.green],
-                ["Comisión","2%",Q.muted],
-                ["Liquida","Al finalizar el partido",Q.muted],
-              ].map(([l,v,c],i)=>(
-                <div key={i} style={{display:"flex",justifyContent:"space-between",
-                  padding:"5px 0",borderBottom:i<3?`1px solid ${Q.dim}`:"none"}}>
-                  <span style={{color:Q.muted,fontSize:12}}>{l}</span>
-                  <span style={{color:c,fontWeight:i<2?700:400,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{v}</span>
-                </div>
-              ))}
-            </GCard>
-            <div style={{color:Q.amber,fontSize:11,marginBottom:10}}>🔔 Te avisamos el resultado automáticamente</div>
-            <QKB rows={[
-              [{label:"🤝 Ver mis apuestas P2P",action:"mybets"},{label:"◀ Sports",action:"sports"}],
-            ]} onPress={a=>{if(a==="sports")onAction("sports");else setMatched(null);}}/>
-          </BotMsg>
-        </div>
+            ))}
+          </GCard>
+          <QKB rows={[[{label:"◀ Sports",action:"sports"}]]}
+            onPress={a=>{onAction(a);setMatched(null);}}/>
+        </BotMsg>
       </div>
-    );
-  }
+    </div>
+  );
 
   return(
     <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
-      <Particles count={8} c1={Q.teal} c2={Q.blue}/>
-      <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
-        backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
-        backgroundSize:"28px 28px"}}/>
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
         <UserMsg time="10:10">🤝 P2P</UserMsg>
         <BotMsg time="10:10">
           <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,fontFamily:"'Space Grotesk',system-ui"}}>🤝 Apuestas P2P</div>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:12}}>Apostá directamente contra otros usuarios · Solo 2% de comisión</div>
-
-          {/* Tabs */}
-          <div style={{display:"flex",gap:5,marginBottom:12}}>
-            {[{k:"offers",l:"Ofertas activas"},{k:"create",l:"Crear oferta"}].map((t,i)=>(
-              <button key={t.k} onClick={()=>setMyOffer(i===1)} style={{
-                flex:1,
-                background:myOffer===(i===1)?`linear-gradient(135deg,${Q.teal}44,${Q.blue}22)`:"rgba(255,255,255,0.04)",
-                border:`1px solid ${myOffer===(i===1)?Q.teal:Q.border}`,
-                borderRadius:10,padding:"8px",cursor:"pointer",
-                color:myOffer===(i===1)?Q.teal:Q.muted,fontSize:12,fontWeight:700,
-                fontFamily:"'Space Grotesk',system-ui",
-              }}>{t.l}</button>
-            ))}
-          </div>
-
-          {/* Offers list */}
-          {!myOffer&&(
-            <>
-              {P2P_OFFERS.map(offer=>(
-                <GCard key={offer.id} glow={Q.teal} style={{padding:"12px 14px",marginBottom:8}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{width:32,height:32,borderRadius:"50%",
-                        background:`linear-gradient(135deg,${Q.violet}66,${Q.cyan}44)`,
-                        display:"flex",alignItems:"center",justifyContent:"center",
-                        fontSize:14,fontWeight:700,color:Q.text}}>
-                        {offer.user.charAt(1).toUpperCase()}
-                      </div>
-                      <div>
-                        <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{offer.user}</div>
-                        <HBadge label={`LV ${offer.lv}`} color={Q.violet}/>
-                      </div>
-                    </div>
-                    <div style={{textAlign:"right"}}>
-                      <div style={{color:Q.muted,fontSize:9}}>Expira en</div>
-                      <div style={{color:Q.amber,fontSize:11,fontWeight:700}}>{offer.expires}</div>
-                    </div>
-                  </div>
-                  <div style={{background:"rgba(0,229,212,0.06)",border:`1px solid ${Q.teal}33`,
-                    borderRadius:8,padding:"8px 10px",marginBottom:8}}>
-                    <div style={{color:Q.teal,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{offer.offer}</div>
-                  </div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div>
-                      <span style={{color:Q.muted,fontSize:11}}>Apuesta: </span>
-                      <span style={{color:Q.gold,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{ars(offer.stake)}</span>
-                      <span style={{color:Q.muted,fontSize:11}}> · Ganás: </span>
-                      <span style={{color:Q.green,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{ars(offer.lay)}</span>
-                    </div>
-                    <button onClick={()=>setMatched(offer)} style={{
-                      background:`linear-gradient(135deg,${Q.teal},${Q.blue})`,
-                      border:"none",borderRadius:8,padding:"8px 14px",
-                      color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",
-                      fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
-                      boxShadow:`0 4px 12px ${Q.teal}44`,
-                    }}>ACEPTAR</button>
-                  </div>
-                </GCard>
-              ))}
-            </>
-          )}
-
-          {/* Create offer */}
-          {myOffer&&(
-            <GCard glow={Q.teal} style={{padding:"14px"}}>
-              <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:12,fontFamily:"'Space Grotesk',system-ui"}}>Crear oferta P2P</div>
-
-              <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontFamily:"'Space Grotesk',system-ui"}}>Tu pick</div>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}}>
-                {["Argentina gana @1.30","River gana @1.55","R.Madrid gana @2.10","Djokovic gana @1.80"].map(p=>(
-                  <button key={p} onClick={()=>setMyPick(p)} style={{
-                    background:myPick===p?`${Q.teal}22`:"rgba(255,255,255,0.04)",
-                    border:`1px solid ${myPick===p?Q.teal:Q.border}`,
-                    borderRadius:8,padding:"6px 10px",cursor:"pointer",
-                    color:myPick===p?Q.teal:Q.muted,fontSize:11,
-                    fontFamily:"'Space Grotesk',system-ui",
-                  }}>{p}</button>
-                ))}
+          <div style={{color:Q.muted,fontSize:11,marginBottom:12}}>Apostá contra otros usuarios · Solo 2% de comisión</div>
+          {P2P_OFFERS.map(offer=>(
+            <GCard key={offer.id} glow={Q.teal} style={{padding:"12px 14px",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{offer.user}</div>
+                  <HBadge label={`LV ${offer.lv}`} color={Q.violet}/>
+                </div>
+                <span style={{color:Q.amber,fontSize:11,fontWeight:700}}>{offer.expires}</span>
               </div>
-
-              <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontFamily:"'Space Grotesk',system-ui"}}>Monto a apostar</div>
-              <div style={{display:"flex",gap:5,marginBottom:12}}>
-                {[5000,10000,20000,50000].map(v=>(
-                  <button key={v} onClick={()=>setMyStake(v)} style={{
-                    flex:1,
-                    background:myStake===v?`${Q.teal}22`:"rgba(255,255,255,0.04)",
-                    border:`1px solid ${myStake===v?Q.teal:Q.border}`,
-                    borderRadius:8,padding:"7px 4px",cursor:"pointer",
-                    color:myStake===v?Q.teal:Q.muted,fontSize:10,fontWeight:myStake===v?700:400,
-                    fontFamily:"'Space Grotesk',system-ui",
-                  }}>{ars(v)}</button>
-                ))}
+              <div style={{background:`${Q.teal}0A`,border:`1px solid ${Q.teal}33`,
+                borderRadius:8,padding:"8px 10px",marginBottom:8}}>
+                <div style={{color:Q.teal,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{offer.offer}</div>
               </div>
-
-              {myPick&&(
-                <GCard style={{padding:"10px 12px",marginBottom:12}}>
-                  <div style={{color:Q.muted,fontSize:11}}>Tu oferta: <span style={{color:Q.teal,fontWeight:700}}>{myPick}</span></div>
-                  <div style={{color:Q.muted,fontSize:11}}>Apostás: <span style={{color:Q.gold,fontWeight:700}}>{ars(myStake)}</span> · Otros apuestan en contra</div>
-                </GCard>
-              )}
-
-              <button disabled={!myPick} onClick={()=>setMatched({
-                user:"Sistema",offer:myPick,stake:myStake,lay:Math.round(myStake*1.5),
-              })} style={{
-                width:"100%",
-                background:myPick?`linear-gradient(135deg,${Q.teal},${Q.blue})`:"rgba(255,255,255,0.04)",
-                border:`1px solid ${myPick?Q.teal:Q.border}`,
-                borderRadius:12,padding:"14px",
-                color:myPick?"#fff":Q.dim,fontWeight:700,fontSize:14,
-                cursor:myPick?"pointer":"not-allowed",
-                fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
-                boxShadow:myPick?`0 4px 16px ${Q.teal}44`:"none",
-              }}>PUBLICAR OFERTA</button>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <span style={{color:Q.muted,fontSize:11}}>Apostado: </span>
+                  <span style={{color:Q.gold,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{ars(offer.stake)}</span>
+                </div>
+                <button onClick={()=>setMatched(offer)} style={{
+                  background:`linear-gradient(135deg,${Q.teal},${Q.blue})`,
+                  border:"none",borderRadius:8,padding:"8px 14px",
+                  color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",
+                  fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+                }}>ACEPTAR</button>
+              </div>
             </GCard>
-          )}
-
+          ))}
           <QKB rows={[[{label:"◀ Sports",action:"sports"}]]} onPress={onAction}/>
         </BotMsg>
       </div>
@@ -1163,25 +1051,183 @@ function ScreenP2P({ onAction }){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PANTALLA 7 — APUESTA CONFIRMADA
+// PANTALLA 7 — AI COMBO
 // ═══════════════════════════════════════════════════════════════
-function ScreenBetConfirmed({ bets, stake, odd, onAction }){
-  const ret=Math.round(stake*odd);
+function ScreenCombo({ onAction, onBet }){
+  const [sel,setSel]=useState("c1");
+  const [voted,setVoted]=useState({});
+  const [codeGenerated,setCodeGenerated]=useState({});
+  const combo=AI_COMBOS.find(c=>c.id===sel)||AI_COMBOS[0];
+  const tot=combo.picks.reduce((a,p)=>a*p.odd,1);
+  const stake=10000;
+
+  const genQPCode=(c)=>{
+    const code=genCode();
+    setCodeGenerated(prev=>({...prev,[c.id]:code}));
+    return code;
+  };
+
   return(
     <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
-      <Particles count={14} c1={Q.green} c2={Q.violet}/>
+      <Particles count={10} c1={Q.violet} c2={Q.cyan}/>
       <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
-        <BotMsg time="10:20">
-          <div style={{textAlign:"center",marginBottom:14,position:"relative"}}>
-            <Particles count={10} c1={Q.green} c2={Q.gold}/>
-            <div style={{position:"relative",zIndex:1}}>
-              <div style={{fontSize:52,marginBottom:8,filter:`drop-shadow(0 0 16px ${Q.green})`}}>🎰</div>
-              <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,fontSize:20,
-                color:Q.green,textShadow:`0 0 16px ${Q.green}66`,marginBottom:4}}>¡Apuesta registrada!</div>
+        <UserMsg time="10:30">⚡ Combinadas IA</UserMsg>
+        <BotMsg time="10:30">
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+            <div style={{width:30,height:30,borderRadius:9,
+              background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
+              display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>⚡</div>
+            <div>
+              <div style={{color:Q.text,fontWeight:700,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}>AI Combos del día</div>
+              <div style={{color:Q.muted,fontSize:11}}>Generados por QuartzPlay IA</div>
             </div>
+          </div>
+
+          {/* Selector */}
+          <div style={{display:"flex",gap:5,marginBottom:14}}>
+            {AI_COMBOS.map(c=>(
+              <button key={c.id} onClick={()=>setSel(c.id)} style={{
+                flex:1,
+                background:sel===c.id?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
+                border:`1px solid ${sel===c.id?Q.cyan:Q.border}`,
+                borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
+              }}>
+                <div style={{color:sel===c.id?Q.cyan:Q.muted,fontSize:10,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{c.name.replace("AI ","")}</div>
+                <div style={{color:Q.gold,fontSize:11,fontWeight:700,fontFamily:"'Space Grotesk',system-ui",marginTop:2}}>
+                  {c.picks.reduce((a,p)=>a*p.odd,1).toFixed(2)}x
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Combo */}
+          <GCard glow={Q.violet} style={{padding:"14px",marginBottom:12,
+            background:`linear-gradient(135deg,${Q.violet}10,${Q.cyan}05)`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <HBadge label={combo.name} color={Q.violet}/>
+              <HBadge label={`${combo.conf}/10`} color={combo.tagColor}/>
+            </div>
+            {combo.picks.map((p,i)=>(
+              <GCard key={i} style={{padding:"10px 12px",marginBottom:6,background:"rgba(124,58,237,0.06)"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{flex:1,marginRight:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                      {p.live&&<><LiveDot/><span style={{color:Q.muted,fontSize:9}}>{p.min?`Min ${p.min}'`:p.set?`Set ${p.set}`:""}</span></>}
+                      <HBadge label={p.mkt} color={Q.dim}/>
+                    </div>
+                    <div style={{color:Q.muted,fontSize:10,marginBottom:1}}>{p.h} vs {p.a}</div>
+                    <div style={{color:Q.text,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>{p.sel}</div>
+                  </div>
+                  <div style={{color:Q.cyan,fontWeight:900,fontSize:18,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(p.odd)}</div>
+                </div>
+              </GCard>
+            ))}
+            <NDiv color={Q.violet}/>
+            <div style={{color:Q.muted,fontSize:11,fontStyle:"italic",marginBottom:10}}>💡 {combo.note}</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <div>
+                <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1}}>Cuota total</div>
+                <div style={{color:Q.gold,fontWeight:900,fontSize:24,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(tot)}x</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1}}>Ret. $10K</div>
+                <div style={{color:Q.green,fontWeight:900,fontSize:22,fontFamily:"'Space Grotesk',system-ui"}}>{ars(Math.round(stake*tot))}</div>
+              </div>
+            </div>
+
+            {/* Acciones */}
+            {!voted[sel]?(
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                <button onClick={()=>{
+                  setVoted(v=>({...v,[sel]:true}));
+                  onBet(combo.picks.map(p=>({id:p.h,label:p.sel,odd:p.odd,h:p.h,a:p.a})),stake,tot);
+                }} style={{
+                  width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
+                  border:"none",borderRadius:12,padding:"16px",
+                  color:"#fff",fontWeight:700,fontSize:15,cursor:"pointer",
+                  fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+                  boxShadow:`0 6px 24px ${Q.violet}66`,
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+                }}>⚡ APOSTAR {ars(stake)}</button>
+
+                {!codeGenerated[sel]?(
+                  <button onClick={()=>genQPCode(combo)} style={{
+                    width:"100%",background:"rgba(255,255,255,0.04)",
+                    border:`1px solid ${Q.border}`,borderRadius:12,padding:"12px",
+                    color:Q.muted,fontWeight:600,fontSize:13,cursor:"pointer",
+                    fontFamily:"'Space Grotesk',system-ui",
+                  }}>🏪 Generar código para local</button>
+                ):(
+                  <GCard glow={Q.green} style={{padding:"12px",textAlign:"center"}}>
+                    <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>Código generado</div>
+                    <div style={{color:Q.cyan,fontWeight:900,fontSize:20,fontFamily:"'Space Grotesk',system-ui",letterSpacing:2}}>
+                      {codeGenerated[sel]}
+                    </div>
+                    <div style={{color:Q.muted,fontSize:10,marginTop:4}}>Mostralo en el local para apostar en efectivo</div>
+                  </GCard>
+                )}
+              </div>
+            ):(
+              <GCard glow={Q.green} style={{padding:"12px",textAlign:"center"}}>
+                <div style={{color:Q.green,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
+                  ✦ Combo apostado · Ret: {ars(Math.round(stake*tot))}
+                </div>
+              </GCard>
+            )}
+          </GCard>
+
+          {/* Historial */}
+          <GCard style={{padding:"12px 14px"}}>
+            <div style={{color:Q.muted,fontSize:10,fontWeight:600,letterSpacing:1,
+              textTransform:"uppercase",fontFamily:"'Space Grotesk',system-ui",marginBottom:8}}>Historial esta semana</div>
+            {[
+              {n:"Combo #46",res:"GANADO",odd:"4.82x",ret:ars(48200),c:Q.green},
+              {n:"Combo #45",res:"GANADO",odd:"2.91x",ret:ars(29100),c:Q.green},
+              {n:"Combo #44",res:"PERDIDO",odd:"3.44x",ret:"—",c:Q.red},
+              {n:"Combo #43",res:"GANADO",odd:"5.18x",ret:ars(51800),c:Q.green},
+            ].map((h,i)=>(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                padding:"6px 0",borderBottom:i<3?`1px solid ${Q.dim}`:"none"}}>
+                <span style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{h.n} · {h.odd}</span>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <span style={{color:h.c,fontSize:11,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{h.ret}</span>
+                  <HBadge label={h.res} color={h.c}/>
+                </div>
+              </div>
+            ))}
+            <div style={{color:Q.muted,fontSize:10,marginTop:8,fontFamily:"'Space Grotesk',system-ui"}}>
+              Acierto: <span style={{color:Q.green,fontWeight:700}}>75%</span> esta semana
+            </div>
+          </GCard>
+
+          <QKB rows={[
+            [{label:"📋 Prematch",action:"prematch"},{label:"🔴 En Vivo",action:"live"}],
+            [{label:"◀ Sports",action:"sports"}],
+          ]} onPress={onAction}/>
+        </BotMsg>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANTALLA 8 — APUESTA CONFIRMADA
+// ═══════════════════════════════════════════════════════════════
+function ScreenBetConfirmed({ bets, stake, odd, onAction }){
+  const ret=Math.round(stake*odd);
+  const [code]=useState(genCode());
+  return(
+    <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
+      <Particles count={14} c1={Q.green} c2={Q.violet}/>
+      <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
+        <BotMsg time="10:20">
+          <div style={{textAlign:"center",marginBottom:14}}>
+            <div style={{fontSize:52,marginBottom:8,filter:`drop-shadow(0 0 16px ${Q.green})`}}>🎰</div>
+            <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,fontSize:20,
+              color:Q.green,textShadow:`0 0 16px ${Q.green}66`,marginBottom:4}}>¡Apuesta registrada!</div>
           </div>
           <GCard glow={Q.green} style={{padding:"14px",marginBottom:12}}>
             {bets.map((b,i)=>(
@@ -1194,7 +1240,8 @@ function ScreenBetConfirmed({ bets, stake, odd, onAction }){
               </div>
             ))}
             <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${Q.violet}44`}}>
-              {[["Apostado",ars(stake)+" ARS",Q.text],["Cuota",fmt(odd)+"x",Q.cyan],["Retorno pot.",ars(ret)+" ARS",Q.green]].map(([l,v,c])=>(
+              {[["Código",code,Q.cyan],["Apostado",ars(stake)+" ARS",Q.text],
+                ["Cuota",fmt(odd)+"x",Q.cyan],["Retorno pot.",ars(ret)+" ARS",Q.green]].map(([l,v,c])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
                   <span style={{color:Q.muted,fontSize:12}}>{l}</span>
                   <span style={{color:c,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{v}</span>
@@ -1204,6 +1251,9 @@ function ScreenBetConfirmed({ bets, stake, odd, onAction }){
           </GCard>
           <div style={{color:Q.amber,fontSize:11,marginBottom:10,fontFamily:"'Space Grotesk',system-ui"}}>
             🔔 Te notificamos el resultado automáticamente
+          </div>
+          <div style={{color:Q.muted,fontSize:11,marginBottom:10,fontFamily:"'Space Grotesk',system-ui"}}>
+            💡 Podés cobrar con el código <strong style={{color:Q.cyan}}>{code}</strong> en cualquier agencia física
           </div>
           <QKB rows={[
             [{label:"🔴 Ver en vivo",action:"live",primary:true,color:Q.pink}],
@@ -1216,33 +1266,26 @@ function ScreenBetConfirmed({ bets, stake, odd, onAction }){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PANTALLA 8 — MIS APUESTAS
+// PANTALLA 9 — MIS APUESTAS
 // ═══════════════════════════════════════════════════════════════
 function ScreenMyBets({ onAction }){
   const MY_BETS=[
     {id:"b1",picks:"Argentina gana",odd:1.30,stake:15000,ret:19500,status:"active",time:"Hoy 22:00"},
-    {id:"b2",picks:"River gana + R.Madrid gana",odd:3.26,stake:10000,ret:32600,status:"active",time:"En vivo"},
+    {id:"b2",picks:"River + R.Madrid",odd:3.26,stake:10000,ret:32600,status:"active",time:"En vivo"},
     {id:"b3",picks:"Pool Combo Mundial",odd:3.12,stake:5000,ret:15600,status:"pool",time:"Hoy 22:00"},
-    {id:"b4",picks:"P2P vs @champion_ar · Brasil",odd:1.55,stake:20000,ret:31000,status:"p2p",time:"Hoy 19:00"},
+    {id:"b4",picks:"P2P vs @champion_ar",odd:1.55,stake:20000,ret:31000,status:"p2p",time:"Hoy 19:00"},
     {id:"b5",picks:"España gana",odd:1.18,stake:8000,ret:9440,status:"won",time:"Ayer"},
     {id:"b6",picks:"Lakers gana",odd:1.95,stake:5000,ret:0,status:"lost",time:"Ayer"},
   ];
-
   const colors={active:Q.cyan,pool:Q.gold,p2p:Q.teal,won:Q.green,lost:Q.red};
   const labels={active:"ACTIVA",pool:"POOL",p2p:"P2P",won:"GANADA ✓",lost:"PERDIDA ✗"};
 
   return(
     <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
-      <Particles count={8}/>
-      <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
-        backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
-        backgroundSize:"28px 28px"}}/>
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
         <UserMsg time="10:25">/mis_apuestas</UserMsg>
         <BotMsg time="10:25">
           <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:12,fontFamily:"'Space Grotesk',system-ui"}}>📊 Mis apuestas</div>
-
-          {/* Stats */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:14}}>
             {[{l:"Activas",v:"4",c:Q.cyan},{l:"Ganadas",v:"12",c:Q.green},{l:"P&L",v:"+$43K",c:Q.green}].map((s,i)=>(
               <GCard key={i} glow={s.c} style={{padding:"8px",textAlign:"center"}}>
@@ -1251,7 +1294,6 @@ function ScreenMyBets({ onAction }){
               </GCard>
             ))}
           </div>
-
           {MY_BETS.map(bet=>(
             <GCard key={bet.id} glow={colors[bet.status]} style={{padding:"12px 14px",marginBottom:8}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
@@ -1279,195 +1321,6 @@ function ScreenMyBets({ onAction }){
 // ═══════════════════════════════════════════════════════════════
 // APP ROOT
 // ═══════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
-// PANTALLA — AI COMBOS
-// ═══════════════════════════════════════════════════════════════
-const AI_COMBOS = [
-  {
-    id:"c1", name:"AI COMBO #47", conf:8, tag:"Confianza alta", tagColor:"#00FF88",
-    picks:[
-      {h:"Argentina",a:"Argelia",  sel:"Argentina gana",   odd:1.30, mkt:"1X2",    live:false},
-      {h:"River",    a:"Boca",     sel:"River gana",        odd:1.55, mkt:"1X2",    live:true, min:43},
-      {h:"R.Madrid", a:"Bayern",   sel:"R.Madrid gana",     odd:2.10, mkt:"1X2",    live:true, min:67},
-      {h:"Francia",  a:"Senegal",  sel:"Francia gana",      odd:1.45, mkt:"1X2",    live:false},
-    ],
-    note:"River domina en casa · Argentina favorita clara · Francia sólida",
-  },
-  {
-    id:"c2", name:"AI COMBO #48", conf:7, tag:"Goles & Over", tagColor:"#FFB800",
-    picks:[
-      {h:"España",   a:"C.Verde",  sel:"Más de 2.5 goles", odd:1.40, mkt:"O/U",    live:false},
-      {h:"Brasil",   a:"Marruecos",sel:"Más de 1.5 goles", odd:1.55, mkt:"O/U",    live:false},
-      {h:"City",     a:"Arsenal",  sel:"Ambos anotan",      odd:1.70, mkt:"BTTS",   live:false},
-    ],
-    note:"3 partidos con alto dominio ofensivo · Equipos con plantilla goleadora",
-  },
-  {
-    id:"c3", name:"AI COMBO #49", conf:9, tag:"Alta cuota", tagColor:"#9F5FFF",
-    picks:[
-      {h:"Lakers",   a:"Celtics",  sel:"Lakers gana",       odd:1.95, mkt:"ML",     live:false},
-      {h:"Warriors", a:"Bulls",    sel:"Warriors -5.5",     odd:1.85, mkt:"Handicap",live:false},
-      {h:"Djokovic", a:"Alcaraz",  sel:"Djokovic gana",     odd:1.80, mkt:"ML",     live:true, set:"2-1"},
-      {h:"Chiefs",   a:"Eagles",   sel:"Chiefs gana",       odd:1.85, mkt:"ML",     live:false},
-    ],
-    note:"Alta cuota · Favoritos en todas las ligas · Riesgo moderado",
-  },
-];
-
-function ScreenCombo({ onAction, onBet }){
-  const [sel,setSel]=useState("c1");
-  const [voted,setVoted]=useState({});
-  const combo=AI_COMBOS.find(c=>c.id===sel)||AI_COMBOS[0];
-  const tot=combo.picks.reduce((a,p)=>a*p.odd,1);
-  const stake=10000;
-
-  return(
-    <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
-      <Particles count={10} c1={Q.violet} c2={Q.cyan}/>
-      <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
-        backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
-        backgroundSize:"28px 28px"}}/>
-      <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
-        <UserMsg time="10:30">⚡ Combinadas IA</UserMsg>
-        <BotMsg time="10:30">
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <div style={{width:30,height:30,borderRadius:9,
-              background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-              display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,
-              boxShadow:`0 0 12px ${Q.violet}44`}}>⚡</div>
-            <div>
-              <div style={{color:Q.text,fontWeight:700,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}>AI Combos del día</div>
-              <div style={{color:Q.muted,fontSize:11}}>Generados por QuartzPlay IA · Actualizados cada hora</div>
-            </div>
-          </div>
-
-          {/* Selector de combos */}
-          <div style={{display:"flex",gap:5,marginBottom:14}}>
-            {AI_COMBOS.map(c=>(
-              <button key={c.id} onClick={()=>setSel(c.id)} style={{
-                flex:1,
-                background:sel===c.id?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
-                border:`1px solid ${sel===c.id?Q.cyan:Q.border}`,
-                borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
-              }}>
-                <div style={{color:sel===c.id?Q.cyan:Q.muted,fontSize:10,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{c.name.replace("AI ","")}</div>
-                <div style={{color:sel===c.id?Q.gold:Q.dim,fontSize:11,fontWeight:700,fontFamily:"'Space Grotesk',system-ui",marginTop:2}}>
-                  {combo.id===c.id?`${c.picks.reduce((a,p)=>a*p.odd,1).toFixed(2)}x`:`${c.picks.reduce((a,p)=>a*p.odd,1).toFixed(2)}x`}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Combo seleccionado */}
-          <GCard glow={Q.violet} style={{padding:"14px",marginBottom:12,
-            background:`linear-gradient(135deg,${Q.violet}10,${Q.cyan}05)`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                <HBadge label={combo.name} color={Q.violet}/>
-                <HBadge label={`${combo.conf}/10`} color={combo.tagColor}/>
-              </div>
-              <HBadge label={combo.tag} color={combo.tagColor}/>
-            </div>
-
-            {combo.picks.map((p,i)=>(
-              <GCard key={i} style={{padding:"10px 12px",marginBottom:6,
-                background:"rgba(124,58,237,0.06)"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{flex:1,marginRight:8}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                      {p.live&&<><LiveDot/><span style={{color:Q.muted,fontSize:9}}>
-                        {p.min?`Min ${p.min}'`:p.set?`Set ${p.set}`:""}</span></>}
-                      <HBadge label={p.mkt} color={Q.dim}/>
-                    </div>
-                    <div style={{color:Q.muted,fontSize:10,marginBottom:1}}>{p.h} vs {p.a}</div>
-                    <div style={{color:Q.text,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>{p.sel}</div>
-                  </div>
-                  <div style={{textAlign:"center",minWidth:44}}>
-                    <div style={{color:Q.cyan,fontWeight:900,fontSize:18,fontFamily:"'Space Grotesk',system-ui",
-                      textShadow:`0 0 8px ${Q.cyan}66`}}>{fmt(p.odd)}</div>
-                    <div style={{color:Q.muted,fontSize:8}}>cuota</div>
-                  </div>
-                </div>
-              </GCard>
-            ))}
-
-            <NDiv color={Q.violet}/>
-            <div style={{color:Q.muted,fontSize:11,fontStyle:"italic",marginBottom:10}}>💡 {combo.note}</div>
-
-            {/* Totales */}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-              <div>
-                <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1,fontFamily:"'Space Grotesk',system-ui"}}>Cuota total</div>
-                <div style={{color:Q.gold,fontWeight:900,fontSize:24,fontFamily:"'Space Grotesk',system-ui",
-                  textShadow:`0 0 10px ${Q.gold}66`}}>{fmt(tot)}x</div>
-              </div>
-              <div style={{textAlign:"center"}}>
-                <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1,fontFamily:"'Space Grotesk',system-ui"}}>{combo.picks.length} picks</div>
-                <div style={{color:Q.violet2,fontWeight:700,fontSize:16,fontFamily:"'Space Grotesk',system-ui"}}>{combo.picks.length}×</div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1,fontFamily:"'Space Grotesk',system-ui"}}>Ret. $10K</div>
-                <div style={{color:Q.green,fontWeight:900,fontSize:22,fontFamily:"'Space Grotesk',system-ui"}}>{ars(Math.round(stake*tot))}</div>
-              </div>
-            </div>
-
-            {!voted[sel]?(
-              <button onClick={()=>{
-                setVoted(v=>({...v,[sel]:true}));
-                onBet(combo.picks.map(p=>({id:p.h,label:p.sel,odd:p.odd,h:p.h,a:p.a})),stake,tot);
-              }} style={{
-                width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-                border:"none",borderRadius:12,padding:"16px",
-                color:"#fff",fontWeight:700,fontSize:15,cursor:"pointer",
-                fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",letterSpacing:0.5,
-                boxShadow:`0 6px 24px ${Q.violet}66`,
-                display:"flex",alignItems:"center",justifyContent:"center",gap:8,
-              }}>
-                <span>⚡</span> APOSTAR {ars(stake)}
-              </button>
-            ):(
-              <GCard glow={Q.green} style={{padding:"12px",textAlign:"center"}}>
-                <div style={{color:Q.green,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
-                  ✦ Combo apostado · Retorno pot: {ars(Math.round(stake*tot))}
-                </div>
-              </GCard>
-            )}
-          </GCard>
-
-          {/* Historial de combos */}
-          <GCard style={{padding:"12px 14px",marginBottom:10}}>
-            <div style={{color:Q.muted,fontSize:10,fontWeight:600,letterSpacing:1,
-              textTransform:"uppercase",fontFamily:"'Space Grotesk',system-ui",marginBottom:8}}>Historial esta semana</div>
-            {[
-              {n:"Combo #46",res:"GANADO",odd:"4.82x",ret:ars(48200),c:Q.green},
-              {n:"Combo #45",res:"GANADO",odd:"2.91x",ret:ars(29100),c:Q.green},
-              {n:"Combo #44",res:"PERDIDO",odd:"3.44x",ret:"—",c:Q.red},
-              {n:"Combo #43",res:"GANADO",odd:"5.18x",ret:ars(51800),c:Q.green},
-            ].map((h,i)=>(
-              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-                padding:"6px 0",borderBottom:i<3?`1px solid ${Q.dim}`:"none"}}>
-                <span style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{h.n} · {h.odd}</span>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  <span style={{color:h.c,fontSize:11,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{h.ret}</span>
-                  <HBadge label={h.res} color={h.c}/>
-                </div>
-              </div>
-            ))}
-            <div style={{color:Q.muted,fontSize:10,marginTop:8,fontFamily:"'Space Grotesk',system-ui"}}>
-              Acierto semanal: <span style={{color:Q.green,fontWeight:700}}>75%</span> · 3/4 combos ganados
-            </div>
-          </GCard>
-
-          <QKB rows={[
-            [{label:"📋 Prematch",action:"prematch"},{label:"🔴 En Vivo",action:"live"}],
-            [{label:"◀ Sports",action:"sports"}],
-          ]} onPress={onAction}/>
-        </BotMsg>
-      </div>
-    </div>
-  );
-}
-
 const STEPS=[
   {k:"canal",    l:"📢 Canal"},
   {k:"sports",   l:"🏠 Sports"},
@@ -1506,7 +1359,6 @@ export default function QuartzSports(){
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;900&display=swap');
         @keyframes qPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.5)}}
         @keyframes qFloat{0%,100%{transform:translateY(0) scale(1);opacity:.4}50%{transform:translateY(-16px) scale(1.2);opacity:.7}}
-        @keyframes spinAnim{to{transform:rotate(360deg)}}
         *{box-sizing:border-box;margin:0;padding:0} button:active{opacity:.8} input:focus{outline:none}
         ::-webkit-scrollbar{width:3px} ::-webkit-scrollbar-thumb{background:${Q.border}}
       `}</style>
@@ -1518,7 +1370,7 @@ export default function QuartzSports(){
         <div style={{display:"flex",gap:6,fontSize:12}}><span>📶</span><span>🔋</span></div>
       </div>
 
-      {/* Header contextual */}
+      {/* Header */}
       {isCanal?(
         <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
           padding:"10px 16px",display:"flex",alignItems:"center",gap:12,position:"relative",overflow:"hidden"}}>
