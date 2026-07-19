@@ -480,6 +480,27 @@ function FlujoManual({ agencia }){
   const [cliente,setCliente]=useState("");
   const [step,setStep]=useState("armar");
   const [slip,setSlip]=useState(null);
+  const [liveDeportes,setLiveDeportes]=useState(null);
+  const [prematchDeportes,setPrematchDeportes]=useState(null);
+  const [tabOferta,setTabOferta]=useState("prematch");
+
+  useEffect(()=>{
+    // Cargar partidos en vivo con cuotas
+    fetch(`${API_BOT}/api/live/combined`)
+      .then(r=>r.ok?r.json():null)
+      .then(data=>{
+        if(data?.matches?.length>0){
+          const withOdds=data.matches.filter(m=>m.hasOdds);
+          if(withOdds.length>0) setLiveDeportes(withOdds);
+        }
+      }).catch(()=>{});
+    // Cargar prematch
+    fetch(`${API_BOT}/api/live/prematch`)
+      .then(r=>r.ok?r.json():null)
+      .then(data=>{
+        if(data?.sports?.length>0) setPrematchDeportes(data.sports);
+      }).catch(()=>{});
+  },[]);
 
   const togglePick=(ev,sport,label,odd)=>{
     const id=`${ev.home}-${ev.away}-${label}`;
@@ -525,39 +546,137 @@ function FlujoManual({ agencia }){
             color:Q.text,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}/>
       </GCard>
 
-      {DEPORTES.map(d=>(
-        <GCard key={d.sport} style={{padding:16,marginBottom:12}}>
-          <div style={{color:Q.violet2,fontWeight:700,fontSize:13,marginBottom:10,
-            fontFamily:"'Space Grotesk',system-ui"}}>{d.sport}</div>
-          {d.events.map(ev=>(
-            <div key={ev.home+ev.away} style={{marginBottom:12,
-              borderBottom:`1px solid ${Q.dim}`,paddingBottom:10}}>
-              <div style={{color:Q.text,fontWeight:600,fontSize:13,marginBottom:8,
-                fontFamily:"'Space Grotesk',system-ui"}}>
-                {ev.home} vs {ev.away}
+      {/* Tabs live vs prematch */}
+      <div style={{display:"flex",gap:5,marginBottom:14}}>
+        {[{k:"prematch",l:"📋 Prematch"},{k:"live",l:"🔴 En Vivo"}].map(t=>(
+          <button key={t.k} onClick={()=>setTabOferta(t.k)} style={{
+            flex:1,
+            background:tabOferta===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
+            border:`1px solid ${tabOferta===t.k?Q.cyan:Q.border}`,
+            borderRadius:10,padding:"8px",cursor:"pointer",
+            color:tabOferta===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tabOferta===t.k?700:400,
+            fontFamily:"'Space Grotesk',system-ui",
+          }}>{t.l}</button>
+        ))}
+      </div>
+
+      {/* Eventos en vivo con cuotas */}
+      {tabOferta==="live"&&(
+        <>
+          {!liveDeportes&&(
+            <GCard style={{padding:20,textAlign:"center"}}>
+              <div style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>Cargando partidos en vivo...</div>
+            </GCard>
+          )}
+          {liveDeportes&&liveDeportes.map(m=>(
+            <GCard key={m.id} glow={Q.pink} style={{padding:14,marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{color:Q.text,fontWeight:600,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
+                  {m.home} vs {m.away}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:4}}>
+                  <div style={{width:5,height:5,borderRadius:"50%",background:Q.pink}}/>
+                  <span style={{color:Q.pink,fontSize:10,fontWeight:700}}>{m.minute||"LIVE"}</span>
+                  <span style={{color:Q.gold,fontWeight:900,fontSize:14,fontFamily:"'Space Grotesk',system-ui",marginLeft:4}}>
+                    {m.homeScore} - {m.awayScore}
+                  </span>
+                </div>
               </div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {[
-                  {label:ev.home+" gana",odd:ev.odds.L},
-                  ev.odds.E?{label:"Empate",odd:ev.odds.E}:null,
-                  {label:ev.away+" gana",odd:ev.odds.V},
-                ].filter(Boolean).map(opt=>(
-                  <button key={opt.label} onClick={()=>togglePick(ev,d.sport,opt.label,opt.odd)} style={{
-                    flex:1,minWidth:80,
-                    background:hasPick(ev,opt.label)?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
-                    border:`1.5px solid ${hasPick(ev,opt.label)?Q.cyan:Q.border}`,
-                    borderRadius:10,padding:"8px 6px",cursor:"pointer",textAlign:"center",
+              <div style={{display:"flex",gap:5}}>
+                {[{label:m.home+" gana",odd:m.odds.L},
+                  m.odds.E?{label:"Empate",odd:m.odds.E}:null,
+                  {label:m.away+" gana",odd:m.odds.V}]
+                  .filter(Boolean).filter(o=>o.odd).map(opt=>(
+                  <button key={opt.label} onClick={()=>togglePick({home:m.home,away:m.away},"Live",opt.label,opt.odd)} style={{
+                    flex:1,
+                    background:hasPick({home:m.home,away:m.away},opt.label)?`linear-gradient(135deg,${Q.pink}44,${Q.violet}22)`:"rgba(255,255,255,0.04)",
+                    border:`1.5px solid ${hasPick({home:m.home,away:m.away},opt.label)?Q.pink:Q.border}`,
+                    borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
                   }}>
                     <div style={{color:Q.muted,fontSize:9,fontFamily:"'Space Grotesk',system-ui"}}>{opt.label}</div>
-                    <div style={{color:hasPick(ev,opt.label)?Q.cyan:Q.text,
-                      fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(opt.odd)}</div>
+                    <div style={{color:hasPick({home:m.home,away:m.away},opt.label)?Q.pink:Q.cyan,
+                      fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{opt.odd}</div>
+                    <div style={{color:Q.pink,fontSize:8}}>◉ LIVE</div>
                   </button>
                 ))}
               </div>
-            </div>
+            </GCard>
           ))}
-        </GCard>
-      ))}
+          {liveDeportes&&liveDeportes.length===0&&(
+            <GCard style={{padding:20,textAlign:"center"}}>
+              <div style={{color:Q.muted,fontSize:12}}>No hay partidos en vivo con cuotas ahora</div>
+            </GCard>
+          )}
+        </>
+      )}
+
+      {/* Eventos prematch */}
+      {tabOferta==="prematch"&&(
+        <>
+          {prematchDeportes ? prematchDeportes.map(d=>(
+            <GCard key={d.name} style={{padding:16,marginBottom:12}}>
+              <div style={{color:Q.violet2,fontWeight:700,fontSize:13,marginBottom:10,
+                fontFamily:"'Space Grotesk',system-ui"}}>{d.icon} {d.name}</div>
+              {(d.events||[]).map(ev=>(
+                <div key={ev.h+ev.a} style={{marginBottom:12,
+                  borderBottom:`1px solid ${Q.dim}`,paddingBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <span style={{color:Q.text,fontWeight:600,fontSize:13,
+                      fontFamily:"'Space Grotesk',system-ui"}}>{ev.h} vs {ev.a}</span>
+                    <span style={{color:Q.muted,fontSize:11}}>{ev.time}</span>
+                  </div>
+                  <div style={{display:"flex",gap:5}}>
+                    {[{label:ev.h+" gana",odd:ev.odds?.L},
+                      ev.odds?.E?{label:"Empate",odd:ev.odds.E}:null,
+                      {label:ev.a+" gana",odd:ev.odds?.V}]
+                      .filter(Boolean).filter(o=>o.odd).map(opt=>(
+                      <button key={opt.label} onClick={()=>togglePick({home:ev.h,away:ev.a},d.name,opt.label,opt.odd)} style={{
+                        flex:1,
+                        background:hasPick({home:ev.h,away:ev.a},opt.label)?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
+                        border:`1.5px solid ${hasPick({home:ev.h,away:ev.a},opt.label)?Q.cyan:Q.border}`,
+                        borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
+                      }}>
+                        <div style={{color:Q.muted,fontSize:9}}>{opt.label}</div>
+                        <div style={{color:hasPick({home:ev.h,away:ev.a},opt.label)?Q.cyan:Q.text,
+                          fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{opt.odd}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </GCard>
+          )) : DEPORTES.map(d=>(
+            <GCard key={d.sport} style={{padding:16,marginBottom:12}}>
+              <div style={{color:Q.violet2,fontWeight:700,fontSize:13,marginBottom:10,
+                fontFamily:"'Space Grotesk',system-ui"}}>{d.sport}</div>
+              {d.events.map(ev=>(
+                <div key={ev.home+ev.away} style={{marginBottom:12,
+                  borderBottom:`1px solid ${Q.dim}`,paddingBottom:10}}>
+                  <div style={{color:Q.text,fontWeight:600,fontSize:13,marginBottom:8,
+                    fontFamily:"'Space Grotesk',system-ui"}}>{ev.home} vs {ev.away}</div>
+                  <div style={{display:"flex",gap:5}}>
+                    {[{label:ev.home+" gana",odd:ev.odds.L},
+                      ev.odds.E?{label:"Empate",odd:ev.odds.E}:null,
+                      {label:ev.away+" gana",odd:ev.odds.V}]
+                      .filter(Boolean).map(opt=>(
+                      <button key={opt.label} onClick={()=>togglePick(ev,d.sport,opt.label,opt.odd)} style={{
+                        flex:1,minWidth:80,
+                        background:hasPick(ev,opt.label)?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
+                        border:`1.5px solid ${hasPick(ev,opt.label)?Q.cyan:Q.border}`,
+                        borderRadius:10,padding:"8px 6px",cursor:"pointer",textAlign:"center",
+                      }}>
+                        <div style={{color:Q.muted,fontSize:9}}>{opt.label}</div>
+                        <div style={{color:hasPick(ev,opt.label)?Q.cyan:Q.text,
+                          fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{opt.odd}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </GCard>
+          ))}
+        </>
+      )}
 
       {picks.length>0&&(
         <div style={{position:"sticky",bottom:0,
@@ -897,50 +1016,47 @@ function Config({ agencia }){
 // ═══════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
-// EN VIVO — Scores en tiempo real
+// EN VIVO — Scores + cuotas en tiempo real
 // ═══════════════════════════════════════════════════════════════
+const API_BOT = "https://quartzplay-production.up.railway.app";
+
 function EnVivo(){
   const [matches,setMatches]=useState([]);
   const [loading,setLoading]=useState(true);
   const [lastUpdate,setLastUpdate]=useState("");
-  const [err,setErr]=useState("");
+  const [ticket,setTicket]=useState([]);
 
   const fetchLive=async()=>{
     try {
-      const r=await fetch("https://quartzplay-production.up.railway.app/api/live/football");
+      const r=await fetch(`${API_BOT}/api/live/combined`);
       const data=await r.json();
-      if(data.response&&data.response.live){
-        setMatches(data.response.live);
+      if(data.matches&&data.matches.length>0){
+        setMatches(data.matches);
         setLastUpdate(new Date().toLocaleTimeString("es-AR",{hour12:false}));
-        setErr("");
       } else {
-        setErr("No hay partidos en vivo ahora");
         setMatches([]);
       }
     } catch(e){
-      setErr("Error cargando scores");
+      setMatches([]);
     }
     setLoading(false);
   };
 
   useEffect(()=>{
     fetchLive();
-    const t=setInterval(fetchLive,30000); // actualiza cada 30 seg
+    const t=setInterval(fetchLive,30000);
     return()=>clearInterval(t);
   },[]);
 
-  const getStatusColor=(m)=>{
-    if(m.ongoing) return Q.pink;
-    if(m.finished) return Q.muted;
-    return Q.amber;
+  const toggleBet=(ev,label,odd)=>{
+    setTicket(p=>{
+      const w=p.filter(b=>b.id!==ev.id);
+      if(p.find(b=>b.id===ev.id&&b.label===label)) return w;
+      return[...w,{id:ev.id,label,odd,home:ev.home,away:ev.away}];
+    });
   };
-
-  const getStatusLabel=(m)=>{
-    if(m.finished) return "FT";
-    if(!m.started) return "Por jugar";
-    if(m.liveTime?.short) return m.liveTime.short;
-    return "EN VIVO";
-  };
+  const isSel=(id,l)=>ticket.some(b=>b.id===id&&b.label===l);
+  const totOdd=ticket.length?ticket.reduce((a,b)=>a*b.odd,1):1;
 
   return(
     <div>
@@ -958,77 +1074,104 @@ function EnVivo(){
           {lastUpdate&&<span style={{color:Q.dim,fontSize:10}}>{lastUpdate}</span>}
           <button onClick={fetchLive} style={{background:"transparent",
             border:`1px solid ${Q.border}`,borderRadius:8,padding:"5px 10px",
-            color:Q.muted,fontSize:11,cursor:"pointer",
-            fontFamily:"'Space Grotesk',system-ui"}}>🔄</button>
+            color:Q.muted,fontSize:11,cursor:"pointer"}}>🔄</button>
         </div>
       </div>
 
       {loading&&(
         <GCard style={{padding:24,textAlign:"center"}}>
-          <div style={{color:Q.muted,fontFamily:"'Space Grotesk',system-ui"}}>
-            Cargando scores...
-          </div>
+          <div style={{color:Q.muted,fontFamily:"'Space Grotesk',system-ui"}}>Cargando partidos en vivo...</div>
         </GCard>
       )}
 
-      {err&&!loading&&(
+      {!loading&&matches.length===0&&(
         <GCard style={{padding:24,textAlign:"center"}}>
           <div style={{fontSize:32,marginBottom:8}}>⚽</div>
-          <div style={{color:Q.muted,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>{err}</div>
-          <div style={{color:Q.dim,fontSize:11,marginTop:4}}>Los scores se actualizan cada 30 segundos</div>
+          <div style={{color:Q.muted,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>No hay partidos en vivo ahora</div>
+          <div style={{color:Q.dim,fontSize:11,marginTop:4}}>Se actualiza cada 30 segundos</div>
         </GCard>
       )}
 
-      {matches.map((m,i)=>{
-        const statusColor=getStatusColor(m);
-        const statusLabel=getStatusLabel(m);
-        const homeScore=m.home?.score??"-";
-        const awayScore=m.away?.score??"-";
-        return(
-          <GCard key={m.id} glow={m.ongoing?Q.pink:undefined}
-            style={{padding:"14px 16px",marginBottom:10,
-              background:m.ongoing?`linear-gradient(135deg,${Q.pink}08,${Q.violet}05)`:""}}>
-            <div style={{display:"flex",justifyContent:"space-between",
-              alignItems:"center",marginBottom:10}}>
-              <span style={{color:Q.muted,fontSize:10,fontFamily:"'Space Grotesk',system-ui"}}>
-                {m.time||""}
+      {matches.map((m,i)=>(
+        <GCard key={m.id} glow={Q.pink} style={{padding:"14px 16px",marginBottom:10,
+          background:`linear-gradient(135deg,${Q.pink}08,${Q.violet}05)`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:Q.pink,
+                boxShadow:`0 0 4px ${Q.pink}`}}/>
+              <span style={{color:Q.pink,fontSize:10,fontWeight:700,
+                fontFamily:"'Space Grotesk',system-ui"}}>EN VIVO</span>
+              {m.minute&&<span style={{color:Q.muted,fontSize:10}}>{m.minute}</span>}
+            </div>
+            {m.minuteLong&&<span style={{color:Q.muted,fontSize:10}}>{m.minuteLong}</span>}
+          </div>
+
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{flex:1,textAlign:"left"}}>
+              <div style={{color:Q.text,fontWeight:700,fontSize:14,
+                fontFamily:"'Space Grotesk',system-ui"}}>{m.home}</div>
+            </div>
+            <div style={{textAlign:"center",padding:"0 12px"}}>
+              <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,
+                fontSize:26,color:Q.pink}}>
+                {m.homeScore}<span style={{color:Q.dim}}> - </span>{m.awayScore}
+              </div>
+            </div>
+            <div style={{flex:1,textAlign:"right"}}>
+              <div style={{color:Q.text,fontWeight:700,fontSize:14,
+                fontFamily:"'Space Grotesk',system-ui"}}>{m.away}</div>
+            </div>
+          </div>
+
+          {m.hasOdds?(
+            <div style={{display:"flex",gap:5}}>
+              {[{l:m.home,v:m.odds.L,c:Q.amber},
+                m.odds.E?{l:"Empate",v:m.odds.E,c:Q.muted}:null,
+                {l:m.away,v:m.odds.V,c:Q.cyan}]
+                .filter(Boolean).filter(o=>o.v).map((o,i)=>(
+                <button key={i} onClick={()=>toggleBet(m,o.l,o.v)} style={{
+                  flex:1,
+                  background:isSel(m.id,o.l)?`linear-gradient(135deg,${Q.pink}44,${Q.violet}22)`:"rgba(255,255,255,0.04)",
+                  border:`1.5px solid ${isSel(m.id,o.l)?Q.pink:Q.border}`,
+                  borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
+                }}>
+                  <div style={{color:Q.muted,fontSize:9,fontFamily:"'Space Grotesk',system-ui"}}>{o.l}</div>
+                  <div style={{color:isSel(m.id,o.l)?Q.pink:o.c,fontWeight:700,fontSize:15,
+                    fontFamily:"'Space Grotesk',system-ui"}}>{o.v}</div>
+                  <div style={{color:Q.pink,fontSize:8}}>◉ LIVE</div>
+                </button>
+              ))}
+            </div>
+          ):(
+            <div style={{textAlign:"center",color:Q.dim,fontSize:11,padding:"6px 0",
+              fontFamily:"'Space Grotesk',system-ui"}}>Cuotas no disponibles aún</div>
+          )}
+        </GCard>
+      ))}
+
+      {/* Boleto flotante */}
+      {ticket.length>0&&(
+        <div style={{position:"sticky",bottom:0,
+          background:`linear-gradient(0deg,${Q.void} 80%,transparent)`,
+          paddingTop:16,paddingBottom:12}}>
+          <GCard glow={Q.pink} style={{padding:"12px 14px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:Q.pink}}/>
+                <span style={{color:Q.muted,fontSize:12}}>{ticket.length} picks LIVE · <span style={{color:Q.pink,fontWeight:700}}>{totOdd.toFixed(2)}x</span></span>
+              </div>
+              <span style={{color:Q.green,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>
+                Ret: ${Math.round(10000*totOdd).toLocaleString("es-AR")}
               </span>
-              <span style={{
-                background:`${statusColor}22`,border:`1px solid ${statusColor}`,
-                borderRadius:20,padding:"2px 10px",color:statusColor,
-                fontSize:10,fontWeight:700,fontFamily:"'Space Grotesk',system-ui",
-              }}>{statusLabel}</span>
             </div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{flex:1,textAlign:"left"}}>
-                <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui",marginBottom:2}}>{m.home?.name}</div>
-                {m.home?.redCards>0&&<span style={{color:Q.red,fontSize:10}}>🟥 {m.home.redCards}</span>}
-              </div>
-              <div style={{textAlign:"center",padding:"0 16px"}}>
-                <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,
-                  fontSize:28,color:m.ongoing?Q.pink:Q.text}}>
-                  {homeScore}<span style={{color:Q.dim}}> - </span>{awayScore}
-                </div>
-                {m.liveTime?.long&&<div style={{color:Q.muted,fontSize:10,marginTop:2}}>{m.liveTime.long}</div>}
-              </div>
-              <div style={{flex:1,textAlign:"right"}}>
-                <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui",marginBottom:2}}>{m.away?.name}</div>
-                {m.away?.redCards>0&&<span style={{color:Q.red,fontSize:10}}>{m.away.redCards} 🟥</span>}
-              </div>
-            </div>
+            <button onClick={()=>setTicket([])} style={{
+              width:"100%",background:`linear-gradient(135deg,${Q.pink},${Q.violet})`,
+              border:"none",borderRadius:12,padding:"13px",cursor:"pointer",
+              color:"#fff",fontWeight:700,fontSize:14,
+              fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+            }}>APOSTAR EN VIVO $10.000</button>
           </GCard>
-        );
-      })}
-
-      {!loading&&matches.length===0&&!err&&(
-        <GCard style={{padding:24,textAlign:"center"}}>
-          <div style={{fontSize:32,marginBottom:8}}>⚽</div>
-          <div style={{color:Q.muted,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
-            No hay partidos en vivo ahora
-          </div>
-        </GCard>
+        </div>
       )}
     </div>
   );
