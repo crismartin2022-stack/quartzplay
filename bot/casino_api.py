@@ -264,7 +264,7 @@ async def live_football():
     try:
         async with httpx.AsyncClient(timeout=10) as c:
             r = await c.get(
-                f"{FOOTBALL_API}/football-get-all-live-matches",
+                f"{FOOTBALL_API}/football-current-live",
                 headers=FOOTBALL_HEADERS,
             )
             if r.status_code == 200:
