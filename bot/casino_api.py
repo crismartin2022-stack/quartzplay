@@ -243,9 +243,11 @@ async def pay_betslip(code: str, request: Request):
 
 # ── FOOTBALL LIVE SCORES ──────────────────────────────────────
 FOOTBALL_API = "https://free-api-live-football-data.p.rapidapi.com"
+RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY","")
 FOOTBALL_HEADERS = {
-    "X-RapidAPI-Host": "free-api-live-football-data.p.rapidapi.com",
-    "Content-Type": "application/json",
+    "x-rapidapi-host": "free-api-live-football-data.p.rapidapi.com",
+    "x-rapidapi-key":  RAPIDAPI_KEY,
+    "Content-Type":    "application/json",
 }
 
 _football_cache = {}
