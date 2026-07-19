@@ -2,6 +2,7 @@ import os, time, hashlib, hmac, json, logging, ast
 from decimal import Decimal
 from datetime import datetime, timezone
 import asyncpg
+import httpx
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -51,10 +52,12 @@ def validate_sign(body_raw, x_code, x_time, x_sign):
         body_raw.decode() if body_raw else None, x_code, x_time)
     return hmac.compare_digest(expected, x_sign)
 
+# ── HEALTH ────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
     return {"status":"ok","service":"QuartzPlay API"}
 
+# ── AGENCIAS — LOGIN ──────────────────────────────────────────
 @app.post("/api/agencias/login")
 async def agencia_login(request: Request):
     body     = await request.json()
@@ -79,6 +82,7 @@ async def agencia_login(request: Request):
         "status":  row["status"],
     }
 
+# ── AGENCIAS — LISTAR ─────────────────────────────────────────
 @app.get("/api/agencias")
 async def list_agencias():
     pool = await get_db()
@@ -97,6 +101,7 @@ async def list_agencias():
         """)
     return [dict(r) for r in rows]
 
+# ── AGENCIAS — CREAR ──────────────────────────────────────────
 @app.post("/api/agencias")
 async def create_agencia(request: Request):
     body     = await request.json()
@@ -121,6 +126,7 @@ async def create_agencia(request: Request):
             raise HTTPException(status_code=409, detail="Usuario ya existe")
     return {"code":code,"name":name,"username":username}
 
+# ── AGENCIAS — ACTUALIZAR ─────────────────────────────────────
 @app.put("/api/agencias/{code}")
 async def update_agencia(code: str, request: Request):
     body = await request.json()
@@ -147,6 +153,7 @@ async def update_agencia(code: str, request: Request):
             """, code, name, address, phone, status)
     return {"success":True}
 
+# ── AGENCIAS — STATS ──────────────────────────────────────────
 @app.get("/api/agencias/{code}/stats")
 async def agencia_stats(code: str, dias: int=30):
     pool = await get_db()
@@ -164,6 +171,7 @@ async def agencia_stats(code: str, dias: int=30):
         """, code, str(dias))
     return dict(row)
 
+# ── BETSLIP — GET ─────────────────────────────────────────────
 @app.get("/api/betslip/{code}")
 async def get_betslip(code: str):
     pool = await get_db()
@@ -196,6 +204,7 @@ async def get_betslip(code: str):
         "paid_at":       row["paid_at"].strftime("%d/%m/%Y %H:%M") if row["paid_at"] else None,
     }
 
+# ── BETSLIP — PAY ─────────────────────────────────────────────
 @app.post("/api/betslip/{code}/pay")
 async def pay_betslip(code: str, request: Request):
     body     = await request.json()
@@ -232,6 +241,88 @@ async def pay_betslip(code: str, request: Request):
         "potential_win":pot_win,
     }
 
+# ── FOOTBALL LIVE SCORES ──────────────────────────────────────
+FOOTBALL_API = "https://free-api-live-football-data.p.rapidapi.com"
+FOOTBALL_HEADERS = {
+    "X-RapidAPI-Host": "free-api-live-football-data.p.rapidapi.com",
+    "Content-Type": "application/json",
+}
+
+_football_cache = {}
+FOOTBALL_TTL = 30  # 30 segundos de caché
+
+@app.get("/api/live/football")
+async def live_football():
+    """Partidos de fútbol en vivo con scores en tiempo real"""
+    now = time.time()
+    if "live" in _football_cache:
+        data, ts = _football_cache["live"]
+        if now - ts < FOOTBALL_TTL:
+            return data
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            r = await c.get(
+                f"{FOOTBALL_API}/football-get-all-live-matches",
+                headers=FOOTBALL_HEADERS,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                _football_cache["live"] = (data, now)
+                return data
+            log.warning(f"Football API status: {r.status_code}")
+    except Exception as e:
+        log.error(f"Football API error: {e}")
+    return {"response": [], "error": "No disponible"}
+
+@app.get("/api/live/football/{match_id}")
+async def live_football_match(match_id: str):
+    """Detalle completo de un partido en vivo"""
+    cache_key = f"match_{match_id}"
+    now = time.time()
+    if cache_key in _football_cache:
+        data, ts = _football_cache[cache_key]
+        if now - ts < FOOTBALL_TTL:
+            return data
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            r = await c.get(
+                f"{FOOTBALL_API}/football-get-live-match-by-id",
+                headers=FOOTBALL_HEADERS,
+                params={"matchId": match_id},
+            )
+            if r.status_code == 200:
+                data = r.json()
+                _football_cache[cache_key] = (data, now)
+                return data
+    except Exception as e:
+        log.error(f"Football match error: {e}")
+    return {"error": "No disponible"}
+
+@app.get("/api/live/football/league/{league_id}")
+async def live_football_league(league_id: str):
+    """Partidos en vivo de una liga específica"""
+    cache_key = f"league_{league_id}"
+    now = time.time()
+    if cache_key in _football_cache:
+        data, ts = _football_cache[cache_key]
+        if now - ts < FOOTBALL_TTL:
+            return data
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            r = await c.get(
+                f"{FOOTBALL_API}/football-get-live-matches-by-league",
+                headers=FOOTBALL_HEADERS,
+                params={"leagueId": league_id},
+            )
+            if r.status_code == 200:
+                data = r.json()
+                _football_cache[cache_key] = (data, now)
+                return data
+    except Exception as e:
+        log.error(f"Football league error: {e}")
+    return {"error": "No disponible"}
+
+# ── WALLET API (44neoluck) ────────────────────────────────────
 @app.post("/api/wallet/")
 @app.post("/api/wallet/getBalance")
 @app.post("/api/wallet/setBalance")
