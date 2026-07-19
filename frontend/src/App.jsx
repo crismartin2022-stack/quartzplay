@@ -538,7 +538,22 @@ function ScreenSportsMenu({ onAction }){
 function ScreenPrematch({ onAction, onBet }){
   const [bets,setBets]=useState([]);
   const [sport,setSport]=useState(null);
-  const prematchSports=SPORTS.map(s=>({...s,events:s.events.filter(e=>!e.live)})).filter(s=>s.events.length>0);
+  const [prematchSports,setPrematchSports]=useState(
+    SPORTS.map(s=>({...s,events:s.events.filter(e=>!e.live)})).filter(s=>s.events.length>0)
+  );
+  const [loading,setLoading]=useState(true);
+
+  useEffect(()=>{
+    fetch("https://quartzplay-production.up.railway.app/api/live/prematch")
+      .then(r=>r.ok?r.json():null)
+      .then(data=>{
+        if(data&&data.sports&&data.sports.length>0){
+          setPrematchSports(data.sports);
+        }
+      })
+      .catch(()=>{})
+      .finally(()=>setLoading(false));
+  },[]);
 
   const toggle=(ev,label,odd)=>{
     setBets(p=>{
@@ -640,14 +655,46 @@ function ScreenPrematch({ onAction, onBet }){
 // ═══════════════════════════════════════════════════════════════
 function ScreenLive({ onAction, onBet }){
   const [bets,setBets]=useState([]);
-  const [selEvent,setSelEvent]=useState(null);
-  const [minute,setMinute]=useState({a1:43,c1:67,t1:null});
-  const liveEvents=SPORTS.flatMap(s=>s.events.filter(e=>e.live).map(e=>({...e,sport:s.name,icon:s.icon})));
+  const [liveMatches,setLiveMatches]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [lastUpdate,setLastUpdate]=useState("");
+
+  const API="https://quartzplay-production.up.railway.app";
+
+  const fetchLive=async()=>{
+    try {
+      const r=await fetch(`${API}/api/live/combined`);
+      const data=await r.json();
+      if(data.matches&&data.matches.length>0){
+        setLiveMatches(data.matches);
+        setLastUpdate(new Date().toLocaleTimeString("es-AR",{hour12:false}));
+      } else {
+        // Fallback mock
+        const mock=SPORTS.flatMap(s=>s.events.filter(e=>e.live).map(e=>({
+          id:e.id, home:e.h, away:e.a,
+          homeScore:e.score?e.score.split(":")[0]:0,
+          awayScore:e.score?e.score.split(":")[1]:0,
+          scoreStr:e.score||"0:0", minute:e.min||"",
+          status:"live", ongoing:true, odds:e.odds||{L:null,E:null,V:null},
+          hasOdds:!!e.odds?.L,
+        })));
+        setLiveMatches(mock);
+      }
+    } catch(e){
+      const mock=SPORTS.flatMap(s=>s.events.filter(e=>e.live).map(e=>({
+        id:e.id, home:e.h, away:e.a,
+        homeScore:0, awayScore:0, scoreStr:"0:0",
+        minute:"", status:"live", ongoing:true,
+        odds:e.odds||{L:null,E:null,V:null}, hasOdds:!!e.odds?.L,
+      })));
+      setLiveMatches(mock);
+    }
+    setLoading(false);
+  };
 
   useEffect(()=>{
-    const t=setInterval(()=>{
-      setMinute(m=>({...m,a1:Math.min(90,m.a1+1),c1:Math.min(90,m.c1+1)}));
-    },4000);
+    fetchLive();
+    const t=setInterval(fetchLive,30000);
     return()=>clearInterval(t);
   },[]);
 
@@ -670,66 +717,87 @@ function ScreenLive({ onAction, onBet }){
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
         <UserMsg time="9:55">🔴 En Vivo</UserMsg>
         <BotMsg time="9:55">
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <LiveDot/>
-            <span style={{color:Q.text,fontWeight:700,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}>{liveEvents.length} partidos en vivo</span>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <LiveDot/>
+              <span style={{color:Q.text,fontWeight:700,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}>
+                {loading?"Cargando...":`${liveMatches.length} partidos en vivo`}
+              </span>
+            </div>
+            {lastUpdate&&<span style={{color:Q.dim,fontSize:10}}>{lastUpdate}</span>}
           </div>
 
-          {liveEvents.map(ev=>{
-            const min=minute[ev.id];
-            return(
-              <GCard key={ev.id} glow={Q.pink} style={{padding:"14px",marginBottom:10,
-                background:`linear-gradient(135deg,${Q.pink}08,${Q.violet}05)`}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-                  <span style={{fontSize:16}}>{ev.icon}</span>
-                  <HBadge label={ev.sport} color={Q.pink}/>
-                  <LiveDot/>
-                  {min&&<span style={{color:Q.muted,fontSize:11}}>Min {min}'</span>}
-                  {ev.set&&<span style={{color:Q.muted,fontSize:11}}>Set {ev.set}</span>}
+          {loading&&(
+            <GCard style={{padding:24,textAlign:"center"}}>
+              <div style={{color:Q.muted,fontFamily:"'Space Grotesk',system-ui"}}>Cargando partidos en vivo...</div>
+            </GCard>
+          )}
+          {!loading&&liveMatches.length===0&&(
+            <GCard style={{padding:24,textAlign:"center"}}>
+              <div style={{fontSize:32,marginBottom:8}}>⚽</div>
+              <div style={{color:Q.muted,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>No hay partidos en vivo ahora</div>
+            </GCard>
+          )}
+          {liveMatches.map(ev=>(
+            <GCard key={ev.id} glow={Q.pink} style={{padding:"14px",marginBottom:10,
+              background:`linear-gradient(135deg,${Q.pink}08,${Q.violet}05)`}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                <span style={{fontSize:16}}>⚽</span>
+                <LiveDot/>
+                {ev.minute&&<span style={{color:Q.muted,fontSize:11}}>{ev.minute}</span>}
+                {ev.minuteLong&&<span style={{color:Q.muted,fontSize:10}}>{ev.minuteLong}</span>}
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{textAlign:"center",flex:1}}>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
+                    <TeamLogo name={ev.home} teamId={ev.homeId} size={36}/>
+                  </div>
+                  <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{ev.home}</div>
                 </div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div style={{textAlign:"center",flex:1}}>
-                    <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
-                      <TeamLogo name={ev.h} size={36}/>
-                    </div>
-                    <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{ev.h}</div>
+                <div style={{textAlign:"center",padding:"0 10px"}}>
+                  <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,fontSize:30,color:Q.text}}>
+                    {ev.homeScore}<span style={{color:Q.dim}}>:</span>{ev.awayScore}
                   </div>
-                  <div style={{textAlign:"center",padding:"0 10px"}}>
-                    {ev.score?(
-                      <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,fontSize:30,color:Q.text}}>
-                        {ev.score.split(":")[0]}<span style={{color:Q.dim}}>:</span>{ev.score.split(":")[1]}
-                      </div>
-                    ):(
-                      <div style={{color:Q.muted,fontSize:14}}>vs</div>
-                    )}
-                    <div style={{color:Q.pink,fontSize:9,fontFamily:"'Space Grotesk',system-ui",letterSpacing:1}}>EN CURSO</div>
-                  </div>
-                  <div style={{textAlign:"center",flex:1}}>
-                    <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
-                      <TeamLogo name={ev.a} size={36}/>
-                    </div>
-                    <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{ev.a}</div>
-                  </div>
+                  <div style={{color:Q.pink,fontSize:9,fontFamily:"'Space Grotesk',system-ui",letterSpacing:1}}>EN CURSO</div>
                 </div>
+                <div style={{textAlign:"center",flex:1}}>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
+                    <TeamLogo name={ev.away} teamId={ev.awayId} size={36}/>
+                  </div>
+                  <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{ev.away}</div>
+                </div>
+              </div>
+              {ev.hasOdds?(
                 <div style={{display:"flex",gap:5}}>
-                  {[{l:ev.h,v:ev.odds.L,c:Q.amber},{l:ev.odds.E?"Empate":null,v:ev.odds.E,c:Q.muted},{l:ev.a,v:ev.odds.V,c:Q.cyan}]
-                    .filter(o=>o.l&&o.v).map((o,i)=>(
-                    <button key={i} onClick={()=>toggle(ev,o.l,o.v)} style={{
+                  {[{l:ev.home,v:ev.odds.L,c:Q.amber},
+                    ev.odds.E?{l:"Empate",v:ev.odds.E,c:Q.muted}:null,
+                    {l:ev.away,v:ev.odds.V,c:Q.cyan}]
+                    .filter(Boolean).filter(o=>o.v).map((o,i)=>(
+                    <button key={i} onClick={()=>{
+                      setBets(p=>{
+                        const w=p.filter(b=>b.id!==ev.id);
+                        if(p.find(b=>b.id===ev.id&&b.label===o.l)) return w;
+                        return[...w,{id:ev.id,label:o.l,odd:o.v,h:ev.home,a:ev.away}];
+                      });
+                    }} style={{
                       flex:1,
-                      background:isSel(ev.id,o.l)?`linear-gradient(135deg,${Q.pink}44,${Q.violet}22)`:"rgba(255,255,255,0.04)",
-                      border:`1.5px solid ${isSel(ev.id,o.l)?Q.pink:Q.border}`,
+                      background:bets.some(b=>b.id===ev.id&&b.label===o.l)?`linear-gradient(135deg,${Q.pink}44,${Q.violet}22)`:"rgba(255,255,255,0.04)",
+                      border:`1.5px solid ${bets.some(b=>b.id===ev.id&&b.label===o.l)?Q.pink:Q.border}`,
                       borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",transition:"all 0.2s",
                     }}>
                       <div style={{color:Q.muted,fontSize:9,fontFamily:"'Space Grotesk',system-ui"}}>{o.l}</div>
-                      <div style={{color:isSel(ev.id,o.l)?Q.pink:o.c,fontWeight:700,fontSize:15,
-                        fontFamily:"'Space Grotesk',system-ui"}}>{fmt(o.v)}</div>
+                      <div style={{color:bets.some(b=>b.id===ev.id&&b.label===o.l)?Q.pink:o.c,
+                        fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(o.v)}</div>
                       <div style={{color:Q.pink,fontSize:8}}>◉ LIVE</div>
                     </button>
                   ))}
                 </div>
-              </GCard>
-            );
-          })}
+              ):(
+                <div style={{textAlign:"center",color:Q.dim,fontSize:11,padding:"8px 0",
+                  fontFamily:"'Space Grotesk',system-ui"}}>Cuotas no disponibles para este partido</div>
+              )}
+            </GCard>
+          ))}
           <QKB rows={[[{label:"◀ Sports",action:"sports"},{label:"📋 Prematch",action:"prematch"}]]} onPress={onAction}/>
         </BotMsg>
 
