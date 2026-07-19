@@ -22,26 +22,28 @@ const prod = a => a.reduce((x,y)=>x*y,1);
 
 // ── TEAM LOGO ─────────────────────────────────────────────────
 const TEAM_CACHE = {};
+const PROXY = "https://quartzplay-production.up.railway.app";
 
-function TeamLogo({ name, size=32 }){
+function TeamLogo({ name, teamId, size=32 }){
   const [src,setSrc] = useState(null);
 
   useEffect(()=>{
-    if(!name) return;
-    if(TEAM_CACHE[name]){
-      setSrc(TEAM_CACHE[name]);
-      return;
-    }
-    fetch(`https://quartzplay-production.up.railway.app/api/team-logo?name=${encodeURIComponent(name)}`)
+    const key = teamId||name;
+    if(!key) return;
+    if(TEAM_CACHE[key]){ setSrc(TEAM_CACHE[key]); return; }
+
+    const url = teamId
+      ? `${PROXY}/api/team-logo/${teamId}`
+      : `${PROXY}/api/team-logo?name=${encodeURIComponent(name)}`;
+
+    fetch(url)
       .then(r=>r.ok?r.json():null)
       .then(d=>{
-        if(d?.url){
-          TEAM_CACHE[name]=d.url;
-          setSrc(d.url);
-        }
+        const imgUrl = d?.logoUrl || (teamId?`${PROXY}/api/team-logo/${teamId}`:null);
+        if(imgUrl){ TEAM_CACHE[key]=imgUrl; setSrc(imgUrl); }
       })
       .catch(()=>{});
-  },[name]);
+  },[name,teamId]);
 
   if(!src) return(
     <div style={{width:size,height:size,borderRadius:"50%",
@@ -53,7 +55,7 @@ function TeamLogo({ name, size=32 }){
   return(
     <img src={src} alt={name} width={size} height={size}
       style={{borderRadius:"50%",objectFit:"contain",
-        background:"rgba(255,255,255,0.05)",flexShrink:0}}
+        background:"rgba(255,255,255,0.05)",padding:2,flexShrink:0}}
       onError={()=>setSrc(null)}/>
   );
 }
