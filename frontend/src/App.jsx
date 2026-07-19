@@ -20,6 +20,46 @@ const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt = n => Number(n||0).toFixed(2);
 const prod = a => a.reduce((x,y)=>x*y,1);
 
+// ── TEAM LOGO ─────────────────────────────────────────────────
+const TEAM_CACHE = {};
+
+function TeamLogo({ name, size=32 }){
+  const [src,setSrc] = useState(null);
+
+  useEffect(()=>{
+    if(!name) return;
+    if(TEAM_CACHE[name]){
+      setSrc(TEAM_CACHE[name]);
+      return;
+    }
+    fetch(`https://quartzplay-production.up.railway.app/api/team-logo?name=${encodeURIComponent(name)}`)
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{
+        if(d?.url){
+          TEAM_CACHE[name]=d.url;
+          setSrc(d.url);
+        }
+      })
+      .catch(()=>{});
+  },[name]);
+
+  if(!src) return(
+    <div style={{width:size,height:size,borderRadius:"50%",
+      background:`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`,
+      display:"flex",alignItems:"center",justifyContent:"center",
+      fontSize:size*0.5,flexShrink:0}}>⚽</div>
+  );
+
+  return(
+    <img src={src} alt={name} width={size} height={size}
+      style={{borderRadius:"50%",objectFit:"contain",
+        background:"rgba(255,255,255,0.05)",flexShrink:0}}
+      onError={()=>setSrc(null)}/>
+  );
+}
+
+
+
 // ── COMPONENTS ────────────────────────────────────────────────
 function GCard({ children, style={}, glow, onClick }){
   return(
@@ -647,8 +687,8 @@ function ScreenLive({ onAction, onBet }){
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                   <div style={{textAlign:"center",flex:1}}>
-                    <div style={{fontSize:22,marginBottom:3}}>
-                      {ev.id==="a1"?"🔴":ev.id==="c1"?"⚪":"🎾"}
+                    <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
+                      <TeamLogo name={ev.h} size={36}/>
                     </div>
                     <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{ev.h}</div>
                   </div>
@@ -663,8 +703,8 @@ function ScreenLive({ onAction, onBet }){
                     <div style={{color:Q.pink,fontSize:9,fontFamily:"'Space Grotesk',system-ui",letterSpacing:1}}>EN CURSO</div>
                   </div>
                   <div style={{textAlign:"center",flex:1}}>
-                    <div style={{fontSize:22,marginBottom:3}}>
-                      {ev.id==="a1"?"🔵":ev.id==="c1"?"🔴":"🎾"}
+                    <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
+                      <TeamLogo name={ev.a} size={36}/>
                     </div>
                     <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{ev.a}</div>
                   </div>
