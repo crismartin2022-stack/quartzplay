@@ -895,11 +895,151 @@ function Config({ agencia }){
 // ═══════════════════════════════════════════════════════════════
 // PANEL PRINCIPAL
 // ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// EN VIVO — Scores en tiempo real
+// ═══════════════════════════════════════════════════════════════
+function EnVivo(){
+  const [matches,setMatches]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [lastUpdate,setLastUpdate]=useState("");
+  const [err,setErr]=useState("");
+
+  const fetchLive=async()=>{
+    try {
+      const r=await fetch("https://quartzplay-production.up.railway.app/api/live/football");
+      const data=await r.json();
+      if(data.response&&data.response.live){
+        setMatches(data.response.live);
+        setLastUpdate(new Date().toLocaleTimeString("es-AR",{hour12:false}));
+        setErr("");
+      } else {
+        setErr("No hay partidos en vivo ahora");
+        setMatches([]);
+      }
+    } catch(e){
+      setErr("Error cargando scores");
+    }
+    setLoading(false);
+  };
+
+  useEffect(()=>{
+    fetchLive();
+    const t=setInterval(fetchLive,30000); // actualiza cada 30 seg
+    return()=>clearInterval(t);
+  },[]);
+
+  const getStatusColor=(m)=>{
+    if(m.ongoing) return Q.pink;
+    if(m.finished) return Q.muted;
+    return Q.amber;
+  };
+
+  const getStatusLabel=(m)=>{
+    if(m.finished) return "FT";
+    if(!m.started) return "Por jugar";
+    if(m.liveTime?.short) return m.liveTime.short;
+    return "EN VIVO";
+  };
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{width:8,height:8,borderRadius:"50%",background:Q.pink,
+            boxShadow:`0 0 6px ${Q.pink}`,animation:"qPulse 1.2s ease-in-out infinite"}}/>
+          <span style={{color:Q.text,fontWeight:700,fontSize:15,
+            fontFamily:"'Space Grotesk',system-ui"}}>En Vivo</span>
+          {matches.length>0&&<span style={{background:`${Q.pink}22`,border:`1px solid ${Q.pink}`,
+            borderRadius:20,padding:"2px 10px",color:Q.pink,fontSize:11,fontWeight:700,
+            fontFamily:"'Space Grotesk',system-ui"}}>{matches.length} partidos</span>}
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {lastUpdate&&<span style={{color:Q.dim,fontSize:10}}>{lastUpdate}</span>}
+          <button onClick={fetchLive} style={{background:"transparent",
+            border:`1px solid ${Q.border}`,borderRadius:8,padding:"5px 10px",
+            color:Q.muted,fontSize:11,cursor:"pointer",
+            fontFamily:"'Space Grotesk',system-ui"}}>🔄</button>
+        </div>
+      </div>
+
+      {loading&&(
+        <GCard style={{padding:24,textAlign:"center"}}>
+          <div style={{color:Q.muted,fontFamily:"'Space Grotesk',system-ui"}}>
+            Cargando scores...
+          </div>
+        </GCard>
+      )}
+
+      {err&&!loading&&(
+        <GCard style={{padding:24,textAlign:"center"}}>
+          <div style={{fontSize:32,marginBottom:8}}>⚽</div>
+          <div style={{color:Q.muted,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>{err}</div>
+          <div style={{color:Q.dim,fontSize:11,marginTop:4}}>Los scores se actualizan cada 30 segundos</div>
+        </GCard>
+      )}
+
+      {matches.map((m,i)=>{
+        const statusColor=getStatusColor(m);
+        const statusLabel=getStatusLabel(m);
+        const homeScore=m.home?.score??"-";
+        const awayScore=m.away?.score??"-";
+        return(
+          <GCard key={m.id} glow={m.ongoing?Q.pink:undefined}
+            style={{padding:"14px 16px",marginBottom:10,
+              background:m.ongoing?`linear-gradient(135deg,${Q.pink}08,${Q.violet}05)`:""}}>
+            <div style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",marginBottom:10}}>
+              <span style={{color:Q.muted,fontSize:10,fontFamily:"'Space Grotesk',system-ui"}}>
+                {m.time||""}
+              </span>
+              <span style={{
+                background:`${statusColor}22`,border:`1px solid ${statusColor}`,
+                borderRadius:20,padding:"2px 10px",color:statusColor,
+                fontSize:10,fontWeight:700,fontFamily:"'Space Grotesk',system-ui",
+              }}>{statusLabel}</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{flex:1,textAlign:"left"}}>
+                <div style={{color:Q.text,fontWeight:700,fontSize:13,
+                  fontFamily:"'Space Grotesk',system-ui",marginBottom:2}}>{m.home?.name}</div>
+                {m.home?.redCards>0&&<span style={{color:Q.red,fontSize:10}}>🟥 {m.home.redCards}</span>}
+              </div>
+              <div style={{textAlign:"center",padding:"0 16px"}}>
+                <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,
+                  fontSize:28,color:m.ongoing?Q.pink:Q.text}}>
+                  {homeScore}<span style={{color:Q.dim}}> - </span>{awayScore}
+                </div>
+                {m.liveTime?.long&&<div style={{color:Q.muted,fontSize:10,marginTop:2}}>{m.liveTime.long}</div>}
+              </div>
+              <div style={{flex:1,textAlign:"right"}}>
+                <div style={{color:Q.text,fontWeight:700,fontSize:13,
+                  fontFamily:"'Space Grotesk',system-ui",marginBottom:2}}>{m.away?.name}</div>
+                {m.away?.redCards>0&&<span style={{color:Q.red,fontSize:10}}>{m.away.redCards} 🟥</span>}
+              </div>
+            </div>
+          </GCard>
+        );
+      })}
+
+      {!loading&&matches.length===0&&!err&&(
+        <GCard style={{padding:24,textAlign:"center"}}>
+          <div style={{fontSize:32,marginBottom:8}}>⚽</div>
+          <div style={{color:Q.muted,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
+            No hay partidos en vivo ahora
+          </div>
+        </GCard>
+      )}
+    </div>
+  );
+}
+
 function AgenciaPanel({ agencia, onLogout }){
   const [tab,setTab]=useState("codigo");
 
   const TABS=[
     {k:"codigo",   l:"Código / Bot"},
+    {k:"envivo",   l:"🔴 En Vivo"},
     {k:"manual",   l:"Apuesta manual"},
     {k:"historial",l:"Historial"},
     {k:"cierres",  l:"Cierres"},
@@ -947,6 +1087,7 @@ function AgenciaPanel({ agencia, onLogout }){
       <div style={{padding:"16px",maxWidth:620,margin:"0 auto",
         position:"relative",zIndex:1,paddingBottom:80}}>
         {tab==="codigo"   &&<FlujoCodigo  agencia={agencia}/>}
+        {tab==="envivo"   &&<EnVivo/>}
         {tab==="manual"   &&<FlujoManual  agencia={agencia}/>}
         {tab==="historial"&&<Historial    agencia={agencia}/>}
         {tab==="cierres"  &&<Cierres      agencia={agencia}/>}
