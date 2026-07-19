@@ -328,11 +328,39 @@ async def live_football_league(league_id: str):
 # ── TEAM LOGO PROXY ───────────────────────────────────────────
 _logo_cache = {}
 
+@app.get("/api/team-logo/{team_id}")
+async def team_logo_by_id(team_id: str):
+    """Devuelve el logo de un equipo por teamId — proxy para ocultar el API key"""
+    if team_id in _logo_cache:
+        return _logo_cache[team_id]
+    try:
+        async with httpx.AsyncClient(timeout=8) as c:
+            r = await c.get(
+                f"{FOOTBALL_API}/football-team-logo",
+                headers=FOOTBALL_HEADERS,
+                params={"teamid": team_id},
+            )
+            if r.status_code == 200:
+                # La API devuelve la imagen directamente o una URL
+                content_type = r.headers.get("content-type","")
+                if "image" in content_type:
+                    from fastapi.responses import Response
+                    _logo_cache[team_id] = None
+                    return Response(content=r.content, media_type=content_type)
+                data = r.json()
+                result = data
+                _logo_cache[team_id] = result
+                return result
+    except Exception as e:
+        log.error(f"Team logo error: {e}")
+    return {"error": "No disponible"}
+
 @app.get("/api/team-logo")
-async def team_logo(name: str):
-    """Busca el logo de un equipo por nombre"""
-    if name in _logo_cache:
-        return _logo_cache[name]
+async def team_logo_by_name(name: str):
+    """Busca teamId por nombre y redirige al logo"""
+    cache_key = f"name_{name}"
+    if cache_key in _logo_cache:
+        return _logo_cache[cache_key]
     try:
         async with httpx.AsyncClient(timeout=8) as c:
             r = await c.get(
@@ -342,18 +370,20 @@ async def team_logo(name: str):
             )
             if r.status_code == 200:
                 data = r.json()
-                teams = data.get("response",{}).get("teams",[])
+                teams = (data.get("response") or {})
+                if isinstance(teams, dict):
+                    teams = teams.get("teams", [])
                 if teams:
                     team = teams[0]
-                    team_id = team.get("id") or team.get("teamId")
+                    team_id = str(team.get("id") or team.get("teamId",""))
                     if team_id:
-                        logo_url = f"{FOOTBALL_API}/football-get-team-image?teamId={team_id}"
-                        result = {"url": logo_url, "teamId": team_id, "name": name}
-                        _logo_cache[name] = result
+                        result = {"teamId": team_id, "name": name,
+                            "logoUrl": f"https://quartzplay-production.up.railway.app/api/team-logo/{team_id}"}
+                        _logo_cache[cache_key] = result
                         return result
     except Exception as e:
-        log.error(f"Team logo error: {e}")
-    return {"url": None}
+        log.error(f"Team search error: {e}")
+    return {"teamId": None}
 
 # ── WALLET API (44neoluck) ────────────────────────────────────
 @app.post("/api/wallet/")
