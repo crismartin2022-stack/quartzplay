@@ -9,6 +9,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 log = logging.getLogger(__name__)
 
+def sync_get(url, params=None, headers=None, timeout=30):
+    """HTTP GET sincrónico usando urllib para evitar conflictos de event loop"""
+    import urllib.request, urllib.parse, json as _json
+    if params:
+        url = url + "?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(url, headers=headers or {})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return _json.loads(r.read().decode())
+    except Exception as e:
+        log.error(f"sync_get error {url}: {e}")
+        return None
+
 DATABASE_URL = os.environ.get("DATABASE_URL","")
 X_CODE       = os.environ.get("CASINO_X_CODE","")
 SECRET_KEY   = os.environ.get("CASINO_SECRET_KEY","")
@@ -458,7 +471,7 @@ async def prematch_odds():
                     if mapped:
                         result["sports"].append({"name":meta["name"],"icon":meta["icon"],
                             "events":mapped})
-                await asyncio.sleep(0.3)
+                import time as _time; _time.sleep(0.2)
     except Exception as e:
         log.error(f"Prematch error: {e}")
 
@@ -612,24 +625,21 @@ async def live_markets(sport_key: str):
         data, ts = _football_cache[cache_key]
         if now - ts < 60:
             return data
-    try:
-        async with httpx.AsyncClient(timeout=15) as c:
-            r = await c.get(
-                f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
-                params={
-                    "apiKey": ODDS_API_KEY,
-                    "regions": "eu",
-                    "markets": "h2h,spreads,totals,btts",
-                    "oddsFormat": "decimal",
-                    "dateFormat": "iso",
-                }
-            )
-            if r.status_code == 200:
-                result = {"events": r.json(), "sport": sport_key}
-                _football_cache[cache_key] = (result, now)
-                return result
-    except Exception as e:
-        log.error(f"Markets error: {e}")
+    data = sync_get(
+        f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
+        params={
+            "apiKey": ODDS_API_KEY,
+            "regions": "eu",
+            "markets": "h2h,totals",
+            "oddsFormat": "decimal",
+            "dateFormat": "iso",
+        },
+        timeout=20
+    )
+    if data is not None:
+        result = {"events": data, "sport": sport_key}
+        _football_cache[cache_key] = (result, now)
+        return result
     return {"events": [], "sport": sport_key}
 
 @app.get("/api/live/all-markets")
@@ -643,39 +653,28 @@ async def all_markets():
         if now - ts < 120:
             return data
 
-    # Primero obtener deportes activos
+    # Obtener deportes activos de forma sincrónica
     SPORTS = []
-    try:
-        async with httpx.AsyncClient(timeout=10) as c:
-            r = await c.get(
-                "https://api.the-odds-api.com/v4/sports/",
-                params={"apiKey": ODDS_API_KEY}
-            )
-            if r.status_code == 200:
-                all_sports = r.json()
-                # Tomar todos los deportes activos sin outrights
-                for s in all_sports:
-                    if (s.get("active") and
-                        not s.get("has_outrights", False) and
-                        len(SPORTS) < 20):
-                        SPORTS.append(s["key"])
-                log.info(f"Sports activos encontrados: {SPORTS}")
-    except Exception as e:
-        log.error(f"Sports list error: {e}")
+    all_sports_data = sync_get(
+        "https://api.the-odds-api.com/v4/sports/",
+        params={"apiKey": ODDS_API_KEY},
+        timeout=15
+    )
+    if all_sports_data:
+        for s in all_sports_data:
+            if s.get("active") and not s.get("has_outrights", False) and len(SPORTS) < 20:
+                SPORTS.append(s["key"])
+        log.info(f"Sports activos: {len(SPORTS)} — {SPORTS[:5]}")
+    else:
         SPORTS = [
-            "baseball_mlb",
-            "basketball_wnba",
-            "americanfootball_nfl",
-            "soccer_usa_mls",
-            "soccer_mexico_ligamx",
-            "soccer_argentina_primera_division",
-            "tennis_atp_wimbledon",
-            "mma_mixed_martial_arts",
-            "aussierules_afl",
-            "cricket_international_t20",
+            "baseball_mlb","basketball_wnba","americanfootball_nfl",
+            "soccer_usa_mls","soccer_argentina_primera_division",
+            "tennis_atp_wimbledon","mma_mixed_martial_arts",
+            "aussierules_afl","cricket_international_t20",
         ]
+        log.warning("Usando sports fallback")
 
-    log.info(f"Fetching markets for {len(SPORTS)} sports: {SPORTS[:5]}...")
+    log.info(f"Fetching markets for {len(SPORTS)} sports")
 
     SPORT_NAMES = {
         "soccer_argentina_primera_division": {"name":"Liga Argentina","icon":"🇦🇷"},
@@ -692,20 +691,20 @@ async def all_markets():
 
     result = {"sports": []}
     try:
-        async with httpx.AsyncClient(timeout=20) as c:
-            for sport_key in SPORTS:
-                r = await c.get(
+        for sport_key in SPORTS:
+                events_raw_data = sync_get(
                     f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
                     params={
                         "apiKey": ODDS_API_KEY,
                         "regions": "eu",
-                        "markets": "h2h,totals,btts",
+                        "markets": "h2h,totals",
                         "oddsFormat": "decimal",
                         "dateFormat": "iso",
-                    }
+                    },
+                    timeout=20
                 )
-                if r.status_code == 200:
-                    events_raw = r.json()[:8]
+                if events_raw_data is not None:
+                    events_raw = events_raw_data[:8]
                     events = []
                     for ev in events_raw:
                         home = ev.get("home_team","")
@@ -744,10 +743,11 @@ async def all_markets():
                             "icon": meta["icon"],
                             "events": events,
                         })
-                await asyncio.sleep(0.3)
+                import time as _time; _time.sleep(0.2)
     except Exception as e:
         log.error(f"All markets error: {e}")
 
+    log.info(f"All markets result: {len(result.get('sports',[]))} sports")
     _football_cache[cache_key] = (result, now)
     return result
 
