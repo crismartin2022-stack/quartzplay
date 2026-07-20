@@ -634,26 +634,50 @@ async def live_markets(sport_key: str):
 
 @app.get("/api/live/all-markets")
 async def all_markets():
-    """Todos los mercados de todos los deportes — prematch y live"""
+    """Todos los mercados — detecta deportes activos dinamicamente"""
     ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
-    SPORTS = [
-        "soccer_argentina_primera_division",
-        "soccer_fifa_world_cup",
-        "soccer_uefa_champs_league",
-        "soccer_spain_la_liga",
-        "soccer_epl",
-        "basketball_nba",
-        "americanfootball_nfl",
-        "mma_mixed_martial_arts",
-        "icehockey_nhl",
-        "tennis_atp_wimbledon",
-    ]
     cache_key = "all_markets"
     now = time.time()
     if cache_key in _football_cache:
         data, ts = _football_cache[cache_key]
         if now - ts < 120:
             return data
+
+    # Primero obtener deportes activos
+    SPORTS = []
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            r = await c.get(
+                "https://api.the-odds-api.com/v4/sports/",
+                params={"apiKey": ODDS_API_KEY}
+            )
+            if r.status_code == 200:
+                all_sports = r.json()
+                # Filtrar los mas relevantes que tienen eventos (no outrights)
+                priority = [
+                    "soccer","baseball","basketball","americanfootball",
+                    "tennis","mma","icehockey","cricket","boxing","aussierules"
+                ]
+                added = set()
+                for group in priority:
+                    for s in all_sports:
+                        if (s.get("active") and
+                            not s.get("has_outrights") and
+                            group in s["key"] and
+                            s["key"] not in added and
+                            len(SPORTS) < 15):
+                            SPORTS.append(s["key"])
+                            added.add(s["key"])
+    except Exception as e:
+        log.error(f"Sports list error: {e}")
+        SPORTS = [
+            "baseball_mlb","basketball_wnba",
+            "americanfootball_cfl","americanfootball_nfl_preseason",
+            "soccer_usa_mls","soccer_mexico_ligamx",
+            "tennis_atp_wimbledon","mma_mixed_martial_arts",
+        ]
+
+    log.info(f"Fetching markets for {len(SPORTS)} sports: {SPORTS[:5]}...")
 
     SPORT_NAMES = {
         "soccer_argentina_primera_division": {"name":"Liga Argentina","icon":"🇦🇷"},
