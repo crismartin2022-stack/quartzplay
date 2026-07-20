@@ -21,7 +21,7 @@ const nowStr = () => new Date().toLocaleString("es-AR",{hour12:false});
 const expires24 = () => { const d=new Date(); d.setHours(d.getHours()+24); return d.toLocaleString("es-AR",{hour12:false}); };
 
 // ── API ───────────────────────────────────────────────────────
-const API_URL = "https://quartzplay-production.up.railway.app";
+const API_URL = "https://amusing-vision-production.up.railway.app";
 
 async function fetchBetslip(code){
   try {
@@ -1018,7 +1018,7 @@ function Config({ agencia }){
 // ═══════════════════════════════════════════════════════════════
 // EN VIVO — Scores + cuotas en tiempo real
 // ═══════════════════════════════════════════════════════════════
-const API_BOT = "https://quartzplay-production.up.railway.app";
+const API_BOT = "https://amusing-vision-production.up.railway.app";
 
 function EnVivo(){
   const [matches,setMatches]=useState([]);
