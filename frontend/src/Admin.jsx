@@ -18,7 +18,7 @@ const Q = {
 
 const ars  = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt  = n => Number(n||0).toFixed(2);
-const API  = "https://quartzplay-production.up.railway.app";
+const API  = "https://amusing-vision-production.up.railway.app";
 
 // ── COMPONENTS ────────────────────────────────────────────────
 function GCard({ children, style={}, glow, onClick }){
