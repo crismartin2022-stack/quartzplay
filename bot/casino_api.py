@@ -922,6 +922,62 @@ async def ai_combos():
     _football_cache[cache_key] = (result, now)
     return result
 
+
+# ── INFLUENCER TRACKING WEB ───────────────────────────────────
+@app.post("/api/influencer/track")
+async def track_influencer(request: Request):
+    """Trackea eventos de influencer desde la web app"""
+    try:
+        body = await request.json()
+        code   = body.get("code","")
+        event  = body.get("event","click_web")
+        amount = body.get("amount", 0)
+        if not code:
+            return {"ok": False}
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO influencer_events
+                    (influencer_code, user_id, event, amount)
+                VALUES ($1, NULL, $2, $3)
+            """, code, event, amount)
+        return {"ok": True}
+    except Exception as e:
+        log.error(f"Track influencer error: {e}")
+        return {"ok": False}
+
+@app.get("/api/influencer/{code}/stats")
+async def influencer_stats(code: str):
+    """Stats de un influencer específico"""
+    try:
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT
+                    COUNT(*) FILTER (WHERE event='click') as clics_bot,
+                    COUNT(*) FILTER (WHERE event='click_web') as clics_web,
+                    COUNT(*) FILTER (WHERE event='registro') as registros,
+                    COUNT(*) FILTER (WHERE event='apuesta') as apuestas_bot,
+                    COUNT(*) FILTER (WHERE event='apuesta_web') as apuestas_web,
+                    COALESCE(SUM(amount) FILTER (WHERE event IN ('apuesta','apuesta_web')),0) as volumen
+                FROM influencer_events
+                WHERE influencer_code=$1
+            """, code)
+            return dict(row) if row else {}
+    except Exception as e:
+        log.error(f"Stats error: {e}")
+        return {}
+
+@app.get("/api/influencer/link/{code}")
+async def influencer_link(code: str):
+    """Genera los links del influencer (bot + web)"""
+    return {
+        "code": code,
+        "link_bot": f"https://t.me/QuartzPlayBot?start=combo_{code}",
+        "link_web": f"https://valiant-gentleness-production-a779.up.railway.app?ref={code}",
+        "link_short": f"https://t.me/QuartzPlayBot?start=combo_{code}",
+    }
+
 # ── WALLET API (44neoluck) ────────────────────────────────────
 @app.post("/api/wallet/")
 @app.post("/api/wallet/getBalance")
