@@ -1,5 +1,4 @@
-import os, asyncio, logging
-import uvicorn
+import os, asyncio, logging, subprocess, sys, signal
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -7,49 +6,49 @@ logging.basicConfig(level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger(__name__)
 
-async def main():
-    from db import get_pool
+async def run_bot():
     from telegram.ext import Application
     from bot_handlers   import register_bot_handlers
     from admin_handlers import register_admin_handlers
     from casino_twa     import register_casino_twa_handlers
-    import casino_api
+    from db             import get_pool
 
-    # DB
+    TOKEN = os.environ["TELEGRAM_TOKEN"]
     log.info("Conectando a PostgreSQL...")
     pool = await get_pool()
     log.info("Base de datos lista")
 
-    # Bot
-    TOKEN = os.environ["TELEGRAM_TOKEN"]
-    bot_app = Application.builder().token(TOKEN).build()
-    bot_app.bot_data["db_pool"] = pool
-    register_bot_handlers(bot_app)
-    register_admin_handlers(bot_app)
-    register_casino_twa_handlers(bot_app)
+    app = Application.builder().token(TOKEN).build()
+    app.bot_data["db_pool"] = pool
+    register_bot_handlers(app)
+    register_admin_handlers(app)
+    register_casino_twa_handlers(app)
 
-    # Inyectar pool en casino_api
-    casino_api._db_pool = pool
-
-    # Uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    config = uvicorn.Config(
-        casino_api.app,
-        host="0.0.0.0",
-        port=port,
-        log_level="warning",
-    )
-    server = uvicorn.Server(config)
-    # Evitar que uvicorn instale signal handlers
-    server.install_signal_handlers = lambda: None
-
-    log.info(f"Iniciando API en puerto {port}")
-    log.info("Iniciando bot de Telegram")
-
-    async with bot_app:
-        await bot_app.start()
-        await bot_app.updater.start_polling(drop_pending_updates=True)
-        await server.serve()
+    log.info("QuartzPlay Bot iniciado")
+    async with app:
+        await app.start()
+        await app.updater.start_polling(drop_pending_updates=True)
+        await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    port = os.environ.get("PORT", "8000")
+
+    # Iniciar API en proceso separado
+    api_proc = subprocess.Popen([
+        sys.executable, "-m", "uvicorn",
+        "casino_api:app",
+        "--host", "0.0.0.0",
+        "--port", port,
+        "--log-level", "warning",
+    ])
+    log.info(f"API iniciada en puerto {port} (PID {api_proc.pid})")
+
+    def cleanup(sig, frame):
+        api_proc.terminate()
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, cleanup)
+    signal.signal(signal.SIGINT, cleanup)
+
+    # Iniciar bot en proceso principal
+    asyncio.run(run_bot())
