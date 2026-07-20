@@ -1,10 +1,21 @@
-import os, asyncio, logging, subprocess, sys, signal
+import os, asyncio, logging, multiprocessing, signal, sys
 from dotenv import load_dotenv
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger(__name__)
+
+def run_api():
+    """Corre FastAPI en proceso separado"""
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(
+        "casino_api:app",
+        host="0.0.0.0",
+        port=port,
+        log_level="warning",
+    )
 
 async def run_bot():
     from telegram.ext import Application
@@ -31,17 +42,10 @@ async def run_bot():
         await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    port = os.environ.get("PORT", "8000")
-
     # Iniciar API en proceso separado
-    api_proc = subprocess.Popen([
-        sys.executable, "-m", "uvicorn",
-        "casino_api:app",
-        "--host", "0.0.0.0",
-        "--port", port,
-        "--log-level", "warning",
-    ])
-    log.info(f"API iniciada en puerto {port} (PID {api_proc.pid})")
+    api_proc = multiprocessing.Process(target=run_api, daemon=True)
+    api_proc.start()
+    log.info(f"API iniciada (PID {api_proc.pid})")
 
     def cleanup(sig, frame):
         api_proc.terminate()
@@ -50,5 +54,5 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, cleanup)
     signal.signal(signal.SIGINT, cleanup)
 
-    # Iniciar bot en proceso principal
+    # Bot en proceso principal
     asyncio.run(run_bot())
