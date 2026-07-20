@@ -1156,8 +1156,25 @@ function ScreenCombo({ onAction, onBet }){
   const [sel,setSel]=useState("c1");
   const [voted,setVoted]=useState({});
   const [codeGenerated,setCodeGenerated]=useState({});
-  const combo=AI_COMBOS.find(c=>c.id===sel)||AI_COMBOS[0];
-  const tot=combo.picks.reduce((a,p)=>a*p.odd,1);
+  const [realCombos,setRealCombos]=useState(null);
+  const [loading,setLoading]=useState(true);
+
+  useEffect(()=>{
+    fetch(`${API}/api/ai/combos`)
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{
+        if(d&&d.combos&&d.combos.length>0){
+          setRealCombos(d.combos);
+          setSel(d.combos[0].id);
+        }
+      })
+      .catch(()=>{})
+      .finally(()=>setLoading(false));
+  },[]);
+
+  const combosToShow = realCombos || AI_COMBOS;
+  const combo = combosToShow.find(c=>c.id===sel) || combosToShow[0];
+  const tot = combo ? combo.picks.reduce((a,p)=>a*p.odd,1) : 1;
   const stake=10000;
 
   const genQPCode=(c)=>{
@@ -1175,19 +1192,23 @@ function ScreenCombo({ onAction, onBet }){
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
         <UserMsg time="10:30">⚡ Combinadas IA</UserMsg>
         <BotMsg time="10:30">
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <div style={{width:30,height:30,borderRadius:9,
-              background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-              display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>⚡</div>
-            <div>
-              <div style={{color:Q.text,fontWeight:700,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}>AI Combos del día</div>
-              <div style={{color:Q.muted,fontSize:11}}>Generados por QuartzPlay IA</div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:30,height:30,borderRadius:9,
+                background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
+                display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>⚡</div>
+              <div>
+                <div style={{color:Q.text,fontWeight:700,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}>AI Combos del día</div>
+                <div style={{color:Q.muted,fontSize:11}}>{realCombos?"Datos reales":"Generados por QuartzPlay IA"}</div>
+              </div>
             </div>
+            {loading&&<div style={{color:Q.muted,fontSize:11}}>Cargando...</div>}
+            {realCombos&&<HBadge label="REAL" color={Q.green}/>}
           </div>
 
           {/* Selector */}
           <div style={{display:"flex",gap:5,marginBottom:14}}>
-            {AI_COMBOS.map(c=>(
+            {combosToShow.map(c=>(
               <button key={c.id} onClick={()=>setSel(c.id)} style={{
                 flex:1,
                 background:sel===c.id?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
