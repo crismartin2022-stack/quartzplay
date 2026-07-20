@@ -751,6 +751,177 @@ async def all_markets():
     _football_cache[cache_key] = (result, now)
     return result
 
+
+# ── AI COMBOS ─────────────────────────────────────────────────
+@app.get("/api/ai/combos")
+async def ai_combos():
+    """Genera 3 combos IA con eventos reales del día"""
+    ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
+    cache_key = "ai_combos"
+    now = time.time()
+    if cache_key in _football_cache:
+        data, ts = _football_cache[cache_key]
+        if now - ts < 300:  # 5 min cache
+            return data
+
+    # Traer todos los eventos disponibles
+    SPORTS_TO_CHECK = [
+        "baseball_mlb","basketball_wnba","americanfootball_nfl",
+        "soccer_usa_mls","soccer_argentina_primera_division",
+        "soccer_conmebol_copa_libertadores","soccer_mexico_ligamx",
+        "tennis_atp_wimbledon","mma_mixed_martial_arts",
+        "aussierules_afl","cricket_international_t20",
+        "americanfootball_cfl",
+    ]
+
+    all_events = []
+    for sport_key in SPORTS_TO_CHECK:
+        data = sync_get(
+            f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
+            params={
+                "apiKey": ODDS_API_KEY,
+                "regions": "eu",
+                "markets": "h2h,totals",
+                "oddsFormat": "decimal",
+                "dateFormat": "iso",
+            },
+            timeout=15
+        )
+        if data:
+            for ev in data[:4]:
+                home = ev.get("home_team","")
+                away = ev.get("away_team","")
+                h_odd=None; d_odd=None; a_odd=None
+                over_odd=None; under_odd=None
+                over_line=None
+                for bm in ev.get("bookmakers",[]):
+                    for mkt in bm.get("markets",[]):
+                        if mkt["key"]=="h2h":
+                            for o in mkt.get("outcomes",[]):
+                                if o["name"]==home: h_odd=round(o["price"],2)
+                                elif o["name"]==away: a_odd=round(o["price"],2)
+                                elif o["name"]=="Draw": d_odd=round(o["price"],2)
+                        elif mkt["key"]=="totals":
+                            for o in mkt.get("outcomes",[]):
+                                if o["name"].startswith("Over"):
+                                    over_odd=round(o["price"],2)
+                                    try: over_line=float(o["name"].split()[-1])
+                                    except: over_line=2.5
+                                elif o["name"].startswith("Under"):
+                                    under_odd=round(o["price"],2)
+                    if h_odd: break
+                if h_odd:
+                    try:
+                        from datetime import datetime
+                        dt=datetime.fromisoformat(ev.get("commence_time","").replace("Z","+00:00"))
+                        fecha=dt.astimezone().strftime("%d/%m %H:%M")
+                    except:
+                        fecha="--/-- --:--"
+                    all_events.append({
+                        "id": ev.get("id",""),
+                        "h": home, "a": away,
+                        "time": fecha,
+                        "sport": sport_key.replace("_"," ").title(),
+                        "odds": {"L":h_odd,"E":d_odd,"V":a_odd},
+                        "over_odd": over_odd,
+                        "under_odd": under_odd,
+                        "over_line": over_line,
+                        "fav_odd": min(h_odd, a_odd) if h_odd and a_odd else h_odd,
+                        "fav_team": home if h_odd and a_odd and h_odd <= a_odd else away,
+                    })
+        import time as _t; _t.sleep(0.2)
+
+    if not all_events:
+        return {"combos": [], "error": "No hay eventos disponibles"}
+
+    # ── COMBO 1: Favoritos seguros (cuotas 1.10-1.65) ──
+    seguros = [e for e in all_events if e["fav_odd"] and 1.10 <= e["fav_odd"] <= 1.65]
+    seguros.sort(key=lambda x: x["fav_odd"])
+    combo1_picks = []
+    for ev in seguros[:4]:
+        combo1_picks.append({
+            "h": ev["h"], "a": ev["a"],
+            "sel": f"{ev['fav_team']} gana",
+            "odd": ev["fav_odd"],
+            "mkt": "1X2",
+            "sport": ev["sport"],
+            "time": ev["time"],
+            "live": False,
+        })
+
+    # ── COMBO 2: Goles/Over (cuotas 1.70-2.20) ──
+    goles = [e for e in all_events if e["over_odd"] and 1.60 <= e["over_odd"] <= 2.20]
+    combo2_picks = []
+    for ev in goles[:4]:
+        combo2_picks.append({
+            "h": ev["h"], "a": ev["a"],
+            "sel": f"Más de {ev['over_line']} goles/puntos",
+            "odd": ev["over_odd"],
+            "mkt": "O/U",
+            "sport": ev["sport"],
+            "time": ev["time"],
+            "live": False,
+        })
+
+    # ── COMBO 3: Alta cuota (cuotas 2.00-4.00) ──
+    altas = [e for e in all_events if e["fav_odd"] and 1.80 <= e["fav_odd"] <= 4.00]
+    altas.sort(key=lambda x: x["fav_odd"], reverse=True)
+    combo3_picks = []
+    for ev in altas[:3]:
+        combo3_picks.append({
+            "h": ev["h"], "a": ev["a"],
+            "sel": f"{ev['fav_team']} gana",
+            "odd": ev["fav_odd"],
+            "mkt": "1X2",
+            "sport": ev["sport"],
+            "time": ev["time"],
+            "live": False,
+        })
+
+    def calc_odd(picks):
+        r = 1
+        for p in picks: r *= p["odd"]
+        return round(r, 2)
+
+    combos = []
+    if combo1_picks:
+        combos.append({
+            "id": "c1",
+            "name": "Combo Seguros",
+            "tag": "Baja cuota · Alta confianza",
+            "tagColor": "#00FF88",
+            "conf": 9,
+            "picks": combo1_picks,
+            "odd_total": calc_odd(combo1_picks),
+            "note": "Favoritos claros en sus respectivos deportes",
+        })
+    if combo2_picks:
+        combos.append({
+            "id": "c2",
+            "name": "Combo Goles",
+            "tag": "Over/Under · Partidos con goles",
+            "tagColor": "#FFB800",
+            "conf": 7,
+            "picks": combo2_picks,
+            "odd_total": calc_odd(combo2_picks),
+            "note": "Partidos con historial ofensivo y cuotas equilibradas",
+        })
+    if combo3_picks:
+        combos.append({
+            "id": "c3",
+            "name": "Combo Alta Cuota",
+            "tag": "Riesgo moderado · Gran retorno",
+            "tagColor": "#9F5FFF",
+            "conf": 6,
+            "picks": combo3_picks,
+            "odd_total": calc_odd(combo3_picks),
+            "note": "Favoritos con mayor margen pero mayor retorno potencial",
+        })
+
+    result = {"combos": combos, "generated_at": time.strftime("%d/%m %H:%M")}
+    _football_cache[cache_key] = (result, now)
+    return result
+
 # ── WALLET API (44neoluck) ────────────────────────────────────
 @app.post("/api/wallet/")
 @app.post("/api/wallet/getBalance")
