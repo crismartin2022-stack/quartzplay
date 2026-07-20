@@ -20,6 +20,92 @@ const Q = {
 };
 
 const API = "https://amusing-vision-production.up.railway.app";
+const ODDS_API_KEY = "64b3241c085be753e4320f190116bfc8";
+const RAPIDAPI_KEY = "b0ef065841msh2be8256aa7a23acp18d363jsn138f4af514e0";
+const FOOTBALL_HOST = "free-api-live-football-data.p.rapidapi.com";
+
+// Fetch prematch odds directly from The Odds API
+async function fetchPrematchDirect() {
+  const SPORTS = [
+    {key:"baseball_mlb",name:"MLB",icon:"⚾"},
+    {key:"basketball_wnba",name:"WNBA",icon:"🏀"},
+    {key:"americanfootball_cfl",name:"CFL",icon:"🏈"},
+    {key:"soccer_usa_mls",name:"MLS",icon:"⚽"},
+    {key:"soccer_mexico_ligamx",name:"Liga MX",icon:"🇲🇽"},
+    {key:"tennis_atp_wimbledon",name:"Wimbledon ATP",icon:"🎾"},
+    {key:"tennis_wta_wimbledon",name:"Wimbledon WTA",icon:"🎾"},
+    {key:"mma_mixed_martial_arts",name:"MMA/UFC",icon:"🥊"},
+    {key:"soccer_argentina_primera_division",name:"Liga Argentina",icon:"🇦🇷"},
+    {key:"soccer_conmebol_copa_libertadores",name:"Libertadores",icon:"🏆"},
+    {key:"americanfootball_nfl_preseason",name:"NFL Preseason",icon:"🏈"},
+    {key:"aussierules_afl",name:"AFL",icon:"🏉"},
+    {key:"cricket_international_t20",name:"Cricket T20",icon:"🏏"},
+  ];
+  const result = [];
+  for(const sport of SPORTS) {
+    try {
+      const r = await fetch(
+        `https://api.the-odds-api.com/v4/sports/${sport.key}/odds/?apiKey=${ODDS_API_KEY}&regions=eu&markets=h2h,totals&oddsFormat=decimal&dateFormat=iso`,
+        {headers:{"Content-Type":"application/json"}}
+      );
+      if(r.ok) {
+        const events = await r.json();
+        if(events.length > 0) {
+          const mapped = events.slice(0,6).map(ev => {
+            const home = ev.home_team||"";
+            const away = ev.away_team||"";
+            let L=null,E=null,V=null,over=null,under=null;
+            const markets = {};
+            for(const bm of ev.bookmakers||[]) {
+              for(const mkt of bm.markets||[]) {
+                if(!markets[mkt.key]) {
+                  markets[mkt.key] = {};
+                  for(const o of mkt.outcomes||[]) {
+                    markets[mkt.key][o.name] = round2(o.price);
+                    if(mkt.key==="h2h") {
+                      if(o.name===home) L=round2(o.price);
+                      else if(o.name===away) V=round2(o.price);
+                      else if(o.name==="Draw") E=round2(o.price);
+                    }
+                  }
+                }
+              }
+              if(L) break;
+            }
+            let fecha="--/--";
+            try {
+              const dt=new Date(ev.commence_time);
+              fecha=dt.toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});
+            } catch(e){}
+            return {id:ev.id,h:home,a:away,time:fecha,markets,odds:{L,E,V}};
+          }).filter(ev=>ev.odds.L);
+          if(mapped.length>0) result.push({...sport,events:mapped});
+        }
+      }
+    } catch(e){}
+  }
+  return {sports:result};
+}
+
+function round2(n){ return Math.round((n||0)*100)/100; }
+
+// Fetch live scores from Football API directly
+async function fetchLiveDirect() {
+  try {
+    const r = await fetch(
+      "https://free-api-live-football-data.p.rapidapi.com/football-current-live",
+      {headers:{
+        "x-rapidapi-host": FOOTBALL_HOST,
+        "x-rapidapi-key": RAPIDAPI_KEY,
+      }}
+    );
+    if(r.ok) {
+      const data = await r.json();
+      return data.response?.live || [];
+    }
+  } catch(e){}
+  return [];
+}
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt = n => Number(n||0).toFixed(2);
 const prod = a => a.reduce((x,y)=>x*y,1);
@@ -725,10 +811,23 @@ function ScreenLive({ onAction, onBet }){
 
   const fetchLive=async()=>{
     try {
-      const r=await fetch(`${API}/api/live/combined`);
-      const data=await r.json();
-      if(data.matches&&data.matches.length>0){
-        setMatches(data.matches);
+      const liveScores = await fetchLiveDirect();
+      if(liveScores.length>0){
+        const mapped = liveScores.map(m=>({
+          id:String(m.id),
+          home:m.home?.name||"",
+          away:m.away?.name||"",
+          homeId:m.home?.id,
+          awayId:m.away?.id,
+          homeScore:m.home?.score??0,
+          awayScore:m.away?.score??0,
+          minute:m.liveTime?.short||"",
+          minuteLong:m.liveTime?.long||"",
+          status:"live", ongoing:true,
+          odds:{L:null,E:null,V:null},
+          hasOdds:false,
+        }));
+        setMatches(mapped);
         setLastUpdate(new Date().toLocaleTimeString("es-AR",{hour12:false}));
       }
     } catch(e){}
