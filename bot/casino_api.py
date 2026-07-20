@@ -653,28 +653,26 @@ async def all_markets():
             )
             if r.status_code == 200:
                 all_sports = r.json()
-                # Filtrar los mas relevantes que tienen eventos (no outrights)
-                priority = [
-                    "soccer","baseball","basketball","americanfootball",
-                    "tennis","mma","icehockey","cricket","boxing","aussierules"
-                ]
-                added = set()
-                for group in priority:
-                    for s in all_sports:
-                        if (s.get("active") and
-                            not s.get("has_outrights") and
-                            group in s["key"] and
-                            s["key"] not in added and
-                            len(SPORTS) < 15):
-                            SPORTS.append(s["key"])
-                            added.add(s["key"])
+                # Tomar todos los deportes activos sin outrights
+                for s in all_sports:
+                    if (s.get("active") and
+                        not s.get("has_outrights", False) and
+                        len(SPORTS) < 20):
+                        SPORTS.append(s["key"])
+                log.info(f"Sports activos encontrados: {SPORTS}")
     except Exception as e:
         log.error(f"Sports list error: {e}")
         SPORTS = [
-            "baseball_mlb","basketball_wnba",
-            "americanfootball_cfl","americanfootball_nfl_preseason",
-            "soccer_usa_mls","soccer_mexico_ligamx",
-            "tennis_atp_wimbledon","mma_mixed_martial_arts",
+            "baseball_mlb",
+            "basketball_wnba",
+            "americanfootball_nfl",
+            "soccer_usa_mls",
+            "soccer_mexico_ligamx",
+            "soccer_argentina_primera_division",
+            "tennis_atp_wimbledon",
+            "mma_mixed_martial_arts",
+            "aussierules_afl",
+            "cricket_international_t20",
         ]
 
     log.info(f"Fetching markets for {len(SPORTS)} sports: {SPORTS[:5]}...")
