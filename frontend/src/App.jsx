@@ -1152,7 +1152,7 @@ function ScreenP2P({ onAction }){
 // ═══════════════════════════════════════════════════════════════
 // PANTALLA 7 — AI COMBO
 // ═══════════════════════════════════════════════════════════════
-function ScreenCombo({ onAction, onBet }){
+function ScreenCombo({ onAction, onBet, refCode }){
   const [sel,setSel]=useState("c1");
   const [voted,setVoted]=useState({});
   const [codeGenerated,setCodeGenerated]=useState({});
@@ -1204,6 +1204,7 @@ function ScreenCombo({ onAction, onBet }){
             </div>
             {loading&&<div style={{color:Q.muted,fontSize:11}}>Cargando...</div>}
             {realCombos&&<HBadge label="REAL" color={Q.green}/>}
+            {refCode&&<HBadge label={`via @${refCode}`} color={Q.violet}/>}
           </div>
 
           {/* Selector */}
@@ -1263,6 +1264,13 @@ function ScreenCombo({ onAction, onBet }){
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
                 <button onClick={()=>{
                   setVoted(v=>({...v,[sel]:true}));
+                  if(refCode){
+                    fetch(`${API}/api/influencer/track`,{
+                      method:"POST",
+                      headers:{"Content-Type":"application/json"},
+                      body:JSON.stringify({code:refCode,event:"apuesta_web",amount:stake}),
+                    }).catch(()=>{});
+                  }
                   onBet(combo.picks.map(p=>({id:p.h,label:p.sel,odd:p.odd,h:p.h,a:p.a})),stake,tot);
                 }} style={{
                   width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
@@ -1456,6 +1464,24 @@ const STEPS=[
 export default function QuartzSports(){
   const [screen,setScreen]=useState("canal");
   const [betData,setBetData]=useState({bets:[],stake:10000,odd:1});
+  const [refCode,setRefCode]=useState(null);
+
+  // Detectar código de influencer en la URL
+  useEffect(()=>{
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref") || params.get("start")?.replace("combo_","");
+    if(ref){
+      setRefCode(ref);
+      // Trackear click en la API
+      fetch(`${API}/api/influencer/track`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code:ref, event:"click_web"}),
+      }).catch(()=>{});
+      // Ir directo a combos si viene de influencer
+      setScreen("combo");
+    }
+  },[]);
 
   const handle=(action)=>{
     const map={
@@ -1539,7 +1565,7 @@ export default function QuartzSports(){
         {screen==="live"      &&<ScreenLive         onAction={handle} onBet={confirmBet}/>}
         {screen==="pool"      &&<ScreenPool         onAction={handle}/>}
         {screen==="p2p"       &&<ScreenP2P          onAction={handle}/>}
-        {screen==="combo"     &&<ScreenCombo        onAction={handle} onBet={confirmBet}/>}
+        {screen==="combo"     &&<ScreenCombo        onAction={handle} onBet={confirmBet} refCode={refCode}/>}
         {screen==="confirmed" &&<ScreenBetConfirmed bets={betData.bets} stake={betData.stake} odd={betData.odd} onAction={handle}/>}
         {screen==="mybets"    &&<ScreenMyBets       onAction={handle}/>}
       </div>
