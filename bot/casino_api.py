@@ -366,7 +366,7 @@ async def team_logo_by_id(team_id: str):
         log.error(f"Team logo error {team_id}: {e}")
     # Fallback — imagen genérica
     return Response(
-        content=b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><circle cx="12" cy="12" r="10" fill="#7C3AED" opacity="0.3" stroke="#7C3AED" stroke-width="1.5"/><text x="12" y="16" text-anchor="middle" font-size="12" fill="#00F0FF">⚽</text></svg>',
+        content=b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><circle cx="12" cy="12" r="10" fill="#7C3AED" opacity="0.3" stroke="#7C3AED" stroke-width="1.5"/><circle cx="12" cy="12" r="4" fill="#00F0FF" opacity="0.8"/></svg>',
         media_type="image/svg+xml",
         headers={"Access-Control-Allow-Origin":"*"}
     )
