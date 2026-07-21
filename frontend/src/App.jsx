@@ -305,34 +305,43 @@ function TgHeader({ title, sub, onBack }){
   );
 }
 
-// ── TEAM LOGO ─────────────────────────────────────────────────
-const LOGO_CACHE = {};
+// ── TEAM LOGO — Iniciales con color único ─────────────────────
+function hashColor(str){
+  // Genera color único y consistente por nombre de equipo
+  let h=0;
+  for(let i=0;i<(str||"").length;i++) h=((h<<5)-h)+str.charCodeAt(i);
+  h=Math.abs(h);
+  const colors=[
+    "#7C3AED","#2979FF","#00BCD4","#FF6B35","#E91E63",
+    "#009688","#FF5722","#3F51B5","#8BC34A","#FF9800",
+    "#9C27B0","#00ACC1","#43A047","#F4511E","#1E88E5",
+  ];
+  return colors[h % colors.length];
+}
 
 function TeamLogo({ name, teamId, size=36 }){
-  const [src,setSrc] = useState(null);
-  useEffect(()=>{
-    if(!teamId&&!name) return;
-    const key = teamId ? String(teamId) : name;
-    if(LOGO_CACHE[key]){ setSrc(LOGO_CACHE[key]); return; }
-    const url = teamId
-      ? `${API}/api/team-logo/${teamId}`
-      : null;
-    if(!url) return;
-    setSrc(url);
-    LOGO_CACHE[key] = url;
-  },[teamId,name]);
+  const initials = (name||"?").split(" ")
+    .filter(w=>w.length>0)
+    .slice(0,2)
+    .map(w=>w[0].toUpperCase())
+    .join("");
+  const color = hashColor(name);
+  const fontSize = size <= 28 ? size*0.38 : size*0.35;
 
-  if(!src) return(
-    <div style={{width:size,height:size,borderRadius:"50%",
-      background:`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`,
-      display:"flex",alignItems:"center",justifyContent:"center",
-      fontSize:size*0.5,flexShrink:0}}>⚽</div>
-  );
   return(
-    <img src={src} alt={name||""} width={size} height={size}
-      style={{borderRadius:"50%",objectFit:"contain",
-        background:"rgba(255,255,255,0.05)",padding:2,flexShrink:0}}
-      onError={()=>setSrc(null)}/>
+    <div style={{
+      width:size, height:size, borderRadius:"50%", flexShrink:0,
+      background:`linear-gradient(135deg,${color}CC,${color}88)`,
+      border:`1.5px solid ${color}`,
+      display:"flex", alignItems:"center", justifyContent:"center",
+      boxShadow:`0 0 8px ${color}44`,
+    }}>
+      <span style={{
+        color:"#fff", fontWeight:900, fontSize,
+        fontFamily:"'Space Grotesk',system-ui", letterSpacing:-0.5,
+        lineHeight:1, textShadow:"0 1px 2px rgba(0,0,0,0.5)",
+      }}>{initials||"?"}</span>
+    </div>
   );
 }
 
@@ -366,54 +375,87 @@ function OddsButtons({ ev, market, bets, onToggle, live=false }){
   const markets = ev.markets || {};
   const mkt = markets[market] || {};
   const color = live?Q.pink:Q.violet;
+  const home = ev.h||ev.home||"";
+  const away = ev.a||ev.away||"";
 
-  // Build outcomes based on market
   let outcomes = [];
   if(market==="h2h"){
-    outcomes=[
-      {label:ev.h||ev.home,val:mkt[ev.h||ev.home]||ev.odds?.L},
-      {label:"Empate",val:mkt["Draw"]||ev.odds?.E},
-      {label:ev.a||ev.away,val:mkt[ev.a||ev.away]||ev.odds?.V},
-    ].filter(o=>o.val);
+    const L = mkt[home]||ev.odds?.L;
+    const E = mkt["Draw"]||ev.odds?.E;
+    const V = mkt[away]||ev.odds?.V;
+    if(L) outcomes.push({label:home,short:home.split(" ")[0],val:L,type:"home"});
+    if(E) outcomes.push({label:"Empate",short:"X",val:E,type:"draw"});
+    if(V) outcomes.push({label:away,short:away.split(" ")[0],val:V,type:"away"});
   } else if(market==="totals"){
-    const over=Object.keys(mkt).find(k=>k.startsWith("Over"));
-    const under=Object.keys(mkt).find(k=>k.startsWith("Under"));
-    if(over) outcomes.push({label:`+${over.replace("Over ","").replace("Over","")} goles`,val:mkt[over]});
-    if(under) outcomes.push({label:`-${under.replace("Under ","").replace("Under","")} goles`,val:mkt[under]});
+    const keys = Object.keys(mkt);
+    const overKey = keys.find(k=>k.startsWith("Over"));
+    const underKey = keys.find(k=>k.startsWith("Under"));
+    const line = overKey ? overKey.replace("Over ","").replace("Over","") : "2.5";
+    if(overKey) outcomes.push({label:`Más ${line}`,short:`+${line}`,val:mkt[overKey],type:"over"});
+    if(underKey) outcomes.push({label:`Menos ${line}`,short:`-${line}`,val:mkt[underKey],type:"under"});
   } else if(market==="btts"){
-    if(mkt["Yes"]) outcomes.push({label:"Ambos anotan Sí",val:mkt["Yes"]});
-    if(mkt["No"])  outcomes.push({label:"Ambos anotan No",val:mkt["No"]});
+    if(mkt["Yes"]) outcomes.push({label:"Ambos anotan",short:"Sí",val:mkt["Yes"],type:"yes"});
+    if(mkt["No"])  outcomes.push({label:"No anotan ambos",short:"No",val:mkt["No"],type:"no"});
   } else if(market==="spreads"){
-    Object.entries(mkt).forEach(([k,v])=>{
-      outcomes.push({label:k,val:v});
+    Object.entries(mkt).slice(0,3).forEach(([k,v])=>{
+      outcomes.push({label:k,short:k.split(" ").slice(-1)[0],val:v,type:k});
     });
   }
 
   if(!outcomes.length) return(
-    <div style={{textAlign:"center",color:Q.dim,fontSize:11,padding:"6px 0",
-      fontFamily:"'Space Grotesk',system-ui"}}>Mercado no disponible</div>
+    <div style={{textAlign:"center",color:Q.dim,fontSize:10,padding:"6px 0",
+      fontFamily:"'Space Grotesk',system-ui"}}>No disponible</div>
   );
 
   return(
-    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+    <div style={{display:"flex",gap:4}}>
       {outcomes.map((o,i)=>{
         const sel=bets.some(b=>b.id===ev.id&&b.label===o.label);
         return(
           <button key={i} onClick={()=>onToggle(ev,o.label,o.val)} style={{
-            flex:1,minWidth:70,
+            flex:1,
             background:sel?`linear-gradient(135deg,${color}44,${Q.violet}22)`:"rgba(255,255,255,0.04)",
             border:`1.5px solid ${sel?color:Q.border}`,
-            borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
-            boxShadow:sel?`0 0 12px ${color}33`:"none",transition:"all 0.2s",
+            borderRadius:10,padding:"8px 3px",cursor:"pointer",textAlign:"center",
+            boxShadow:sel?`0 0 10px ${color}33`:"none",transition:"all 0.15s",
           }}>
             <div style={{color:Q.muted,fontSize:8,fontFamily:"'Space Grotesk',system-ui",
-              marginBottom:2,lineHeight:1.2}}>{o.label}</div>
-            <div style={{color:sel?color:Q.text,fontWeight:700,fontSize:14,
+              marginBottom:2,lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",
+              whiteSpace:"nowrap",maxWidth:"100%"}}>{o.short||o.label}</div>
+            <div style={{color:sel?color:Q.text,fontWeight:700,fontSize:13,
               fontFamily:"'Space Grotesk',system-ui"}}>{fmt(o.val)}</div>
             {live&&<div style={{color:Q.pink,fontSize:7,marginTop:1}}>◉ LIVE</div>}
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// Mostrar TODOS los mercados de un evento en formato expandido
+function AllMarketsView({ ev, bets, onToggle }){
+  const markets = ev.markets || {};
+  const availableMkts = Object.keys(markets).filter(k=>
+    ["h2h","totals","btts","spreads"].includes(k)
+  );
+  if(!availableMkts.length) return null;
+
+  const mktLabels = {
+    h2h:"1X2 — Resultado", totals:"Over/Under",
+    btts:"Ambos anotan", spreads:"Hándicap"
+  };
+
+  return(
+    <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${Q.dim}`}}>
+      {availableMkts.map(mkt=>(
+        <div key={mkt} style={{marginBottom:8}}>
+          <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",
+            letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",marginBottom:5}}>
+            {mktLabels[mkt]||mkt}
+          </div>
+          <OddsButtons ev={ev} market={mkt} bets={bets} onToggle={onToggle}/>
+        </div>
+      ))}
     </div>
   );
 }
@@ -777,14 +819,9 @@ function ScreenPrematch({ onAction, onBet }){
                   {/* Cuotas 1X2 rápidas */}
                   <OddsButtons ev={ev} market="h2h" bets={bets} onToggle={toggle}/>
 
-                  {/* Mercados expandidos */}
+                  {/* Todos los mercados cuando está expandido */}
                   {expandedEvents[ev.id]&&(
-                    <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${Q.dim}`}}>
-                      <MarketTabs markets={ev.markets||{}} selected={getMkt(ev)} onSelect={k=>setMkt(ev,k)}/>
-                      {getMkt(ev)!=="h2h"&&(
-                        <OddsButtons ev={ev} market={getMkt(ev)} bets={bets} onToggle={toggle}/>
-                      )}
-                    </div>
+                    <AllMarketsView ev={ev} bets={bets} onToggle={toggle}/>
                   )}
                 </GCard>
               ))}
