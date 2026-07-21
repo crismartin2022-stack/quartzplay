@@ -690,19 +690,39 @@ async def all_markets():
     }
 
     result = {"sports": []}
+    # Fetch en paralelo usando ThreadPoolExecutor
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def fetch_sport(sport_key):
+        return sport_key, sync_get(
+            f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
+            params={
+                "apiKey": ODDS_API_KEY,
+                "regions": "eu",
+                "markets": "h2h,totals",
+                "oddsFormat": "decimal",
+                "dateFormat": "iso",
+            },
+            timeout=15
+        )
+
+    sport_data = {}
+    try:
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(fetch_sport, sk): sk for sk in SPORTS}
+            for future in as_completed(futures, timeout=25):
+                try:
+                    sk, data = future.result()
+                    if data:
+                        sport_data[sk] = data
+                except Exception as e:
+                    log.error(f"Parallel fetch error: {e}")
+    except Exception as e:
+        log.error(f"ThreadPool error: {e}")
+
     try:
         for sport_key in SPORTS:
-                events_raw_data = sync_get(
-                    f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
-                    params={
-                        "apiKey": ODDS_API_KEY,
-                        "regions": "eu",
-                        "markets": "h2h,totals",
-                        "oddsFormat": "decimal",
-                        "dateFormat": "iso",
-                    },
-                    timeout=20
-                )
+                events_raw_data = sport_data.get(sport_key)
                 if events_raw_data is not None:
                     events_raw = events_raw_data[:8]
                     events = []
@@ -775,18 +795,31 @@ async def ai_combos():
     ]
 
     all_events = []
-    for sport_key in SPORTS_TO_CHECK:
-        data = sync_get(
-            f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
-            params={
-                "apiKey": ODDS_API_KEY,
-                "regions": "eu",
-                "markets": "h2h,totals",
-                "oddsFormat": "decimal",
-                "dateFormat": "iso",
-            },
-            timeout=15
+    # Fetch en paralelo para AI combos
+    from concurrent.futures import ThreadPoolExecutor as _TPE, as_completed as _ac
+
+    def _fetch_ai(sk):
+        return sk, sync_get(
+            f"https://api.the-odds-api.com/v4/sports/{sk}/odds/",
+            params={"apiKey":ODDS_API_KEY,"regions":"eu",
+                    "markets":"h2h,totals","oddsFormat":"decimal","dateFormat":"iso"},
+            timeout=12
         )
+
+    ai_sport_data = {}
+    try:
+        with _TPE(max_workers=4) as ex:
+            futs = {ex.submit(_fetch_ai, sk): sk for sk in SPORTS_TO_CHECK}
+            for fut in _ac(futs, timeout=20):
+                try:
+                    sk, d = fut.result()
+                    if d: ai_sport_data[sk] = d
+                except: pass
+    except Exception as e:
+        log.error(f"AI combo parallel error: {e}")
+
+    for sport_key in SPORTS_TO_CHECK:
+        data = ai_sport_data.get(sport_key)
         if data:
             for ev in data[:4]:
                 home = ev.get("home_team","")
@@ -829,7 +862,6 @@ async def ai_combos():
                         "fav_odd": min(h_odd, a_odd) if h_odd and a_odd else h_odd,
                         "fav_team": home if h_odd and a_odd and h_odd <= a_odd else away,
                     })
-        import time as _t; _t.sleep(0.2)
 
     if not all_events:
         return {"combos": [], "error": "No hay eventos disponibles"}
