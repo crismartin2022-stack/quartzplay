@@ -3,7 +3,7 @@ from decimal import Decimal
 from datetime import datetime, timezone
 import asyncpg
 import httpx
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
@@ -27,11 +27,25 @@ DATABASE_URL = os.environ.get("DATABASE_URL","")
 X_CODE       = os.environ.get("CASINO_X_CODE","")
 SECRET_KEY   = os.environ.get("CASINO_SECRET_KEY","")
 
+# Límites de apuesta — configurables por entorno
+MIN_STAKE = int(os.environ.get("MIN_STAKE", "500"))
+MAX_STAKE = int(os.environ.get("MAX_STAKE", "500000"))
+
 app = FastAPI(title="QuartzPlay API")
+
+# Solo los dominios propios pueden llamar a la API desde un navegador.
+# Si algún panel deja de cargar datos, revisá la consola: un error de CORS
+# significa que falta agregar su dominio acá.
+ALLOWED_ORIGINS = [
+    "https://valiant-gentleness-production-a779.up.railway.app",
+    "https://web.telegram.org",
+    "http://localhost:3000",
+]
+
 app.add_middleware(CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET","POST","PUT"],
+    allow_headers=["Content-Type","Authorization","X-Admin-Key"],
     allow_credentials=False,
 )
 
@@ -43,9 +57,6 @@ async def get_db():
         _db_pool = await asyncpg.create_pool(
             DATABASE_URL, min_size=2, max_size=10)
     return _db_pool
-
-def hash_password(p):
-    return hashlib.sha256(p.encode()).hexdigest()
 
 def make_sign(body_json, x_code, x_time):
     if body_json:
@@ -71,7 +82,7 @@ def validate_sign(body_raw, x_code, x_time, x_sign):
 async def health():
     return {"status":"ok","service":"QuartzPlay API"}
 
-# ── AGENCIAS — LOGIN ──────────────────────────────────────────
+# ── AGENCIAS — LOGIN (público) ────────────────────────────────
 @app.post("/api/agencias/login")
 async def agencia_login(request: Request):
     body     = await request.json()
@@ -102,9 +113,9 @@ async def agencia_login(request: Request):
         "status":  row["status"],
     }
 
-# ── AGENCIAS — LISTAR ─────────────────────────────────────────
+# ── AGENCIAS — LISTAR (solo admin) ────────────────────────────
 @app.get("/api/agencias")
-async def list_agencias():
+async def list_agencias(_=Depends(auth.require_admin)):
     pool = await get_db()
     async with pool.acquire() as conn:
         rows = await conn.fetch("""
@@ -121,9 +132,9 @@ async def list_agencias():
         """)
     return [dict(r) for r in rows]
 
-# ── AGENCIAS — CREAR ──────────────────────────────────────────
+# ── AGENCIAS — CREAR (solo admin) ─────────────────────────────
 @app.post("/api/agencias")
-async def create_agencia(request: Request):
+async def create_agencia(request: Request, _=Depends(auth.require_admin)):
     body     = await request.json()
     name     = body.get("name","")
     username = body.get("username","")
@@ -132,6 +143,9 @@ async def create_agencia(request: Request):
     phone    = body.get("phone","")
     if not name or not username or not password:
         raise HTTPException(status_code=400, detail="Faltan campos requeridos")
+    if len(password) < 8:
+        raise HTTPException(status_code=400,
+            detail="La contraseña debe tener al menos 8 caracteres")
     pool = await get_db()
     async with pool.acquire() as conn:
         count = await conn.fetchval("SELECT COUNT(*) FROM agencias")
@@ -146,9 +160,9 @@ async def create_agencia(request: Request):
             raise HTTPException(status_code=409, detail="Usuario ya existe")
     return {"code":code,"name":name,"username":username}
 
-# ── AGENCIAS — ACTUALIZAR ─────────────────────────────────────
+# ── AGENCIAS — ACTUALIZAR (solo admin) ────────────────────────
 @app.put("/api/agencias/{code}")
-async def update_agencia(code: str, request: Request):
+async def update_agencia(code: str, request: Request, _=Depends(auth.require_admin)):
     body = await request.json()
     pool = await get_db()
     async with pool.acquire() as conn:
@@ -162,6 +176,9 @@ async def update_agencia(code: str, request: Request):
         status  = body.get("status",  row["status"])
         password= body.get("password")
         if password:
+            if len(password) < 8:
+                raise HTTPException(status_code=400,
+                    detail="La contraseña debe tener al menos 8 caracteres")
             await conn.execute("""
                 UPDATE agencias SET name=$2,address=$3,
                     phone=$4,status=$5,password_hash=$6 WHERE code=$1
@@ -173,9 +190,13 @@ async def update_agencia(code: str, request: Request):
             """, code, name, address, phone, status)
     return {"success":True}
 
-# ── AGENCIAS — STATS ──────────────────────────────────────────
+# ── AGENCIAS — STATS (cada agencia ve solo las suyas) ─────────
 @app.get("/api/agencias/{code}/stats")
-async def agencia_stats(code: str, dias: int=30):
+async def agencia_stats(code: str, dias: int=30,
+                        agencia_code: str = Depends(auth.require_agencia)):
+    if code != agencia_code:
+        raise HTTPException(status_code=403,
+            detail="No podés ver las estadísticas de otra agencia")
     pool = await get_db()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
@@ -191,9 +212,9 @@ async def agencia_stats(code: str, dias: int=30):
         """, code, str(dias))
     return dict(row)
 
-# ── BETSLIP — GET ─────────────────────────────────────────────
+# ── BETSLIP — GET (solo agencias logueadas) ───────────────────
 @app.get("/api/betslip/{code}")
-async def get_betslip(code: str):
+async def get_betslip(code: str, _agencia: str = Depends(auth.require_agencia)):
     pool = await get_db()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
@@ -224,37 +245,51 @@ async def get_betslip(code: str):
         "paid_at":       row["paid_at"].strftime("%d/%m/%Y %H:%M") if row["paid_at"] else None,
     }
 
-# ── BETSLIP — PAY ─────────────────────────────────────────────
+# ── BETSLIP — PAY (solo agencias logueadas) ───────────────────
 @app.post("/api/betslip/{code}/pay")
-async def pay_betslip(code: str, request: Request):
-    body     = await request.json()
-    stake    = body.get("stake", 0)
-    agent_id = body.get("agent_id","agencia")
-    pool     = await get_db()
+async def pay_betslip(code: str, request: Request,
+                      agencia_code: str = Depends(auth.require_agencia)):
+    body = await request.json()
+    # El monto lo valida el servidor: nunca se confía en el cliente.
+    try:
+        stake = int(body.get("stake", 0))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Monto inválido")
+    if stake < MIN_STAKE or stake > MAX_STAKE:
+        raise HTTPException(status_code=400,
+            detail=f"El monto debe estar entre ${MIN_STAKE:,} y ${MAX_STAKE:,}".replace(",","."))
+
+    pool = await get_db()
     async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT * FROM betslips WHERE code=$1", code.upper())
-        if not row:
-            raise HTTPException(status_code=404, detail="Codigo no encontrado")
-        if row["status"] == "active":
-            raise HTTPException(status_code=409, detail="Ya fue pagado")
-        pot_win = round(stake * float(row["odd_total"]))
-        await conn.execute("""
-            UPDATE betslips
-            SET status='active', stake=$2, potential_win=$3,
-                paid_at=NOW(), paid_by=$4
-            WHERE code=$1
-        """, code.upper(), stake, pot_win, agent_id)
-        await conn.execute("""
-            INSERT INTO sports_bets
-                (user_id,picks,stake,odd_total,potential_win,status,mode)
-            VALUES ($1,$2,$3,$4,$5,'active','local')
-        """, row["user_id"], row["picks"], stake, row["odd_total"], pot_win)
-        await conn.execute("""
-            INSERT INTO agencia_tickets
-                (agencia_code,betslip_code,tipo,stake,potential_win)
-            VALUES ($1,$2,'bot',$3,$4)
-        """, agent_id, code.upper(), stake, pot_win)
+        # La transacción + FOR UPDATE evitan que el mismo boleto
+        # se cobre dos veces si llegan dos requests a la vez.
+        async with conn.transaction():
+            row = await conn.fetchrow(
+                "SELECT * FROM betslips WHERE code=$1 FOR UPDATE", code.upper())
+            if not row:
+                raise HTTPException(status_code=404, detail="Codigo no encontrado")
+            if row["status"] == "active":
+                raise HTTPException(status_code=409, detail="Ya fue pagado")
+            if row["expires_at"] and row["expires_at"] < datetime.now(timezone.utc):
+                raise HTTPException(status_code=410, detail="Codigo expirado")
+
+            pot_win = round(stake * float(row["odd_total"]))
+            await conn.execute("""
+                UPDATE betslips
+                SET status='active', stake=$2, potential_win=$3,
+                    paid_at=NOW(), paid_by=$4
+                WHERE code=$1
+            """, code.upper(), stake, pot_win, agencia_code)
+            await conn.execute("""
+                INSERT INTO sports_bets
+                    (user_id,picks,stake,odd_total,potential_win,status,mode)
+                VALUES ($1,$2,$3,$4,$5,'active','local')
+            """, row["user_id"], row["picks"], stake, row["odd_total"], pot_win)
+            await conn.execute("""
+                INSERT INTO agencia_tickets
+                    (agencia_code,betslip_code,tipo,stake,potential_win)
+                VALUES ($1,$2,'bot',$3,$4)
+            """, agencia_code, code.upper(), stake, pot_win)
     return {
         "success":True, "code":code.upper(),
         "stake":stake, "odd_total":float(row["odd_total"]),
@@ -478,7 +513,7 @@ async def prematch_odds():
                     if mapped:
                         result["sports"].append({"name":meta["name"],"icon":meta["icon"],
                             "events":mapped})
-                import time as _time; _time.sleep(0.2)
+                await asyncio.sleep(0.2)
     except Exception as e:
         log.error(f"Prematch error: {e}")
 
@@ -536,6 +571,12 @@ async def live_combined():
                 live_scores = data.get("response",{}).get("live",[])
     except Exception as e:
         log.error(f"Football live error: {e}")
+
+    # Sin partidos en curso no tiene sentido gastar créditos de The Odds API
+    if not live_scores:
+        empty = {"matches": [], "count": 0}
+        _football_cache[cache_key] = (empty, now)
+        return empty
 
     # 2. Traer cuotas en vivo de The Odds API (todos los deportes)
     live_odds = {}
@@ -632,16 +673,18 @@ async def live_markets(sport_key: str):
         data, ts = _football_cache[cache_key]
         if now - ts < 60:
             return data
-    data = sync_get(
+    data = await asyncio.to_thread(
+        sync_get,
         f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
-        params={
+        {
             "apiKey": ODDS_API_KEY,
             "regions": "eu",
             "markets": "h2h,totals",
             "oddsFormat": "decimal",
             "dateFormat": "iso",
         },
-        timeout=20
+        None,
+        20,
     )
     if data is not None:
         result = {"events": data, "sport": sport_key}
@@ -660,12 +703,14 @@ async def all_markets():
         if now - ts < 120:
             return data
 
-    # Obtener deportes activos de forma sincrónica
+    # Obtener deportes activos sin bloquear el event loop
     SPORTS = []
-    all_sports_data = sync_get(
+    all_sports_data = await asyncio.to_thread(
+        sync_get,
         "https://api.the-odds-api.com/v4/sports/",
-        params={"apiKey": ODDS_API_KEY},
-        timeout=15
+        {"apiKey": ODDS_API_KEY},
+        None,
+        15,
     )
     if all_sports_data:
         for s in all_sports_data:
@@ -697,80 +742,80 @@ async def all_markets():
     }
 
     result = {"sports": []}
-    # Fetch en paralelo usando ThreadPoolExecutor
-    from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    def fetch_sport(sport_key):
-        return sport_key, sync_get(
+    async def fetch_sport(sport_key):
+        data = await asyncio.to_thread(
+            sync_get,
             f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
-            params={
+            {
                 "apiKey": ODDS_API_KEY,
                 "regions": "eu",
                 "markets": "h2h,totals",
                 "oddsFormat": "decimal",
                 "dateFormat": "iso",
             },
-            timeout=15
+            None,
+            15,
         )
+        return sport_key, data
 
     sport_data = {}
     try:
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(fetch_sport, sk): sk for sk in SPORTS}
-            for future in as_completed(futures, timeout=25):
-                try:
-                    sk, data = future.result()
-                    if data:
-                        sport_data[sk] = data
-                except Exception as e:
-                    log.error(f"Parallel fetch error: {e}")
+        pairs = await asyncio.gather(*[fetch_sport(sk) for sk in SPORTS],
+                                     return_exceptions=True)
+        for p in pairs:
+            if isinstance(p, Exception):
+                log.error(f"Fetch error: {p}")
+                continue
+            sk, data = p
+            if data:
+                sport_data[sk] = data
     except Exception as e:
-        log.error(f"ThreadPool error: {e}")
+        log.error(f"Gather error: {e}")
 
     try:
         for sport_key in SPORTS:
-                events_raw_data = sport_data.get(sport_key)
-                if events_raw_data is not None:
-                    events_raw = events_raw_data[:8]
-                    events = []
-                    for ev in events_raw:
-                        home = ev.get("home_team","")
-                        away = ev.get("away_team","")
-                        markets = {}
-                        for bm in ev.get("bookmakers",[]):
-                            for mkt in bm.get("markets",[]):
-                                key = mkt["key"]
-                                if key not in markets:
-                                    markets[key] = {}
-                                    for o in mkt.get("outcomes",[]):
-                                        markets[key][o["name"]] = round(o["price"],2)
-                            if markets: break
-                        try:
-                            from datetime import datetime
-                            dt=datetime.fromisoformat(ev.get("commence_time","").replace("Z","+00:00"))
-                            fecha=dt.astimezone().strftime("%d/%m %H:%M")
-                        except:
-                            fecha="--/-- --:--"
-                        events.append({
-                            "id": ev.get("id",""),
-                            "h": home, "a": away,
-                            "time": fecha,
-                            "markets": markets,
-                            "odds": {
-                                "L": markets.get("h2h",{}).get(home),
-                                "E": markets.get("h2h",{}).get("Draw"),
-                                "V": markets.get("h2h",{}).get(away),
-                            }
-                        })
-                    if events:
-                        meta = SPORT_NAMES.get(sport_key,{"name":sport_key,"icon":"⚽"})
-                        result["sports"].append({
-                            "key": sport_key,
-                            "name": meta["name"],
-                            "icon": meta["icon"],
-                            "events": events,
-                        })
-                import time as _time; _time.sleep(0.2)
+            events_raw_data = sport_data.get(sport_key)
+            if events_raw_data is not None:
+                events_raw = events_raw_data[:8]
+                events = []
+                for ev in events_raw:
+                    home = ev.get("home_team","")
+                    away = ev.get("away_team","")
+                    markets = {}
+                    for bm in ev.get("bookmakers",[]):
+                        for mkt in bm.get("markets",[]):
+                            key = mkt["key"]
+                            if key not in markets:
+                                markets[key] = {}
+                                for o in mkt.get("outcomes",[]):
+                                    markets[key][o["name"]] = round(o["price"],2)
+                        if markets: break
+                    try:
+                        from datetime import datetime
+                        dt=datetime.fromisoformat(ev.get("commence_time","").replace("Z","+00:00"))
+                        fecha=dt.astimezone().strftime("%d/%m %H:%M")
+                    except:
+                        fecha="--/-- --:--"
+                    events.append({
+                        "id": ev.get("id",""),
+                        "h": home, "a": away,
+                        "time": fecha,
+                        "markets": markets,
+                        "odds": {
+                            "L": markets.get("h2h",{}).get(home),
+                            "E": markets.get("h2h",{}).get("Draw"),
+                            "V": markets.get("h2h",{}).get(away),
+                        }
+                    })
+                if events:
+                    meta = SPORT_NAMES.get(sport_key,{"name":sport_key,"icon":"⚽"})
+                    result["sports"].append({
+                        "key": sport_key,
+                        "name": meta["name"],
+                        "icon": meta["icon"],
+                        "events": events,
+                    })
     except Exception as e:
         log.error(f"All markets error: {e}")
 
@@ -802,28 +847,29 @@ async def ai_combos():
     ]
 
     all_events = []
-    # Fetch en paralelo para AI combos
-    from concurrent.futures import ThreadPoolExecutor as _TPE, as_completed as _ac
 
-    def _fetch_ai(sk):
-        return sk, sync_get(
+    async def _fetch_ai(sk):
+        data = await asyncio.to_thread(
+            sync_get,
             f"https://api.the-odds-api.com/v4/sports/{sk}/odds/",
-            params={"apiKey":ODDS_API_KEY,"regions":"eu",
-                    "markets":"h2h,totals","oddsFormat":"decimal","dateFormat":"iso"},
-            timeout=12
+            {"apiKey":ODDS_API_KEY,"regions":"eu",
+             "markets":"h2h,totals","oddsFormat":"decimal","dateFormat":"iso"},
+            None,
+            12,
         )
+        return sk, data
 
     ai_sport_data = {}
     try:
-        with _TPE(max_workers=4) as ex:
-            futs = {ex.submit(_fetch_ai, sk): sk for sk in SPORTS_TO_CHECK}
-            for fut in _ac(futs, timeout=20):
-                try:
-                    sk, d = fut.result()
-                    if d: ai_sport_data[sk] = d
-                except: pass
+        pairs = await asyncio.gather(*[_fetch_ai(sk) for sk in SPORTS_TO_CHECK],
+                                     return_exceptions=True)
+        for p in pairs:
+            if isinstance(p, Exception):
+                continue
+            sk, d = p
+            if d: ai_sport_data[sk] = d
     except Exception as e:
-        log.error(f"AI combo parallel error: {e}")
+        log.error(f"AI combo fetch error: {e}")
 
     for sport_key in SPORTS_TO_CHECK:
         data = ai_sport_data.get(sport_key)
@@ -968,9 +1014,14 @@ async def track_influencer(request: Request):
     """Trackea eventos de influencer desde la web app"""
     try:
         body = await request.json()
-        code   = body.get("code","")
+        code   = (body.get("code","") or "")[:64]
         event  = body.get("event","click_web")
-        amount = body.get("amount", 0)
+        if event not in ("click_web","apuesta_web","registro"):
+            event = "click_web"
+        try:
+            amount = int(body.get("amount", 0) or 0)
+        except (TypeError, ValueError):
+            amount = 0
         if not code:
             return {"ok": False}
         pool = await get_db()
@@ -986,7 +1037,7 @@ async def track_influencer(request: Request):
         return {"ok": False}
 
 @app.get("/api/influencer/{code}/stats")
-async def influencer_stats(code: str):
+async def influencer_stats(code: str, _=Depends(auth.require_admin)):
     """Stats de un influencer específico"""
     try:
         pool = await get_db()
