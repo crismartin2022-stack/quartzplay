@@ -1,4 +1,4 @@
-import os, time, hashlib, asyncio, hmac, json, logging, ast
+import os, time, hashlib, asyncio, hmac, json, logging, ast, secrets
 from decimal import Decimal
 from datetime import datetime, timezone
 import asyncpg
@@ -295,6 +295,79 @@ async def pay_betslip(code: str, request: Request,
         "stake":stake, "odd_total":float(row["odd_total"]),
         "potential_win":pot_win,
     }
+
+# ── BETSLIP — CREAR desde la web ──────────────────────────────
+MAX_PICKS     = 10
+MAX_ODD_PICK  = 20.0     # cuota máxima por selección
+MAX_ODD_TOTAL = 1000.0   # cuota máxima combinada
+
+@app.post("/api/betslip")
+async def create_betslip(request: Request):
+    """
+    Crea un boleto pendiente y devuelve el código QP-XXXXX.
+    El cliente lo lleva al local y ahí paga en efectivo.
+
+    OJO: las cuotas todavía llegan del navegador. Los topes de acá abajo
+    acotan el daño, pero antes de habilitar efectivo en serio hay que
+    validar cada cuota contra el feed real del servidor.
+    """
+    body  = await request.json()
+    picks = body.get("picks") or []
+    inf   = (body.get("inf_code") or "")[:64] or None
+
+    if not isinstance(picks, list) or not (1 <= len(picks) <= MAX_PICKS):
+        raise HTTPException(400, f"El boleto debe tener entre 1 y {MAX_PICKS} selecciones")
+
+    limpios = []
+    odd_total = 1.0
+    for p in picks:
+        if not isinstance(p, dict):
+            raise HTTPException(400, "Selección inválida")
+        home = str(p.get("home") or p.get("h") or "")[:80]
+        away = str(p.get("away") or p.get("a") or "")[:80]
+        sel  = str(p.get("sel") or "")[:120]
+        sport= str(p.get("sport") or "")[:60]
+        try:
+            odd = float(p.get("odd"))
+        except (TypeError, ValueError):
+            raise HTTPException(400, "Cuota inválida")
+        if not (1.01 <= odd <= MAX_ODD_PICK):
+            raise HTTPException(400, f"Cuota fuera de rango: {odd}")
+        if not home or not sel:
+            raise HTTPException(400, "Faltan datos de la selección")
+        limpios.append({"home":home,"away":away,"sel":sel,
+                        "odd":round(odd,2),"sport":sport})
+        odd_total *= odd
+
+    odd_total = round(odd_total, 3)
+    if odd_total > MAX_ODD_TOTAL:
+        raise HTTPException(400, "La cuota combinada supera el máximo permitido")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        # Reintenta si el código sorteado ya existe.
+        # Requiere UNIQUE en betslips.code, si no los duplicados entran callados.
+        for _ in range(20):
+            code = f"QP-{secrets.randbelow(90000)+10000}"
+            try:
+                await conn.execute("""
+                    INSERT INTO betslips
+                        (code, user_id, picks, stake, odd_total,
+                         potential_win, status, inf_code,
+                         created_at, expires_at)
+                    VALUES ($1, NULL, $2, 0, $3, 0, 'pending', $4,
+                            NOW(), NOW() + interval '24 hours')
+                """, code, str(limpios), odd_total, inf)
+                return {
+                    "code": code,
+                    "odd_total": odd_total,
+                    "picks": len(limpios),
+                    "expires_in_hours": 24,
+                }
+            except asyncpg.UniqueViolationError:
+                continue
+    log.error("No se pudo generar un código único tras 20 intentos")
+    raise HTTPException(503, "No se pudo generar el código, probá de nuevo")
 
 # ── FOOTBALL LIVE SCORES ──────────────────────────────────────
 FOOTBALL_API = "https://free-api-live-football-data.p.rapidapi.com"
