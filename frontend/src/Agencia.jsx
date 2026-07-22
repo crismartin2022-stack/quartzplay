@@ -1,8 +1,8 @@
+// ═══════════════════════════════════════════════════════════════
+// ARCHIVO DESTINO: frontend/src/Agencia.jsx
+// ═══════════════════════════════════════════════════════════════
 import { useState, useEffect } from "react";
 
-// ═══════════════════════════════════════════════════════════════
-// QUARTZPLAY AGENCIA — Panel completo para locales físicos
-// ═══════════════════════════════════════════════════════════════
 const Q = {
   void:"#020208", deep:"#060612", dark:"#0A0A1E",
   glass:"linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))",
@@ -24,19 +24,26 @@ const expires24 = () => { const d=new Date(); d.setHours(d.getHours()+24); retur
 const API_URL = "https://amusing-vision-production.up.railway.app";
 const API_BOT = "https://amusing-vision-production.up.railway.app";
 
-// Error que indica que NO se pudo hablar con el servidor.
-// Se distingue de un error de negocio (código inexistente, ya pagado, etc.)
 class SinConexion extends Error {
   constructor(){ super("Sin conexión con el servidor"); this.name="SinConexion"; }
 }
+class SesionExpirada extends Error {
+  constructor(){ super("La sesión expiró"); this.name="SesionExpirada"; }
+}
 
-async function fetchBetslip(code){
+// Header de autenticación con el token que devolvió el login
+const authHeaders = (token) => token ? {"Authorization":`Bearer ${token}`} : {};
+
+async function fetchBetslip(code, token){
   let r;
   try {
-    r = await fetch(`${API_URL}/api/betslip/${code}`);
+    r = await fetch(`${API_URL}/api/betslip/${code}`, {
+      headers: authHeaders(token),
+    });
   } catch(e) {
     throw new SinConexion();
   }
+  if(r.status===401) throw new SesionExpirada();
   if(!r.ok){
     const e = await r.json().catch(()=>({}));
     throw new Error(e.detail || `Error ${r.status}`);
@@ -44,17 +51,18 @@ async function fetchBetslip(code){
   return r.json();
 }
 
-async function payBetslip(code, stake, agentId){
+async function payBetslip(code, stake, token){
   let r;
   try {
     r = await fetch(`${API_URL}/api/betslip/${code}/pay`, {
       method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({stake, agent_id: agentId}),
+      headers:{"Content-Type":"application/json", ...authHeaders(token)},
+      body:JSON.stringify({stake}),
     });
   } catch(e) {
     throw new SinConexion();
   }
+  if(r.status===401) throw new SesionExpirada();
   if(!r.ok){
     const e = await r.json().catch(()=>({}));
     throw new Error(e.detail || `No se pudo registrar el pago (${r.status})`);
@@ -81,7 +89,6 @@ function GCard({ children, style={}, glow }){
   );
 }
 
-// Banner de error grande y rojo — el cajero TIENE que verlo
 function AlertaError({ mensaje, critico=false }){
   if(!mensaje) return null;
   return(
@@ -237,7 +244,7 @@ body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:4mm;b
   return abrirVentanaImpresion(html, 420, 600);
 }
 
-// ── DEPORTES PARA APUESTA MANUAL ──────────────────────────────
+// ── DEPORTES PARA APUESTA MANUAL (fallback visual) ────────────
 const DEPORTES = [
   {sport:"Liga AR", events:[
     {home:"River",away:"Boca",odds:{L:1.55,E:3.80,V:5.20}},
@@ -259,7 +266,6 @@ const DEPORTES = [
   ]},
 ];
 
-// Mock historial — solo visual, no afecta operaciones
 const MOCK_HISTORIAL = [
   {code:"QP-47829",user:"@martin_ar",stake:10000,win:42400,time:"02:15",tipo:"bot",estado:"activa"},
   {code:"QP-38291",user:"@apostador99",stake:20000,win:34200,time:"01:45",tipo:"bot",estado:"activa"},
@@ -298,6 +304,10 @@ function LoginScreen({ onLogin }){
     }
     const data=await r.json();
     setLoading(false);
+    if(!data.token){
+      setErr("El servidor no devolvió una sesión válida. Avisá al administrador.");
+      return;
+    }
     onLogin(data);
   };
 
@@ -338,7 +348,7 @@ function LoginScreen({ onLogin }){
 // ═══════════════════════════════════════════════════════════════
 // FLUJO A+C — CÓDIGO DEL BOT
 // ═══════════════════════════════════════════════════════════════
-function FlujoCodigo({ agencia }){
+function FlujoCodigo({ agencia, onSesionExpirada }){
   const [code,setCode]=useState("");
   const [slip,setSlip]=useState(null);
   const [err,setErr]=useState("");
@@ -350,9 +360,10 @@ function FlujoCodigo({ agencia }){
   const buscar=async()=>{
     setErr(""); setPayErr(""); setSlip(null); setStep("buscar"); setLoading(true);
     try {
-      const found = await fetchBetslip(code);
+      const found = await fetchBetslip(code, agencia.token);
       setSlip(found); setStep("confirmar");
     } catch(e){
+      if(e.name==="SesionExpirada"){ onSesionExpirada(); return; }
       setErr(e.name==="SinConexion"
         ? "Sin conexión con el servidor. No se puede validar el código — no cobrar."
         : (e.message||"Código no encontrado."));
@@ -367,14 +378,14 @@ function FlujoCodigo({ agencia }){
     if(paying) return;
     setPayErr(""); setPaying(true);
     try {
-      const result = await payBetslip(slip.code, monto, agencia.code);
+      const result = await payBetslip(slip.code, monto, agencia.token);
       setSlip(s=>({...s,
         stake: result.stake,
         potential_win: result.potential_win,
         paid_local: true}));
       setStep("done_pagado");
     } catch(e){
-      // El pago NO quedó registrado. El flujo se detiene acá.
+      if(e.name==="SesionExpirada"){ onSesionExpirada(); return; }
       setPayErr(e.name==="SinConexion"
         ? "No hay conexión con el servidor, la apuesta NO quedó registrada. No aceptes el efectivo."
         : `La apuesta NO quedó registrada: ${e.message}`);
@@ -520,7 +531,6 @@ function FlujoManual({ agencia }){
   const [tabOferta,setTabOferta]=useState("prematch");
 
   useEffect(()=>{
-    // Cargar partidos en vivo con cuotas
     fetch(`${API_BOT}/api/live/combined`)
       .then(r=>r.ok?r.json():null)
       .then(data=>{
@@ -529,7 +539,6 @@ function FlujoManual({ agencia }){
           if(withOdds.length>0) setLiveDeportes(withOdds);
         }
       }).catch(()=>{});
-    // Cargar prematch
     fetch(`${API_BOT}/api/live/prematch`)
       .then(r=>r.ok?r.json():null)
       .then(data=>{
@@ -581,7 +590,6 @@ function FlujoManual({ agencia }){
             color:Q.text,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}/>
       </GCard>
 
-      {/* Tabs live vs prematch */}
       <div style={{display:"flex",gap:5,marginBottom:14}}>
         {[{k:"prematch",l:"📋 Prematch"},{k:"live",l:"🔴 En Vivo"}].map(t=>(
           <button key={t.k} onClick={()=>setTabOferta(t.k)} style={{
@@ -595,7 +603,6 @@ function FlujoManual({ agencia }){
         ))}
       </div>
 
-      {/* Eventos en vivo con cuotas */}
       {tabOferta==="live"&&(
         <>
           {!liveDeportes&&(
@@ -645,7 +652,6 @@ function FlujoManual({ agencia }){
         </>
       )}
 
-      {/* Eventos prematch */}
       {tabOferta==="prematch"&&(
         <>
           {prematchDeportes ? prematchDeportes.map(d=>(
@@ -880,7 +886,6 @@ function Cierres({ agencia }){
   const [fechaHasta,setFechaHasta]=useState("");
   const [resultado,setResultado]=useState(null);
 
-  // Mock data por tipo
   const MOCK_CIERRES = {
     diario:{
       periodo:"Hoy 17/07/2026",
@@ -910,7 +915,6 @@ function Cierres({ agencia }){
 
   return(
     <div>
-      {/* Selector de tipo */}
       <GCard style={{padding:16,marginBottom:14}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:12,
           fontFamily:"'Space Grotesk',system-ui"}}>Tipo de cierre</div>
@@ -933,7 +937,6 @@ function Cierres({ agencia }){
           ))}
         </div>
 
-        {/* Fechas personalizadas */}
         {tipo==="personalizado"&&(
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
             {[["Desde",fechaDesde,setFechaDesde],["Hasta",fechaHasta,setFechaHasta]].map(([l,v,sv])=>(
@@ -952,14 +955,12 @@ function Cierres({ agencia }){
         <Btn label="GENERAR CIERRE" onClick={generar} color={Q.violet} full size="lg"/>
       </GCard>
 
-      {/* Resultado del cierre */}
       {resultado&&(
         <GCard glow={Q.green} style={{padding:20,marginBottom:12}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
             fontFamily:"'Space Grotesk',system-ui"}}>Cierre {tipo}</div>
           <div style={{color:Q.muted,fontSize:12,marginBottom:16}}>{resultado.periodo}</div>
 
-          {/* Stats */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
             {[
               {l:"Total tickets",v:resultado.tickets,c:Q.cyan},
@@ -974,7 +975,6 @@ function Cierres({ agencia }){
             ))}
           </div>
 
-          {/* Financiero */}
           <div style={{marginBottom:14}}>
             {[
               ["Total cobrado (apuestas)",  resultado.cobrado, Q.text],
@@ -993,7 +993,6 @@ function Cierres({ agencia }){
             ))}
           </div>
 
-          {/* Acciones */}
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>printCierre(resultado,tipo,agencia)} style={{
               flex:1,background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
@@ -1050,7 +1049,7 @@ function Config({ agencia }){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EN VIVO — Scores + cuotas en tiempo real
+// EN VIVO
 // ═══════════════════════════════════════════════════════════════
 function EnVivo(){
   const [matches,setMatches]=useState([]);
@@ -1181,7 +1180,6 @@ function EnVivo(){
         </GCard>
       ))}
 
-      {/* Boleto flotante */}
       {ticket.length>0&&(
         <div style={{position:"sticky",bottom:0,
           background:`linear-gradient(0deg,${Q.void} 80%,transparent)`,
@@ -1212,7 +1210,7 @@ function EnVivo(){
 // ═══════════════════════════════════════════════════════════════
 // PANEL PRINCIPAL
 // ═══════════════════════════════════════════════════════════════
-function AgenciaPanel({ agencia, onLogout }){
+function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   const [tab,setTab]=useState("codigo");
 
   const TABS=[
@@ -1264,7 +1262,7 @@ function AgenciaPanel({ agencia, onLogout }){
 
       <div style={{padding:"16px",maxWidth:620,margin:"0 auto",
         position:"relative",zIndex:1,paddingBottom:80}}>
-        {tab==="codigo"   &&<FlujoCodigo  agencia={agencia}/>}
+        {tab==="codigo"   &&<FlujoCodigo  agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
         {tab==="envivo"   &&<EnVivo/>}
         {tab==="manual"   &&<FlujoManual  agencia={agencia}/>}
         {tab==="historial"&&<Historial/>}
@@ -1280,6 +1278,13 @@ function AgenciaPanel({ agencia, onLogout }){
 // ═══════════════════════════════════════════════════════════════
 export default function QuartzAgencia(){
   const [agencia,setAgencia]=useState(null);
+  const [avisoSesion,setAvisoSesion]=useState(false);
+
+  const sesionExpirada=()=>{
+    setAgencia(null);
+    setAvisoSesion(true);
+  };
+
   return(
     <div style={{background:Q.void,minHeight:"100vh"}}>
       <style>{`
@@ -1289,10 +1294,21 @@ export default function QuartzAgencia(){
         ::-webkit-scrollbar{width:3px}
         ::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.3)}
       `}</style>
-      {!agencia
-        ?<LoginScreen onLogin={setAgencia}/>
-        :<AgenciaPanel agencia={agencia} onLogout={()=>setAgencia(null)}/>
-      }
+      {!agencia ? (
+        <div style={{position:"relative"}}>
+          {avisoSesion&&(
+            <div style={{position:"fixed",top:12,left:"50%",transform:"translateX(-50%)",
+              zIndex:100,width:"calc(100% - 32px)",maxWidth:380}}>
+              <AlertaError mensaje="La sesión expiró por inactividad. Volvé a ingresar."/>
+            </div>
+          )}
+          <LoginScreen onLogin={a=>{setAvisoSesion(false);setAgencia(a);}}/>
+        </div>
+      ) : (
+        <AgenciaPanel agencia={agencia}
+          onLogout={()=>setAgencia(null)}
+          onSesionExpirada={sesionExpirada}/>
+      )}
     </div>
   );
 }
