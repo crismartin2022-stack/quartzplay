@@ -6,6 +6,7 @@ import httpx
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+import auth
 
 log = logging.getLogger(__name__)
 
@@ -80,14 +81,20 @@ async def agencia_login(request: Request):
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
             SELECT * FROM agencias
-            WHERE username=$1 AND password_hash=$2 AND status='active'
-        """, username, hash_password(password))
-        if not row:
+            WHERE username=$1 AND status='active'
+        """, username)
+        if not row or not auth.verify_password(password, row["password_hash"]):
             raise HTTPException(status_code=401,
                 detail="Usuario o contraseña incorrectos")
+        # Migra el hash viejo (sha256) a bcrypt en el primer login
+        if auth.needs_rehash(row["password_hash"]):
+            await conn.execute(
+                "UPDATE agencias SET password_hash=$2 WHERE code=$1",
+                row["code"], auth.hash_password(password))
         await conn.execute(
             "UPDATE agencias SET last_login=NOW() WHERE code=$1", row["code"])
     return {
+        "token":   auth.create_session(row["code"]),
         "code":    row["code"],
         "name":    row["name"],
         "address": row["address"],
@@ -134,7 +141,7 @@ async def create_agencia(request: Request):
                 INSERT INTO agencias
                     (code, name, username, password_hash, address, phone)
                 VALUES ($1,$2,$3,$4,$5,$6)
-            """, code, name, username, hash_password(password), address, phone)
+            """, code, name, username, auth.hash_password(password), address, phone)
         except Exception:
             raise HTTPException(status_code=409, detail="Usuario ya existe")
     return {"code":code,"name":name,"username":username}
@@ -158,7 +165,7 @@ async def update_agencia(code: str, request: Request):
             await conn.execute("""
                 UPDATE agencias SET name=$2,address=$3,
                     phone=$4,status=$5,password_hash=$6 WHERE code=$1
-            """, code, name, address, phone, status, hash_password(password))
+            """, code, name, address, phone, status, auth.hash_password(password))
         else:
             await conn.execute("""
                 UPDATE agencias SET name=$2,address=$3,
