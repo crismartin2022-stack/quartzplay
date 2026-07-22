@@ -1,9 +1,8 @@
+// ═══════════════════════════════════════════════════════════════
+// ARCHIVO DESTINO: frontend/src/Admin.jsx
+// ═══════════════════════════════════════════════════════════════
 import { useState, useEffect } from "react";
 
-// ═══════════════════════════════════════════════════════════════
-// QUARTZPLAY ADMIN — Panel web completo
-// Gestión de agencias, usuarios, GGR, depósitos, config
-// ═══════════════════════════════════════════════════════════════
 const Q = {
   void:"#020208", deep:"#060612",
   glass:"linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))",
@@ -17,8 +16,10 @@ const Q = {
 };
 
 const ars  = n => "$" + Math.round(n||0).toLocaleString("es-AR");
-const fmt  = n => Number(n||0).toFixed(2);
 const API  = "https://amusing-vision-production.up.railway.app";
+
+// La clave viaja en un header, nunca se compara en el cliente.
+const adminHeaders = (key) => key ? {"X-Admin-Key": key} : {};
 
 // ── COMPONENTS ────────────────────────────────────────────────
 function GCard({ children, style={}, glow, onClick }){
@@ -128,7 +129,7 @@ function Input({ label, value, onChange, type="text", placeholder="" }){
   );
 }
 
-// Mock data
+// Datos de ejemplo — todavía sin endpoint real detrás
 const MOCK = {
   stats:{
     users:3841, active:1247, pro:683, newToday:47,
@@ -136,10 +137,6 @@ const MOCK = {
     netwinHoy:241000, netwin30d:7240000,
     apuestasActivas:247,
   },
-  agencias:[
-    {code:"AGE001",name:"AgenciaSur",username:"agencia3",status:"active",
-     address:null,phone:null,total_tickets:0,total_cobrado:0,last_login:null},
-  ],
   depositos:[
     {id:142,username:"martin_ar",amount:50000,method:"MercadoPago",created_at:"14:23"},
     {id:143,username:"carlos_bet",amount:20000,method:"USDT",created_at:"14:45"},
@@ -162,15 +159,40 @@ const MOCK = {
   ],
 };
 
+// Aviso reutilizable para las secciones que todavía no persisten
+function AvisoMock(){
+  return(
+    <div style={{background:`${Q.amber}12`,border:`1px solid ${Q.amber}55`,
+      borderRadius:10,padding:"8px 12px",marginBottom:12,
+      color:Q.amber,fontSize:11,fontFamily:"'Space Grotesk',system-ui"}}>
+      Datos de ejemplo — esta sección todavía no está conectada a la base.
+    </div>
+  );
+}
+
 // ── LOGIN ──────────────────────────────────────────────────────
 function AdminLogin({ onLogin }){
   const [pass,setPass]=useState("");
   const [err,setErr]=useState("");
+  const [loading,setLoading]=useState(false);
 
-  const login=()=>{
-    // Admin password — cambiar en producción
-    if(pass==="admin2026") onLogin();
-    else setErr("Contraseña incorrecta");
+  // La clave se valida contra el servidor, no en el navegador.
+  const login=async()=>{
+    if(loading) return;
+    setErr(""); setLoading(true);
+    let r;
+    try {
+      r = await fetch(`${API}/api/agencias`, { headers: adminHeaders(pass) });
+    } catch(e){
+      setErr("Sin conexión con el servidor");
+      setLoading(false);
+      return;
+    }
+    setLoading(false);
+    if(r.status===401){ setErr("Contraseña incorrecta"); return; }
+    if(r.status===503){ setErr("ADMIN_API_KEY no está configurada en el servidor"); return; }
+    if(!r.ok){ setErr(`Error del servidor (${r.status})`); return; }
+    onLogin(pass);
   };
 
   return(
@@ -188,7 +210,7 @@ function AdminLogin({ onLogin }){
         <GCard glow={Q.violet} style={{padding:28}}>
           <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
             letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",marginBottom:6}}>
-            Contraseña admin
+            Clave admin
           </div>
           <input type="password" value={pass}
             onChange={e=>setPass(e.target.value)}
@@ -199,12 +221,9 @@ function AdminLogin({ onLogin }){
               color:Q.text,fontSize:16,marginBottom:14,
               fontFamily:"'Space Grotesk',system-ui"}}/>
           {err&&<div style={{color:Q.red,fontSize:12,marginBottom:10}}>{err}</div>}
-          <Btn label="INGRESAR" onClick={login} color={Q.violet} size="lg" full/>
+          <Btn label={loading?"VERIFICANDO...":"INGRESAR"} onClick={login}
+            color={Q.violet} size="lg" full disabled={loading||!pass}/>
         </GCard>
-        <div style={{textAlign:"center",marginTop:14,color:Q.dim,fontSize:11,
-          fontFamily:"'Space Grotesk',system-ui"}}>
-          Demo: <strong style={{color:Q.muted}}>admin2026</strong>
-        </div>
       </div>
     </div>
   );
@@ -217,6 +236,7 @@ function TabDash(){
   const s=MOCK.stats;
   return(
     <div>
+      <AvisoMock/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
         <KPI label="Usuarios"      value={s.users.toLocaleString()} sub={`+${s.newToday} hoy`} color={Q.cyan}   icon="👥" trend={3.2}/>
         <KPI label="GGR hoy"       value={ars(s.netwinHoy)}                                     color={Q.green}  icon="📈" trend={4.1}/>
@@ -234,25 +254,6 @@ function TabDash(){
         </div>
       </GCard>
 
-      {/* Alertas pendientes */}
-      {(MOCK.depositos.length+MOCK.retiros.length)>0&&(
-        <GCard glow={Q.pink} style={{padding:"12px 16px",marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:20}}>⚠️</span>
-            <div>
-              <div style={{color:Q.pink,fontWeight:700,fontSize:13,
-                fontFamily:"'Space Grotesk',system-ui"}}>
-                {MOCK.depositos.length+MOCK.retiros.length} transacciones pendientes
-              </div>
-              <div style={{color:Q.muted,fontSize:11}}>
-                {MOCK.depositos.length} depósitos · {MOCK.retiros.length} retiros
-              </div>
-            </div>
-          </div>
-        </GCard>
-      )}
-
-      {/* Top usuarios */}
       <GCard glow={Q.gold} style={{padding:16,marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
           fontFamily:"'Space Grotesk',system-ui"}}>🏆 Top usuarios por GGR</div>
@@ -275,7 +276,6 @@ function TabDash(){
         ))}
       </GCard>
 
-      {/* Influencers */}
       <GCard style={{padding:16}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
           fontFamily:"'Space Grotesk',system-ui"}}>📊 Influencers</div>
@@ -299,10 +299,10 @@ function TabDash(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TAB AGENCIAS
+// TAB AGENCIAS — datos reales
 // ═══════════════════════════════════════════════════════════════
-function TabAgencias(){
-  const [agencias,setAgencias]=useState(MOCK.agencias);
+function TabAgencias({ adminKey, onNoAutorizado }){
+  const [agencias,setAgencias]=useState([]);
   const [loading,setLoading]=useState(false);
   const [form,setForm]=useState({name:"",username:"",password:"",address:"",phone:""});
   const [showForm,setShowForm]=useState(false);
@@ -311,15 +311,20 @@ function TabAgencias(){
   const [editForm,setEditForm]=useState({});
 
   const loadAgencias=async()=>{
-    setLoading(true);
+    setLoading(true); setMsg("");
     try {
-      const r=await fetch(`${API}/api/agencias`);
+      const r=await fetch(`${API}/api/agencias`,{ headers: adminHeaders(adminKey) });
+      if(r.status===401){ onNoAutorizado(); return; }
       if(r.ok) setAgencias(await r.json());
-    } catch(e){ /* usa mock */ }
+      else setMsg(`❌ Error ${r.status} al cargar agencias`);
+    } catch(e){
+      setMsg("❌ Sin conexión con el servidor");
+    }
     setLoading(false);
   };
 
-  useEffect(()=>{ loadAgencias(); },[]);
+  useEffect(()=>{ loadAgencias(); // eslint-disable-next-line
+  },[]);
 
   const crearAgencia=async()=>{
     if(!form.name||!form.username||!form.password){
@@ -328,9 +333,10 @@ function TabAgencias(){
     try {
       const r=await fetch(`${API}/api/agencias`,{
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers:{"Content-Type":"application/json", ...adminHeaders(adminKey)},
         body:JSON.stringify(form),
       });
+      if(r.status===401){ onNoAutorizado(); return; }
       if(r.ok){
         const data=await r.json();
         setMsg(`✅ Agencia creada: ${data.code}`);
@@ -338,43 +344,49 @@ function TabAgencias(){
         setShowForm(false);
         loadAgencias();
       } else {
-        const e=await r.json();
-        setMsg(`❌ ${e.detail}`);
+        const e=await r.json().catch(()=>({}));
+        setMsg(`❌ ${e.detail||`Error ${r.status}`}`);
       }
     } catch(e){
-      // Mock fallback
-      const newCode=`AGE${String(agencias.length+1).zfill?String(agencias.length+1).padStart(3,"0"):agencias.length+1}`;
-      setAgencias(a=>[...a,{...form,code:newCode,status:"active",
-        total_tickets:0,total_cobrado:0}]);
-      setMsg(`✅ Agencia creada: ${newCode}`);
-      setForm({name:"",username:"",password:"",address:"",phone:""});
-      setShowForm(false);
+      setMsg("❌ Sin conexión — la agencia NO se creó");
     }
   };
 
   const toggleStatus=async(ag)=>{
     const newStatus=ag.status==="active"?"suspended":"active";
     try {
-      await fetch(`${API}/api/agencias/${ag.code}`,{
+      const r=await fetch(`${API}/api/agencias/${ag.code}`,{
         method:"PUT",
-        headers:{"Content-Type":"application/json"},
+        headers:{"Content-Type":"application/json", ...adminHeaders(adminKey)},
         body:JSON.stringify({status:newStatus}),
       });
-    } catch(e){}
+      if(r.status===401){ onNoAutorizado(); return; }
+      if(!r.ok){ setMsg(`❌ No se pudo cambiar el estado (${r.status})`); return; }
+    } catch(e){
+      setMsg("❌ Sin conexión — el estado NO cambió");
+      return;
+    }
     setAgencias(a=>a.map(x=>x.code===ag.code?{...x,status:newStatus}:x));
     if(selAgencia?.code===ag.code) setSelAgencia(s=>({...s,status:newStatus}));
+    setMsg("✅ Estado actualizado");
   };
 
   const guardarEdit=async()=>{
     try {
-      await fetch(`${API}/api/agencias/${selAgencia.code}`,{
+      const r=await fetch(`${API}/api/agencias/${selAgencia.code}`,{
         method:"PUT",
-        headers:{"Content-Type":"application/json"},
+        headers:{"Content-Type":"application/json", ...adminHeaders(adminKey)},
         body:JSON.stringify(editForm),
       });
-    } catch(e){}
+      if(r.status===401){ onNoAutorizado(); return; }
+      if(!r.ok){ setMsg(`❌ No se pudo guardar (${r.status})`); return; }
+    } catch(e){
+      setMsg("❌ Sin conexión — los cambios NO se guardaron");
+      return;
+    }
     setAgencias(a=>a.map(x=>x.code===selAgencia.code?{...x,...editForm}:x));
     setSelAgencia(s=>({...s,...editForm}));
+    setEditForm({});
     setMsg("✅ Agencia actualizada");
   };
 
@@ -407,20 +419,19 @@ function TabAgencias(){
           </GCard>
         </div>
 
-        {/* Editar datos */}
         <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1,
           fontFamily:"'Space Grotesk',system-ui",marginBottom:10}}>Editar datos</div>
-        <Input label="Nombre" value={editForm.name||selAgencia.name}
+        <Input label="Nombre" value={editForm.name??selAgencia.name??""}
           onChange={v=>setEditForm(f=>({...f,name:v}))}/>
-        <Input label="Dirección" value={editForm.address||selAgencia.address||""}
+        <Input label="Dirección" value={editForm.address??selAgencia.address??""}
           onChange={v=>setEditForm(f=>({...f,address:v}))} placeholder="Av. Corrientes 1234"/>
-        <Input label="Teléfono" value={editForm.phone||selAgencia.phone||""}
+        <Input label="Teléfono" value={editForm.phone??selAgencia.phone??""}
           onChange={v=>setEditForm(f=>({...f,phone:v}))} placeholder="+54 11 ..."/>
         <Input label="Nueva clave (opcional)" value={editForm.password||""}
           onChange={v=>setEditForm(f=>({...f,password:v}))} type="password"
           placeholder="Dejar vacío para no cambiar"/>
 
-        {msg&&<div style={{color:Q.green,fontSize:12,marginBottom:10}}>{msg}</div>}
+        {msg&&<div style={{color:msg.startsWith("✅")?Q.green:Q.red,fontSize:12,marginBottom:10}}>{msg}</div>}
 
         <div style={{display:"flex",gap:8,marginTop:4}}>
           <Btn label="Guardar" onClick={guardarEdit} color={Q.violet} full/>
@@ -446,7 +457,6 @@ function TabAgencias(){
         </div>
       </div>
 
-      {/* Formulario nueva agencia */}
       {showForm&&(
         <GCard glow={Q.violet} style={{padding:18,marginBottom:14}}>
           <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:14,
@@ -470,11 +480,13 @@ function TabAgencias(){
         </GCard>
       )}
 
-      {/* Lista de agencias */}
+      {!showForm&&msg&&<div style={{color:msg.startsWith("✅")?Q.green:Q.red,
+        fontSize:12,marginBottom:12}}>{msg}</div>}
+
       {loading&&<div style={{color:Q.muted,textAlign:"center",padding:20,
         fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
 
-      {agencias.map((ag,i)=>(
+      {agencias.map(ag=>(
         <GCard key={ag.code} glow={ag.status==="active"?Q.green:Q.red}
           style={{padding:"14px 16px",marginBottom:10,cursor:"pointer"}}
           onClick={()=>{setSelAgencia(ag);setEditForm({});setMsg("");}}>
@@ -524,12 +536,12 @@ function TabBilletera(){
 
   return(
     <div>
+      <AvisoMock/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
         <KPI label="Depósitos hoy" value={ars(MOCK.stats.depHoy)} color={Q.green} icon="📥" trend={12}/>
         <KPI label="Retiros hoy"   value={ars(MOCK.stats.retHoy)} color={Q.amber} icon="📤"/>
       </div>
 
-      {/* Depósitos */}
       <GCard glow={Q.green} style={{padding:16,marginBottom:12}}>
         <div style={{color:Q.green,fontWeight:700,fontSize:13,marginBottom:10,
           fontFamily:"'Space Grotesk',system-ui"}}>
@@ -575,7 +587,6 @@ function TabBilletera(){
         ))}
       </GCard>
 
-      {/* Retiros */}
       <GCard glow={Q.amber} style={{padding:16}}>
         <div style={{color:Q.amber,fontWeight:700,fontSize:13,marginBottom:10,
           fontFamily:"'Space Grotesk',system-ui"}}>
@@ -629,8 +640,11 @@ function TabBilletera(){
 // ═══════════════════════════════════════════════════════════════
 function TabUsuarios(){
   const [query,setQuery]=useState("");
+  const filtrados = MOCK.topUsers.filter(u=>
+    u.username.toLowerCase().includes(query.toLowerCase()));
   return(
     <div>
+      <AvisoMock/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
         <KPI label="Total"   value={MOCK.stats.users.toLocaleString()} color={Q.cyan}/>
         <KPI label="Pro/VIP" value={MOCK.stats.pro}                    color={Q.violet}/>
@@ -649,9 +663,9 @@ function TabUsuarios(){
       <GCard glow={Q.gold} style={{padding:16}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
           fontFamily:"'Space Grotesk',system-ui"}}>🏆 Top por GGR</div>
-        {MOCK.topUsers.map((u,i)=>(
-          <div key={i} style={{display:"flex",alignItems:"center",gap:10,
-            padding:"8px 0",borderBottom:i<4?`1px solid ${Q.dim}`:"none"}}>
+        {filtrados.map((u,i)=>(
+          <div key={u.username} style={{display:"flex",alignItems:"center",gap:10,
+            padding:"8px 0",borderBottom:i<filtrados.length-1?`1px solid ${Q.dim}`:"none"}}>
             <div style={{color:Q.dim,fontWeight:700,fontSize:12,width:16,
               fontFamily:"'Space Grotesk',system-ui"}}>{i+1}</div>
             <div style={{width:32,height:32,borderRadius:"50%",
@@ -675,6 +689,11 @@ function TabUsuarios(){
             </div>
           </div>
         ))}
+        {filtrados.length===0&&(
+          <div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:12}}>
+            Sin resultados
+          </div>
+        )}
       </GCard>
     </div>
   );
@@ -689,12 +708,16 @@ function TabConfig(){
   const [minBet,setMinBet]=useState("500");
   const [margin,setMargin]=useState("7.5");
   const [maint,setMaint]=useState(false);
-  const [saved,setSaved]=useState(false);
-
-  const save=()=>{ setSaved(true); setTimeout(()=>setSaved(false),2000); };
 
   return(
     <div>
+      <div style={{background:`${Q.amber}12`,border:`1px solid ${Q.amber}55`,
+        borderRadius:10,padding:"10px 12px",marginBottom:14,
+        color:Q.amber,fontSize:11,fontFamily:"'Space Grotesk',system-ui",lineHeight:1.5}}>
+        Estos valores todavía no se guardan en ningún lado — al recargar la página
+        vuelven al default. Falta el endpoint de configuración en la API.
+      </div>
+
       <GCard glow={Q.cyan} style={{padding:18,marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:12,
           fontFamily:"'Space Grotesk',system-ui"}}>💱 Tipo de cambio</div>
@@ -732,19 +755,8 @@ function TabConfig(){
           </button>
         </div>
         {maint&&<div style={{color:Q.red,fontSize:11,marginTop:8,
-          fontFamily:"'Space Grotesk',system-ui"}}>⚠️ Bot en modo mantenimiento</div>}
+          fontFamily:"'Space Grotesk',system-ui"}}>⚠️ Este toggle todavía no afecta al bot</div>}
       </GCard>
-
-      <button onClick={save} style={{
-        width:"100%",
-        background:saved?`linear-gradient(135deg,${Q.green},#009624)`:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-        border:"none",borderRadius:14,padding:"16px",
-        color:saved?Q.void:"#fff",fontWeight:700,fontSize:15,cursor:"pointer",
-        fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
-        boxShadow:`0 6px 24px ${saved?Q.green:Q.violet}44`,transition:"all 0.3s",
-      }}>
-        {saved?"✅ GUARDADO":"GUARDAR CAMBIOS"}
-      </button>
     </div>
   );
 }
@@ -760,7 +772,7 @@ const TABS=[
   {k:"config",   i:"⚙️", l:"Config"},
 ];
 
-function AdminPanel({ onLogout }){
+function AdminPanel({ adminKey, onLogout }){
   const [tab,setTab]=useState("dash");
   return(
     <div style={{background:Q.void,minHeight:"100vh",
@@ -769,7 +781,6 @@ function AdminPanel({ onLogout }){
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
 
-      {/* Header */}
       <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"10px 16px",display:"flex",alignItems:"center",
         justifyContent:"space-between",position:"sticky",top:0,zIndex:50,overflow:"hidden"}}>
@@ -784,17 +795,15 @@ function AdminPanel({ onLogout }){
         </div>
       </div>
 
-      {/* Content */}
       <div style={{padding:"16px",maxWidth:620,margin:"0 auto",
         position:"relative",zIndex:1,paddingBottom:80}}>
         {tab==="dash"     &&<TabDash/>}
-        {tab==="agencias" &&<TabAgencias/>}
+        {tab==="agencias" &&<TabAgencias adminKey={adminKey} onNoAutorizado={onLogout}/>}
         {tab==="billetera"&&<TabBilletera/>}
         {tab==="usuarios" &&<TabUsuarios/>}
         {tab==="config"   &&<TabConfig/>}
       </div>
 
-      {/* Bottom nav */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",
         width:"100%",maxWidth:620,background:"rgba(6,6,18,0.97)",
         backdropFilter:"blur(20px)",borderTop:`1px solid ${Q.border}`,
@@ -822,19 +831,19 @@ function AdminPanel({ onLogout }){
 }
 
 export default function QuartzAdmin(){
-  const [logged,setLogged]=useState(false);
+  // La clave vive solo en memoria: al recargar hay que volver a entrar.
+  const [adminKey,setAdminKey]=useState(null);
   return(
     <div style={{background:Q.void,minHeight:"100vh"}}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
         input:focus{outline:none} button:active{opacity:.85}
         ::-webkit-scrollbar{width:3px}
         ::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.3)}
       `}</style>
-      {!logged
-        ?<AdminLogin onLogin={()=>setLogged(true)}/>
-        :<AdminPanel onLogout={()=>setLogged(false)}/>
+      {!adminKey
+        ?<AdminLogin onLogin={setAdminKey}/>
+        :<AdminPanel adminKey={adminKey} onLogout={()=>setAdminKey(null)}/>
       }
     </div>
   );
