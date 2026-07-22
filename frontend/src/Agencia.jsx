@@ -22,56 +22,44 @@ const expires24 = () => { const d=new Date(); d.setHours(d.getHours()+24); retur
 
 // ── API ───────────────────────────────────────────────────────
 const API_URL = "https://amusing-vision-production.up.railway.app";
+const API_BOT = "https://amusing-vision-production.up.railway.app";
+
+// Error que indica que NO se pudo hablar con el servidor.
+// Se distingue de un error de negocio (código inexistente, ya pagado, etc.)
+class SinConexion extends Error {
+  constructor(){ super("Sin conexión con el servidor"); this.name="SinConexion"; }
+}
 
 async function fetchBetslip(code){
+  let r;
   try {
-    const r = await fetch(`${API_URL}/api/betslip/${code}`);
-    if(!r.ok) throw new Error((await r.json()).detail || "No encontrado");
-    return r.json();
+    r = await fetch(`${API_URL}/api/betslip/${code}`);
   } catch(e) {
-    // Fallback betslip mock para demo
-    const MOCK = {
-      "QP-47829":{
-        code:"QP-47829", user:"@martin_ar",
-        created_at:"17/07/2026 02:15", expires_at:"18/07/2026 02:15",
-        status:"pending", paid_at:null,
-        picks:[
-          {home:"River",away:"Boca",sel:"River gana",odd:1.55,sport:"Liga AR"},
-          {home:"Argentina",away:"Argelia",sel:"Argentina gana",odd:1.30,sport:"Mundial"},
-          {home:"R.Madrid",away:"Bayern",sel:"R.Madrid gana",odd:2.10,sport:"Champions"},
-        ],
-        stake:0, odd_total:4.24, potential_win:0,
-      },
-      "QP-38291":{
-        code:"QP-38291", user:"@apostador99",
-        created_at:"17/07/2026 01:45", expires_at:"18/07/2026 01:45",
-        status:"pending", paid_at:null,
-        picks:[
-          {home:"España",away:"C.Verde",sel:"España gana",odd:1.18,sport:"Mundial"},
-          {home:"Francia",away:"Senegal",sel:"Francia gana",odd:1.45,sport:"Mundial"},
-        ],
-        stake:20000, odd_total:1.71, potential_win:34200,
-      },
-    };
-    const found = MOCK[code.toUpperCase()];
-    if(found) return found;
-    throw new Error("Código no encontrado");
+    throw new SinConexion();
   }
+  if(!r.ok){
+    const e = await r.json().catch(()=>({}));
+    throw new Error(e.detail || `Error ${r.status}`);
+  }
+  return r.json();
 }
 
 async function payBetslip(code, stake, agentId){
+  let r;
   try {
-    const r = await fetch(`${API_URL}/api/betslip/${code}/pay`, {
+    r = await fetch(`${API_URL}/api/betslip/${code}/pay`, {
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({stake, agent_id: agentId}),
     });
-    if(!r.ok) throw new Error((await r.json()).detail || "Error al pagar");
-    return r.json();
   } catch(e) {
-    // Mock fallback
-    return { success:true, code, stake, odd_total:4.24, potential_win:Math.round(stake*4.24) };
+    throw new SinConexion();
   }
+  if(!r.ok){
+    const e = await r.json().catch(()=>({}));
+    throw new Error(e.detail || `No se pudo registrar el pago (${r.status})`);
+  }
+  return r.json();
 }
 
 // ── DESIGN ────────────────────────────────────────────────────
@@ -89,6 +77,29 @@ function GCard({ children, style={}, glow }){
         background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)",
         pointerEvents:"none"}}/>
       {children}
+    </div>
+  );
+}
+
+// Banner de error grande y rojo — el cajero TIENE que verlo
+function AlertaError({ mensaje, critico=false }){
+  if(!mensaje) return null;
+  return(
+    <div style={{
+      background:critico?`${Q.red}22`:"rgba(255,23,68,0.10)",
+      border:`2px solid ${Q.red}`, borderRadius:12,
+      padding:critico?"16px":"12px 14px", marginBottom:12,
+      display:"flex", alignItems:"flex-start", gap:10,
+    }}>
+      <span style={{fontSize:critico?24:18,lineHeight:1}}>⚠️</span>
+      <div>
+        {critico&&<div style={{color:Q.red,fontWeight:900,fontSize:16,
+          fontFamily:"'Space Grotesk',system-ui",marginBottom:4,letterSpacing:0.5}}>
+          NO COBRAR
+        </div>}
+        <div style={{color:critico?Q.text:Q.red,fontSize:critico?13:12,
+          fontFamily:"'Space Grotesk',system-ui",lineHeight:1.4}}>{mensaje}</div>
+      </div>
     </div>
   );
 }
@@ -136,6 +147,19 @@ function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=fa
 }
 
 // ── TICKET TÉRMICO ────────────────────────────────────────────
+function abrirVentanaImpresion(html, w=420, h=650){
+  const win = window.open("","_blank",`width=${w},height=${h}`);
+  if(!win){
+    alert("El navegador bloqueó la ventana de impresión.\n\nPermití las ventanas emergentes para este sitio y volvé a intentar.");
+    return false;
+  }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>{ try{ win.print(); win.close(); }catch(e){} },600);
+  return true;
+}
+
 function printTicket(slip, tipo="apuesta"){
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
 <style>
@@ -176,9 +200,7 @@ ${tipo==="cobro"?`<div class="div"></div><div class="c b" style="font-size:16px"
 <div class="ft">quartzplay.com · @QuartzPlayBot</div>
 <div class="ft">Jugá con responsabilidad · Solo mayores de 18</div>
 </body></html>`;
-  const w=window.open("","_blank","width=420,height=650");
-  w.document.write(html); w.document.close(); w.focus();
-  setTimeout(()=>{w.print();w.close();},600);
+  return abrirVentanaImpresion(html, 420, 650);
 }
 
 function printCierre(data, tipo, agencia){
@@ -212,9 +234,7 @@ body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:4mm;b
 <div class="ft">Este comprobante es válido como cierre oficial.</div>
 <div class="ft">quartzplay.com · ${agencia.code}</div>
 </body></html>`;
-  const w=window.open("","_blank","width=420,height=600");
-  w.document.write(html); w.document.close(); w.focus();
-  setTimeout(()=>{w.print();w.close();},600);
+  return abrirVentanaImpresion(html, 420, 600);
 }
 
 // ── DEPORTES PARA APUESTA MANUAL ──────────────────────────────
@@ -239,7 +259,7 @@ const DEPORTES = [
   ]},
 ];
 
-// Mock historial
+// Mock historial — solo visual, no afecta operaciones
 const MOCK_HISTORIAL = [
   {code:"QP-47829",user:"@martin_ar",stake:10000,win:42400,time:"02:15",tipo:"bot",estado:"activa"},
   {code:"QP-38291",user:"@apostador99",stake:20000,win:34200,time:"01:45",tipo:"bot",estado:"activa"},
@@ -253,32 +273,32 @@ function LoginScreen({ onLogin }){
   const [user,setUser]=useState("");
   const [pass,setPass]=useState("");
   const [err,setErr]=useState("");
+  const [loading,setLoading]=useState(false);
 
   const login=async()=>{
-    setErr("");
+    if(loading) return;
+    setErr(""); setLoading(true);
+    let r;
     try {
-      const r = await fetch(`${API_URL}/api/agencias/login`,{
+      r = await fetch(`${API_URL}/api/agencias/login`,{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({username:user,password:pass}),
       });
-      if(!r.ok){
-        const e=await r.json();
-        setErr(e.detail||"Usuario o contraseña incorrectos");
-        return;
-      }
-      const data=await r.json();
-      onLogin(data);
     } catch(e){
-      const AGENCIAS={
-        "agencia1:qp2026":  {name:"Agencia Centro",code:"AGE001"},
-        "agencia2:qp2026":  {name:"Agencia Norte", code:"AGE002"},
-        "agencia3:clave456":{name:"AgenciaSur",    code:"AGE001"},
-      };
-      const found=AGENCIAS[`${user}:${pass}`];
-      if(found) onLogin(found);
-      else setErr("Usuario o contraseña incorrectos");
+      setErr("Sin conexión con el servidor. No se puede operar hasta que vuelva.");
+      setLoading(false);
+      return;
     }
+    if(!r.ok){
+      const e=await r.json().catch(()=>({}));
+      setErr(e.detail||"Usuario o contraseña incorrectos");
+      setLoading(false);
+      return;
+    }
+    const data=await r.json();
+    setLoading(false);
+    onLogin(data);
   };
 
   return(
@@ -294,7 +314,7 @@ function LoginScreen({ onLogin }){
             fontFamily:"'Space Grotesk',system-ui"}}>Panel de Agencia Oficial</div>
         </div>
         <GCard glow={Q.violet} style={{padding:28}}>
-          {[["Usuario","text",user,setUser,"agencia1"],
+          {[["Usuario","text",user,setUser,"usuario"],
             ["Contraseña","password",pass,setPass,"••••••••"]].map(([l,t,v,sv,ph])=>(
             <div key={l} style={{marginBottom:16}}>
               <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
@@ -306,13 +326,10 @@ function LoginScreen({ onLogin }){
                   color:Q.text,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}/>
             </div>
           ))}
-          {err&&<div style={{color:Q.red,fontSize:12,marginBottom:10}}>{err}</div>}
-          <Btn label="INGRESAR" onClick={login} color={Q.violet} size="lg" full/>
+          <AlertaError mensaje={err}/>
+          <Btn label={loading?"INGRESANDO...":"INGRESAR"} onClick={login}
+            color={Q.violet} size="lg" full disabled={loading||!user||!pass}/>
         </GCard>
-        <div style={{textAlign:"center",marginTop:14,color:Q.dim,fontSize:11,
-          fontFamily:"'Space Grotesk',system-ui"}}>
-          Demo: <strong style={{color:Q.muted}}>agencia1</strong> / <strong style={{color:Q.muted}}>qp2026</strong>
-        </div>
       </div>
     </div>
   );
@@ -325,32 +342,47 @@ function FlujoCodigo({ agencia }){
   const [code,setCode]=useState("");
   const [slip,setSlip]=useState(null);
   const [err,setErr]=useState("");
+  const [payErr,setPayErr]=useState("");
   const [loading,setLoading]=useState(false);
+  const [paying,setPaying]=useState(false);
   const [step,setStep]=useState("buscar");
 
   const buscar=async()=>{
-    setErr(""); setSlip(null); setStep("buscar"); setLoading(true);
+    setErr(""); setPayErr(""); setSlip(null); setStep("buscar"); setLoading(true);
     try {
       const found = await fetchBetslip(code);
       setSlip(found); setStep("confirmar");
-    } catch(e){ setErr(e.message||"Código no encontrado."); }
+    } catch(e){
+      setErr(e.name==="SinConexion"
+        ? "Sin conexión con el servidor. No se puede validar el código — no cobrar."
+        : (e.message||"Código no encontrado."));
+    }
     setLoading(false);
   };
 
   const confirmarApuesta=()=>{ setStep("done_confirmado"); };
-  const pagarLocal=()=>{ setStep("pagar"); };
+  const pagarLocal=()=>{ setPayErr(""); setStep("pagar"); };
 
   const confirmarPago=async(monto)=>{
+    if(paying) return;
+    setPayErr(""); setPaying(true);
     try {
       const result = await payBetslip(slip.code, monto, agencia.code);
-      setSlip(s=>({...s, stake:result.stake||monto,
-        potential_win:result.potential_win||Math.round(monto*(s.odd_total||1)),
-        paid_local:true}));
+      setSlip(s=>({...s,
+        stake: result.stake,
+        potential_win: result.potential_win,
+        paid_local: true}));
       setStep("done_pagado");
-    } catch(e){ setErr(e.message||"Error al confirmar el pago."); }
+    } catch(e){
+      // El pago NO quedó registrado. El flujo se detiene acá.
+      setPayErr(e.name==="SinConexion"
+        ? "No hay conexión con el servidor, la apuesta NO quedó registrada. No aceptes el efectivo."
+        : `La apuesta NO quedó registrada: ${e.message}`);
+    }
+    setPaying(false);
   };
 
-  const reset=()=>{ setCode(""); setSlip(null); setErr(""); setStep("buscar"); };
+  const reset=()=>{ setCode(""); setSlip(null); setErr(""); setPayErr(""); setStep("buscar"); };
 
   return(
     <div>
@@ -371,7 +403,7 @@ function FlujoCodigo({ agencia }){
           <Btn label={loading?"...":"BUSCAR"} onClick={buscar}
             disabled={!code||loading} color={Q.violet}/>
         </div>
-        {err&&<div style={{color:Q.red,fontSize:12,marginTop:10}}>{err}</div>}
+        {err&&<div style={{marginTop:12}}><AlertaError mensaje={err}/></div>}
       </GCard>
 
       {slip&&step==="confirmar"&&(
@@ -424,6 +456,8 @@ function FlujoCodigo({ agencia }){
             </div>
           </GCard>
 
+          <AlertaError mensaje={payErr} critico/>
+
           <GCard style={{padding:16,marginBottom:12}}>
             <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:12,
               fontFamily:"'Space Grotesk',system-ui"}}>¿Qué quiere hacer el cliente?</div>
@@ -457,7 +491,8 @@ function FlujoCodigo({ agencia }){
       )}
 
       {step==="pagar"&&slip&&(
-        <PagoLocalForm slip={slip} onConfirm={confirmarPago} onCancel={reset}/>
+        <PagoLocalForm slip={slip} error={payErr} paying={paying}
+          onConfirm={confirmarPago} onCancel={reset}/>
       )}
       {step==="done_confirmado"&&slip&&(
         <DoneScreen slip={{...slip,agencia:agencia.code}}
@@ -714,15 +749,18 @@ function FlujoManual({ agencia }){
 }
 
 // ── PAGO EN LOCAL ──────────────────────────────────────────────
-function PagoLocalForm({ slip, onConfirm, onCancel }){
+function PagoLocalForm({ slip, onConfirm, onCancel, error, paying }){
   const [monto,setMonto]=useState(slip.stake||10000);
   return(
-    <GCard glow={Q.amber} style={{padding:20,marginBottom:12}}>
+    <GCard glow={error?Q.red:Q.amber} style={{padding:20,marginBottom:12}}>
       <div style={{color:Q.amber,fontWeight:700,fontSize:15,marginBottom:4,
         fontFamily:"'Space Grotesk',system-ui"}}>Cobrar apuesta en efectivo</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:16}}>
         Cuota: {fmt(slip.odd_total)}x · Ingresá el monto que cobra el cliente
       </div>
+
+      <AlertaError mensaje={error} critico/>
+
       <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
         letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",marginBottom:6}}>Monto en efectivo</div>
       <input type="number" value={monto} onChange={e=>setMonto(Number(e.target.value))}
@@ -734,8 +772,10 @@ function PagoLocalForm({ slip, onConfirm, onCancel }){
         Retorno potencial: <strong style={{color:Q.green,fontSize:16}}>{ars(Math.round(monto*slip.odd_total))}</strong>
       </div>
       <div style={{display:"flex",gap:8}}>
-        <Btn label="Cancelar" onClick={onCancel} outline color={Q.muted} full/>
-        <Btn label={`COBRAR ${ars(monto)}`} onClick={()=>onConfirm(monto)} color={Q.amber} full/>
+        <Btn label="Cancelar" onClick={onCancel} outline color={Q.muted} full disabled={paying}/>
+        <Btn label={paying?"REGISTRANDO...":`COBRAR ${ars(monto)}`}
+          onClick={()=>onConfirm(monto)} color={Q.amber} full
+          disabled={paying||!monto||monto<=0}/>
       </div>
     </GCard>
   );
@@ -744,7 +784,7 @@ function PagoLocalForm({ slip, onConfirm, onCancel }){
 // ── DONE SCREEN ───────────────────────────────────────────────
 function DoneScreen({ slip, titulo, color, tipo, onReset }){
   const [printed,setPrinted]=useState(false);
-  const imprimir=()=>{ printTicket(slip, tipo); setPrinted(true); };
+  const imprimir=()=>{ if(printTicket(slip, tipo)) setPrinted(true); };
   return(
     <GCard glow={color} style={{padding:24,textAlign:"center"}}>
       <div style={{fontSize:52,marginBottom:10}}>
@@ -785,7 +825,7 @@ function DoneScreen({ slip, titulo, color, tipo, onReset }){
 // ═══════════════════════════════════════════════════════════════
 // HISTORIAL
 // ═══════════════════════════════════════════════════════════════
-function Historial({ agencia }){
+function Historial(){
   const total=MOCK_HISTORIAL.reduce((a,i)=>a+i.stake,0);
   const totalWin=MOCK_HISTORIAL.reduce((a,i)=>a+i.win,0);
   return(
@@ -979,10 +1019,8 @@ function Config({ agencia }){
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:14,
           fontFamily:"'Space Grotesk',system-ui"}}>Datos de la agencia</div>
         {[["Nombre",agencia.name],["Código",agencia.code],
-          ["Dirección","Av. Corrientes 1234, CABA"],
-          ["Teléfono","+54 11 4567-8901"],
-          ["Impresora","Xprinter XP-58 (80mm)"],
-          ["Estado","Conectada"],
+          ["Dirección",agencia.address||"—"],
+          ["Teléfono",agencia.phone||"—"],
         ].map(([l,v])=>(
           <div key={l} style={{display:"flex",justifyContent:"space-between",
             padding:"8px 0",borderBottom:`1px solid ${Q.dim}`}}>
@@ -999,12 +1037,12 @@ function Config({ agencia }){
         </div>
         <Btn label={testDone?"Reimprimir test":"IMPRIMIR TICKET TEST"}
           onClick={()=>{
-            printTicket({
+            const ok = printTicket({
               code:"QP-TEST",user:"Test",created_at:nowStr(),expires_at:expires24(),
               picks:[{home:"River",away:"Boca",sel:"River gana",odd:1.55,sport:"TEST"}],
               stake:10000,odd_total:1.55,potential_win:15500,agencia:agencia.code,
             },"apuesta");
-            setTestDone(true);
+            if(ok) setTestDone(true);
           }} color={Q.violet} full/>
       </GCard>
     </div>
@@ -1012,14 +1050,8 @@ function Config({ agencia }){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PANEL PRINCIPAL
-// ═══════════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════════
 // EN VIVO — Scores + cuotas en tiempo real
 // ═══════════════════════════════════════════════════════════════
-const API_BOT = "https://amusing-vision-production.up.railway.app";
-
 function EnVivo(){
   const [matches,setMatches]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -1092,7 +1124,7 @@ function EnVivo(){
         </GCard>
       )}
 
-      {matches.map((m,i)=>(
+      {matches.map(m=>(
         <GCard key={m.id} glow={Q.pink} style={{padding:"14px 16px",marginBottom:10,
           background:`linear-gradient(135deg,${Q.pink}08,${Q.violet}05)`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
@@ -1177,6 +1209,9 @@ function EnVivo(){
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PANEL PRINCIPAL
+// ═══════════════════════════════════════════════════════════════
 function AgenciaPanel({ agencia, onLogout }){
   const [tab,setTab]=useState("codigo");
 
@@ -1232,7 +1267,7 @@ function AgenciaPanel({ agencia, onLogout }){
         {tab==="codigo"   &&<FlujoCodigo  agencia={agencia}/>}
         {tab==="envivo"   &&<EnVivo/>}
         {tab==="manual"   &&<FlujoManual  agencia={agencia}/>}
-        {tab==="historial"&&<Historial    agencia={agencia}/>}
+        {tab==="historial"&&<Historial/>}
         {tab==="cierres"  &&<Cierres      agencia={agencia}/>}
         {tab==="config"   &&<Config       agencia={agencia}/>}
       </div>
@@ -1248,8 +1283,8 @@ export default function QuartzAgencia(){
   return(
     <div style={{background:Q.void,minHeight:"100vh"}}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
+        @keyframes qPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.4)}}
         input:focus{outline:none} button:active{opacity:.85}
         ::-webkit-scrollbar{width:3px}
         ::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.3)}
