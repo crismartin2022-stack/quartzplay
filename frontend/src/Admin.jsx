@@ -762,6 +762,141 @@ function TabConfig(){
 }
 
 // ═══════════════════════════════════════════════════════════════
+// TAB DIAGNÓSTICO — datos reales de la API
+// ═══════════════════════════════════════════════════════════════
+function TabDiag({ adminKey, onNoAutorizado }){
+  const [creditos,setCreditos]=useState(null);
+  const [live,setLive]=useState(null);
+  const [err,setErr]=useState("");
+  const [loading,setLoading]=useState(false);
+
+  const cargar=async()=>{
+    setLoading(true); setErr("");
+    try {
+      const [rc,rl]=await Promise.all([
+        fetch(`${API}/api/_diag/creditos`,{headers:adminHeaders(adminKey)}),
+        fetch(`${API}/api/_diag/live`,{headers:adminHeaders(adminKey)}),
+      ]);
+      if(rc.status===401||rl.status===401){ onNoAutorizado(); return; }
+      if(rc.ok) setCreditos(await rc.json());
+      if(rl.ok) setLive(await rl.json());
+      if(!rc.ok&&!rl.ok) setErr(`Error ${rc.status} / ${rl.status}`);
+    } catch(e){
+      setErr("Sin conexión con el servidor");
+    }
+    setLoading(false);
+  };
+
+  useEffect(()=>{ cargar(); // eslint-disable-next-line
+  },[]);
+
+  const rest = creditos?.remaining!=null ? Number(creditos.remaining) : null;
+  const colorCred = rest==null ? Q.muted : rest<1000 ? Q.red : rest<5000 ? Q.amber : Q.green;
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",
+        alignItems:"center",marginBottom:14}}>
+        <div style={{color:Q.text,fontWeight:700,fontSize:15,
+          fontFamily:"'Space Grotesk',system-ui"}}>Diagnóstico</div>
+        <Btn label={loading?"...":"Actualizar"} onClick={cargar}
+          outline color={Q.muted} size="sm"/>
+      </div>
+
+      {err&&<div style={{color:Q.red,fontSize:12,marginBottom:12}}>{err}</div>}
+
+      {/* Créditos de The Odds API */}
+      <GCard glow={colorCred} style={{padding:16,marginBottom:12}}>
+        <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
+          fontFamily:"'Space Grotesk',system-ui"}}>💳 Créditos The Odds API</div>
+        {creditos?.remaining!=null?(
+          <>
+            <div style={{color:colorCred,fontWeight:900,fontSize:30,
+              fontFamily:"'Space Grotesk',system-ui"}}>
+              {Number(creditos.remaining).toLocaleString("es-AR")}
+            </div>
+            <div style={{color:Q.muted,fontSize:11,marginTop:2}}>
+              restantes · usados: {creditos.used??"—"} · al {creditos.last_check??"—"}
+            </div>
+            {rest!=null&&rest<5000&&(
+              <div style={{color:colorCred,fontSize:11,marginTop:8,
+                fontFamily:"'Space Grotesk',system-ui"}}>
+                {rest<1000?"⚠️ Saldo crítico — bajá sports_limit o sacá btts"
+                          :"Saldo bajo — conviene revisar la configuración"}
+              </div>
+            )}
+          </>
+        ):(
+          <div style={{color:Q.muted,fontSize:12}}>
+            Todavía sin datos. Se llena la primera vez que la API consulta cuotas.
+          </div>
+        )}
+        <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${Q.dim}`}}>
+          {[["Mercados",creditos?.markets_configurados],
+            ["Límite deportes",creditos?.sports_limit],
+            ["Caché prematch",creditos?.ttl_prematch_seg?`${creditos.ttl_prematch_seg}s`:null],
+          ].map(([l,v])=>(
+            <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}>
+              <span style={{color:Q.muted,fontSize:11}}>{l}</span>
+              <span style={{color:Q.text,fontSize:11,
+                fontFamily:"'Space Grotesk',system-ui"}}>{v??"—"}</span>
+            </div>
+          ))}
+        </div>
+      </GCard>
+
+      {/* Partidos en vivo sin cuotas */}
+      <GCard glow={live?.sin_cuotas?.length?Q.amber:Q.green}
+        style={{padding:16,marginBottom:12}}>
+        <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:4,
+          fontFamily:"'Space Grotesk',system-ui"}}>🔴 En vivo sin cuotas</div>
+        <div style={{color:Q.muted,fontSize:11,marginBottom:10}}>
+          Partidos en curso donde no se pudo cruzar el nombre con el feed de cuotas.
+          Sin cuota, el cajero no puede tomar la apuesta.
+        </div>
+        {live?.sin_cuotas?.length?(
+          live.sin_cuotas.map((m,i)=>(
+            <div key={i} style={{color:Q.amber,fontSize:12,padding:"4px 0",
+              borderBottom:i<live.sin_cuotas.length-1?`1px solid ${Q.dim}`:"none",
+              fontFamily:"'Space Grotesk',system-ui"}}>{m}</div>
+          ))
+        ):(
+          <div style={{color:Q.green,fontSize:12,
+            fontFamily:"'Space Grotesk',system-ui"}}>
+            Todos los partidos en curso tienen cuota
+          </div>
+        )}
+        {live?.actualizado_hace_seg!=null&&(
+          <div style={{color:Q.dim,fontSize:10,marginTop:8}}>
+            Datos de hace {live.actualizado_hace_seg}s
+          </div>
+        )}
+      </GCard>
+
+      {/* Nombres del feed de cuotas — para comparar a ojo */}
+      {live?.nombres_en_feed_de_cuotas?.length>0&&(
+        <GCard style={{padding:16}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:4,
+            fontFamily:"'Space Grotesk',system-ui"}}>📋 Nombres en el feed de cuotas</div>
+          <div style={{color:Q.muted,fontSize:11,marginBottom:10}}>
+            Compará con la lista de arriba: si ves el mismo partido escrito
+            distinto, ahí está la razón de que no cruce.
+          </div>
+          <div style={{maxHeight:220,overflowY:"auto"}}>
+            {live.nombres_en_feed_de_cuotas.map((k,i)=>(
+              <div key={i} style={{color:Q.muted,fontSize:10,padding:"2px 0",
+                fontFamily:"'Space Grotesk',system-ui"}}>
+                {k.replace("|"," vs ")}
+              </div>
+            ))}
+          </div>
+        </GCard>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // APP ROOT
 // ═══════════════════════════════════════════════════════════════
 const TABS=[
@@ -770,6 +905,7 @@ const TABS=[
   {k:"billetera",i:"💰", l:"Billetera"},
   {k:"usuarios", i:"👥", l:"Usuarios"},
   {k:"config",   i:"⚙️", l:"Config"},
+  {k:"diag",     i:"🩺", l:"Diag"},
 ];
 
 function AdminPanel({ adminKey, onLogout }){
@@ -802,6 +938,7 @@ function AdminPanel({ adminKey, onLogout }){
         {tab==="billetera"&&<TabBilletera/>}
         {tab==="usuarios" &&<TabUsuarios/>}
         {tab==="config"   &&<TabConfig/>}
+        {tab==="diag"     &&<TabDiag adminKey={adminKey} onNoAutorizado={onLogout}/>}
       </div>
 
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",
