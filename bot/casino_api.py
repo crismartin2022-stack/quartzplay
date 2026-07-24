@@ -934,6 +934,88 @@ async def prematch_odds():
     return await all_markets()
 
 
+# ── CLIENTE ASÍNCRONO DE THE ODDS API ─────────────────────────
+# Antes cada request iba por asyncio.to_thread(sync_get, ...), que usa
+# urllib bloqueante. El pool por defecto tiene min(32, cpu+4) hilos y el
+# contenedor tiene 1 CPU: 5 hilos para 80 deportes = ~32 segundos.
+# httpx async no usa hilos, así que las 80 salen de verdad en paralelo.
+ODDS_CONCURRENCIA = int(os.environ.get("ODDS_CONCURRENCIA", "15"))
+_odds_sem = None
+
+
+def _sem():
+    global _odds_sem
+    if _odds_sem is None:
+        _odds_sem = asyncio.Semaphore(ODDS_CONCURRENCIA)
+    return _odds_sem
+
+
+async def odds_get(client, path, params, timeout=12):
+    """GET a The Odds API. Devuelve el JSON o None, y anota los créditos."""
+    async with _sem():
+        try:
+            r = await client.get(f"https://api.the-odds-api.com{path}",
+                                 params=params, timeout=timeout)
+        except Exception as e:
+            log.error(f"odds_get {path}: {e}")
+            return None
+    rem = r.headers.get("x-requests-remaining")
+    if rem is not None:
+        _odds_credits["remaining"] = rem
+        _odds_credits["used"] = r.headers.get("x-requests-used")
+        _odds_credits["last_check"] = time.strftime("%d/%m %H:%M")
+    if r.status_code == 200:
+        try:
+            return r.json()
+        except Exception:
+            return None
+    if r.status_code == 422:
+        log.warning(f"odds_get 422 en {path}: mercado no soportado")
+    elif r.status_code == 401:
+        log.error("ODDS_API_KEY inválida")
+    elif r.status_code == 429:
+        log.error("Odds API: cuota agotada")
+    else:
+        log.warning(f"odds_get {path}: HTTP {r.status_code}")
+    return None
+
+
+# ── CACHÉ QUE NO HACE ESPERAR ─────────────────────────────────
+_refrescando = {}
+
+async def cache_swr(clave, ttl, productor):
+    """
+    Fresco  -> caché.
+    Vencido -> devuelve la caché vieja YA y refresca de fondo.
+    Vacío   -> espera (única vez que el usuario paga la demora).
+    """
+    entrada = _football_cache.get(clave)
+    ahora = time.time()
+
+    if entrada and ahora - entrada[1] < ttl:
+        return entrada[0]
+
+    if clave in _refrescando:
+        if entrada:
+            return entrada[0]
+        return await _refrescando[clave]
+
+    async def correr():
+        try:
+            datos = await productor()
+            _football_cache[clave] = (datos, time.time())
+            return datos
+        finally:
+            _refrescando.pop(clave, None)
+
+    tarea = asyncio.create_task(correr())
+    _refrescando[clave] = tarea
+
+    if entrada:
+        return entrada[0]      # vieja pero instantánea
+    return await tarea
+
+
 # ── DEPORTES: prioridad y nombres en español ──────────────────
 # Se piden en este orden. Lo que no entre en ODDS_SPORTS_LIMIT queda afuera,
 # así que arriba va lo que más se juega acá.
@@ -1236,53 +1318,29 @@ async def validar_cuotas(picks):
 
 @app.get("/api/live/combined")
 async def live_combined():
-    """
-    Partidos EN VIVO, apostables.
+    """Partidos en vivo apostables (la cuota manda; el marcador acompaña)."""
+    return await cache_swr("live_combined", ODDS_TTL_LIVE, _armar_live)
 
-    Antes esto salía del feed de scores y después buscaba cuotas por nombre:
-    si el cruce fallaba, el partido aparecía sin botones y no se podía
-    apostar. Ahora la fuente de verdad son las CUOTAS — si The Odds API
-    ofrece precio para un evento ya empezado, es apostable. El marcador
-    es un adorno que se suma cuando se puede cruzar.
-    """
+
+async def _armar_live():
     ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
-    now = time.time()
-    cache_key = "live_combined"
-    if cache_key in _football_cache:
-        data, ts = _football_cache[cache_key]
-        if now - ts < ODDS_TTL_LIVE:
-            return data
-
     ahora = datetime.now(timezone.utc)
-
-    # 1. Eventos con cuota de los deportes prioritarios
-    async def _fetch(sk):
-        return sk, await asyncio.to_thread(
-            sync_get,
-            f"https://api.the-odds-api.com/v4/sports/{sk}/odds/",
-            {"apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS,
-             "markets": ODDS_MARKETS, "oddsFormat": "decimal",
-             "dateFormat": "iso"},
-            None, 12)
+    deportes = (await listar_deportes_activos())[:ODDS_LIVE_SPORTS]
+    base = {"apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS,
+            "oddsFormat": "decimal", "dateFormat": "iso",
+            "markets": ODDS_MARKETS}
 
     en_vivo = []
-    deportes = (await listar_deportes_activos())[:ODDS_LIVE_SPORTS]
-    try:
-        pares = await asyncio.gather(*[_fetch(sk) for sk in deportes],
-                                     return_exceptions=True)
-    except Exception as e:
-        log.error(f"Live fetch error: {e}")
-        pares = []
+    async with httpx.AsyncClient(timeout=12) as client:
+        pares = await asyncio.gather(
+            *[odds_get(client, f"/v4/sports/{sk}/odds/", base) for sk in deportes],
+            return_exceptions=True)
 
-    for par in pares:
-        if isinstance(par, Exception) or not par:
-            continue
-        sk, data = par
-        if not data:
+    for sk, data in zip(deportes, pares):
+        if isinstance(data, Exception) or not data:
             continue
         meta = nombre_deporte(sk)
         for ev in data:
-            # Ya empezado = en vivo
             try:
                 comienzo = datetime.fromisoformat(
                     ev.get("commence_time","").replace("Z","+00:00"))
@@ -1296,30 +1354,20 @@ async def live_combined():
             h2h  = markets.get("h2h", {})
             odds = {"L": h2h.get(home), "E": h2h.get("Draw"), "V": h2h.get(away)}
             if odds["L"] is None and odds["V"] is None:
-                continue   # sin precio no hay apuesta posible
+                continue
             en_vivo.append({
-                "id":        ev.get("id",""),
-                "sport_key": sk,
-                "home":      home,
-                "away":      away,
-                "homeId":    None,
-                "awayId":    None,
-                "homeScore": None,
-                "awayScore": None,
-                "scoreStr":  "",
-                "minute":    "",
-                "minuteLong":"",
-                "liga":      meta["name"],
-                "icon":      meta["icon"],
-                "status":    "live",
-                "ongoing":   True,
-                "markets":   markets,
-                "odds":      odds,
-                "hasOdds":   True,
-                "hasScore":  False,
+                "id": ev.get("id",""), "sport_key": sk,
+                "home": home, "away": away,
+                "homeId": None, "awayId": None,
+                "homeScore": None, "awayScore": None,
+                "scoreStr": "", "minute": "", "minuteLong": "",
+                "liga": meta["name"], "icon": meta["icon"],
+                "status": "live", "ongoing": True,
+                "markets": markets, "odds": odds,
+                "hasOdds": True, "hasScore": False,
             })
 
-    # 2. Marcadores del feed de fútbol, si se pueden cruzar
+    # Marcadores del feed de fútbol, si se pueden cruzar
     live_scores = []
     try:
         async with httpx.AsyncClient(timeout=8) as c:
@@ -1343,32 +1391,24 @@ async def live_combined():
             else:
                 continue
             hs = m.get("home",{}).get("score", 0)
-            as_ = m.get("away",{}).get("score", 0)
-            ev["homeScore"]  = as_ if invertido else hs
-            ev["awayScore"]  = hs  if invertido else as_
-            ev["homeId"]     = m.get("away" if invertido else "home",{}).get("id")
-            ev["awayId"]     = m.get("home" if invertido else "away",{}).get("id")
+            aw = m.get("away",{}).get("score", 0)
+            ev["homeScore"] = aw if invertido else hs
+            ev["awayScore"] = hs if invertido else aw
             ev["minute"]     = m.get("liveTime",{}).get("short","")
             ev["minuteLong"] = m.get("liveTime",{}).get("long","")
-            ev["scoreStr"]   = m.get("scoreStr","")
             ev["hasScore"]   = True
             break
         else:
             sin_score.append(f"{ev['home']} vs {ev['away']}")
 
     en_vivo.sort(key=lambda e: (not e["hasScore"], e["liga"], e["home"]))
-
-    if sin_score:
-        log.info(f"Live sin marcador ({len(sin_score)}): {sin_score[:5]}")
     _football_cache["live_sin_match"] = (
         {"sin_cuotas": sin_score,
          "claves_odds": [f"{m.get('home',{}).get('name','')}|"
                          f"{m.get('away',{}).get('name','')}"
-                         for m in live_scores][:40]}, now)
-
-    salida = {"matches": en_vivo, "count": len(en_vivo)}
-    _football_cache[cache_key] = (salida, now)
-    return salida
+                         for m in live_scores][:40]}, time.time())
+    log.info(f"En vivo: {len(en_vivo)} apostables, {len(sin_score)} sin marcador")
+    return {"matches": en_vivo, "count": len(en_vivo)}
 
 
 @app.get("/api/_diag/live")
@@ -1416,8 +1456,7 @@ async def event_markets(sport_key: str, event_id: str):
         if now - ts < ODDS_TTL_EVENTO:
             return data
 
-    url = (f"https://api.the-odds-api.com/v4/sports/{sport_key}"
-           f"/events/{event_id}/odds/")
+    ruta = f"/v4/sports/{sport_key}/events/{event_id}/odds/"
     base = {"apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS_EXTRA,
             "oddsFormat": "decimal", "dateFormat": "iso"}
 
@@ -1426,7 +1465,8 @@ async def event_markets(sport_key: str, event_id: str):
 
     # Intento 1: todo junto (1 request si el deporte los soporta todos)
     todos = f"{ODDS_MARKETS},{MERCADOS_EXTRA}"
-    data = await asyncio.to_thread(sync_get, url, {**base, "markets": todos}, None, 15)
+    async with httpx.AsyncClient(timeout=15) as client:
+        data = await odds_get(client, ruta, {**base, "markets": todos}, 15)
     if data:
         combinado = parse_markets(data)
         disponibles = sorted(combinado.keys())
@@ -1434,8 +1474,8 @@ async def event_markets(sport_key: str, event_id: str):
     else:
         # Intento 2: de a uno, en paralelo, para ver cuáles existen
         async def probar(m):
-            d = await asyncio.to_thread(
-                sync_get, url, {**base, "markets": m}, None, 10)
+            async with httpx.AsyncClient(timeout=10) as c:
+                d = await odds_get(c, ruta, {**base, "markets": m}, 10)
             return m, d
 
         candidatos = [m.strip() for m in todos.split(",") if m.strip()]
@@ -1476,13 +1516,13 @@ async def diag_mercados(sport_key: str, event_id: str,
     o goleadores antes de prometerlos en pantalla.
     """
     ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
-    url = (f"https://api.the-odds-api.com/v4/sports/{sport_key}"
-           f"/events/{event_id}/odds/")
+    ruta = f"/v4/sports/{sport_key}/events/{event_id}/odds/"
     base = {"apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS_EXTRA,
             "oddsFormat": "decimal", "dateFormat": "iso"}
 
     async def probar(m):
-        d = await asyncio.to_thread(sync_get, url, {**base, "markets": m}, None, 10)
+        async with httpx.AsyncClient(timeout=10) as c:
+            d = await odds_get(c, ruta, {**base, "markets": m}, 10)
         if not d:
             return m, None
         mk = parse_markets(d)
@@ -1514,19 +1554,11 @@ async def live_markets(sport_key: str):
         data, ts = _football_cache[cache_key]
         if now - ts < 60:
             return data
-    data = await asyncio.to_thread(
-        sync_get,
-        f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
-        {
-            "apiKey": ODDS_API_KEY,
-            "regions": "eu",
-            "markets": "h2h,totals",
-            "oddsFormat": "decimal",
-            "dateFormat": "iso",
-        },
-        None,
-        20,
-    )
+    async with httpx.AsyncClient(timeout=20) as client:
+        data = await odds_get(client, f"/v4/sports/{sport_key}/odds/", {
+            "apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS,
+            "markets": ODDS_MARKETS, "oddsFormat": "decimal",
+            "dateFormat": "iso"}, 20)
     if data is not None:
         result = {"events": data, "sport": sport_key}
         _football_cache[cache_key] = (result, now)
@@ -1535,96 +1567,70 @@ async def live_markets(sport_key: str):
 
 @app.get("/api/live/all-markets")
 async def all_markets():
-    """Todos los mercados — detecta deportes activos dinamicamente"""
+    """Catálogo completo de prematch con todos los mercados destacados."""
+    return await cache_swr("all_markets", ODDS_TTL_PREMATCH, _armar_all_markets)
+
+
+async def _armar_all_markets():
     ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
-    cache_key = "all_markets"
-    now = time.time()
-    if cache_key in _football_cache:
-        data, ts = _football_cache[cache_key]
-        if now - ts < ODDS_TTL_PREMATCH:
-            return data
-
     SPORTS = await listar_deportes_activos()
+    log.info(f"Prematch: pidiendo {len(SPORTS)} deportes")
 
-    log.info(f"Fetching markets for {len(SPORTS)} sports")
+    base = {"apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS,
+            "oddsFormat": "decimal", "dateFormat": "iso"}
 
+    async with httpx.AsyncClient(timeout=15) as client:
+        async def uno(sk):
+            d = await odds_get(client, f"/v4/sports/{sk}/odds/",
+                               {**base, "markets": ODDS_MARKETS})
+            if d is None and ODDS_MARKETS != "h2h":
+                d = await odds_get(client, f"/v4/sports/{sk}/odds/",
+                                   {**base, "markets": "h2h"})
+            return sk, d
+
+        pares = await asyncio.gather(*[uno(sk) for sk in SPORTS],
+                                     return_exceptions=True)
 
     result = {"sports": []}
-
-    # Los primeros ODDS_FULL_TOP llevan todos los mercados; el resto solo 1X2.
-    # Así entra TODO el catálogo sin triplicar el gasto de créditos.
-    completos = set(SPORTS[:ODDS_FULL_TOP])
-
-    async def fetch_sport(sport_key):
-        url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/"
-        base = {"apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS,
-                "oddsFormat": "decimal", "dateFormat": "iso"}
-        mkts = ODDS_MARKETS if sport_key in completos else "h2h"
-        data = await asyncio.to_thread(
-            sync_get, url, {**base, "markets": mkts}, None, 15)
-        # Red de seguridad: si el combo de mercados no le gusta a este deporte,
-        # al menos traemos el 1X2 en vez de dejar la pantalla vacía.
-        if data is None and mkts != "h2h":
-            log.warning(f"{sport_key}: falló con '{mkts}', reintento h2h")
-            data = await asyncio.to_thread(
-                sync_get, url, {**base, "markets": "h2h"}, None, 15)
-        return sport_key, data
-
-    sport_data = {}
-    try:
-        pairs = await asyncio.gather(*[fetch_sport(sk) for sk in SPORTS],
-                                     return_exceptions=True)
-        for p in pairs:
-            if isinstance(p, Exception):
-                log.error(f"Fetch error: {p}")
+    for par in pares:
+        if isinstance(par, Exception) or not par:
+            continue
+        sport_key, data = par
+        if not data:
+            continue
+        eventos = []
+        for ev in data[:ODDS_MAX_EVENTOS]:
+            home = ev.get("home_team","")
+            away = ev.get("away_team","")
+            markets = parse_markets(ev)
+            if not markets:
                 continue
-            sk, data = p
-            if data:
-                sport_data[sk] = data
-    except Exception as e:
-        log.error(f"Gather error: {e}")
+            try:
+                dt = datetime.fromisoformat(
+                    ev.get("commence_time","").replace("Z","+00:00"))
+                fecha = dt.astimezone().strftime("%d/%m %H:%M")
+            except Exception:
+                fecha = "--/-- --:--"
+            eventos.append({
+                "id": ev.get("id",""),
+                "sport_key": sport_key,
+                "h": home, "a": away,
+                "time": fecha,
+                "markets": markets,
+                "odds": {
+                    "L": markets.get("h2h",{}).get(home),
+                    "E": markets.get("h2h",{}).get("Draw"),
+                    "V": markets.get("h2h",{}).get(away),
+                },
+            })
+        if eventos:
+            meta = nombre_deporte(sport_key)
+            result["sports"].append({
+                "key": sport_key, "name": meta["name"],
+                "icon": meta["icon"], "events": eventos,
+            })
 
-    try:
-        for sport_key in SPORTS:
-            events_raw_data = sport_data.get(sport_key)
-            if events_raw_data is not None:
-                events_raw = events_raw_data[:ODDS_MAX_EVENTOS]
-                events = []
-                for ev in events_raw:
-                    home = ev.get("home_team","")
-                    away = ev.get("away_team","")
-                    markets = parse_markets(ev)
-                    try:
-                        from datetime import datetime
-                        dt=datetime.fromisoformat(ev.get("commence_time","").replace("Z","+00:00"))
-                        fecha=dt.astimezone().strftime("%d/%m %H:%M")
-                    except:
-                        fecha="--/-- --:--"
-                    events.append({
-                        "id": ev.get("id",""),
-                        "sport_key": sport_key,
-                        "h": home, "a": away,
-                        "time": fecha,
-                        "markets": markets,
-                        "odds": {
-                            "L": markets.get("h2h",{}).get(home),
-                            "E": markets.get("h2h",{}).get("Draw"),
-                            "V": markets.get("h2h",{}).get(away),
-                        }
-                    })
-                if events:
-                    meta = nombre_deporte(sport_key)
-                    result["sports"].append({
-                        "key": sport_key,
-                        "name": meta["name"],
-                        "icon": meta["icon"],
-                        "events": events,
-                    })
-    except Exception as e:
-        log.error(f"All markets error: {e}")
-
-    log.info(f"All markets result: {len(result.get('sports',[]))} sports")
-    _football_cache[cache_key] = (result, now)
+    log.info(f"Prematch: {len(result['sports'])} deportes con eventos")
     return result
 
 
@@ -1653,14 +1659,11 @@ async def ai_combos():
     all_events = []
 
     async def _fetch_ai(sk):
-        data = await asyncio.to_thread(
-            sync_get,
-            f"https://api.the-odds-api.com/v4/sports/{sk}/odds/",
-            {"apiKey":ODDS_API_KEY,"regions":"eu",
-             "markets":"h2h,totals","oddsFormat":"decimal","dateFormat":"iso"},
-            None,
-            12,
-        )
+        async with httpx.AsyncClient(timeout=12) as c:
+            data = await odds_get(c, f"/v4/sports/{sk}/odds/",
+                {"apiKey":ODDS_API_KEY,"regions":ODDS_REGIONS,
+                 "markets":"h2h,totals","oddsFormat":"decimal",
+                 "dateFormat":"iso"}, 12)
         return sk, data
 
     ai_sport_data = {}
