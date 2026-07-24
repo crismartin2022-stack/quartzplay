@@ -16,7 +16,6 @@ const Q = {
 
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt = n => Number(n||0).toFixed(2);
-const genCode = () => "QP-" + Math.floor(10000+Math.random()*90000);
 const nowStr = () => new Date().toLocaleString("es-AR",{hour12:false});
 const expires24 = () => { const d=new Date(); d.setHours(d.getHours()+24); return d.toLocaleString("es-AR",{hour12:false}); };
 
@@ -274,6 +273,174 @@ const MOCK_HISTORIAL = [
   {code:"QP-C0009",user:"@champion_ar",stake:8000,win:12400,time:"ayer 22:10",tipo:"cobro",estado:"cobrado"},
 ];
 
+// ── MERCADOS EN ESPAÑOL ───────────────────────────────────────
+const MKT_ES = {
+  // Principales
+  h2h:                          {t:"Ganador",                  o:1},
+  h2h_3_way:                    {t:"Ganador (1X2)",            o:2},
+  totals:                       {t:"Más / Menos goles",        o:3},
+  spreads:                      {t:"Hándicap",                 o:4},
+  double_chance:                {t:"Doble oportunidad",        o:5},
+  draw_no_bet:                  {t:"Empate no válido",         o:6},
+  btts:                         {t:"Ambos anotan",             o:7},
+  correct_score:                {t:"Resultado exacto",         o:8},
+  halftime_fulltime:            {t:"Entretiempo / Final",      o:9},
+  to_qualify:                   {t:"Clasifica",                o:10},
+  // Líneas alternativas
+  alternate_totals:             {t:"Más / Menos (alt.)",       o:11},
+  alternate_spreads:            {t:"Hándicap (alt.)",          o:12},
+  team_totals:                  {t:"Goles por equipo",         o:13},
+  alternate_team_totals:        {t:"Goles por equipo (alt.)",  o:14},
+  // Primer tiempo
+  h2h_h1:                       {t:"Ganador 1er tiempo",       o:15},
+  totals_h1:                    {t:"Más / Menos 1er tiempo",   o:16},
+  spreads_h1:                   {t:"Hándicap 1er tiempo",      o:17},
+  btts_h1:                      {t:"Ambos anotan 1er tiempo",  o:18},
+  double_chance_h1:             {t:"Doble oport. 1er tiempo",  o:19},
+  correct_score_h1:             {t:"Resultado exacto 1er T.",  o:20},
+  // Córners
+  alternate_totals_corners:     {t:"Córners · Más / Menos",    o:21},
+  alternate_spreads_corners:    {t:"Córners · Hándicap",       o:22},
+  alternate_team_totals_corners:{t:"Córners por equipo",       o:23},
+  corners_1x2:                  {t:"Quién patea más córners",  o:24},
+  // Tarjetas
+  alternate_totals_cards:       {t:"Tarjetas · Más / Menos",   o:25},
+  alternate_spreads_cards:      {t:"Tarjetas · Hándicap",      o:26},
+  // Jugadores
+  player_goal_scorer_anytime:   {t:"Anota en el partido",      o:27},
+  player_first_goal_scorer:     {t:"Primer goleador",          o:28},
+  player_last_goal_scorer:      {t:"Último goleador",          o:29},
+  player_to_receive_card:       {t:"Jugador que ve tarjeta",   o:30},
+  player_to_receive_red_card:   {t:"Jugador que ve roja",      o:31},
+  player_shots_on_target:       {t:"Tiros al arco",            o:32},
+  player_shots:                 {t:"Remates",                  o:33},
+  player_assists:               {t:"Asistencias",              o:34},
+};
+
+function tituloMercado(k){
+  return MKT_ES[k]?.t || k.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+}
+function ordenMercado(k){ return MKT_ES[k]?.o ?? 99; }
+
+// Traduce el nombre del resultado que devuelve la API
+function etiquetaResultado(nombre, home, away){
+  if(nombre==="Draw")   return "Empate";
+  if(nombre==="Yes")    return "Sí";
+  if(nombre==="No")     return "No";
+  if(nombre===home)     return home;
+  if(nombre===away)     return away;
+  let m = nombre.match(/^Over\s*([\d.]+)$/i);
+  if(m) return `Más de ${m[1]}`;
+  m = nombre.match(/^Under\s*([\d.]+)$/i);
+  if(m) return `Menos de ${m[1]}`;
+  // "Equipo -1.5" o "Equipo +1.5"
+  m = nombre.match(/^(.+?)\s*([+-][\d.]+)$/);
+  if(m) return `${m[1]} ${m[2]}`;
+  return nombre;
+}
+
+// ── PANEL DE MERCADOS DE UN EVENTO ────────────────────────────
+// Muestra lo que ya vino en el listado y, además, pide a la API los
+// mercados adicionales (córners, tarjetas, goleadores) que solo se
+// pueden consultar evento por evento.
+function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
+  const [extra,setExtra]=useState(null);
+  const [cargando,setCargando]=useState(false);
+  const [aviso,setAviso]=useState("");
+
+  const home = ev.h || ev.home || "";
+  const away = ev.a || ev.away || "";
+  const sportKey = ev.sport_key;
+
+  useEffect(()=>{
+    if(!sportKey || !ev.id) return;
+    let vivo = true;
+    setCargando(true);
+    fetch(`${API_BOT}/api/event/${sportKey}/${ev.id}/markets`)
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{
+        if(!vivo) return;
+        if(d?.markets && Object.keys(d.markets).length) setExtra(d.markets);
+        else setAviso("No hay mercados adicionales para este partido");
+      })
+      .catch(()=>{ if(vivo) setAviso("No se pudieron cargar los mercados"); })
+      .finally(()=>{ if(vivo) setCargando(false); });
+    return ()=>{ vivo=false; };
+  },[sportKey, ev.id]);
+
+  const todos = { ...(ev.markets||{}), ...(extra||{}) };
+  const claves = Object.keys(todos)
+    .filter(k=>todos[k] && Object.keys(todos[k]).length)
+    .sort((a,b)=>ordenMercado(a)-ordenMercado(b));
+
+  if(!claves.length && !cargando)
+    return (
+      <div style={{color:Q.dim,fontSize:11,padding:"10px 0",textAlign:"center",
+        fontFamily:"'Space Grotesk',system-ui"}}>
+        {aviso||"Sin mercados disponibles"}
+      </div>
+    );
+
+  return(
+    <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${Q.dim}`}}>
+      {claves.map(k=>{
+        const resultados = Object.entries(todos[k]);
+        // Los mercados de jugador traen decenas de nombres: scroll propio
+        const muchos = resultados.length > 6;
+        return(
+          <div key={k} style={{marginBottom:10}}>
+            <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",
+              letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",
+              marginBottom:5,display:"flex",justifyContent:"space-between"}}>
+              <span>{tituloMercado(k)}</span>
+              {muchos&&<span style={{color:Q.dim}}>{resultados.length} opciones</span>}
+            </div>
+            <div style={{
+              display:"grid",
+              gridTemplateColumns: resultados.length<=3?`repeat(${resultados.length},1fr)`:"1fr 1fr",
+              gap:4,
+              maxHeight: muchos?180:"none",
+              overflowY: muchos?"auto":"visible",
+            }}>
+              {resultados.map(([nombre,cuota])=>{
+                const etiqueta = etiquetaResultado(nombre, home, away);
+                const sel = bets.some(b=>b.id===ev.id && b.label===etiqueta);
+                return(
+                  <button key={nombre}
+                    onClick={()=>onToggle(ev, etiqueta, cuota)}
+                    style={{
+                      background:sel?`linear-gradient(135deg,${color}44,${Q.violet}22)`
+                                    :"rgba(255,255,255,0.04)",
+                      border:`1.5px solid ${sel?color:Q.border}`,
+                      borderRadius:9,padding:"7px 6px",cursor:"pointer",
+                      display:"flex",alignItems:"center",
+                      justifyContent:"space-between",gap:6,minWidth:0,
+                    }}>
+                    <span style={{color:Q.muted,fontSize:10,
+                      fontFamily:"'Space Grotesk',system-ui",
+                      overflow:"hidden",textOverflow:"ellipsis",
+                      whiteSpace:"nowrap",flex:1,textAlign:"left"}}>{etiqueta}</span>
+                    <span style={{color:sel?color:Q.text,fontWeight:700,fontSize:12,
+                      fontFamily:"'Space Grotesk',system-ui",flexShrink:0}}>
+                      {fmt(cuota)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      {cargando&&(
+        <div style={{color:Q.dim,fontSize:10,textAlign:"center",padding:"6px 0",
+          fontFamily:"'Space Grotesk',system-ui"}}>
+          Buscando córners, tarjetas y goleadores...
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── LOGIN ──────────────────────────────────────────────────────
 function LoginScreen({ onLogin }){
   const [user,setUser]=useState("");
@@ -529,6 +696,8 @@ function FlujoManual({ agencia }){
   const [liveDeportes,setLiveDeportes]=useState(null);
   const [prematchDeportes,setPrematchDeportes]=useState(null);
   const [tabOferta,setTabOferta]=useState("prematch");
+  const [abiertos,setAbiertos]=useState({});
+  const toggleMercados=(id)=>setAbiertos(a=>({...a,[id]:!a[id]}));
 
   useEffect(()=>{
     fetch(`${API_BOT}/api/live/combined`)
@@ -557,16 +726,56 @@ function FlujoManual({ agencia }){
   const hasPick=(ev,label)=>picks.some(x=>x.id===`${ev.home}-${ev.away}-${label}`);
   const totOdd=picks.length?picks.reduce((a,p)=>a*p.odd,1):1;
 
-  const confirmar=()=>{
-    const newSlip={
-      code:genCode(), user:cliente||"Cliente mostrador",
-      created_at:nowStr(), expires_at:expires24(),
-      status:"active", picks, stake:monto,
-      odd_total:parseFloat(totOdd.toFixed(3)),
-      potential_win:Math.round(monto*totOdd),
-      agencia:agencia.code,
-    };
-    setSlip(newSlip); setStep("done");
+  const [guardando,setGuardando]=useState(false);
+  const [errGuardar,setErrGuardar]=useState("");
+
+  // Antes esto armaba el código con Math.random() y no tocaba el servidor:
+  // el ticket impreso no existía en la base, no entraba en los cierres, y
+  // si el cliente volvía a cobrar no había registro de nada.
+  // Ahora se crea el boleto y se cobra, las dos cosas contra la API.
+  const confirmar=async()=>{
+    if(guardando) return;
+    setErrGuardar(""); setGuardando(true);
+    try {
+      // 1. crear el boleto
+      let r = await fetch(`${API_URL}/api/betslip`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json", ...authHeaders(agencia.token)},
+        body:JSON.stringify({
+          picks: picks.map(p=>({
+            home:p.home, away:p.away, sel:p.sel, odd:p.odd, sport:p.sport,
+          })),
+        }),
+      });
+      if(r.status===401) throw new SesionExpirada();
+      if(!r.ok){
+        const e = await r.json().catch(()=>({}));
+        throw new Error(e.detail || `No se pudo registrar (${r.status})`);
+      }
+      const creado = await r.json();
+
+      // 2. cobrarlo con el monto que entregó el cliente
+      const pago = await payBetslip(creado.code, monto, agencia.token);
+
+      setSlip({
+        code: creado.code,
+        user: cliente || "Cliente mostrador",
+        created_at: nowStr(),
+        expires_at: expires24(),
+        status: "active",
+        picks,
+        stake: pago.stake,
+        odd_total: pago.odd_total,
+        potential_win: pago.potential_win,
+        agencia: agencia.code,
+      });
+      setStep("done");
+    } catch(e){
+      setErrGuardar(e.name==="SinConexion"
+        ? "Sin conexión con el servidor. La apuesta NO quedó registrada, no aceptes el efectivo."
+        : `La apuesta NO quedó registrada: ${e.message}`);
+    }
+    setGuardando(false);
   };
 
   const reset=()=>{ setPicks([]); setMonto(5000); setCliente(""); setStep("armar"); setSlip(null); };
@@ -642,6 +851,21 @@ function FlujoManual({ agencia }){
                   </button>
                 ))}
               </div>
+
+              <button onClick={()=>toggleMercados(m.id)} style={{
+                width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
+                borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,
+                fontSize:10,marginTop:6,fontFamily:"'Space Grotesk',system-ui",
+              }}>
+                {abiertos[m.id]?"▲ Menos mercados":"▼ Todos los mercados"}
+              </button>
+              {abiertos[m.id]&&(
+                <MercadosEvento ev={m}
+                  bets={picks.map(p=>({id:m.id,label:p.sel}))}
+                  onToggle={(e,label,odd)=>
+                    togglePick({home:m.home,away:m.away},"En vivo",label,odd)}
+                  color={Q.pink}/>
+              )}
             </GCard>
           ))}
           {liveDeportes&&liveDeportes.length===0&&(
@@ -683,6 +907,23 @@ function FlujoManual({ agencia }){
                       </button>
                     ))}
                   </div>
+
+                  <button onClick={()=>toggleMercados(ev.id)} style={{
+                    width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
+                    borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,
+                    fontSize:10,marginTop:6,fontFamily:"'Space Grotesk',system-ui",
+                  }}>
+                    {abiertos[ev.id]?"▲ Menos mercados":"▼ Todos los mercados"}
+                  </button>
+                  {abiertos[ev.id]&&(
+                    <MercadosEvento
+                      ev={{...ev, id:ev.id, sport_key:ev.sport_key,
+                           markets:ev.markets, h:ev.h, a:ev.a}}
+                      bets={picks.map(p=>({id:ev.id,label:p.sel}))}
+                      onToggle={(e,label,odd)=>
+                        togglePick({home:ev.h,away:ev.a}, d.name, label, odd)}
+                      color={Q.cyan}/>
+                  )}
                 </div>
               ))}
             </GCard>
@@ -745,8 +986,11 @@ function FlujoManual({ agencia }){
                 ))}
               </div>
             </div>
-            <Btn label={`CONFIRMAR Y COBRAR ${ars(monto)}`}
-              onClick={confirmar} color={Q.violet} size="lg" full/>
+            <AlertaError mensaje={errGuardar} critico/>
+            <Btn label={guardando?"REGISTRANDO..."
+                                 :`CONFIRMAR Y COBRAR ${ars(monto)}`}
+              onClick={confirmar} color={Q.violet} size="lg" full
+              disabled={guardando}/>
           </GCard>
         </div>
       )}
@@ -1056,6 +1300,7 @@ function EnVivo(){
   const [loading,setLoading]=useState(true);
   const [lastUpdate,setLastUpdate]=useState("");
   const [ticket,setTicket]=useState([]);
+  const [abiertosLive,setAbiertosLive]=useState({});
 
   const fetchLive=async()=>{
     try {
@@ -1177,6 +1422,18 @@ function EnVivo(){
             <div style={{textAlign:"center",color:Q.dim,fontSize:11,padding:"6px 0",
               fontFamily:"'Space Grotesk',system-ui"}}>Cuotas no disponibles aún</div>
           )}
+
+          <button onClick={()=>setAbiertosLive(a=>({...a,[m.id]:!a[m.id]}))} style={{
+            width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
+            borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,
+            fontSize:10,marginTop:6,fontFamily:"'Space Grotesk',system-ui",
+          }}>
+            {abiertosLive[m.id]?"▲ Menos mercados":"▼ Todos los mercados"}
+          </button>
+          {abiertosLive[m.id]&&(
+            <MercadosEvento ev={m} bets={ticket}
+              onToggle={(e,label,odd)=>toggleBet(m,label,odd)} color={Q.pink}/>
+          )}
         </GCard>
       ))}
 
@@ -1194,12 +1451,17 @@ function EnVivo(){
                 Ret: ${Math.round(10000*totOdd).toLocaleString("es-AR")}
               </span>
             </div>
+            <div style={{color:Q.amber,fontSize:11,marginBottom:8,
+              fontFamily:"'Space Grotesk',system-ui",lineHeight:1.4}}>
+              Esta pantalla es solo para consultar. Para tomar la apuesta y
+              emitir el ticket, usá <strong>Apuesta manual</strong>.
+            </div>
             <button onClick={()=>setTicket([])} style={{
-              width:"100%",background:`linear-gradient(135deg,${Q.pink},${Q.violet})`,
-              border:"none",borderRadius:12,padding:"13px",cursor:"pointer",
-              color:"#fff",fontWeight:700,fontSize:14,
+              width:"100%",background:"transparent",
+              border:`1px solid ${Q.border}`,borderRadius:12,padding:"11px",
+              cursor:"pointer",color:Q.muted,fontWeight:700,fontSize:13,
               fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
-            }}>APOSTAR EN VIVO $10.000</button>
+            }}>Limpiar selección</button>
           </GCard>
         </div>
       )}
