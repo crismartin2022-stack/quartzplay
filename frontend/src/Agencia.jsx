@@ -265,13 +265,47 @@ const DEPORTES = [
   ]},
 ];
 
-const MOCK_HISTORIAL = [
-  {code:"QP-47829",user:"@martin_ar",stake:10000,win:42400,time:"02:15",tipo:"bot",estado:"activa"},
-  {code:"QP-38291",user:"@apostador99",stake:20000,win:34200,time:"01:45",tipo:"bot",estado:"activa"},
-  {code:"QP-M0012",user:"Cliente mostrador",stake:5000,win:9750,time:"01:10",tipo:"manual",estado:"activa"},
-  {code:"QP-M0011",user:"Juan Pérez",stake:15000,win:22500,time:"00:30",tipo:"manual",estado:"activa"},
-  {code:"QP-C0009",user:"@champion_ar",stake:8000,win:12400,time:"ayer 22:10",tipo:"cobro",estado:"cobrado"},
-];
+
+// ── ESCUDO DE EQUIPO ──────────────────────────────────────────
+function hashColor(str){
+  let h=0;
+  for(let i=0;i<(str||"").length;i++) h=((h<<5)-h)+str.charCodeAt(i);
+  h=Math.abs(h);
+  const colors=["#7C3AED","#2979FF","#00BCD4","#FF6B35","#E91E63",
+    "#009688","#FF5722","#3F51B5","#8BC34A","#FF9800",
+    "#9C27B0","#00ACC1","#43A047","#F4511E","#1E88E5"];
+  return colors[h % colors.length];
+}
+
+function TeamLogo({ name, size=28 }){
+  const [falloImg,setFalloImg]=useState(false);
+  const color = hashColor(name);
+  const iniciales = (name||"?").split(" ").filter(Boolean)
+    .slice(0,2).map(w=>w[0].toUpperCase()).join("");
+
+  if(name && !falloImg) return(
+    <div style={{width:size,height:size,borderRadius:"50%",flexShrink:0,
+      background:"rgba(255,255,255,0.06)",border:`1.5px solid ${color}66`,
+      display:"flex",alignItems:"center",justifyContent:"center",
+      overflow:"hidden"}}>
+      <img src={`${API_URL}/api/team-logo/nombre/${encodeURIComponent(name)}`}
+        alt={name} loading="lazy" onError={()=>setFalloImg(true)}
+        style={{width:"78%",height:"78%",objectFit:"contain"}}/>
+    </div>
+  );
+
+  return(
+    <div style={{width:size,height:size,borderRadius:"50%",flexShrink:0,
+      background:`linear-gradient(135deg,${color}CC,${color}88)`,
+      border:`1.5px solid ${color}`,display:"flex",
+      alignItems:"center",justifyContent:"center"}}>
+      <span style={{color:"#fff",fontWeight:900,fontSize:size*0.36,
+        fontFamily:"'Space Grotesk',system-ui",lineHeight:1}}>
+        {iniciales||"?"}
+      </span>
+    </div>
+  );
+}
 
 // ── MERCADOS EN ESPAÑOL ───────────────────────────────────────
 const MKT_ES = {
@@ -745,6 +779,7 @@ function FlujoManual({ agencia }){
           picks: picks.map(p=>({
             home:p.home, away:p.away, sel:p.sel, odd:p.odd, sport:p.sport,
           })),
+          cliente: cliente || null,
         }),
       });
       if(r.status===401) throw new SesionExpirada();
@@ -1075,44 +1110,107 @@ function DoneScreen({ slip, titulo, color, tipo, onReset }){
 // ═══════════════════════════════════════════════════════════════
 // HISTORIAL
 // ═══════════════════════════════════════════════════════════════
-function Historial(){
-  const total=MOCK_HISTORIAL.reduce((a,i)=>a+i.stake,0);
-  const totalWin=MOCK_HISTORIAL.reduce((a,i)=>a+i.win,0);
+function Historial({ agencia, onSesionExpirada }){
+  const [tickets,setTickets]=useState(null);
+  const [err,setErr]=useState("");
+  const [cargando,setCargando]=useState(true);
+
+  const cargar=async()=>{
+    setCargando(true); setErr("");
+    try {
+      const r = await fetch(`${API_URL}/api/agencias/me/tickets`,
+        { headers: authHeaders(agencia.token) });
+      if(r.status===401){ onSesionExpirada(); return; }
+      if(!r.ok) throw new Error(`Error ${r.status}`);
+      const d = await r.json();
+      setTickets(d.tickets||[]);
+    } catch(e){
+      setErr(e.message==="Failed to fetch"
+        ? "Sin conexión con el servidor" : e.message);
+      setTickets([]);
+    }
+    setCargando(false);
+  };
+
+  useEffect(()=>{ cargar(); // eslint-disable-next-line
+  },[]);
+
+  const lista = tickets||[];
+  const total    = lista.reduce((a,t)=>a+(t.stake||0),0);
+  const expuesto = lista.reduce((a,t)=>a+(t.potential_win||0),0);
+
   return(
     <div>
+      <div style={{display:"flex",justifyContent:"space-between",
+        alignItems:"center",marginBottom:12}}>
+        <div style={{color:Q.text,fontWeight:700,fontSize:15,
+          fontFamily:"'Space Grotesk',system-ui"}}>Historial</div>
+        <Btn label={cargando?"...":"Actualizar"} onClick={cargar}
+          outline color={Q.muted} size="sm"/>
+      </div>
+
+      <AlertaError mensaje={err}/>
+
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
-        {[{l:"Tickets hoy",v:MOCK_HISTORIAL.length,c:Q.cyan},
-          {l:"Total cobrado",v:ars(total),c:Q.green},
-          {l:"Ret. potencial",v:ars(totalWin),c:Q.amber},
-        ].map((s,i)=>(
-          <GCard key={i} glow={s.c} style={{padding:"10px 12px",textAlign:"center"}}>
-            <div style={{color:s.c,fontWeight:700,fontSize:12,
-              fontFamily:"'Space Grotesk',system-ui"}}>{s.v}</div>
-            <div style={{color:Q.muted,fontSize:9,fontFamily:"'Space Grotesk',system-ui"}}>{s.l}</div>
+        {[{l:"Tickets",v:lista.length,c:Q.cyan},
+          {l:"Cobrado",v:ars(total),c:Q.green},
+          {l:"Exposición",v:ars(expuesto),c:Q.amber},
+        ].map((x,i)=>(
+          <GCard key={i} glow={x.c} style={{padding:"10px 12px",textAlign:"center"}}>
+            <div style={{color:x.c,fontWeight:700,fontSize:12,
+              fontFamily:"'Space Grotesk',system-ui"}}>{x.v}</div>
+            <div style={{color:Q.muted,fontSize:9,
+              fontFamily:"'Space Grotesk',system-ui"}}>{x.l}</div>
           </GCard>
         ))}
       </div>
-      {MOCK_HISTORIAL.map((h,i)=>(
-        <GCard key={i} style={{padding:"12px 16px",marginBottom:8}}>
+
+      {cargando&&(
+        <GCard style={{padding:20,textAlign:"center"}}>
+          <div style={{color:Q.muted,fontSize:12,
+            fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>
+        </GCard>
+      )}
+
+      {!cargando&&lista.length===0&&!err&&(
+        <GCard style={{padding:28,textAlign:"center"}}>
+          <div style={{fontSize:30,marginBottom:8}}>🧾</div>
+          <div style={{color:Q.muted,fontSize:13,
+            fontFamily:"'Space Grotesk',system-ui"}}>
+            Todavía no emitiste ningún ticket
+          </div>
+          <div style={{color:Q.dim,fontSize:11,marginTop:4}}>
+            Los que cobres van a aparecer acá
+          </div>
+        </GCard>
+      )}
+
+      {lista.map((t,i)=>(
+        <GCard key={t.code+i} style={{padding:"12px 16px",marginBottom:8}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div>
+            <div style={{minWidth:0,flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
                 <span style={{color:Q.cyan,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{h.code}</span>
-                <span style={{background:h.tipo==="bot"?`${Q.violet}22`:h.tipo==="cobro"?`${Q.green}22`:`${Q.amber}22`,
-                  border:`1px solid ${h.tipo==="bot"?Q.violet:h.tipo==="cobro"?Q.green:Q.amber}`,
+                  fontFamily:"'Space Grotesk',system-ui"}}>{t.code}</span>
+                <span style={{
+                  background:t.tipo==="bot"?`${Q.violet}22`:`${Q.amber}22`,
+                  border:`1px solid ${t.tipo==="bot"?Q.violet:Q.amber}`,
                   borderRadius:20,padding:"1px 8px",fontSize:9,fontWeight:700,
-                  color:h.tipo==="bot"?Q.violet:h.tipo==="cobro"?Q.green:Q.amber,
+                  color:t.tipo==="bot"?Q.violet:Q.amber,
                   fontFamily:"'Space Grotesk',system-ui"}}>
-                  {h.tipo.toUpperCase()}
+                  {(t.tipo||"").toUpperCase()}
                 </span>
               </div>
-              <div style={{color:Q.muted,fontSize:11}}>{h.user} · {h.time}</div>
+              <div style={{color:Q.muted,fontSize:11,overflow:"hidden",
+                textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {t.cliente} · {t.fecha}
+                {t.odd_total?` · ${fmt(t.odd_total)}x`:""}
+              </div>
             </div>
-            <div style={{textAlign:"right"}}>
+            <div style={{textAlign:"right",flexShrink:0}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                fontFamily:"'Space Grotesk',system-ui"}}>{ars(h.stake)}</div>
-              <div style={{color:Q.green,fontSize:11}}>ret: {ars(h.win)}</div>
+                fontFamily:"'Space Grotesk',system-ui"}}>{ars(t.stake)}</div>
+              <div style={{color:Q.green,fontSize:11}}>ret: {ars(t.potential_win)}</div>
             </div>
           </div>
         </GCard>
@@ -1124,37 +1222,46 @@ function Historial(){
 // ═══════════════════════════════════════════════════════════════
 // CIERRES DE CAJA
 // ═══════════════════════════════════════════════════════════════
-function Cierres({ agencia }){
+function Cierres({ agencia, onSesionExpirada }){
+  const hoyISO = new Date().toISOString().slice(0,10);
   const [tipo,setTipo]=useState("diario");
-  const [fechaDesde,setFechaDesde]=useState("");
-  const [fechaHasta,setFechaHasta]=useState("");
-  const [resultado,setResultado]=useState(null);
+  const [desde,setDesde]=useState(hoyISO);
+  const [hasta,setHasta]=useState(hoyISO);
+  const [res,setRes]=useState(null);
+  const [err,setErr]=useState("");
+  const [cargando,setCargando]=useState(false);
 
-  const MOCK_CIERRES = {
-    diario:{
-      periodo:"Hoy 17/07/2026",
-      tickets:47, tickets_bot:31, tickets_manual:16,
-      cobrado:284500, pagado:98700, neto:185800,
-    },
-    semanal:{
-      periodo:"Semana 14/07 - 17/07/2026",
-      tickets:312, tickets_bot:198, tickets_manual:114,
-      cobrado:1842000, pagado:624000, neto:1218000,
-    },
-    mensual:{
-      periodo:"Julio 2026",
-      tickets:1247, tickets_bot:834, tickets_manual:413,
-      cobrado:7248000, pagado:2481000, neto:4767000,
-    },
-    personalizado:{
-      periodo:`${fechaDesde||"--/--"} al ${fechaHasta||"--/--"}`,
-      tickets:183, tickets_bot:121, tickets_manual:62,
-      cobrado:1124000, pagado:387000, neto:737000,
-    },
+  const rangoDe=(t)=>{
+    const hoy = new Date();
+    const iso = d=>d.toISOString().slice(0,10);
+    if(t==="diario")  return [iso(hoy), iso(hoy)];
+    if(t==="semanal"){
+      const d = new Date(hoy); d.setDate(d.getDate()-6);
+      return [iso(d), iso(hoy)];
+    }
+    if(t==="mensual"){
+      const d = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      return [iso(d), iso(hoy)];
+    }
+    return [desde, hasta];
   };
 
-  const generar=()=>{
-    setResultado(MOCK_CIERRES[tipo]);
+  const generar=async()=>{
+    setCargando(true); setErr(""); setRes(null);
+    const [d1,d2] = rangoDe(tipo);
+    try {
+      const r = await fetch(
+        `${API_URL}/api/agencias/me/cierre?desde=${d1}&hasta=${d2}`,
+        { headers: authHeaders(agencia.token) });
+      if(r.status===401){ onSesionExpirada(); return; }
+      if(!r.ok) throw new Error(`Error ${r.status}`);
+      const d = await r.json();
+      setRes({...d, periodo: d1===d2 ? d1 : `${d1} al ${d2}`});
+    } catch(e){
+      setErr(e.message==="Failed to fetch"
+        ? "Sin conexión con el servidor" : e.message);
+    }
+    setCargando(false);
   };
 
   return(
@@ -1163,14 +1270,14 @@ function Cierres({ agencia }){
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:12,
           fontFamily:"'Space Grotesk',system-ui"}}>Tipo de cierre</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
-          {[
-            {k:"diario",   l:"📅 Diario",      d:"Hoy"},
-            {k:"semanal",  l:"📆 Semanal",     d:"Últimos 7 días"},
-            {k:"mensual",  l:"🗓️ Mensual",     d:"Este mes"},
+          {[{k:"diario",l:"📅 Diario",d:"Hoy"},
+            {k:"semanal",l:"📆 Semanal",d:"Últimos 7 días"},
+            {k:"mensual",l:"🗓️ Mensual",d:"Este mes"},
             {k:"personalizado",l:"🔧 Personalizado",d:"Elegí las fechas"},
           ].map(t=>(
-            <button key={t.k} onClick={()=>{setTipo(t.k);setResultado(null);}} style={{
-              background:tipo===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
+            <button key={t.k} onClick={()=>{setTipo(t.k);setRes(null);}} style={{
+              background:tipo===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`
+                                   :"rgba(255,255,255,0.04)",
               border:`1.5px solid ${tipo===t.k?Q.cyan:Q.border}`,
               borderRadius:12,padding:"12px 10px",cursor:"pointer",textAlign:"left",
             }}>
@@ -1183,68 +1290,98 @@ function Cierres({ agencia }){
 
         {tipo==="personalizado"&&(
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-            {[["Desde",fechaDesde,setFechaDesde],["Hasta",fechaHasta,setFechaHasta]].map(([l,v,sv])=>(
+            {[["Desde",desde,setDesde],["Hasta",hasta,setHasta]].map(([l,v,sv])=>(
               <div key={l}>
                 <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
-                  letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",marginBottom:4}}>{l}</div>
+                  letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",
+                  marginBottom:4}}>{l}</div>
                 <input type="date" value={v} onChange={e=>sv(e.target.value)}
                   style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                    border:`1px solid ${Q.border}`,borderRadius:10,padding:"10px 12px",
-                    color:Q.text,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}/>
+                    border:`1px solid ${Q.border}`,borderRadius:10,
+                    padding:"10px 12px",color:Q.text,fontSize:13,
+                    fontFamily:"'Space Grotesk',system-ui"}}/>
               </div>
             ))}
           </div>
         )}
 
-        <Btn label="GENERAR CIERRE" onClick={generar} color={Q.violet} full size="lg"/>
+        <AlertaError mensaje={err}/>
+        <Btn label={cargando?"GENERANDO...":"GENERAR CIERRE"} onClick={generar}
+          color={Q.violet} full size="lg" disabled={cargando}/>
       </GCard>
 
-      {resultado&&(
+      {res&&(
         <GCard glow={Q.green} style={{padding:20,marginBottom:12}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
             fontFamily:"'Space Grotesk',system-ui"}}>Cierre {tipo}</div>
-          <div style={{color:Q.muted,fontSize:12,marginBottom:16}}>{resultado.periodo}</div>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:16}}>{res.periodo}</div>
 
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
-            {[
-              {l:"Total tickets",v:resultado.tickets,c:Q.cyan},
-              {l:"Bot",v:resultado.tickets_bot,c:Q.violet},
-              {l:"Manual",v:resultado.tickets_manual,c:Q.amber},
-            ].map((s,i)=>(
-              <GCard key={i} glow={s.c} style={{padding:"10px",textAlign:"center"}}>
-                <div style={{color:s.c,fontWeight:700,fontSize:16,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{s.v}</div>
-                <div style={{color:Q.muted,fontSize:9}}>{s.l}</div>
-              </GCard>
-            ))}
-          </div>
-
-          <div style={{marginBottom:14}}>
-            {[
-              ["Total cobrado (apuestas)",  resultado.cobrado, Q.text],
-              ["Total pagado (premios)",    resultado.pagado,  Q.pink],
-              ["NETO AGENCIA",              resultado.neto,    Q.green],
-            ].map(([l,v,c],i)=>(
-              <div key={l} style={{display:"flex",justifyContent:"space-between",
-                alignItems:"center",padding:"10px 0",
-                borderBottom:i<2?`1px solid ${Q.dim}`:"none",
-                marginTop:i===2?8:0}}>
-                <span style={{color:i===2?Q.text:Q.muted,fontSize:i===2?14:12,
-                  fontWeight:i===2?700:400,fontFamily:"'Space Grotesk',system-ui"}}>{l}</span>
-                <span style={{color:c,fontWeight:900,fontSize:i===2?22:14,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{ars(v)}</span>
+          {res.tickets===0?(
+            <div style={{textAlign:"center",padding:20}}>
+              <div style={{fontSize:28,marginBottom:8}}>📭</div>
+              <div style={{color:Q.muted,fontSize:13,
+                fontFamily:"'Space Grotesk',system-ui"}}>
+                No hubo movimientos en este período
               </div>
-            ))}
-          </div>
+            </div>
+          ):(
+            <>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",
+                gap:8,marginBottom:14}}>
+                {[{l:"Total",v:res.tickets,c:Q.cyan},
+                  {l:"Bot",v:res.tickets_bot,c:Q.violet},
+                  {l:"Manual",v:res.tickets_manual,c:Q.amber},
+                ].map((x,i)=>(
+                  <GCard key={i} glow={x.c} style={{padding:"10px",textAlign:"center"}}>
+                    <div style={{color:x.c,fontWeight:700,fontSize:16,
+                      fontFamily:"'Space Grotesk',system-ui"}}>{x.v}</div>
+                    <div style={{color:Q.muted,fontSize:9}}>{x.l}</div>
+                  </GCard>
+                ))}
+              </div>
 
-          <div style={{display:"flex",gap:10}}>
-            <button onClick={()=>printCierre(resultado,tipo,agencia)} style={{
-              flex:1,background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-              border:"none",borderRadius:12,padding:14,cursor:"pointer",
-              color:"#fff",fontWeight:700,fontSize:14,
-              fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
-            }}>🖨️ IMPRIMIR CIERRE</button>
-          </div>
+              <div style={{marginBottom:14}}>
+                {[["Cobrado (apuestas)", res.cobrado, Q.green, false],
+                  ["Exposición (si ganan todas)", res.expuesto, Q.amber, false],
+                  ["Premios pagados", res.pagado, Q.pink, false],
+                  ["NETO EN CAJA", res.neto, Q.green, true],
+                ].map(([l,v,c,fuerte])=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",
+                    alignItems:"center",padding:"9px 0",
+                    borderTop:fuerte?`1px solid ${Q.violet}44`:"none",
+                    borderBottom:fuerte?"none":`1px solid ${Q.dim}`,
+                    marginTop:fuerte?8:0}}>
+                    <span style={{color:fuerte?Q.text:Q.muted,
+                      fontSize:fuerte?14:12,fontWeight:fuerte?700:400,
+                      fontFamily:"'Space Grotesk',system-ui"}}>{l}</span>
+                    <span style={{color:c,fontWeight:900,fontSize:fuerte?22:14,
+                      fontFamily:"'Space Grotesk',system-ui"}}>{ars(v)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {res.pagos_no_implementados&&(
+                <div style={{background:`${Q.amber}12`,border:`1px solid ${Q.amber}55`,
+                  borderRadius:10,padding:"9px 12px",marginBottom:14,
+                  color:Q.amber,fontSize:11,lineHeight:1.45,
+                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  El pago de ganadores todavía no está implementado, así que
+                  "Premios pagados" es 0 y el neto es igual a lo cobrado.
+                  Si ya pagaste premios en efectivo, descontalos a mano.
+                </div>
+              )}
+
+              <button onClick={()=>printCierre(
+                  {...res, tickets_bot:res.tickets_bot,
+                   tickets_manual:res.tickets_manual},
+                  tipo, agencia)} style={{
+                width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
+                border:"none",borderRadius:12,padding:14,cursor:"pointer",
+                color:"#fff",fontWeight:700,fontSize:14,
+                fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+              }}>🖨️ IMPRIMIR CIERRE</button>
+            </>
+          )}
         </GCard>
       )}
     </div>
@@ -1261,9 +1398,9 @@ function Config({ agencia }){
       <GCard style={{padding:20,marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:14,
           fontFamily:"'Space Grotesk',system-ui"}}>Datos de la agencia</div>
-        {[["Nombre",agencia.name],["Código",agencia.code],
-          ["Dirección",agencia.address||"—"],
-          ["Teléfono",agencia.phone||"—"],
+        {[["Nombre",agencia.name||"—"],["Código",agencia.code||"—"],
+          ["Dirección",agencia.address||"Sin cargar"],
+          ["Teléfono",agencia.phone||"Sin cargar"],
         ].map(([l,v])=>(
           <div key={l} style={{display:"flex",justifyContent:"space-between",
             padding:"8px 0",borderBottom:`1px solid ${Q.dim}`}}>
@@ -1295,12 +1432,65 @@ function Config({ agencia }){
 // ═══════════════════════════════════════════════════════════════
 // EN VIVO
 // ═══════════════════════════════════════════════════════════════
-function EnVivo(){
+function EnVivo({ agencia }){
   const [matches,setMatches]=useState([]);
   const [loading,setLoading]=useState(true);
   const [lastUpdate,setLastUpdate]=useState("");
   const [ticket,setTicket]=useState([]);
   const [abiertosLive,setAbiertosLive]=useState({});
+  const [monto,setMonto]=useState(5000);
+  const [cliente,setCliente]=useState("");
+  const [guardando,setGuardando]=useState(false);
+  const [errGuardar,setErrGuardar]=useState("");
+  const [slip,setSlip]=useState(null);
+
+  // Mismo circuito que Apuesta manual: se crea el boleto en la base
+  // y se cobra, así el ticket impreso tiene respaldo real.
+  const confirmarLive=async()=>{
+    if(guardando || !ticket.length) return;
+    setErrGuardar(""); setGuardando(true);
+    try {
+      let r = await fetch(`${API_URL}/api/betslip`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json", ...authHeaders(agencia.token)},
+        body:JSON.stringify({
+          picks: ticket.map(b=>({
+            home:b.home, away:b.away, sel:b.label, odd:b.odd, sport:"En vivo",
+          })),
+          cliente: cliente || null,
+        }),
+      });
+      if(r.status===401) throw new SesionExpirada();
+      if(!r.ok){
+        const e = await r.json().catch(()=>({}));
+        throw new Error(e.detail || `No se pudo registrar (${r.status})`);
+      }
+      const creado = await r.json();
+      const pago = await payBetslip(creado.code, monto, agencia.token);
+
+      setSlip({
+        code: creado.code,
+        user: cliente || "Cliente mostrador",
+        created_at: nowStr(), expires_at: expires24(),
+        status:"active",
+        picks: ticket.map(b=>({
+          home:b.home, away:b.away, sel:b.label, odd:b.odd, sport:"En vivo",
+        })),
+        stake: pago.stake,
+        odd_total: pago.odd_total,
+        potential_win: pago.potential_win,
+        agencia: agencia.code,
+      });
+    } catch(e){
+      setErrGuardar(e.name==="SinConexion"
+        ? "Sin conexión con el servidor. La apuesta NO quedó registrada, no aceptes el efectivo."
+        : `La apuesta NO quedó registrada: ${e.message}`);
+    }
+    setGuardando(false);
+  };
+
+  const resetLive=()=>{ setTicket([]); setSlip(null); setCliente("");
+                        setMonto(5000); setErrGuardar(""); };
 
   const fetchLive=async()=>{
     try {
@@ -1333,6 +1523,11 @@ function EnVivo(){
   };
   const isSel=(id,l)=>ticket.some(b=>b.id===id&&b.label===l);
   const totOdd=ticket.length?ticket.reduce((a,b)=>a*b.odd,1):1;
+
+  if(slip) return(
+    <DoneScreen slip={slip} titulo="Apuesta en vivo registrada"
+      color={Q.pink} tipo="apuesta" onReset={resetLive}/>
+  );
 
   return(
     <div>
@@ -1383,9 +1578,11 @@ function EnVivo(){
           </div>
 
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-            <div style={{flex:1,textAlign:"left"}}>
+            <div style={{flex:1,display:"flex",alignItems:"center",gap:6,minWidth:0}}>
+              <TeamLogo name={m.home} size={26}/>
               <div style={{color:Q.text,fontWeight:700,fontSize:14,
-                fontFamily:"'Space Grotesk',system-ui"}}>{m.home}</div>
+                fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.home}</div>
             </div>
             <div style={{textAlign:"center",padding:"0 12px"}}>
               <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,
@@ -1393,9 +1590,12 @@ function EnVivo(){
                 {m.homeScore}<span style={{color:Q.dim}}> - </span>{m.awayScore}
               </div>
             </div>
-            <div style={{flex:1,textAlign:"right"}}>
+            <div style={{flex:1,display:"flex",alignItems:"center",gap:6,
+              justifyContent:"flex-end",minWidth:0}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:14,
-                fontFamily:"'Space Grotesk',system-ui"}}>{m.away}</div>
+                fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.away}</div>
+              <TeamLogo name={m.away} size={26}/>
             </div>
           </div>
 
@@ -1448,20 +1648,51 @@ function EnVivo(){
                 <span style={{color:Q.muted,fontSize:12}}>{ticket.length} picks LIVE · <span style={{color:Q.pink,fontWeight:700}}>{totOdd.toFixed(2)}x</span></span>
               </div>
               <span style={{color:Q.green,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>
-                Ret: ${Math.round(10000*totOdd).toLocaleString("es-AR")}
+                Ret: {ars(Math.round(monto*totOdd))}
               </span>
             </div>
-            <div style={{color:Q.amber,fontSize:11,marginBottom:8,
-              fontFamily:"'Space Grotesk',system-ui",lineHeight:1.4}}>
-              Esta pantalla es solo para consultar. Para tomar la apuesta y
-              emitir el ticket, usá <strong>Apuesta manual</strong>.
+            <input value={cliente} onChange={e=>setCliente(e.target.value)}
+              placeholder="Nombre del cliente (opcional)"
+              style={{width:"100%",background:"rgba(255,255,255,0.05)",
+                border:`1px solid ${Q.border}`,borderRadius:9,
+                padding:"8px 12px",color:Q.text,fontSize:13,marginBottom:8,
+                fontFamily:"'Space Grotesk',system-ui"}}/>
+
+            <div style={{display:"flex",gap:5,marginBottom:8}}>
+              {[2000,5000,10000,20000].map(v=>(
+                <button key={v} onClick={()=>setMonto(v)} style={{
+                  flex:1,
+                  background:monto===v?`${Q.pink}33`:"rgba(255,255,255,0.04)",
+                  border:`1px solid ${monto===v?Q.pink:Q.border}`,
+                  borderRadius:8,padding:"6px 2px",cursor:"pointer",
+                  color:monto===v?Q.pink:Q.muted,fontSize:10,
+                  fontWeight:monto===v?700:400,
+                  fontFamily:"'Space Grotesk',system-ui",
+                }}>{v>=1000?`$${v/1000}K`:v}</button>
+              ))}
             </div>
-            <button onClick={()=>setTicket([])} style={{
-              width:"100%",background:"transparent",
-              border:`1px solid ${Q.border}`,borderRadius:12,padding:"11px",
-              cursor:"pointer",color:Q.muted,fontWeight:700,fontSize:13,
-              fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
-            }}>Limpiar selección</button>
+
+            <AlertaError mensaje={errGuardar} critico/>
+
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setTicket([])} disabled={guardando} style={{
+                background:"transparent",border:`1px solid ${Q.border}`,
+                borderRadius:12,padding:"0 14px",cursor:"pointer",color:Q.muted,
+                fontSize:12,fontFamily:"'Space Grotesk',system-ui",
+              }}>Limpiar</button>
+              <button onClick={confirmarLive} disabled={guardando} style={{
+                flex:1,
+                background:guardando?"rgba(255,255,255,0.06)"
+                          :`linear-gradient(135deg,${Q.pink},${Q.violet})`,
+                border:"none",borderRadius:12,padding:"13px",
+                cursor:guardando?"wait":"pointer",
+                color:guardando?Q.muted:"#fff",fontWeight:700,fontSize:14,
+                fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+              }}>
+                {guardando?"REGISTRANDO..."
+                          :`COBRAR ${ars(monto)} E IMPRIMIR`}
+              </button>
+            </div>
           </GCard>
         </div>
       )}
@@ -1527,8 +1758,8 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         {tab==="codigo"   &&<FlujoCodigo  agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
         {tab==="envivo"   &&<EnVivo/>}
         {tab==="manual"   &&<FlujoManual  agencia={agencia}/>}
-        {tab==="historial"&&<Historial/>}
-        {tab==="cierres"  &&<Cierres      agencia={agencia}/>}
+        {tab==="historial"&&<Historial agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
+        {tab==="cierres"  &&<Cierres      agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
         {tab==="config"   &&<Config       agencia={agencia}/>}
       </div>
     </div>
