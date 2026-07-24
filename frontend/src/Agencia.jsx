@@ -243,27 +243,6 @@ body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:4mm;b
   return abrirVentanaImpresion(html, 420, 600);
 }
 
-// ── DEPORTES PARA APUESTA MANUAL (fallback visual) ────────────
-const DEPORTES = [
-  {sport:"Liga AR", events:[
-    {home:"River",away:"Boca",odds:{L:1.55,E:3.80,V:5.20}},
-    {home:"Racing",away:"Independiente",odds:{L:2.10,E:3.20,V:3.40}},
-  ]},
-  {sport:"Mundial", events:[
-    {home:"Argentina",away:"Argelia",odds:{L:1.30,E:5.50,V:9.00}},
-    {home:"España",away:"C.Verde",odds:{L:1.18,E:7.50,V:14.0}},
-    {home:"Francia",away:"Senegal",odds:{L:1.45,E:4.50,V:7.00}},
-    {home:"Brasil",away:"Marruecos",odds:{L:1.55,E:4.20,V:5.80}},
-  ]},
-  {sport:"Champions", events:[
-    {home:"R.Madrid",away:"Bayern",odds:{L:2.10,E:3.40,V:3.20}},
-    {home:"City",away:"Arsenal",odds:{L:1.75,E:3.60,V:4.50}},
-  ]},
-  {sport:"NBA", events:[
-    {home:"Lakers",away:"Celtics",odds:{L:1.95,E:null,V:1.85}},
-    {home:"Warriors",away:"Bulls",odds:{L:1.65,E:null,V:2.20}},
-  ]},
-];
 
 
 // ── ESCUDO DE EQUIPO ──────────────────────────────────────────
@@ -744,9 +723,8 @@ function FlujoManual({ agencia }){
       }).catch(()=>{});
     fetch(`${API_BOT}/api/live/prematch`)
       .then(r=>r.ok?r.json():null)
-      .then(data=>{
-        if(data?.sports?.length>0) setPrematchDeportes(data.sports);
-      }).catch(()=>{});
+      .then(data=>setPrematchDeportes(data?.sports || []))
+      .catch(()=>setPrematchDeportes([]));
   },[]);
 
   const togglePick=(ev,sport,label,odd)=>{
@@ -913,32 +891,68 @@ function FlujoManual({ agencia }){
 
       {tabOferta==="prematch"&&(
         <>
-          {prematchDeportes ? prematchDeportes.map(d=>(
+          {!prematchDeportes&&(
+            <GCard style={{padding:24,textAlign:"center"}}>
+              <div style={{color:Q.muted,fontSize:12,
+                fontFamily:"'Space Grotesk',system-ui"}}>
+                Cargando cuotas...
+              </div>
+              <div style={{color:Q.dim,fontSize:11,marginTop:6}}>
+                La primera carga del día puede demorar unos segundos
+              </div>
+            </GCard>
+          )}
+
+          {prematchDeportes&&prematchDeportes.length===0&&(
+            <GCard style={{padding:24,textAlign:"center"}}>
+              <div style={{fontSize:28,marginBottom:8}}>📭</div>
+              <div style={{color:Q.muted,fontSize:12,
+                fontFamily:"'Space Grotesk',system-ui"}}>
+                No hay eventos con cuotas en este momento
+              </div>
+            </GCard>
+          )}
+
+          {(prematchDeportes||[]).map(d=>(
             <GCard key={d.name} style={{padding:16,marginBottom:12}}>
               <div style={{color:Q.violet2,fontWeight:700,fontSize:13,marginBottom:10,
                 fontFamily:"'Space Grotesk',system-ui"}}>{d.icon} {d.name}</div>
               {(d.events||[]).map(ev=>(
-                <div key={ev.h+ev.a} style={{marginBottom:12,
+                <div key={ev.id||(ev.h+ev.a)} style={{marginBottom:12,
                   borderBottom:`1px solid ${Q.dim}`,paddingBottom:10}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                    <span style={{color:Q.text,fontWeight:600,fontSize:13,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{ev.h} vs {ev.a}</span>
-                    <span style={{color:Q.muted,fontSize:11}}>{ev.time}</span>
+                  <div style={{display:"flex",justifyContent:"space-between",
+                    marginBottom:6,gap:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0}}>
+                      <TeamLogo name={ev.h} size={22}/>
+                      <span style={{color:Q.text,fontWeight:600,fontSize:13,
+                        fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                        textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {ev.h} vs {ev.a}
+                      </span>
+                      <TeamLogo name={ev.a} size={22}/>
+                    </div>
+                    <span style={{color:Q.muted,fontSize:11,flexShrink:0}}>{ev.time}</span>
                   </div>
                   <div style={{display:"flex",gap:5}}>
                     {[{label:ev.h+" gana",odd:ev.odds?.L},
                       ev.odds?.E?{label:"Empate",odd:ev.odds.E}:null,
                       {label:ev.a+" gana",odd:ev.odds?.V}]
                       .filter(Boolean).filter(o=>o.odd).map(opt=>(
-                      <button key={opt.label} onClick={()=>togglePick({home:ev.h,away:ev.a},d.name,opt.label,opt.odd)} style={{
-                        flex:1,
-                        background:hasPick({home:ev.h,away:ev.a},opt.label)?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
-                        border:`1.5px solid ${hasPick({home:ev.h,away:ev.a},opt.label)?Q.cyan:Q.border}`,
-                        borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
-                      }}>
+                      <button key={opt.label}
+                        onClick={()=>togglePick({home:ev.h,away:ev.a},d.name,opt.label,opt.odd)}
+                        style={{
+                          flex:1,
+                          background:hasPick({home:ev.h,away:ev.a},opt.label)
+                            ?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`
+                            :"rgba(255,255,255,0.04)",
+                          border:`1.5px solid ${hasPick({home:ev.h,away:ev.a},opt.label)?Q.cyan:Q.border}`,
+                          borderRadius:10,padding:"8px 4px",cursor:"pointer",
+                          textAlign:"center",
+                        }}>
                         <div style={{color:Q.muted,fontSize:9}}>{opt.label}</div>
                         <div style={{color:hasPick({home:ev.h,away:ev.a},opt.label)?Q.cyan:Q.text,
-                          fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{opt.odd}</div>
+                          fontWeight:700,fontSize:15,
+                          fontFamily:"'Space Grotesk',system-ui"}}>{opt.odd}</div>
                       </button>
                     ))}
                   </div>
@@ -951,43 +965,12 @@ function FlujoManual({ agencia }){
                     {abiertos[ev.id]?"▲ Menos mercados":"▼ Todos los mercados"}
                   </button>
                   {abiertos[ev.id]&&(
-                    <MercadosEvento
-                      ev={{...ev, id:ev.id, sport_key:ev.sport_key,
-                           markets:ev.markets, h:ev.h, a:ev.a}}
+                    <MercadosEvento ev={ev}
                       bets={picks.map(p=>({id:ev.id,label:p.sel}))}
                       onToggle={(e,label,odd)=>
                         togglePick({home:ev.h,away:ev.a}, d.name, label, odd)}
                       color={Q.cyan}/>
                   )}
-                </div>
-              ))}
-            </GCard>
-          )) : DEPORTES.map(d=>(
-            <GCard key={d.sport} style={{padding:16,marginBottom:12}}>
-              <div style={{color:Q.violet2,fontWeight:700,fontSize:13,marginBottom:10,
-                fontFamily:"'Space Grotesk',system-ui"}}>{d.sport}</div>
-              {d.events.map(ev=>(
-                <div key={ev.home+ev.away} style={{marginBottom:12,
-                  borderBottom:`1px solid ${Q.dim}`,paddingBottom:10}}>
-                  <div style={{color:Q.text,fontWeight:600,fontSize:13,marginBottom:8,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{ev.home} vs {ev.away}</div>
-                  <div style={{display:"flex",gap:5}}>
-                    {[{label:ev.home+" gana",odd:ev.odds.L},
-                      ev.odds.E?{label:"Empate",odd:ev.odds.E}:null,
-                      {label:ev.away+" gana",odd:ev.odds.V}]
-                      .filter(Boolean).map(opt=>(
-                      <button key={opt.label} onClick={()=>togglePick(ev,d.sport,opt.label,opt.odd)} style={{
-                        flex:1,minWidth:80,
-                        background:hasPick(ev,opt.label)?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
-                        border:`1.5px solid ${hasPick(ev,opt.label)?Q.cyan:Q.border}`,
-                        borderRadius:10,padding:"8px 6px",cursor:"pointer",textAlign:"center",
-                      }}>
-                        <div style={{color:Q.muted,fontSize:9}}>{opt.label}</div>
-                        <div style={{color:hasPick(ev,opt.label)?Q.cyan:Q.text,
-                          fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{opt.odd}</div>
-                      </button>
-                    ))}
-                  </div>
                 </div>
               ))}
             </GCard>
