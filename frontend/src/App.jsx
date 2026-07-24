@@ -385,6 +385,157 @@ function AllMarketsView({ ev, bets, onToggle }){
   );
 }
 
+// ── MERCADOS EN ESPAÑOL ───────────────────────────────────────
+const MKT_ES = {
+  h2h:                        {t:"Ganador",              o:1},
+  h2h_3_way:                  {t:"Ganador (1X2)",        o:2},
+  totals:                     {t:"Más / Menos goles",    o:3},
+  spreads:                    {t:"Hándicap",             o:4},
+  btts:                       {t:"Ambos anotan",         o:5},
+  double_chance:              {t:"Doble oportunidad",    o:6},
+  draw_no_bet:                {t:"Empate no válido",     o:7},
+  team_totals:               {t:"Goles por equipo",     o:8},
+  alternate_totals:           {t:"Líneas alternativas",  o:9},
+  alternate_spreads:          {t:"Hándicap alternativo", o:10},
+  alternate_team_totals:      {t:"Goles equipo (alt.)",  o:11},
+  totals_corners:             {t:"Córners",              o:12},
+  alternate_totals_corners:   {t:"Córners (alt.)",       o:13},
+  spreads_corners:            {t:"Hándicap de córners",  o:14},
+  totals_cards:               {t:"Tarjetas",             o:15},
+  alternate_totals_cards:     {t:"Tarjetas (alt.)",      o:16},
+  spreads_cards:              {t:"Hándicap de tarjetas", o:17},
+  player_goal_scorer_anytime: {t:"Anota en el partido",  o:18},
+  player_first_goal_scorer:   {t:"Primer goleador",      o:19},
+  player_last_goal_scorer:    {t:"Último goleador",      o:20},
+  player_shots_on_target:     {t:"Tiros al arco",        o:21},
+  player_shots:               {t:"Remates",              o:22},
+  player_assists:             {t:"Asistencias",          o:23},
+};
+
+function tituloMercado(k){
+  return MKT_ES[k]?.t || k.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+}
+function ordenMercado(k){ return MKT_ES[k]?.o ?? 99; }
+
+// Traduce el nombre del resultado que devuelve la API
+function etiquetaResultado(nombre, home, away){
+  if(nombre==="Draw")   return "Empate";
+  if(nombre==="Yes")    return "Sí";
+  if(nombre==="No")     return "No";
+  if(nombre===home)     return home;
+  if(nombre===away)     return away;
+  let m = nombre.match(/^Over\s*([\d.]+)$/i);
+  if(m) return `Más de ${m[1]}`;
+  m = nombre.match(/^Under\s*([\d.]+)$/i);
+  if(m) return `Menos de ${m[1]}`;
+  // "Equipo -1.5" o "Equipo +1.5"
+  m = nombre.match(/^(.+?)\s*([+-][\d.]+)$/);
+  if(m) return `${m[1]} ${m[2]}`;
+  return nombre;
+}
+
+// ── PANEL DE MERCADOS DE UN EVENTO ────────────────────────────
+// Muestra lo que ya vino en el listado y, además, pide a la API los
+// mercados adicionales (córners, tarjetas, goleadores) que solo se
+// pueden consultar evento por evento.
+function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
+  const [extra,setExtra]=useState(null);
+  const [cargando,setCargando]=useState(false);
+  const [aviso,setAviso]=useState("");
+
+  const home = ev.h || ev.home || "";
+  const away = ev.a || ev.away || "";
+  const sportKey = ev.sport_key;
+
+  useEffect(()=>{
+    if(!sportKey || !ev.id) return;
+    let vivo = true;
+    setCargando(true);
+    fetch(`${API}/api/event/${sportKey}/${ev.id}/markets`)
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{
+        if(!vivo) return;
+        if(d?.markets && Object.keys(d.markets).length) setExtra(d.markets);
+        else setAviso("No hay mercados adicionales para este partido");
+      })
+      .catch(()=>{ if(vivo) setAviso("No se pudieron cargar los mercados"); })
+      .finally(()=>{ if(vivo) setCargando(false); });
+    return ()=>{ vivo=false; };
+  },[sportKey, ev.id]);
+
+  const todos = { ...(ev.markets||{}), ...(extra||{}) };
+  const claves = Object.keys(todos)
+    .filter(k=>todos[k] && Object.keys(todos[k]).length)
+    .sort((a,b)=>ordenMercado(a)-ordenMercado(b));
+
+  if(!claves.length && !cargando)
+    return (
+      <div style={{color:Q.dim,fontSize:11,padding:"10px 0",textAlign:"center",
+        fontFamily:"'Space Grotesk',system-ui"}}>
+        {aviso||"Sin mercados disponibles"}
+      </div>
+    );
+
+  return(
+    <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${Q.dim}`}}>
+      {claves.map(k=>{
+        const resultados = Object.entries(todos[k]);
+        // Los mercados de jugador traen decenas de nombres: scroll propio
+        const muchos = resultados.length > 6;
+        return(
+          <div key={k} style={{marginBottom:10}}>
+            <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",
+              letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",
+              marginBottom:5,display:"flex",justifyContent:"space-between"}}>
+              <span>{tituloMercado(k)}</span>
+              {muchos&&<span style={{color:Q.dim}}>{resultados.length} opciones</span>}
+            </div>
+            <div style={{
+              display:"grid",
+              gridTemplateColumns: resultados.length<=3?`repeat(${resultados.length},1fr)`:"1fr 1fr",
+              gap:4,
+              maxHeight: muchos?180:"none",
+              overflowY: muchos?"auto":"visible",
+            }}>
+              {resultados.map(([nombre,cuota])=>{
+                const etiqueta = etiquetaResultado(nombre, home, away);
+                const sel = bets.some(b=>b.id===ev.id && b.label===etiqueta);
+                return(
+                  <button key={nombre}
+                    onClick={()=>onToggle(ev, etiqueta, cuota)}
+                    style={{
+                      background:sel?`linear-gradient(135deg,${color}44,${Q.violet}22)`
+                                    :"rgba(255,255,255,0.04)",
+                      border:`1.5px solid ${sel?color:Q.border}`,
+                      borderRadius:9,padding:"7px 6px",cursor:"pointer",
+                      display:"flex",alignItems:"center",
+                      justifyContent:"space-between",gap:6,minWidth:0,
+                    }}>
+                    <span style={{color:Q.muted,fontSize:10,
+                      fontFamily:"'Space Grotesk',system-ui",
+                      overflow:"hidden",textOverflow:"ellipsis",
+                      whiteSpace:"nowrap",flex:1,textAlign:"left"}}>{etiqueta}</span>
+                    <span style={{color:sel?color:Q.text,fontWeight:700,fontSize:12,
+                      fontFamily:"'Space Grotesk',system-ui",flexShrink:0}}>
+                      {fmt(cuota)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      {cargando&&(
+        <div style={{color:Q.dim,fontSize:10,textAlign:"center",padding:"6px 0",
+          fontFamily:"'Space Grotesk',system-ui"}}>
+          Buscando córners, tarjetas y goleadores...
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── BETSLIP FLOTANTE ───────────────────────────────────────────
 function FloatingBetslip({ bets, onBet, onClear, onLocal, color=Q.violet, live=false }){
   const [monto,setMonto]=useState(10000);
@@ -392,8 +543,9 @@ function FloatingBetslip({ bets, onBet, onClear, onLocal, color=Q.violet, live=f
   const tot=bets.length?prod(bets.map(b=>b.odd)):1;
   if(!bets.length) return null;
   return(
-    <div style={{position:"fixed",bottom:10,left:"50%",transform:"translateX(-50%)",
-      width:"calc(100% - 24px)",maxWidth:406,zIndex:40}}>
+    <div style={{position:"fixed",left:"50%",transform:"translateX(-50%)",
+      bottom:"max(10px, env(safe-area-inset-bottom))",
+      width:"calc(100% - 24px)",maxWidth:496,zIndex:40}}>
       <GCard glow={color} style={{padding:"12px 14px",background:"rgba(6,6,18,0.97)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -561,7 +713,8 @@ function ScreenCanal({ onBot }){
         </GCard>
       </div>
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",
-        width:"100%",maxWidth:430,padding:"10px 12px 14px",
+        width:"100%",maxWidth:520,
+        padding:"10px 12px calc(14px + env(safe-area-inset-bottom))",
         background:`linear-gradient(0deg,${Q.void} 70%,transparent)`,zIndex:40}}>
         <button onClick={onBot} style={{
           width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
@@ -742,9 +895,17 @@ function ScreenPrematch({ onAction, onBet, onLocal }){
                   {/* Cuotas 1X2 rápidas */}
                   <OddsButtons ev={ev} market="h2h" bets={bets} onToggle={toggle}/>
 
+                  <button onClick={()=>toggleExpand(ev.id)} style={{
+                    width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
+                    borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,
+                    fontSize:10,marginTop:6,fontFamily:"'Space Grotesk',system-ui",
+                  }}>
+                    {expandedEvents[ev.id]?"▲ Menos mercados":"▼ Todos los mercados"}
+                  </button>
+
                   {/* Todos los mercados cuando está expandido */}
                   {expandedEvents[ev.id]&&(
-                    <AllMarketsView ev={ev} bets={bets} onToggle={toggle}/>
+                    <MercadosEvento ev={ev} bets={bets} onToggle={toggle}/>
                   )}
                 </GCard>
               ))}
@@ -889,14 +1050,10 @@ function ScreenLive({ onAction, onBet, onLocal }){
                     borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,
                     fontSize:10,marginTop:6,fontFamily:"'Space Grotesk',system-ui",
                   }}>
-                    {expandedEvents[ev.id]?"▲ Menos mercados":"▼ Más mercados (O/U, BTTS)"}
+                    {expandedEvents[ev.id]?"▲ Menos mercados":"▼ Todos los mercados"}
                   </button>
                   {expandedEvents[ev.id]&&(
-                    <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${Q.dim}`}}>
-                      <div style={{color:Q.muted,fontSize:10,marginBottom:6,fontFamily:"'Space Grotesk',system-ui"}}>
-                        Más mercados próximamente para este partido
-                      </div>
-                    </div>
+                    <MercadosEvento ev={ev} bets={bets} onToggle={toggle} color={Q.pink}/>
                   )}
                 </>
               ):(
@@ -1428,6 +1585,21 @@ export default function QuartzSports(){
   const [betData,setBetData]=useState({bets:[],stake:10000,odd:1,code:""});
   const [refCode,setRefCode]=useState(null);
   const [errorGlobal,setErrorGlobal]=useState("");
+  // La barra de pasos es un atajo de desarrollo: se ve con ?dev=1
+  const [verPasos]=useState(()=>
+    new URLSearchParams(window.location.search).get("dev")==="1");
+
+  // Telegram: pantalla completa y colores propios de la app
+  useEffect(()=>{
+    const tg = window.Telegram?.WebApp;
+    if(!tg) return;
+    try {
+      tg.ready();
+      tg.expand();
+      tg.setHeaderColor?.(Q.deep);
+      tg.setBackgroundColor?.(Q.void);
+    } catch(e){}
+  },[]);
 
   // Detectar código de influencer en la URL
   useEffect(()=>{
@@ -1483,20 +1655,20 @@ export default function QuartzSports(){
   const isCanal=screen==="canal";
 
   return(
-    <div style={{maxWidth:430,margin:"0 auto",fontFamily:"system-ui,-apple-system,sans-serif",background:Q.void,minHeight:"100vh"}}>
+    <div style={{maxWidth:520,margin:"0 auto",
+      fontFamily:"system-ui,-apple-system,sans-serif",background:Q.void,
+      height:"100dvh",display:"flex",flexDirection:"column",
+      overflow:"hidden"}}>
       <style>{`
         @keyframes qPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.5)}}
         @keyframes qFloat{0%,100%{transform:translateY(0) scale(1);opacity:.4}50%{transform:translateY(-16px) scale(1.2);opacity:.7}}
-        *{box-sizing:border-box;margin:0;padding:0} button:active{opacity:.8} input:focus{outline:none}
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body,#root{height:100%;overscroll-behavior:none}
+        button{font-family:inherit;-webkit-tap-highlight-color:transparent;
+               min-height:32px;touch-action:manipulation}
+        button:active{opacity:.8} input:focus{outline:none}
         ::-webkit-scrollbar{width:3px} ::-webkit-scrollbar-thumb{background:${Q.border}}
       `}</style>
-
-      {/* Status */}
-      <div style={{background:"#000",padding:"10px 20px 6px",display:"flex",justifyContent:"space-between",
-        position:"sticky",top:0,zIndex:60}}>
-        <span style={{color:Q.text,fontSize:13,fontWeight:600,fontFamily:"'Space Grotesk',system-ui"}}>9:41</span>
-        <div style={{display:"flex",gap:6,fontSize:12}}><span>📶</span><span>🔋</span></div>
-      </div>
 
       {/* Header */}
       {isCanal?(
@@ -1522,9 +1694,10 @@ export default function QuartzSports(){
           }}/>
       )}
 
-      {/* Step bar */}
-      <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
-        padding:"5px 8px",display:"flex",gap:3,overflowX:"auto"}}>
+      {/* Barra de pasos — atajo de desarrollo, oculta por defecto */}
+      {verPasos&&<div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
+        padding:"5px 8px",display:"flex",gap:3,overflowX:"auto",
+        WebkitOverflowScrolling:"touch"}}>
         {STEPS.map((s,i,arr)=>(
           <div key={s.k} style={{display:"flex",alignItems:"center",gap:2,flexShrink:0}}>
             <button onClick={()=>setScreen(s.k)} style={{
@@ -1537,7 +1710,7 @@ export default function QuartzSports(){
             {i<arr.length-1&&<span style={{color:Q.dim,fontSize:9}}>›</span>}
           </div>
         ))}
-      </div>
+      </div>}
 
       {errorGlobal&&(
         <div style={{position:"fixed",top:60,left:"50%",transform:"translateX(-50%)",
@@ -1553,7 +1726,8 @@ export default function QuartzSports(){
       )}
 
       {/* Screens */}
-      <div style={{height:"calc(100vh - 112px)",overflowY:"auto"}}>
+      <div style={{flex:1,minHeight:0,overflowY:"auto",
+        WebkitOverflowScrolling:"touch"}}>
         {screen==="canal"     &&<ScreenCanal       onBot={()=>setScreen("sports")}/>}
         {screen==="sports"    &&<ScreenSportsMenu   onAction={handle}/>}
         {screen==="prematch"  &&<ScreenPrematch     onAction={handle} onBet={confirmBet} onLocal={generarLocal}/>}
