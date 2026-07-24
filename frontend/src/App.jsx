@@ -868,6 +868,7 @@ function ScreenPrematch({ onAction, onBet, onLocal }){
   const [sports,setSports]=useState([]);
   const [loading,setLoading]=useState(true);
   const [sport,setSport]=useState(null);
+  const [busqueda,setBusqueda]=useState("");
   const [expandedEvents,setExpandedEvents]=useState({});
 
   useEffect(()=>{
@@ -904,8 +905,28 @@ function ScreenPrematch({ onAction, onBet, onLocal }){
             📋 Apuestas Prematch — Cuotas reales
           </div>
 
+          {/* Buscador de equipo */}
+          {sports.length>0&&(
+            <div style={{display:"flex",alignItems:"center",gap:8,
+              background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
+              borderRadius:10,padding:"8px 12px",marginBottom:8}}>
+              <span style={{color:Q.muted,fontSize:14}}>🔍</span>
+              <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
+                placeholder="Buscar equipo..."
+                style={{background:"transparent",border:"none",color:Q.text,
+                  fontSize:14,flex:1,minWidth:0,
+                  fontFamily:"'Space Grotesk',system-ui"}}/>
+              {busqueda&&(
+                <button onClick={()=>setBusqueda("")} style={{background:"transparent",
+                  border:"none",color:Q.muted,fontSize:16,cursor:"pointer",
+                  padding:0,lineHeight:1}}>✕</button>
+              )}
+            </div>
+          )}
+
           {/* Sport filter */}
-          <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:12,paddingBottom:2}}>
+          <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:12,
+            paddingBottom:2,WebkitOverflowScrolling:"touch"}}>
             <button onClick={()=>setSport(null)} style={{
               background:!sport?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
               border:`1px solid ${!sport?Q.cyan:Q.border}`,borderRadius:20,
@@ -928,7 +949,14 @@ function ScreenPrematch({ onAction, onBet, onLocal }){
             Cargando cuotas reales...
           </div>}
 
-          {displaySports.filter(s=>!sport||s.name===sport).map(s=>(
+          {displaySports
+            .filter(s=>!sport||s.name===sport)
+            .map(s=>({...s, events:(s.events||[]).filter(ev=>{
+              const q=busqueda.trim().toLowerCase();
+              return !q || `${ev.h} ${ev.a}`.toLowerCase().includes(q);
+            })}))
+            .filter(s=>s.events.length>0 || !busqueda)
+            .map(s=>(
             <div key={s.name} style={{marginBottom:14}}>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
                 <span style={{fontSize:16}}>{s.icon}</span>
