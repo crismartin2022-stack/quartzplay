@@ -454,6 +454,66 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
   );
 }
 
+// ── FILTRO DE EVENTOS ─────────────────────────────────────────
+// El cajero necesita encontrar un partido puntual rápido, con el cliente
+// esperando en el mostrador. Filtra por liga y por nombre de equipo.
+function FiltroEventos({ ligas, liga, setLiga, busqueda, setBusqueda, total }){
+  return(
+    <div style={{marginBottom:12}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,
+        background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
+        borderRadius:10,padding:"8px 12px",marginBottom:8}}>
+        <span style={{color:Q.muted,fontSize:15}}>🔍</span>
+        <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
+          placeholder="Buscar equipo..."
+          style={{background:"transparent",border:"none",color:Q.text,
+            fontSize:14,flex:1,minWidth:0,
+            fontFamily:"'Space Grotesk',system-ui"}}/>
+        {busqueda&&(
+          <button onClick={()=>setBusqueda("")} style={{background:"transparent",
+            border:"none",color:Q.muted,fontSize:16,cursor:"pointer",
+            padding:0,lineHeight:1}}>✕</button>
+        )}
+      </div>
+
+      <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:3,
+        WebkitOverflowScrolling:"touch"}}>
+        <button onClick={()=>setLiga(null)} style={{
+          background:!liga?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`
+                          :"rgba(255,255,255,0.04)",
+          border:`1px solid ${!liga?Q.cyan:Q.border}`,borderRadius:20,
+          padding:"6px 14px",cursor:"pointer",color:!liga?Q.cyan:Q.muted,
+          fontSize:11,fontWeight:!liga?700:400,whiteSpace:"nowrap",
+          flexShrink:0,fontFamily:"'Space Grotesk',system-ui",
+        }}>Todas ({total})</button>
+        {ligas.map(l=>(
+          <button key={l.name} onClick={()=>setLiga(l.name)} style={{
+            background:liga===l.name?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`
+                                    :"rgba(255,255,255,0.04)",
+            border:`1px solid ${liga===l.name?Q.cyan:Q.border}`,borderRadius:20,
+            padding:"6px 14px",cursor:"pointer",
+            color:liga===l.name?Q.cyan:Q.muted,
+            fontSize:11,fontWeight:liga===l.name?700:400,whiteSpace:"nowrap",
+            flexShrink:0,fontFamily:"'Space Grotesk',system-ui",
+          }}>{l.icon} {l.name} ({(l.events||[]).length})</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Aplica liga + texto sobre la lista de deportes
+function filtrarDeportes(deportes, liga, busqueda){
+  const q = (busqueda||"").trim().toLowerCase();
+  return (deportes||[])
+    .filter(d=>!liga || d.name===liga)
+    .map(d=>({...d, events:(d.events||[]).filter(ev=>{
+      if(!q) return true;
+      return `${ev.h||ev.home||""} ${ev.a||ev.away||""}`.toLowerCase().includes(q);
+    })}))
+    .filter(d=>d.events.length>0);
+}
+
 // ── LOGIN ──────────────────────────────────────────────────────
 function LoginScreen({ onLogin }){
   const [user,setUser]=useState("");
@@ -704,6 +764,8 @@ function FlujoManual({ agencia }){
   const [picks,setPicks]=useState([]);
   const [monto,setMonto]=useState(5000);
   const [cliente,setCliente]=useState("");
+  const [ligaSel,setLigaSel]=useState(null);
+  const [busq,setBusq]=useState("");
   const [step,setStep]=useState("armar");
   const [slip,setSlip]=useState(null);
   const [liveDeportes,setLiveDeportes]=useState(null);
@@ -711,6 +773,10 @@ function FlujoManual({ agencia }){
   const [tabOferta,setTabOferta]=useState("prematch");
   const [abiertos,setAbiertos]=useState({});
   const toggleMercados=(id)=>setAbiertos(a=>({...a,[id]:!a[id]}));
+  const [liga,setLiga]=useState(null);
+  const [busqueda,setBusqueda]=useState("");
+  const [ligaLive,setLigaLive]=useState(null);
+  const [busqLive,setBusqLive]=useState("");
 
   useEffect(()=>{
     fetch(`${API_BOT}/api/live/combined`)
@@ -832,7 +898,24 @@ function FlujoManual({ agencia }){
               <div style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>Cargando partidos en vivo...</div>
             </GCard>
           )}
-          {liveDeportes&&liveDeportes.map(m=>(
+          {liveDeportes&&liveDeportes.length>0&&(()=>{
+            const ligas = [...new Set(liveDeportes.map(m=>m.liga).filter(Boolean))]
+              .map(n=>({name:n, icon:"🔴",
+                        events:liveDeportes.filter(m=>m.liga===n)}));
+            return ligas.length>1 ? (
+              <FiltroEventos ligas={ligas} liga={ligaLive} setLiga={setLigaLive}
+                busqueda={busqLive} setBusqueda={setBusqLive}
+                total={liveDeportes.length}/>
+            ) : null;
+          })()}
+
+          {liveDeportes&&liveDeportes
+            .filter(m=>!ligaLive || m.liga===ligaLive)
+            .filter(m=>{
+              const q=(busqLive||"").trim().toLowerCase();
+              return !q || `${m.home} ${m.away}`.toLowerCase().includes(q);
+            })
+            .map(m=>(
             <GCard key={m.id} glow={Q.pink} style={{padding:14,marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                 <div style={{color:Q.text,fontWeight:600,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
@@ -903,6 +986,12 @@ function FlujoManual({ agencia }){
             </GCard>
           )}
 
+          {prematchDeportes&&prematchDeportes.length>0&&(
+            <FiltroEventos ligas={prematchDeportes} liga={liga} setLiga={setLiga}
+              busqueda={busqueda} setBusqueda={setBusqueda}
+              total={prematchDeportes.reduce((a,d)=>a+(d.events||[]).length,0)}/>
+          )}
+
           {prematchDeportes&&prematchDeportes.length===0&&(
             <GCard style={{padding:24,textAlign:"center"}}>
               <div style={{fontSize:28,marginBottom:8}}>📭</div>
@@ -913,7 +1002,17 @@ function FlujoManual({ agencia }){
             </GCard>
           )}
 
-          {(prematchDeportes||[]).map(d=>(
+          {filtrarDeportes(prematchDeportes, liga, busqueda).length===0
+            && prematchDeportes && prematchDeportes.length>0 && (
+            <GCard style={{padding:22,textAlign:"center"}}>
+              <div style={{color:Q.muted,fontSize:12,
+                fontFamily:"'Space Grotesk',system-ui"}}>
+                Ningún partido coincide con el filtro
+              </div>
+            </GCard>
+          )}
+
+          {filtrarDeportes(prematchDeportes, liga, busqueda).map(d=>(
             <GCard key={d.name} style={{padding:16,marginBottom:12}}>
               <div style={{color:Q.violet2,fontWeight:700,fontSize:13,marginBottom:10,
                 fontFamily:"'Space Grotesk',system-ui"}}>{d.icon} {d.name}</div>
@@ -979,9 +1078,10 @@ function FlujoManual({ agencia }){
       )}
 
       {picks.length>0&&(
-        <div style={{position:"sticky",bottom:0,
+        <div style={{position:"sticky",bottom:0,zIndex:20,
           background:`linear-gradient(0deg,${Q.void} 80%,transparent)`,
-          paddingTop:20,paddingBottom:16}}>
+          paddingTop:20,
+          paddingBottom:"calc(16px + env(safe-area-inset-bottom))"}}>
           <GCard glow={Q.violet} style={{padding:16}}>
             <div style={{display:"flex",justifyContent:"space-between",
               alignItems:"center",marginBottom:10}}>
@@ -1423,6 +1523,8 @@ function EnVivo({ agencia }){
   const [abiertosLive,setAbiertosLive]=useState({});
   const [monto,setMonto]=useState(5000);
   const [cliente,setCliente]=useState("");
+  const [ligaSel,setLigaSel]=useState(null);
+  const [busq,setBusq]=useState("");
   const [guardando,setGuardando]=useState(false);
   const [errGuardar,setErrGuardar]=useState("");
   const [slip,setSlip]=useState(null);
@@ -1546,7 +1648,22 @@ function EnVivo({ agencia }){
         </GCard>
       )}
 
-      {matches.map(m=>(
+      {matches.length>0&&(()=>{
+        const ligas = [...new Set(matches.map(m=>m.liga).filter(Boolean))]
+          .map(n=>({name:n, icon:"🔴", events:matches.filter(m=>m.liga===n)}));
+        return ligas.length>1 ? (
+          <FiltroEventos ligas={ligas} liga={ligaSel} setLiga={setLigaSel}
+            busqueda={busq} setBusqueda={setBusq} total={matches.length}/>
+        ) : null;
+      })()}
+
+      {matches
+        .filter(m=>!ligaSel || m.liga===ligaSel)
+        .filter(m=>{
+          const q=(busq||"").trim().toLowerCase();
+          return !q || `${m.home} ${m.away}`.toLowerCase().includes(q);
+        })
+        .map(m=>(
         <GCard key={m.id} glow={Q.pink} style={{padding:"14px 16px",marginBottom:10,
           background:`linear-gradient(135deg,${Q.pink}08,${Q.violet}05)`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
@@ -1621,9 +1738,10 @@ function EnVivo({ agencia }){
       ))}
 
       {ticket.length>0&&(
-        <div style={{position:"sticky",bottom:0,
+        <div style={{position:"sticky",bottom:0,zIndex:20,
           background:`linear-gradient(0deg,${Q.void} 80%,transparent)`,
-          paddingTop:16,paddingBottom:12}}>
+          paddingTop:16,
+          paddingBottom:"calc(12px + env(safe-area-inset-bottom))"}}>
           <GCard glow={Q.pink} style={{padding:"12px 14px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -1699,14 +1817,15 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   ];
 
   return(
-    <div style={{background:Q.void,minHeight:"100vh",
+    <div style={{background:Q.void,height:"100dvh",
+      display:"flex",flexDirection:"column",overflow:"hidden",
       fontFamily:"system-ui,-apple-system,sans-serif"}}>
       <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
       <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
-        padding:"10px 16px",display:"flex",alignItems:"center",
-        justifyContent:"space-between",position:"sticky",top:0,zIndex:50,overflow:"hidden"}}>
+        padding:"10px 14px",display:"flex",alignItems:"center",flexShrink:0,
+        justifyContent:"space-between",zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
         <QPLogo size={16}/>
@@ -1723,8 +1842,8 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
       </div>
 
       <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
-        padding:"6px 12px",display:"flex",gap:5,overflowX:"auto",
-        position:"sticky",top:52,zIndex:40}}>
+        padding:"6px 10px",display:"flex",gap:5,overflowX:"auto",
+        flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"}}>
         {TABS.map(t=>(
           <button key={t.k} onClick={()=>setTab(t.k)} style={{
             background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
@@ -1736,14 +1855,17 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         ))}
       </div>
 
-      <div style={{padding:"16px",maxWidth:620,margin:"0 auto",
-        position:"relative",zIndex:1,paddingBottom:80}}>
+      <div style={{flex:1,minHeight:0,overflowY:"auto",
+        WebkitOverflowScrolling:"touch",position:"relative",zIndex:1}}>
+      <div style={{padding:"14px 12px",maxWidth:620,margin:"0 auto",
+        paddingBottom:"calc(28px + env(safe-area-inset-bottom))"}}>
         {tab==="codigo"   &&<FlujoCodigo  agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
         {tab==="envivo"   &&<EnVivo/>}
         {tab==="manual"   &&<FlujoManual  agencia={agencia}/>}
         {tab==="historial"&&<Historial agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
         {tab==="cierres"  &&<Cierres      agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
         {tab==="config"   &&<Config       agencia={agencia}/>}
+      </div>
       </div>
     </div>
   );
@@ -1765,6 +1887,11 @@ export default function QuartzAgencia(){
     <div style={{background:Q.void,minHeight:"100vh"}}>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
+        html,body,#root{height:100%;overscroll-behavior:none}
+        /* 16px evita que iOS haga zoom al tocar un campo */
+        input,select,textarea{font-size:16px}
+        button{font-family:inherit;-webkit-tap-highlight-color:transparent;
+               touch-action:manipulation}
         @keyframes qPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.4)}}
         input:focus{outline:none} button:active{opacity:.85}
         ::-webkit-scrollbar{width:3px}
