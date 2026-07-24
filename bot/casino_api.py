@@ -28,8 +28,17 @@ def sync_get(url, params=None, headers=None, timeout=30):
                 _odds_credits["used"] = r.headers.get("x-requests-used")
                 _odds_credits["last_check"] = time.strftime("%d/%m %H:%M")
             return _json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        # Sin esto, un 422 por mercado inválido se veía igual que un timeout
+        cuerpo = ""
+        try:
+            cuerpo = e.read().decode()[:300]
+        except Exception:
+            pass
+        log.error(f"sync_get HTTP {e.code} en {url.split('?')[0]}: {cuerpo}")
+        return None
     except Exception as e:
-        log.error(f"sync_get error {url}: {e}")
+        log.error(f"sync_get error {url.split('?')[0]}: {e}")
         return None
 
 DATABASE_URL = os.environ.get("DATABASE_URL","")
@@ -400,12 +409,24 @@ _football_cache = {}
 FOOTBALL_TTL = 30  # 30 segundos de caché
 
 # ── CONFIGURACIÓN DE CUOTAS ───────────────────────────────────
-# OJO CON EL COSTO: The Odds API cobra 1 crédito por mercado por deporte
-# por request. Pedir 4 mercados en 20 deportes = 80 créditos por refresco.
-# Subí el TTL o bajá la lista antes de agrandar esto.
-ODDS_MARKETS      = os.environ.get("ODDS_MARKETS", "h2h,totals,btts")
+# IMPORTANTE: el endpoint masivo /v4/sports/{sport}/odds SOLO acepta los
+# mercados "destacados": h2h, spreads, totals, outrights.
+# Pedir btts (u otro adicional) devuelve HTTP 422 y se cae la respuesta
+# ENTERA de ese deporte — te quedás sin ninguna cuota, no solo sin btts.
+# Los mercados adicionales van por /events/{id}/odds, uno por evento.
+MERCADOS_VALIDOS  = {"h2h", "spreads", "totals", "outrights"}
+ODDS_MARKETS      = os.environ.get("ODDS_MARKETS", "h2h,totals,spreads")
 ODDS_SPORTS_LIMIT = int(os.environ.get("ODDS_SPORTS_LIMIT", "12"))
 ODDS_TTL_PREMATCH = int(os.environ.get("ODDS_TTL_PREMATCH", "300"))
+
+# Filtra lo que no sirva, así una variable mal puesta no deja la app sin cuotas
+_pedidos = [m.strip() for m in ODDS_MARKETS.split(",") if m.strip()]
+_invalidos = [m for m in _pedidos if m not in MERCADOS_VALIDOS]
+if _invalidos:
+    log.error(f"ODDS_MARKETS tiene mercados no soportados por el endpoint "
+              f"masivo: {_invalidos}. Se ignoran.")
+    _pedidos = [m for m in _pedidos if m in MERCADOS_VALIDOS]
+ODDS_MARKETS = ",".join(_pedidos) or "h2h"
 
 def parse_markets(ev):
     """
@@ -1040,19 +1061,17 @@ async def all_markets():
     result = {"sports": []}
 
     async def fetch_sport(sport_key):
+        url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/"
+        base = {"apiKey": ODDS_API_KEY, "regions": "eu",
+                "oddsFormat": "decimal", "dateFormat": "iso"}
         data = await asyncio.to_thread(
-            sync_get,
-            f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
-            {
-                "apiKey": ODDS_API_KEY,
-                "regions": "eu",
-                "markets": ODDS_MARKETS,
-                "oddsFormat": "decimal",
-                "dateFormat": "iso",
-            },
-            None,
-            15,
-        )
+            sync_get, url, {**base, "markets": ODDS_MARKETS}, None, 15)
+        # Red de seguridad: si el combo de mercados no le gusta a este deporte,
+        # al menos traemos el 1X2 en vez de dejar la pantalla vacía.
+        if data is None and ODDS_MARKETS != "h2h":
+            log.warning(f"{sport_key}: falló con '{ODDS_MARKETS}', reintento h2h")
+            data = await asyncio.to_thread(
+                sync_get, url, {**base, "markets": "h2h"}, None, 15)
         return sport_key, data
 
     sport_data = {}
