@@ -416,8 +416,44 @@ FOOTBALL_TTL = 30  # 30 segundos de caché
 # Los mercados adicionales van por /events/{id}/odds, uno por evento.
 MERCADOS_VALIDOS  = {"h2h", "spreads", "totals", "outrights"}
 ODDS_MARKETS      = os.environ.get("ODDS_MARKETS", "h2h,totals,spreads")
-ODDS_SPORTS_LIMIT = int(os.environ.get("ODDS_SPORTS_LIMIT", "12"))
-ODDS_TTL_PREMATCH = int(os.environ.get("ODDS_TTL_PREMATCH", "300"))
+# Plan de 15M créditos/mes: no hace falta racionar. Todo al tope.
+ODDS_SPORTS_LIMIT = int(os.environ.get("ODDS_SPORTS_LIMIT", "80"))
+ODDS_TTL_PREMATCH = int(os.environ.get("ODDS_TTL_PREMATCH", "120"))
+ODDS_TTL_LIVE     = int(os.environ.get("ODDS_TTL_LIVE", "30"))
+ODDS_FULL_TOP     = int(os.environ.get("ODDS_FULL_TOP", "80"))
+ODDS_MAX_EVENTOS  = int(os.environ.get("ODDS_MAX_EVENTOS", "40"))
+# En vivo refresca cada 30s. Con los 80 deportes se iría a 20M/mes,
+# así que acá van los que de verdad se juegan en vivo.
+ODDS_LIVE_SPORTS  = int(os.environ.get("ODDS_LIVE_SPORTS", "25"))
+
+# Mercados adicionales: NO viajan en el endpoint masivo, hay que pedirlos
+# evento por evento. Por eso se traen a demanda cuando el usuario despliega
+# un partido, y no de entrada para todo el catálogo.
+# Candidatos de mercados adicionales. NO todos existen para todo deporte
+# ni en toda región: el endpoint por evento los prueba y se queda con los
+# que responden. /api/_diag/mercados/{sport}/{event} dice cuáles hay de verdad.
+MERCADOS_CANDIDATOS = [
+    # Resultado
+    "btts", "draw_no_bet", "double_chance", "h2h_3_way",
+    # Líneas alternativas
+    "alternate_totals", "alternate_spreads",
+    "team_totals", "alternate_team_totals",
+    # Córners
+    "totals_corners", "alternate_totals_corners", "spreads_corners",
+    # Tarjetas
+    "totals_cards", "alternate_totals_cards", "spreads_cards",
+    # Goleadores
+    "player_goal_scorer_anytime", "player_first_goal_scorer",
+    "player_last_goal_scorer",
+    # Otros de jugador
+    "player_shots_on_target", "player_shots", "player_assists",
+]
+MERCADOS_EXTRA = os.environ.get(
+    "ODDS_MERCADOS_EXTRA", ",".join(MERCADOS_CANDIDATOS))
+
+# Los props de jugador suelen estar solo en casas de UK/US, no en EU
+ODDS_REGIONS_EXTRA = os.environ.get("ODDS_REGIONS_EXTRA", "eu,uk,us")
+ODDS_TTL_EVENTO = int(os.environ.get("ODDS_TTL_EVENTO", "120"))
 
 # Filtra lo que no sirva, así una variable mal puesta no deja la app sin cuotas
 _pedidos = [m.strip() for m in ODDS_MARKETS.split(",") if m.strip()]
@@ -606,6 +642,228 @@ async def team_logo_by_name(name: str):
     except Exception as e:
         log.error(f"Team search error: {e}")
     return {"teamId": None}
+
+
+# ── DEPORTES: prioridad y nombres en español ──────────────────
+# Se piden en este orden. Lo que no entre en ODDS_SPORTS_LIMIT queda afuera,
+# así que arriba va lo que más se juega acá.
+PRIORIDAD_SPORTS = [
+    "soccer_argentina_primera_division",
+    "soccer_conmebol_copa_libertadores",
+    "soccer_conmebol_copa_sudamericana",
+    "soccer_uefa_champs_league",
+    "soccer_brazil_campeonato",
+    "soccer_spain_la_liga",
+    "soccer_epl",
+    "soccer_italy_serie_a",
+    "soccer_fifa_world_cup",
+    "basketball_nba",
+    "tennis_atp_wimbledon",
+    "mma_mixed_martial_arts",
+    "soccer_germany_bundesliga",
+    "soccer_france_ligue_one",
+    "soccer_mexico_ligamx",
+    "soccer_usa_mls",
+    "americanfootball_nfl",
+    "baseball_mlb",
+]
+
+# Nombre e ícono en español por liga
+SPORT_NAMES = {
+    "soccer_argentina_primera_division": {"name":"Liga Argentina",     "icon":"🇦🇷"},
+    "soccer_conmebol_copa_libertadores": {"name":"Libertadores",       "icon":"🏆"},
+    "soccer_conmebol_copa_sudamericana": {"name":"Sudamericana",       "icon":"🏆"},
+    "soccer_uefa_champs_league":         {"name":"Champions",          "icon":"⭐"},
+    "soccer_uefa_europa_league":         {"name":"Europa League",      "icon":"🌍"},
+    "soccer_brazil_campeonato":          {"name":"Brasileirão",        "icon":"🇧🇷"},
+    "soccer_spain_la_liga":              {"name":"La Liga",            "icon":"🇪🇸"},
+    "soccer_epl":                        {"name":"Premier League",     "icon":"🏴"},
+    "soccer_italy_serie_a":              {"name":"Serie A",            "icon":"🇮🇹"},
+    "soccer_germany_bundesliga":         {"name":"Bundesliga",         "icon":"🇩🇪"},
+    "soccer_france_ligue_one":           {"name":"Ligue 1",            "icon":"🇫🇷"},
+    "soccer_portugal_primeira_liga":     {"name":"Liga Portugal",      "icon":"🇵🇹"},
+    "soccer_netherlands_eredivisie":     {"name":"Eredivisie",         "icon":"🇳🇱"},
+    "soccer_mexico_ligamx":              {"name":"Liga MX",            "icon":"🇲🇽"},
+    "soccer_usa_mls":                    {"name":"MLS",                "icon":"🇺🇸"},
+    "soccer_chile_campeonato":           {"name":"Liga de Chile",      "icon":"🇨🇱"},
+    "soccer_fifa_world_cup":             {"name":"Mundial",            "icon":"🌎"},
+    "basketball_nba":                    {"name":"NBA",                "icon":"🏀"},
+    "basketball_euroleague":             {"name":"Euroliga",           "icon":"🏀"},
+    "basketball_wnba":                   {"name":"WNBA",               "icon":"🏀"},
+    "basketball_ncaab":                  {"name":"Básquet NCAA",       "icon":"🏀"},
+    "americanfootball_nfl":              {"name":"NFL",                "icon":"🏈"},
+    "americanfootball_ncaaf":            {"name":"NCAA Fútbol Am.",    "icon":"🏈"},
+    "baseball_mlb":                      {"name":"Béisbol MLB",        "icon":"⚾"},
+    "icehockey_nhl":                     {"name":"Hockey NHL",         "icon":"🏒"},
+    "mma_mixed_martial_arts":            {"name":"MMA / UFC",          "icon":"🥊"},
+    "boxing_boxing":                     {"name":"Boxeo",              "icon":"🥊"},
+    "tennis_atp_wimbledon":              {"name":"Tenis · Wimbledon",  "icon":"🎾"},
+    "tennis_atp_us_open":                {"name":"Tenis · US Open",    "icon":"🎾"},
+    "tennis_atp_french_open":            {"name":"Tenis · Roland G.",  "icon":"🎾"},
+    "tennis_atp_aus_open":               {"name":"Tenis · Australia",  "icon":"🎾"},
+    "rugbyleague_nrl":                   {"name":"Rugby NRL",          "icon":"🏉"},
+    "cricket_international_t20":         {"name":"Críquet T20",        "icon":"🏏"},
+    "aussierules_afl":                   {"name":"Fútbol Australiano", "icon":"🏉"},
+}
+
+# Traducción de la parte genérica para las ligas que no estén en el mapa
+_GRUPOS_ES = {
+    "soccer":"Fútbol", "basketball":"Básquet", "baseball":"Béisbol",
+    "americanfootball":"Fútbol Am.", "icehockey":"Hockey", "tennis":"Tenis",
+    "mma":"MMA", "boxing":"Boxeo", "cricket":"Críquet", "golf":"Golf",
+    "rugbyleague":"Rugby", "rugbyunion":"Rugby", "aussierules":"F. Australiano",
+    "lacrosse":"Lacrosse", "politics":"Política",
+}
+_ICONOS_ES = {
+    "soccer":"⚽", "basketball":"🏀", "baseball":"⚾", "americanfootball":"🏈",
+    "icehockey":"🏒", "tennis":"🎾", "mma":"🥊", "boxing":"🥊",
+    "cricket":"🏏", "golf":"⛳", "rugbyleague":"🏉", "rugbyunion":"🏉",
+    "aussierules":"🏉",
+}
+
+# Se llena en all_markets y lo reusa live_combined
+SPORTS_ACTIVOS = []
+
+
+async def listar_deportes_activos():
+    """Deportes con eventos hoy, sin outrights. Cacheado 1 hora."""
+    global SPORTS_ACTIVOS
+    now = time.time()
+    cached = _football_cache.get("sports_list")
+    if cached and now - cached[1] < 3600:
+        SPORTS_ACTIVOS = cached[0]
+        return SPORTS_ACTIVOS
+
+    data = await asyncio.to_thread(
+        sync_get, "https://api.the-odds-api.com/v4/sports/",
+        {"apiKey": os.environ.get("ODDS_API_KEY","")}, None, 15)
+    if not data:
+        return SPORTS_ACTIVOS or list(PRIORIDAD_SPORTS)
+
+    activos = [x["key"] for x in data
+               if x.get("active") and not x.get("has_outrights", False)]
+    # Primero lo que más se juega acá, después todo el resto
+    orden, vistos = [], set()
+    for k in PRIORIDAD_SPORTS:
+        if k in activos:
+            orden.append(k); vistos.add(k)
+    orden += [k for k in activos if k not in vistos]
+
+    SPORTS_ACTIVOS = orden[:ODDS_SPORTS_LIMIT]
+    _football_cache["sports_list"] = (SPORTS_ACTIVOS, now)
+    log.info(f"Deportes activos: {len(SPORTS_ACTIVOS)} de {len(activos)}")
+    return SPORTS_ACTIVOS
+
+
+def nombre_deporte(sport_key):
+    """Nombre e ícono en español; si la liga no está mapeada, arma uno legible."""
+    if sport_key in SPORT_NAMES:
+        return SPORT_NAMES[sport_key]
+    grupo, _, resto = sport_key.partition("_")
+    etiqueta = _GRUPOS_ES.get(grupo, grupo.title())
+    if resto:
+        etiqueta += " · " + resto.replace("_", " ").title()
+    return {"name": etiqueta, "icon": _ICONOS_ES.get(grupo, "🎯")}
+
+
+@app.get("/api/live/prematch")
+async def prematch_odds():
+    """
+    Alias de /api/live/all-markets.
+
+    Antes este endpoint tenía su propia lista de 6 ligas y pedía solo h2h:
+    por eso el panel de agencia mostraba menos partidos y ningún mercado
+    extra. Ahora las dos pantallas ven exactamente lo mismo.
+    """
+    return await all_markets()
+
+
+# ── DEPORTES: prioridad y nombres en español ──────────────────
+# Se piden en este orden. Lo que no entre en ODDS_SPORTS_LIMIT queda afuera,
+# así que arriba va lo que más se juega acá.
+PRIORIDAD_SPORTS = [
+    "soccer_argentina_primera_division",
+    "soccer_conmebol_copa_libertadores",
+    "soccer_conmebol_copa_sudamericana",
+    "soccer_uefa_champs_league",
+    "soccer_brazil_campeonato",
+    "soccer_spain_la_liga",
+    "soccer_epl",
+    "soccer_italy_serie_a",
+    "soccer_fifa_world_cup",
+    "basketball_nba",
+    "tennis_atp_wimbledon",
+    "mma_mixed_martial_arts",
+    "soccer_germany_bundesliga",
+    "soccer_france_ligue_one",
+    "soccer_mexico_ligamx",
+    "soccer_usa_mls",
+    "americanfootball_nfl",
+    "baseball_mlb",
+]
+
+# Nombre e ícono en español por liga
+SPORT_NAMES = {
+    "soccer_argentina_primera_division": {"name":"Liga Argentina",     "icon":"🇦🇷"},
+    "soccer_conmebol_copa_libertadores": {"name":"Libertadores",       "icon":"🏆"},
+    "soccer_conmebol_copa_sudamericana": {"name":"Sudamericana",       "icon":"🏆"},
+    "soccer_uefa_champs_league":         {"name":"Champions",          "icon":"⭐"},
+    "soccer_uefa_europa_league":         {"name":"Europa League",      "icon":"🌍"},
+    "soccer_brazil_campeonato":          {"name":"Brasileirão",        "icon":"🇧🇷"},
+    "soccer_spain_la_liga":              {"name":"La Liga",            "icon":"🇪🇸"},
+    "soccer_epl":                        {"name":"Premier League",     "icon":"🏴"},
+    "soccer_italy_serie_a":              {"name":"Serie A",            "icon":"🇮🇹"},
+    "soccer_germany_bundesliga":         {"name":"Bundesliga",         "icon":"🇩🇪"},
+    "soccer_france_ligue_one":           {"name":"Ligue 1",            "icon":"🇫🇷"},
+    "soccer_portugal_primeira_liga":     {"name":"Liga Portugal",      "icon":"🇵🇹"},
+    "soccer_netherlands_eredivisie":     {"name":"Eredivisie",         "icon":"🇳🇱"},
+    "soccer_mexico_ligamx":              {"name":"Liga MX",            "icon":"🇲🇽"},
+    "soccer_usa_mls":                    {"name":"MLS",                "icon":"🇺🇸"},
+    "soccer_chile_campeonato":           {"name":"Liga de Chile",      "icon":"🇨🇱"},
+    "soccer_fifa_world_cup":             {"name":"Mundial",            "icon":"🌎"},
+    "basketball_nba":                    {"name":"NBA",                "icon":"🏀"},
+    "basketball_euroleague":             {"name":"Euroliga",           "icon":"🏀"},
+    "basketball_wnba":                   {"name":"WNBA",               "icon":"🏀"},
+    "basketball_ncaab":                  {"name":"Básquet NCAA",       "icon":"🏀"},
+    "americanfootball_nfl":              {"name":"NFL",                "icon":"🏈"},
+    "americanfootball_ncaaf":            {"name":"NCAA Fútbol Am.",    "icon":"🏈"},
+    "baseball_mlb":                      {"name":"Béisbol MLB",        "icon":"⚾"},
+    "icehockey_nhl":                     {"name":"Hockey NHL",         "icon":"🏒"},
+    "mma_mixed_martial_arts":            {"name":"MMA / UFC",          "icon":"🥊"},
+    "boxing_boxing":                     {"name":"Boxeo",              "icon":"🥊"},
+    "tennis_atp_wimbledon":              {"name":"Tenis · Wimbledon",  "icon":"🎾"},
+    "tennis_atp_us_open":                {"name":"Tenis · US Open",    "icon":"🎾"},
+    "tennis_atp_french_open":            {"name":"Tenis · Roland G.",  "icon":"🎾"},
+    "tennis_atp_aus_open":               {"name":"Tenis · Australia",  "icon":"🎾"},
+    "rugbyleague_nrl":                   {"name":"Rugby NRL",          "icon":"🏉"},
+    "cricket_international_t20":         {"name":"Críquet T20",        "icon":"🏏"},
+    "aussierules_afl":                   {"name":"Fútbol Australiano", "icon":"🏉"},
+}
+
+# Traducción de la parte genérica para las ligas que no estén en el mapa
+_GRUPOS_ES = {
+    "soccer":"Fútbol", "basketball":"Básquet", "baseball":"Béisbol",
+    "americanfootball":"Fútbol Am.", "icehockey":"Hockey", "tennis":"Tenis",
+    "mma":"MMA", "boxing":"Boxeo", "cricket":"Críquet", "golf":"Golf",
+    "rugbyleague":"Rugby", "rugbyunion":"Rugby", "aussierules":"F. Australiano",
+    "lacrosse":"Lacrosse", "politics":"Política",
+}
+_ICONOS_ES = {
+    "soccer":"⚽", "basketball":"🏀", "baseball":"⚾", "americanfootball":"🏈",
+    "icehockey":"🏒", "tennis":"🎾", "mma":"🥊", "boxing":"🥊",
+    "cricket":"🏏", "golf":"⛳", "rugbyleague":"🏉", "rugbyunion":"🏉",
+    "aussierules":"🏉",
+}
+
+def nombre_deporte(sport_key):
+    """Nombre e ícono en español; si la liga no está mapeada, arma uno legible."""
+    if sport_key in SPORT_NAMES:
+        return SPORT_NAMES[sport_key]
+    grupo, _, resto = sport_key.partition("_")
+    etiqueta = _GRUPOS_ES.get(grupo, grupo.title())
+    if resto:
+        etiqueta += " · " + resto.replace("_", " ").title()
+    return {"name": etiqueta, "icon": _ICONOS_ES.get(grupo, "🎯")}
 
 
 @app.get("/api/live/prematch")
@@ -823,135 +1081,138 @@ async def validar_cuotas(picks):
 @app.get("/api/live/combined")
 async def live_combined():
     """
-    Combina scores en vivo (Football API) con cuotas en vivo (The Odds API)
-    Devuelve partidos en vivo con marcador + cuotas reales
+    Partidos EN VIVO, apostables.
+
+    Antes esto salía del feed de scores y después buscaba cuotas por nombre:
+    si el cruce fallaba, el partido aparecía sin botones y no se podía
+    apostar. Ahora la fuente de verdad son las CUOTAS — si The Odds API
+    ofrece precio para un evento ya empezado, es apostable. El marcador
+    es un adorno que se suma cuando se puede cruzar.
     """
     ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
     now = time.time()
     cache_key = "live_combined"
     if cache_key in _football_cache:
         data, ts = _football_cache[cache_key]
-        if now - ts < 30:  # 30 seg cache
+        if now - ts < ODDS_TTL_LIVE:
             return data
 
-    # 1. Traer scores en vivo de Football API
+    ahora = datetime.now(timezone.utc)
+
+    # 1. Eventos con cuota de los deportes prioritarios
+    async def _fetch(sk):
+        return sk, await asyncio.to_thread(
+            sync_get,
+            f"https://api.the-odds-api.com/v4/sports/{sk}/odds/",
+            {"apiKey": ODDS_API_KEY, "regions": "eu",
+             "markets": ODDS_MARKETS, "oddsFormat": "decimal",
+             "dateFormat": "iso"},
+            None, 12)
+
+    en_vivo = []
+    deportes = (await listar_deportes_activos())[:ODDS_LIVE_SPORTS]
+    try:
+        pares = await asyncio.gather(*[_fetch(sk) for sk in deportes],
+                                     return_exceptions=True)
+    except Exception as e:
+        log.error(f"Live fetch error: {e}")
+        pares = []
+
+    for par in pares:
+        if isinstance(par, Exception) or not par:
+            continue
+        sk, data = par
+        if not data:
+            continue
+        meta = nombre_deporte(sk)
+        for ev in data:
+            # Ya empezado = en vivo
+            try:
+                comienzo = datetime.fromisoformat(
+                    ev.get("commence_time","").replace("Z","+00:00"))
+            except Exception:
+                continue
+            if comienzo > ahora:
+                continue
+            markets = parse_markets(ev)
+            home = ev.get("home_team","")
+            away = ev.get("away_team","")
+            h2h  = markets.get("h2h", {})
+            odds = {"L": h2h.get(home), "E": h2h.get("Draw"), "V": h2h.get(away)}
+            if odds["L"] is None and odds["V"] is None:
+                continue   # sin precio no hay apuesta posible
+            en_vivo.append({
+                "id":        ev.get("id",""),
+                "sport_key": sk,
+                "home":      home,
+                "away":      away,
+                "homeId":    None,
+                "awayId":    None,
+                "homeScore": None,
+                "awayScore": None,
+                "scoreStr":  "",
+                "minute":    "",
+                "minuteLong":"",
+                "liga":      meta["name"],
+                "icon":      meta["icon"],
+                "status":    "live",
+                "ongoing":   True,
+                "markets":   markets,
+                "odds":      odds,
+                "hasOdds":   True,
+                "hasScore":  False,
+            })
+
+    # 2. Marcadores del feed de fútbol, si se pueden cruzar
     live_scores = []
     try:
-        async with httpx.AsyncClient(timeout=10) as c:
-            r = await c.get(
-                f"{FOOTBALL_API}/football-current-live",
-                headers=FOOTBALL_HEADERS,
-            )
+        async with httpx.AsyncClient(timeout=8) as c:
+            r = await c.get(f"{FOOTBALL_API}/football-current-live",
+                            headers=FOOTBALL_HEADERS)
             if r.status_code == 200:
-                data = r.json()
-                live_scores = data.get("response",{}).get("live",[])
+                live_scores = r.json().get("response",{}).get("live",[])
     except Exception as e:
         log.error(f"Football live error: {e}")
 
-    # Sin partidos en curso no tiene sentido gastar créditos de The Odds API
-    if not live_scores:
-        empty = {"matches": [], "count": 0}
-        _football_cache[cache_key] = (empty, now)
-        return empty
-
-    # 2. Traer cuotas en vivo de The Odds API (todos los deportes)
-    live_odds = {}
-    LIVE_SPORTS = [
-        "soccer_argentina_primera_division",
-        "soccer_fifa_world_cup",
-        "soccer_uefa_champs_league",
-        "soccer_spain_la_liga",
-        "soccer_epl",
-        "basketball_nba",
-        "americanfootball_nfl",
-        "mma_mixed_martial_arts",
-    ]
-    try:
-        async with httpx.AsyncClient(timeout=15) as c:
-            for sport_key in LIVE_SPORTS:
-                r = await c.get(
-                    f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/",
-                    params={
-                        "apiKey": ODDS_API_KEY,
-                        "regions": "eu",
-                        "markets": "h2h",
-                        "oddsFormat": "decimal",
-                        "dateFormat": "iso",
-                    }
-                )
-                if r.status_code == 200:
-                    for ev in r.json():
-                        home = ev.get("home_team","")
-                        away = ev.get("away_team","")
-                        h_odd=None; d_odd=None; a_odd=None
-                        for bm in ev.get("bookmakers",[]):
-                            for mkt in bm.get("markets",[]):
-                                if mkt["key"]=="h2h":
-                                    for o in mkt.get("outcomes",[]):
-                                        if o["name"]==home: h_odd=round(o["price"],2)
-                                        elif o["name"]==away: a_odd=round(o["price"],2)
-                                        elif o["name"]=="Draw": d_odd=round(o["price"],2)
-                                    break
-                            if h_odd: break
-                        if h_odd:
-                            live_odds[f"{home}|{away}"] = {
-                                "L": h_odd, "E": d_odd, "V": a_odd,
-                                "sport": sport_key,
-                            }
-                await asyncio.sleep(0.2)
-    except Exception as e:
-        log.error(f"Odds live error: {e}")
-
-    # 3. Combinar scores + cuotas
-    result = []
-    sin_match = []   # para el endpoint de diagnóstico
-    for match in live_scores:
-        home_name = match.get("home",{}).get("name","")
-        away_name = match.get("away",{}).get("name","")
-
-        # Buscar cuotas por nombre. Los dos feeds no coinciden en qué equipo
-        # ponen de local, así que probamos las dos orientaciones y damos
-        # vuelta las cuotas cuando el match es invertido.
-        odds = {"L": None, "E": None, "V": None}
-        for key, od in live_odds.items():
-            partes = key.split("|")
-            if len(partes) != 2:
+    sin_score = []
+    for ev in en_vivo:
+        for m in live_scores:
+            mh = m.get("home",{}).get("name","")
+            ma = m.get("away",{}).get("name","")
+            invertido = False
+            if match_teams(ev["home"], mh) and match_teams(ev["away"], ma):
+                pass
+            elif match_teams(ev["home"], ma) and match_teams(ev["away"], mh):
+                invertido = True
+            else:
                 continue
-            if match_teams(home_name, partes[0]) and match_teams(away_name, partes[1]):
-                odds = {"L": od["L"], "E": od["E"], "V": od["V"]}
-                break
-            if match_teams(home_name, partes[1]) and match_teams(away_name, partes[0]):
-                odds = {"L": od["V"], "E": od["E"], "V": od["L"]}
-                break
+            hs = m.get("home",{}).get("score", 0)
+            as_ = m.get("away",{}).get("score", 0)
+            ev["homeScore"]  = as_ if invertido else hs
+            ev["awayScore"]  = hs  if invertido else as_
+            ev["homeId"]     = m.get("away" if invertido else "home",{}).get("id")
+            ev["awayId"]     = m.get("home" if invertido else "away",{}).get("id")
+            ev["minute"]     = m.get("liveTime",{}).get("short","")
+            ev["minuteLong"] = m.get("liveTime",{}).get("long","")
+            ev["scoreStr"]   = m.get("scoreStr","")
+            ev["hasScore"]   = True
+            break
+        else:
+            sin_score.append(f"{ev['home']} vs {ev['away']}")
 
-        if odds["L"] is None:
-            sin_match.append(f"{home_name} vs {away_name}")
+    en_vivo.sort(key=lambda e: (not e["hasScore"], e["liga"], e["home"]))
 
-        result.append({
-            "id":        str(match.get("id","")),
-            "home":      home_name,
-            "away":      away_name,
-            "homeId":    match.get("home",{}).get("id"),
-            "awayId":    match.get("away",{}).get("id"),
-            "homeScore": match.get("home",{}).get("score",0),
-            "awayScore": match.get("away",{}).get("score",0),
-            "scoreStr":  match.get("scoreStr","0 - 0"),
-            "minute":    match.get("liveTime",{}).get("short",""),
-            "minuteLong":match.get("liveTime",{}).get("long",""),
-            "status":    "live",
-            "ongoing":   match.get("ongoing",True),
-            "odds":      odds,
-            "hasOdds":   odds["L"] is not None,
-        })
-
-    if sin_match:
-        log.info(f"Live sin cuotas ({len(sin_match)}): {sin_match[:5]}")
+    if sin_score:
+        log.info(f"Live sin marcador ({len(sin_score)}): {sin_score[:5]}")
     _football_cache["live_sin_match"] = (
-        {"sin_cuotas": sin_match,
-         "claves_odds": sorted(live_odds.keys())[:40]}, now)
+        {"sin_cuotas": sin_score,
+         "claves_odds": [f"{m.get('home',{}).get('name','')}|"
+                         f"{m.get('away',{}).get('name','')}"
+                         for m in live_scores][:40]}, now)
 
-    _football_cache[cache_key] = ({"matches": result, "count": len(result)}, now)
-    return {"matches": result, "count": len(result)}
+    salida = {"matches": en_vivo, "count": len(en_vivo)}
+    _football_cache[cache_key] = (salida, now)
+    return salida
 
 
 @app.get("/api/_diag/live")
@@ -978,6 +1239,113 @@ async def diag_creditos(_=Depends(auth.require_admin)):
         "sports_limit": ODDS_SPORTS_LIMIT,
         "ttl_prematch_seg": ODDS_TTL_PREMATCH,
     }
+
+
+@app.get("/api/event/{sport_key}/{event_id}/markets")
+async def event_markets(sport_key: str, event_id: str):
+    """
+    TODOS los mercados de un evento: destacados + adicionales
+    (ambos anotan, córners, tarjetas, goleadores, líneas alternativas).
+
+    The Odds API no acepta estos mercados en el endpoint masivo y tampoco
+    ofrece una forma de preguntar cuáles existen para un evento dado.
+    Así que se piden todos juntos y, si rebota, de a uno: nos quedamos con
+    los que respondan. Lo que no exista simplemente no aparece.
+    """
+    ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
+    cache_key = f"evmkt_{event_id}"
+    now = time.time()
+    if cache_key in _football_cache:
+        data, ts = _football_cache[cache_key]
+        if now - ts < ODDS_TTL_EVENTO:
+            return data
+
+    url = (f"https://api.the-odds-api.com/v4/sports/{sport_key}"
+           f"/events/{event_id}/odds/")
+    base = {"apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS_EXTRA,
+            "oddsFormat": "decimal", "dateFormat": "iso"}
+
+    combinado, disponibles, rechazados = {}, [], []
+    home = away = ""
+
+    # Intento 1: todo junto (1 request si el deporte los soporta todos)
+    todos = f"{ODDS_MARKETS},{MERCADOS_EXTRA}"
+    data = await asyncio.to_thread(sync_get, url, {**base, "markets": todos}, None, 15)
+    if data:
+        combinado = parse_markets(data)
+        disponibles = sorted(combinado.keys())
+        home, away = data.get("home_team",""), data.get("away_team","")
+    else:
+        # Intento 2: de a uno, en paralelo, para ver cuáles existen
+        async def probar(m):
+            d = await asyncio.to_thread(
+                sync_get, url, {**base, "markets": m}, None, 10)
+            return m, d
+
+        candidatos = [m.strip() for m in todos.split(",") if m.strip()]
+        resultados = await asyncio.gather(*[probar(m) for m in candidatos],
+                                          return_exceptions=True)
+        for r in resultados:
+            if isinstance(r, Exception) or not r:
+                continue
+            m, d = r
+            if not d:
+                rechazados.append(m)
+                continue
+            if not home:
+                home, away = d.get("home_team",""), d.get("away_team","")
+            for k, v in parse_markets(d).items():
+                combinado.setdefault(k, {}).update(v)
+                if k not in disponibles:
+                    disponibles.append(k)
+        disponibles.sort()
+
+    salida = {
+        "markets":     combinado,
+        "disponibles": disponibles,
+        "sin_datos":   rechazados,
+        "event_id":    event_id,
+        "home": home, "away": away,
+    }
+    _football_cache[cache_key] = (salida, now)
+    return salida
+
+
+@app.get("/api/_diag/mercados/{sport_key}/{event_id}")
+async def diag_mercados(sport_key: str, event_id: str,
+                        _=Depends(auth.require_admin)):
+    """
+    Prueba uno por uno qué mercados existen de verdad para este evento.
+    Sirve para saber si tu plan y tus casas ofrecen córners, tarjetas
+    o goleadores antes de prometerlos en pantalla.
+    """
+    ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
+    url = (f"https://api.the-odds-api.com/v4/sports/{sport_key}"
+           f"/events/{event_id}/odds/")
+    base = {"apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS_EXTRA,
+            "oddsFormat": "decimal", "dateFormat": "iso"}
+
+    async def probar(m):
+        d = await asyncio.to_thread(sync_get, url, {**base, "markets": m}, None, 10)
+        if not d:
+            return m, None
+        mk = parse_markets(d)
+        return m, {k: len(v) for k, v in mk.items()}
+
+    res = await asyncio.gather(
+        *[probar(m) for m in MERCADOS_CANDIDATOS], return_exceptions=True)
+
+    hay, no_hay = {}, []
+    for r in res:
+        if isinstance(r, Exception) or not r:
+            continue
+        m, info = r
+        if info:
+            hay[m] = info
+        else:
+            no_hay.append(m)
+    return {"con_datos": hay, "sin_datos": no_hay,
+            "regiones": ODDS_REGIONS_EXTRA}
 
 
 @app.get("/api/live/markets/{sport_key}")
@@ -1020,56 +1388,28 @@ async def all_markets():
         if now - ts < ODDS_TTL_PREMATCH:
             return data
 
-    # Obtener deportes activos sin bloquear el event loop
-    SPORTS = []
-    all_sports_data = await asyncio.to_thread(
-        sync_get,
-        "https://api.the-odds-api.com/v4/sports/",
-        {"apiKey": ODDS_API_KEY},
-        None,
-        15,
-    )
-    if all_sports_data:
-        for s in all_sports_data:
-            if s.get("active") and not s.get("has_outrights", False) and len(SPORTS) < ODDS_SPORTS_LIMIT:
-                SPORTS.append(s["key"])
-        log.info(f"Sports activos: {len(SPORTS)} — {SPORTS[:5]}")
-    else:
-        SPORTS = [
-            "baseball_mlb","basketball_wnba","americanfootball_nfl",
-            "soccer_usa_mls","soccer_argentina_primera_division",
-            "tennis_atp_wimbledon","mma_mixed_martial_arts",
-            "aussierules_afl","cricket_international_t20",
-        ]
-        log.warning("Usando sports fallback")
+    SPORTS = await listar_deportes_activos()
 
     log.info(f"Fetching markets for {len(SPORTS)} sports")
 
-    SPORT_NAMES = {
-        "soccer_argentina_primera_division": {"name":"Liga Argentina","icon":"🇦🇷"},
-        "soccer_fifa_world_cup":             {"name":"Mundial 2026",  "icon":"🏆"},
-        "soccer_uefa_champs_league":         {"name":"Champions",     "icon":"⚽"},
-        "soccer_spain_la_liga":              {"name":"La Liga",       "icon":"🇪🇸"},
-        "soccer_epl":                        {"name":"Premier",       "icon":"🏴"},
-        "basketball_nba":                    {"name":"NBA",           "icon":"🏀"},
-        "americanfootball_nfl":              {"name":"NFL",           "icon":"🏈"},
-        "mma_mixed_martial_arts":            {"name":"MMA/UFC",       "icon":"🥊"},
-        "icehockey_nhl":                     {"name":"NHL",           "icon":"🏒"},
-        "tennis_atp_wimbledon":              {"name":"Wimbledon",     "icon":"🎾"},
-    }
 
     result = {"sports": []}
+
+    # Los primeros ODDS_FULL_TOP llevan todos los mercados; el resto solo 1X2.
+    # Así entra TODO el catálogo sin triplicar el gasto de créditos.
+    completos = set(SPORTS[:ODDS_FULL_TOP])
 
     async def fetch_sport(sport_key):
         url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/"
         base = {"apiKey": ODDS_API_KEY, "regions": "eu",
                 "oddsFormat": "decimal", "dateFormat": "iso"}
+        mkts = ODDS_MARKETS if sport_key in completos else "h2h"
         data = await asyncio.to_thread(
-            sync_get, url, {**base, "markets": ODDS_MARKETS}, None, 15)
+            sync_get, url, {**base, "markets": mkts}, None, 15)
         # Red de seguridad: si el combo de mercados no le gusta a este deporte,
         # al menos traemos el 1X2 en vez de dejar la pantalla vacía.
-        if data is None and ODDS_MARKETS != "h2h":
-            log.warning(f"{sport_key}: falló con '{ODDS_MARKETS}', reintento h2h")
+        if data is None and mkts != "h2h":
+            log.warning(f"{sport_key}: falló con '{mkts}', reintento h2h")
             data = await asyncio.to_thread(
                 sync_get, url, {**base, "markets": "h2h"}, None, 15)
         return sport_key, data
@@ -1092,7 +1432,7 @@ async def all_markets():
         for sport_key in SPORTS:
             events_raw_data = sport_data.get(sport_key)
             if events_raw_data is not None:
-                events_raw = events_raw_data[:8]
+                events_raw = events_raw_data[:ODDS_MAX_EVENTOS]
                 events = []
                 for ev in events_raw:
                     home = ev.get("home_team","")
@@ -1106,6 +1446,7 @@ async def all_markets():
                         fecha="--/-- --:--"
                     events.append({
                         "id": ev.get("id",""),
+                        "sport_key": sport_key,
                         "h": home, "a": away,
                         "time": fecha,
                         "markets": markets,
@@ -1116,7 +1457,7 @@ async def all_markets():
                         }
                     })
                 if events:
-                    meta = SPORT_NAMES.get(sport_key,{"name":sport_key,"icon":"⚽"})
+                    meta = nombre_deporte(sport_key)
                     result["sports"].append({
                         "key": sport_key,
                         "name": meta["name"],
