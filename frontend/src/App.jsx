@@ -24,7 +24,37 @@ const API = "https://amusing-vision-production.up.railway.app";
 const fmt = n => Number(n||0).toFixed(2);
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const prod = a => a.reduce((x,y)=>x*y,1);
-const genCode = () => "QP-" + Math.floor(10000+Math.random()*90000);
+// El código lo genera el servidor y queda guardado en la base.
+// Antes se sorteaba acá con Math.random() y no existía en ningún lado:
+// el cajero lo buscaba y siempre daba "no encontrado".
+async function crearBoleto(picks, infCode){
+  const body = {
+    picks: picks.map(p=>({
+      home: p.h || p.home || "",
+      away: p.a || p.away || "",
+      sel:  p.label || p.sel || "",
+      odd:  p.odd,
+      sport: p.sport || "",
+    })),
+  };
+  if(infCode) body.inf_code = infCode;
+
+  let r;
+  try {
+    r = await fetch(`${API}/api/betslip`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body),
+    });
+  } catch(e) {
+    throw new Error("Sin conexión con el servidor");
+  }
+  if(!r.ok){
+    const e = await r.json().catch(()=>({}));
+    throw new Error(e.detail || `Error ${r.status}`);
+  }
+  return r.json();
+}
 
 
 // ── COMPONENTS ────────────────────────────────────────────────
@@ -356,8 +386,9 @@ function AllMarketsView({ ev, bets, onToggle }){
 }
 
 // ── BETSLIP FLOTANTE ───────────────────────────────────────────
-function FloatingBetslip({ bets, onBet, onClear, color=Q.violet, live=false }){
+function FloatingBetslip({ bets, onBet, onClear, onLocal, color=Q.violet, live=false }){
   const [monto,setMonto]=useState(10000);
+  const [genCodigo,setGenCodigo]=useState(false);
   const tot=bets.length?prod(bets.map(b=>b.odd)):1;
   if(!bets.length) return null;
   return(
@@ -391,15 +422,15 @@ function FloatingBetslip({ bets, onBet, onClear, color=Q.violet, live=false }){
         <div style={{display:"flex",gap:6}}>
           <QBtn label={`APOSTAR ${ars(monto)}`} full color={color} size="lg"
             onClick={()=>onBet(bets,monto,tot)}/>
-          <button onClick={()=>{
-            // Generar código QP para ir al local
-            const code=genCode();
-            alert(`Código generado: ${code}\nLlevalo al local para apostar en efectivo.`);
+          <button disabled={genCodigo} onClick={async()=>{
+            setGenCodigo(true);
+            await onLocal(bets);
+            setGenCodigo(false);
           }} style={{
             background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.border}`,
-            borderRadius:12,padding:"0 12px",cursor:"pointer",color:Q.muted,
+            borderRadius:12,padding:"0 12px",cursor:genCodigo?"wait":"pointer",color:Q.muted,
             fontSize:11,fontFamily:"'Space Grotesk',system-ui",whiteSpace:"nowrap",
-          }}>🏪 Local</button>
+          }}>{genCodigo?"...":"🏪 Local"}</button>
         </div>
       </GCard>
     </div>
@@ -624,7 +655,7 @@ function ScreenSportsMenu({ onAction }){
 // ═══════════════════════════════════════════════════════════════
 // PANTALLA 3 — PREMATCH (datos reales + mercados expandidos)
 // ═══════════════════════════════════════════════════════════════
-function ScreenPrematch({ onAction, onBet }){
+function ScreenPrematch({ onAction, onBet, onLocal }){
   const [bets,setBets]=useState([]);
   const [sports,setSports]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -723,7 +754,8 @@ function ScreenPrematch({ onAction, onBet }){
         </BotMsg>
       </div>
 
-      <FloatingBetslip bets={bets} onBet={onBet} onClear={()=>setBets([])} color={Q.violet}/>
+      <FloatingBetslip bets={bets} onBet={onBet} onClear={()=>setBets([])}
+        onLocal={onLocal} color={Q.violet}/>
     </div>
   );
 }
@@ -731,7 +763,7 @@ function ScreenPrematch({ onAction, onBet }){
 // ═══════════════════════════════════════════════════════════════
 // PANTALLA 4 — EN VIVO (datos reales + mercados)
 // ═══════════════════════════════════════════════════════════════
-function ScreenLive({ onAction, onBet }){
+function ScreenLive({ onAction, onBet, onLocal }){
   const [bets,setBets]=useState([]);
   const [matches,setMatches]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -878,7 +910,8 @@ function ScreenLive({ onAction, onBet }){
         </BotMsg>
       </div>
 
-      <FloatingBetslip bets={bets} onBet={onBet} onClear={()=>setBets([])} color={Q.pink} live/>
+      <FloatingBetslip bets={bets} onBet={onBet} onClear={()=>setBets([])}
+        onLocal={onLocal} color={Q.pink} live/>
     </div>
   );
 }
@@ -1093,10 +1126,19 @@ function ScreenCombo({ onAction, onBet, refCode }){
   const tot = combo ? combo.picks.reduce((a,p)=>a*p.odd,1) : 1;
   const stake=10000;
 
-  const genQPCode=(c)=>{
-    const code=genCode();
-    setCodeGenerated(prev=>({...prev,[c.id]:code}));
-    return code;
+  const [genError,setGenError]=useState("");
+  const [generando,setGenerando]=useState(false);
+
+  const genQPCode=async(c)=>{
+    if(generando) return;
+    setGenError(""); setGenerando(true);
+    try {
+      const data = await crearBoleto(c.picks, refCode);
+      setCodeGenerated(prev=>({...prev,[c.id]:data.code}));
+    } catch(e){
+      setGenError(e.message||"No se pudo generar el código");
+    }
+    setGenerando(false);
   };
 
   return(
@@ -1198,12 +1240,17 @@ function ScreenCombo({ onAction, onBet, refCode }){
                 }}>⚡ APOSTAR {ars(stake)}</button>
 
                 {!codeGenerated[sel]?(
-                  <button onClick={()=>genQPCode(combo)} style={{
+                  <>
+                  <button disabled={generando} onClick={()=>genQPCode(combo)} style={{
                     width:"100%",background:"rgba(255,255,255,0.04)",
                     border:`1px solid ${Q.border}`,borderRadius:12,padding:"12px",
-                    color:Q.muted,fontWeight:600,fontSize:13,cursor:"pointer",
+                    color:Q.muted,fontWeight:600,fontSize:13,
+                    cursor:generando?"wait":"pointer",
                     fontFamily:"'Space Grotesk',system-ui",
-                  }}>🏪 Generar código para local</button>
+                  }}>{generando?"Generando...":"🏪 Generar código para local"}</button>
+                  {genError&&<div style={{color:Q.red,fontSize:11,marginTop:6,
+                    textAlign:"center",fontFamily:"'Space Grotesk',system-ui"}}>{genError}</div>}
+                  </>
                 ):(
                   <GCard glow={Q.green} style={{padding:"12px",textAlign:"center"}}>
                     <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>Código generado</div>
@@ -1260,9 +1307,8 @@ function ScreenCombo({ onAction, onBet, refCode }){
 // ═══════════════════════════════════════════════════════════════
 // PANTALLA 8 — APUESTA CONFIRMADA
 // ═══════════════════════════════════════════════════════════════
-function ScreenBetConfirmed({ bets, stake, odd, onAction }){
+function ScreenBetConfirmed({ bets, stake, odd, code, onAction }){
   const ret=Math.round(stake*odd);
-  const [code]=useState(genCode());
   return(
     <div style={{background:Q.void,minHeight:"100%",position:"relative"}}>
       <Particles count={14} c1={Q.green} c2={Q.violet}/>
@@ -1294,10 +1340,10 @@ function ScreenBetConfirmed({ bets, stake, odd, onAction }){
             </div>
           </GCard>
           <div style={{color:Q.amber,fontSize:11,marginBottom:10,fontFamily:"'Space Grotesk',system-ui"}}>
-            🔔 Te notificamos el resultado automáticamente
+            ⏳ El boleto queda reservado 24 horas
           </div>
           <div style={{color:Q.muted,fontSize:11,marginBottom:10,fontFamily:"'Space Grotesk',system-ui"}}>
-            💡 Podés cobrar con el código <strong style={{color:Q.cyan}}>{code}</strong> en cualquier agencia física
+            💡 Mostrá el código <strong style={{color:Q.cyan}}>{code}</strong> en la agencia y pagá el monto en efectivo
           </div>
           <QKB rows={[
             [{label:"🔴 Ver en vivo",action:"live",primary:true,color:Q.pink}],
@@ -1379,8 +1425,9 @@ const STEPS=[
 
 export default function QuartzSports(){
   const [screen,setScreen]=useState("canal");
-  const [betData,setBetData]=useState({bets:[],stake:10000,odd:1});
+  const [betData,setBetData]=useState({bets:[],stake:10000,odd:1,code:""});
   const [refCode,setRefCode]=useState(null);
+  const [errorGlobal,setErrorGlobal]=useState("");
 
   // Detectar código de influencer en la URL
   useEffect(()=>{
@@ -1408,9 +1455,29 @@ export default function QuartzSports(){
     if(map[action]) setScreen(map[action]);
   };
 
-  const confirmBet=(bets,stake,odd)=>{
-    setBetData({bets,stake,odd});
-    setScreen("confirmed");
+  // Apostar y "generar código" hacen lo mismo contra el servidor:
+  // crean un boleto pendiente. Cambia solo el mensaje al usuario.
+  const confirmBet=async(bets,stake,odd)=>{
+    setErrorGlobal("");
+    try {
+      const data = await crearBoleto(bets, refCode);
+      setBetData({bets,stake,odd,code:data.code});
+      setScreen("confirmed");
+    } catch(e){
+      setErrorGlobal(e.message||"No se pudo registrar la apuesta");
+    }
+  };
+
+  const generarLocal=async(bets)=>{
+    setErrorGlobal("");
+    try {
+      const data = await crearBoleto(bets, refCode);
+      const tot = bets.reduce((a,b)=>a*b.odd,1);
+      setBetData({bets,stake:0,odd:tot,code:data.code});
+      setScreen("confirmed");
+    } catch(e){
+      setErrorGlobal(e.message||"No se pudo generar el código");
+    }
   };
 
   const isCanal=screen==="canal";
@@ -1472,16 +1539,29 @@ export default function QuartzSports(){
         ))}
       </div>
 
+      {errorGlobal&&(
+        <div style={{position:"fixed",top:60,left:"50%",transform:"translateX(-50%)",
+          zIndex:80,width:"calc(100% - 24px)",maxWidth:406,
+          background:"rgba(255,23,68,0.15)",border:`1.5px solid ${Q.red}`,
+          borderRadius:12,padding:"10px 14px",display:"flex",
+          alignItems:"center",justifyContent:"space-between",gap:8}}>
+          <span style={{color:Q.text,fontSize:12,
+            fontFamily:"'Space Grotesk',system-ui"}}>⚠️ {errorGlobal}</span>
+          <button onClick={()=>setErrorGlobal("")} style={{background:"transparent",
+            border:"none",color:Q.muted,fontSize:16,cursor:"pointer",padding:0}}>✕</button>
+        </div>
+      )}
+
       {/* Screens */}
       <div style={{height:"calc(100vh - 112px)",overflowY:"auto"}}>
         {screen==="canal"     &&<ScreenCanal       onBot={()=>setScreen("sports")}/>}
         {screen==="sports"    &&<ScreenSportsMenu   onAction={handle}/>}
-        {screen==="prematch"  &&<ScreenPrematch     onAction={handle} onBet={confirmBet}/>}
-        {screen==="live"      &&<ScreenLive         onAction={handle} onBet={confirmBet}/>}
+        {screen==="prematch"  &&<ScreenPrematch     onAction={handle} onBet={confirmBet} onLocal={generarLocal}/>}
+        {screen==="live"      &&<ScreenLive         onAction={handle} onBet={confirmBet} onLocal={generarLocal}/>}
         {screen==="pool"      &&<ScreenPool         onAction={handle}/>}
         {screen==="p2p"       &&<ScreenP2P          onAction={handle}/>}
         {screen==="combo"     &&<ScreenCombo        onAction={handle} onBet={confirmBet} refCode={refCode}/>}
-        {screen==="confirmed" &&<ScreenBetConfirmed bets={betData.bets} stake={betData.stake} odd={betData.odd} onAction={handle}/>}
+        {screen==="confirmed" &&<ScreenBetConfirmed bets={betData.bets} stake={betData.stake} odd={betData.odd} code={betData.code} onAction={handle}/>}
         {screen==="mybets"    &&<ScreenMyBets       onAction={handle}/>}
       </div>
     </div>
