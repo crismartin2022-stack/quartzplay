@@ -66,7 +66,8 @@ function GCard({ children, style={}, glow, onClick }){
       border:`1px solid ${glow?glow+"44":Q.border}`,
       borderRadius:16,
       boxShadow:`0 8px 32px rgba(0,0,0,0.5)${glow?`, 0 0 24px ${glow}22`:""}`,
-      position:"relative", overflow:"hidden", cursor:onClick?"pointer":"default", ...style,
+      position:"relative", overflow:"hidden", maxWidth:"100%", minWidth:0,
+      cursor:onClick?"pointer":"default", ...style,
     }}>
       <div style={{position:"absolute",top:0,left:0,right:0,height:1,
         background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)",
@@ -182,7 +183,10 @@ function BotMsg({ children, time="9:41" }){
         background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
         display:"flex",alignItems:"center",justifyContent:"center",
         fontSize:18,flexShrink:0,boxShadow:`0 0 12px ${Q.violet}44`}}>⬡</div>
-      <div style={{flex:1}}>
+      {/* minWidth:0 es imprescindible: sin esto el ítem flex no se achica
+          por debajo de su contenido y los nombres largos de equipos
+          empujan toda la pantalla hacia la derecha. */}
+      <div style={{flex:1,minWidth:0}}>
         <div style={{color:Q.violet2,fontSize:11,fontWeight:700,marginBottom:3,
           fontFamily:"'Space Grotesk',system-ui",letterSpacing:0.3}}>QuartzPlay</div>
         <GCard style={{padding:"14px"}}>
@@ -247,7 +251,7 @@ function TgHeader({ title, sub, onBack }){
         background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
         display:"flex",alignItems:"center",justifyContent:"center",
         fontSize:20,flexShrink:0,boxShadow:`0 0 14px ${Q.violet}66`}}>⬡</div>
-      <div style={{flex:1}}>
+      <div style={{flex:1,minWidth:0}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{title}</div>
         {sub&&<div style={{color:Q.green,fontSize:11,marginTop:1}}>{sub}</div>}
       </div>
@@ -360,7 +364,7 @@ function OddsButtons({ ev, market, bets, onToggle, live=false }){
         const sel=bets.some(b=>b.id===ev.id&&b.label===o.label);
         return(
           <button key={i} onClick={()=>onToggle(ev,o.label,o.val)} style={{
-            flex:1,
+            flex:"1 1 0",minWidth:0,overflow:"hidden",
             background:sel?`linear-gradient(135deg,${color}44,${Q.violet}22)`:"rgba(255,255,255,0.04)",
             border:`1.5px solid ${sel?color:Q.border}`,
             borderRadius:10,padding:"8px 3px",cursor:"pointer",textAlign:"center",
@@ -966,12 +970,14 @@ function ScreenPrematch({ onAction, onBet, onLocal }){
                 <GCard key={ev.id} style={{padding:"12px 14px",marginBottom:8}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}
                     onClick={()=>toggleExpand(ev.id)}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,
+                      flex:1,minWidth:0}}>
                       <TeamLogo name={ev.h} size={26}/>
-                      <div style={{minWidth:0}}>
+                      <div style={{minWidth:0,flex:1}}>
                         <div style={{color:Q.text,fontWeight:700,fontSize:13,
                           fontFamily:"'Space Grotesk',system-ui",
-                          overflow:"hidden",textOverflow:"ellipsis"}}>
+                          overflow:"hidden",textOverflow:"ellipsis",
+                          whiteSpace:"nowrap"}}>
                           {ev.h} <span style={{color:Q.dim}}>vs</span> {ev.a}
                         </div>
                         <div style={{color:Q.muted,fontSize:10,marginTop:2}}>{ev.time}</div>
@@ -1092,11 +1098,13 @@ function ScreenLive({ onAction, onBet, onLocal }){
 
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}
                 onClick={()=>toggleExpand(ev.id)}>
-                <div style={{textAlign:"center",flex:1}}>
+                <div style={{textAlign:"center",flex:1,minWidth:0}}>
                   <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
                     <TeamLogo name={ev.home} size={36}/>
                   </div>
-                  <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{ev.home}</div>
+                  <div style={{color:Q.text,fontWeight:700,fontSize:12,
+                    fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                    textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.home}</div>
                 </div>
                 <div style={{textAlign:"center",padding:"0 10px"}}>
                   <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,fontSize:30,color:Q.pink}}>
@@ -1104,11 +1112,13 @@ function ScreenLive({ onAction, onBet, onLocal }){
                   </div>
                   <div style={{color:Q.pink,fontSize:9,fontFamily:"'Space Grotesk',system-ui",letterSpacing:1}}>EN CURSO</div>
                 </div>
-                <div style={{textAlign:"center",flex:1}}>
+                <div style={{textAlign:"center",flex:1,minWidth:0}}>
                   <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
                     <TeamLogo name={ev.away} size={36}/>
                   </div>
-                  <div style={{color:Q.text,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>{ev.away}</div>
+                  <div style={{color:Q.text,fontWeight:700,fontSize:12,
+                    fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                    textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.away}</div>
                 </div>
               </div>
 
@@ -1121,12 +1131,14 @@ function ScreenLive({ onAction, onBet, onLocal }){
                       {label:ev.away,val:ev.odds.V,c:Q.cyan}]
                       .filter(Boolean).filter(o=>o.val).map((o,i)=>(
                       <button key={i} onClick={()=>toggle(ev,o.label,o.val)} style={{
-                        flex:1,
+                        flex:"1 1 0",minWidth:0,overflow:"hidden",
                         background:bets.some(b=>b.id===ev.id&&b.label===o.label)?`linear-gradient(135deg,${Q.pink}44,${Q.violet}22)`:"rgba(255,255,255,0.04)",
                         border:`1.5px solid ${bets.some(b=>b.id===ev.id&&b.label===o.label)?Q.pink:Q.border}`,
                         borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",transition:"all 0.2s",
                       }}>
-                        <div style={{color:Q.muted,fontSize:9,fontFamily:"'Space Grotesk',system-ui"}}>{o.label}</div>
+                        <div style={{color:Q.muted,fontSize:9,
+                          fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                          textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.label}</div>
                         <div style={{color:bets.some(b=>b.id===ev.id&&b.label===o.label)?Q.pink:o.c,
                           fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{fmt(o.val)}</div>
                         <div style={{color:Q.pink,fontSize:8}}>◉ LIVE</div>
@@ -1638,13 +1650,14 @@ export default function QuartzSports(){
   return(
     <div style={{maxWidth:520,margin:"0 auto",
       fontFamily:"system-ui,-apple-system,sans-serif",background:Q.void,
-      height:"100dvh",display:"flex",flexDirection:"column",
+      width:"100%",height:"100dvh",display:"flex",flexDirection:"column",
       overflow:"hidden"}}>
       <style>{`
         @keyframes qPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.5)}}
         @keyframes qFloat{0%,100%{transform:translateY(0) scale(1);opacity:.4}50%{transform:translateY(-16px) scale(1.2);opacity:.7}}
         *{box-sizing:border-box;margin:0;padding:0}
-        html,body,#root{height:100%;overscroll-behavior:none}
+        html,body,#root{height:100%;overscroll-behavior:none;
+                        max-width:100%;overflow-x:hidden}
         button{font-family:inherit;-webkit-tap-highlight-color:transparent;
                min-height:32px;touch-action:manipulation}
         button:active{opacity:.8} input:focus{outline:none}
@@ -1661,7 +1674,7 @@ export default function QuartzSports(){
             background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
             display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,
             boxShadow:`0 0 16px ${Q.violet}66`}}>⬡</div>
-          <div style={{flex:1}}>
+          <div style={{flex:1,minWidth:0}}>
             <QPLogo size={16}/>
             <div style={{color:Q.muted,fontSize:11,marginTop:1}}>Canal oficial</div>
           </div>
@@ -1707,7 +1720,7 @@ export default function QuartzSports(){
       )}
 
       {/* Screens */}
-      <div style={{flex:1,minHeight:0,overflowY:"auto",
+      <div style={{flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
         WebkitOverflowScrolling:"touch"}}>
         {screen==="canal"     &&<ScreenCanal       onBot={()=>setScreen("sports")}/>}
         {screen==="sports"    &&<ScreenSportsMenu   onAction={handle} user={user}/>}
