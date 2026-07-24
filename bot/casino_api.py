@@ -578,203 +578,142 @@ async def live_football_league(league_id: str):
     return {"error": "No disponible"}
 
 
-# ── TEAM LOGO PROXY ───────────────────────────────────────────
-_logo_cache = {}
+# ── LOGOS DE EQUIPOS ──────────────────────────────────────────
+# El proxy anterior guardaba None en la caché cuando conseguía la imagen,
+# así que el "if cached" daba falso y volvía a pegarle a RapidAPI en CADA
+# logo. Con 40 partidos en pantalla eran 80 llamadas por carga.
+_logo_bytes  = {}   # team_id -> (bytes, content_type, ts)
+_logo_nombre = {}   # nombre normalizado -> (team_id | None, ts)
+LOGO_TTL       = 86400      # la imagen no cambia: 24 h
+LOGO_TTL_FALLO = 3600       # si no se encontró, no reintentar por 1 h
+LOGO_MAX_BYTES = 300 * 1024
 
-@app.get("/api/team-logo/{team_id}")
-async def team_logo_by_id(team_id: str):
-    """Proxy de imagen del equipo — devuelve la imagen directamente"""
-    from fastapi.responses import Response, RedirectResponse
-    if team_id in _logo_cache:
-        cached = _logo_cache[team_id]
-        if cached:
-            return RedirectResponse(url=cached)
+_ESCUDO_GENERICO = (
+    b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
+    b'width="48" height="48"><circle cx="12" cy="12" r="10" fill="#7C3AED" '
+    b'opacity="0.3" stroke="#7C3AED" stroke-width="1.5"/>'
+    b'<circle cx="12" cy="12" r="4" fill="#00F0FF" opacity="0.8"/></svg>'
+)
+
+def _resp_generico():
+    from fastapi.responses import Response
+    return Response(content=_ESCUDO_GENERICO, media_type="image/svg+xml",
+                    status_code=404,
+                    headers={"Cache-Control":"public, max-age=3600",
+                             "Access-Control-Allow-Origin":"*"})
+
+
+async def _bajar_logo(team_id: str):
+    """Trae la imagen del escudo y la deja en memoria."""
+    now = time.time()
+    hit = _logo_bytes.get(team_id)
+    if hit and now - hit[2] < LOGO_TTL:
+        return hit[0], hit[1]
     try:
         async with httpx.AsyncClient(timeout=8, follow_redirects=True) as c:
-            r = await c.get(
-                f"{FOOTBALL_API}/football-team-logo",
-                headers=FOOTBALL_HEADERS,
-                params={"teamid": team_id},
-            )
-            if r.status_code == 200:
-                content_type = r.headers.get("content-type","")
-                if "image" in content_type:
-                    _logo_cache[team_id] = None
-                    return Response(
-                        content=r.content,
-                        media_type=content_type,
-                        headers={"Cache-Control":"public, max-age=86400",
-                                 "Access-Control-Allow-Origin":"*"}
-                    )
-                # Si devuelve JSON con URL
-                try:
-                    data = r.json()
-                    img_url = data.get("url") or data.get("logo") or data.get("image")
-                    if img_url:
-                        _logo_cache[team_id] = img_url
-                        return RedirectResponse(url=img_url)
-                except:
-                    pass
+            r = await c.get(f"{FOOTBALL_API}/football-team-logo",
+                            headers=FOOTBALL_HEADERS,
+                            params={"teamid": team_id})
+            if r.status_code != 200:
+                return None, None
+            ctype = r.headers.get("content-type","")
+            if "image" in ctype and len(r.content) <= LOGO_MAX_BYTES:
+                _logo_bytes[team_id] = (r.content, ctype, now)
+                return r.content, ctype
+            # A veces responde JSON con la URL de la imagen
+            try:
+                url = (r.json().get("url") or r.json().get("logo")
+                       or r.json().get("image"))
+            except Exception:
+                url = None
+            if url:
+                img = await c.get(url)
+                if img.status_code == 200 and len(img.content) <= LOGO_MAX_BYTES:
+                    ctype = img.headers.get("content-type","image/png")
+                    _logo_bytes[team_id] = (img.content, ctype, now)
+                    return img.content, ctype
     except Exception as e:
-        log.error(f"Team logo error {team_id}: {e}")
-    # Fallback — imagen genérica
-    return Response(
-        content=b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><circle cx="12" cy="12" r="10" fill="#7C3AED" opacity="0.3" stroke="#7C3AED" stroke-width="1.5"/><circle cx="12" cy="12" r="4" fill="#00F0FF" opacity="0.8"/></svg>',
-        media_type="image/svg+xml",
-        headers={"Access-Control-Allow-Origin":"*"}
-    )
+        log.error(f"Logo {team_id}: {e}")
+    return None, None
 
-@app.get("/api/team-logo")
-async def team_logo_by_name(name: str):
-    """Busca teamId por nombre y redirige al logo"""
-    cache_key = f"name_{name}"
-    if cache_key in _logo_cache:
-        return _logo_cache[cache_key]
+
+async def buscar_team_id(nombre: str):
+    """
+    Resuelve nombre -> teamId. Cachea también los fallos: sin eso, cada
+    equipo que no existe en el feed dispara una búsqueda por pantalla.
+    """
+    clave = normalize_name(nombre)
+    if not clave:
+        return None
+    now = time.time()
+    hit = _logo_nombre.get(clave)
+    if hit:
+        tid, ts = hit
+        if now - ts < (LOGO_TTL if tid else LOGO_TTL_FALLO):
+            return tid
     try:
         async with httpx.AsyncClient(timeout=8) as c:
-            r = await c.get(
-                f"{FOOTBALL_API}/football-search-all-teams",
-                headers=FOOTBALL_HEADERS,
-                params={"search": name},
-            )
+            r = await c.get(f"{FOOTBALL_API}/football-search-all-teams",
+                            headers=FOOTBALL_HEADERS,
+                            params={"search": nombre})
             if r.status_code == 200:
                 data = r.json()
-                teams = (data.get("response") or {})
-                if isinstance(teams, dict):
-                    teams = teams.get("teams", [])
-                if teams:
-                    team = teams[0]
-                    team_id = str(team.get("id") or team.get("teamId",""))
-                    if team_id:
-                        result = {"teamId": team_id, "name": name,
-                            "logoUrl": f"https://quartzplay-production.up.railway.app/api/team-logo/{team_id}"}
-                        _logo_cache[cache_key] = result
-                        return result
+                equipos = data.get("response") or {}
+                if isinstance(equipos, dict):
+                    equipos = equipos.get("teams", [])
+                for eq in (equipos or [])[:5]:
+                    # Confirmamos que sea el mismo equipo y no un homónimo
+                    if match_teams(nombre, eq.get("name","")):
+                        tid = str(eq.get("id") or eq.get("teamId") or "")
+                        if tid:
+                            _logo_nombre[clave] = (tid, now)
+                            return tid
     except Exception as e:
-        log.error(f"Team search error: {e}")
-    return {"teamId": None}
+        log.error(f"Búsqueda de equipo '{nombre}': {e}")
+    _logo_nombre[clave] = (None, now)
+    return None
 
 
-# ── DEPORTES: prioridad y nombres en español ──────────────────
-# Se piden en este orden. Lo que no entre en ODDS_SPORTS_LIMIT queda afuera,
-# así que arriba va lo que más se juega acá.
-PRIORIDAD_SPORTS = [
-    "soccer_argentina_primera_division",
-    "soccer_conmebol_copa_libertadores",
-    "soccer_conmebol_copa_sudamericana",
-    "soccer_uefa_champs_league",
-    "soccer_brazil_campeonato",
-    "soccer_spain_la_liga",
-    "soccer_epl",
-    "soccer_italy_serie_a",
-    "soccer_fifa_world_cup",
-    "basketball_nba",
-    "tennis_atp_wimbledon",
-    "mma_mixed_martial_arts",
-    "soccer_germany_bundesliga",
-    "soccer_france_ligue_one",
-    "soccer_mexico_ligamx",
-    "soccer_usa_mls",
-    "americanfootball_nfl",
-    "baseball_mlb",
-]
-
-# Nombre e ícono en español por liga
-SPORT_NAMES = {
-    "soccer_argentina_primera_division": {"name":"Liga Argentina",     "icon":"🇦🇷"},
-    "soccer_conmebol_copa_libertadores": {"name":"Libertadores",       "icon":"🏆"},
-    "soccer_conmebol_copa_sudamericana": {"name":"Sudamericana",       "icon":"🏆"},
-    "soccer_uefa_champs_league":         {"name":"Champions",          "icon":"⭐"},
-    "soccer_uefa_europa_league":         {"name":"Europa League",      "icon":"🌍"},
-    "soccer_brazil_campeonato":          {"name":"Brasileirão",        "icon":"🇧🇷"},
-    "soccer_spain_la_liga":              {"name":"La Liga",            "icon":"🇪🇸"},
-    "soccer_epl":                        {"name":"Premier League",     "icon":"🏴"},
-    "soccer_italy_serie_a":              {"name":"Serie A",            "icon":"🇮🇹"},
-    "soccer_germany_bundesliga":         {"name":"Bundesliga",         "icon":"🇩🇪"},
-    "soccer_france_ligue_one":           {"name":"Ligue 1",            "icon":"🇫🇷"},
-    "soccer_portugal_primeira_liga":     {"name":"Liga Portugal",      "icon":"🇵🇹"},
-    "soccer_netherlands_eredivisie":     {"name":"Eredivisie",         "icon":"🇳🇱"},
-    "soccer_mexico_ligamx":              {"name":"Liga MX",            "icon":"🇲🇽"},
-    "soccer_usa_mls":                    {"name":"MLS",                "icon":"🇺🇸"},
-    "soccer_chile_campeonato":           {"name":"Liga de Chile",      "icon":"🇨🇱"},
-    "soccer_fifa_world_cup":             {"name":"Mundial",            "icon":"🌎"},
-    "basketball_nba":                    {"name":"NBA",                "icon":"🏀"},
-    "basketball_euroleague":             {"name":"Euroliga",           "icon":"🏀"},
-    "basketball_wnba":                   {"name":"WNBA",               "icon":"🏀"},
-    "basketball_ncaab":                  {"name":"Básquet NCAA",       "icon":"🏀"},
-    "americanfootball_nfl":              {"name":"NFL",                "icon":"🏈"},
-    "americanfootball_ncaaf":            {"name":"NCAA Fútbol Am.",    "icon":"🏈"},
-    "baseball_mlb":                      {"name":"Béisbol MLB",        "icon":"⚾"},
-    "icehockey_nhl":                     {"name":"Hockey NHL",         "icon":"🏒"},
-    "mma_mixed_martial_arts":            {"name":"MMA / UFC",          "icon":"🥊"},
-    "boxing_boxing":                     {"name":"Boxeo",              "icon":"🥊"},
-    "tennis_atp_wimbledon":              {"name":"Tenis · Wimbledon",  "icon":"🎾"},
-    "tennis_atp_us_open":                {"name":"Tenis · US Open",    "icon":"🎾"},
-    "tennis_atp_french_open":            {"name":"Tenis · Roland G.",  "icon":"🎾"},
-    "tennis_atp_aus_open":               {"name":"Tenis · Australia",  "icon":"🎾"},
-    "rugbyleague_nrl":                   {"name":"Rugby NRL",          "icon":"🏉"},
-    "cricket_international_t20":         {"name":"Críquet T20",        "icon":"🏏"},
-    "aussierules_afl":                   {"name":"Fútbol Australiano", "icon":"🏉"},
-}
-
-# Traducción de la parte genérica para las ligas que no estén en el mapa
-_GRUPOS_ES = {
-    "soccer":"Fútbol", "basketball":"Básquet", "baseball":"Béisbol",
-    "americanfootball":"Fútbol Am.", "icehockey":"Hockey", "tennis":"Tenis",
-    "mma":"MMA", "boxing":"Boxeo", "cricket":"Críquet", "golf":"Golf",
-    "rugbyleague":"Rugby", "rugbyunion":"Rugby", "aussierules":"F. Australiano",
-    "lacrosse":"Lacrosse", "politics":"Política",
-}
-_ICONOS_ES = {
-    "soccer":"⚽", "basketball":"🏀", "baseball":"⚾", "americanfootball":"🏈",
-    "icehockey":"🏒", "tennis":"🎾", "mma":"🥊", "boxing":"🥊",
-    "cricket":"🏏", "golf":"⛳", "rugbyleague":"🏉", "rugbyunion":"🏉",
-    "aussierules":"🏉",
-}
-
-# Se llena en all_markets y lo reusa live_combined
-SPORTS_ACTIVOS = []
+@app.get("/api/team-logo/id/{team_id}")
+async def team_logo_by_id(team_id: str):
+    """Escudo por ID del feed de fútbol."""
+    from fastapi.responses import Response
+    content, ctype = await _bajar_logo(team_id)
+    if not content:
+        return _resp_generico()
+    return Response(content=content, media_type=ctype,
+                    headers={"Cache-Control":"public, max-age=86400",
+                             "Access-Control-Allow-Origin":"*"})
 
 
-async def listar_deportes_activos():
-    """Deportes con eventos hoy, sin outrights. Cacheado 1 hora."""
-    global SPORTS_ACTIVOS
-    now = time.time()
-    cached = _football_cache.get("sports_list")
-    if cached and now - cached[1] < 3600:
-        SPORTS_ACTIVOS = cached[0]
-        return SPORTS_ACTIVOS
-
-    data = await asyncio.to_thread(
-        sync_get, "https://api.the-odds-api.com/v4/sports/",
-        {"apiKey": os.environ.get("ODDS_API_KEY","")}, None, 15)
-    if not data:
-        return SPORTS_ACTIVOS or list(PRIORIDAD_SPORTS)
-
-    activos = [x["key"] for x in data
-               if x.get("active") and not x.get("has_outrights", False)]
-    # Primero lo que más se juega acá, después todo el resto
-    orden, vistos = [], set()
-    for k in PRIORIDAD_SPORTS:
-        if k in activos:
-            orden.append(k); vistos.add(k)
-    orden += [k for k in activos if k not in vistos]
-
-    SPORTS_ACTIVOS = orden[:ODDS_SPORTS_LIMIT]
-    _football_cache["sports_list"] = (SPORTS_ACTIVOS, now)
-    log.info(f"Deportes activos: {len(SPORTS_ACTIVOS)} de {len(activos)}")
-    return SPORTS_ACTIVOS
+@app.get("/api/team-logo/nombre/{nombre}")
+async def team_logo_by_name(nombre: str):
+    """
+    Escudo por nombre de equipo. Es lo que usa el front: los eventos de
+    The Odds API no traen IDs, solo nombres.
+    Si no se encuentra, devuelve 404 y el front dibuja las iniciales.
+    """
+    from fastapi.responses import Response
+    tid = await buscar_team_id(nombre)
+    if not tid:
+        return _resp_generico()
+    content, ctype = await _bajar_logo(tid)
+    if not content:
+        return _resp_generico()
+    return Response(content=content, media_type=ctype,
+                    headers={"Cache-Control":"public, max-age=86400",
+                             "Access-Control-Allow-Origin":"*"})
 
 
-def nombre_deporte(sport_key):
-    """Nombre e ícono en español; si la liga no está mapeada, arma uno legible."""
-    if sport_key in SPORT_NAMES:
-        return SPORT_NAMES[sport_key]
-    grupo, _, resto = sport_key.partition("_")
-    etiqueta = _GRUPOS_ES.get(grupo, grupo.title())
-    if resto:
-        etiqueta += " · " + resto.replace("_", " ").title()
-    return {"name": etiqueta, "icon": _ICONOS_ES.get(grupo, "🎯")}
+@app.get("/api/_diag/logos")
+async def diag_logos(_=Depends(auth.require_admin)):
+    resueltos = sum(1 for v in _logo_nombre.values() if v[0])
+    return {
+        "nombres_consultados": len(_logo_nombre),
+        "nombres_resueltos": resueltos,
+        "nombres_sin_escudo": len(_logo_nombre) - resueltos,
+        "imagenes_en_memoria": len(_logo_bytes),
+    }
 
 
 @app.get("/api/live/prematch")
