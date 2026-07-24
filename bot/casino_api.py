@@ -1005,6 +1005,11 @@ async def cache_swr(clave, ttl, productor):
             datos = await productor()
             _football_cache[clave] = (datos, time.time())
             return datos
+        except Exception as e:
+            # Sin esto, un error acá se perdía y la pantalla quedaba vacía
+            # sin ninguna pista de por qué.
+            log.exception(f"Fallo armando '{clave}': {e}")
+            raise
         finally:
             _refrescando.pop(clave, None)
 
@@ -1092,6 +1097,40 @@ _ICONOS_ES = {
     "cricket":"🏏", "golf":"⛳", "rugbyleague":"🏉", "rugbyunion":"🏉",
     "aussierules":"🏉",
 }
+
+# Se llena en all_markets y lo reusa live_combined
+SPORTS_ACTIVOS = []
+
+
+async def listar_deportes_activos():
+    """Deportes con eventos hoy, sin outrights. Cacheado 1 hora."""
+    global SPORTS_ACTIVOS
+    now = time.time()
+    cached = _football_cache.get("sports_list")
+    if cached and now - cached[1] < 3600:
+        SPORTS_ACTIVOS = cached[0]
+        return SPORTS_ACTIVOS
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        data = await odds_get(client, "/v4/sports/",
+                              {"apiKey": os.environ.get("ODDS_API_KEY","")})
+    if not data:
+        return SPORTS_ACTIVOS or list(PRIORIDAD_SPORTS)
+
+    activos = [x["key"] for x in data
+               if x.get("active") and not x.get("has_outrights", False)]
+    # Primero lo que más se juega acá, después todo el resto
+    orden, vistos = [], set()
+    for k in PRIORIDAD_SPORTS:
+        if k in activos:
+            orden.append(k); vistos.add(k)
+    orden += [k for k in activos if k not in vistos]
+
+    SPORTS_ACTIVOS = orden[:ODDS_SPORTS_LIMIT]
+    _football_cache["sports_list"] = (SPORTS_ACTIVOS, now)
+    log.info(f"Deportes activos: {len(SPORTS_ACTIVOS)} de {len(activos)}")
+    return SPORTS_ACTIVOS
+
 
 def nombre_deporte(sport_key):
     """Nombre e ícono en español; si la liga no está mapeada, arma uno legible."""
@@ -1411,6 +1450,77 @@ async def _armar_live():
     return {"matches": en_vivo, "count": len(en_vivo)}
 
 
+@app.get("/api/_diag/prematch")
+async def diag_prematch(_=Depends(auth.require_admin)):
+    """
+    Radiografía del prematch: qué se pide, qué contesta y dónde se corta.
+    Prueba con pocos deportes para no gastar créditos de más.
+    """
+    ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
+    reporte = {
+        "api_key_configurada": bool(ODDS_API_KEY),
+        "regiones": ODDS_REGIONS,
+        "mercados": ODDS_MARKETS,
+        "limite_deportes": ODDS_SPORTS_LIMIT,
+    }
+
+    # 1. ¿Contesta la lista de deportes?
+    async with httpx.AsyncClient(timeout=15) as client:
+        lista = await odds_get(client, "/v4/sports/", {"apiKey": ODDS_API_KEY})
+    if not lista:
+        reporte["error"] = "No se pudo obtener la lista de deportes"
+        reporte["deportes_totales"] = 0
+        return reporte
+
+    activos = [x for x in lista
+               if x.get("active") and not x.get("has_outrights", False)]
+    reporte["deportes_totales"] = len(lista)
+    reporte["deportes_activos"] = len(activos)
+
+    # 2. Probar los primeros deportes de la lista de prioridad
+    claves = [x["key"] for x in activos]
+    prueba = [k for k in PRIORIDAD_SPORTS if k in claves][:5] or claves[:5]
+    reporte["probados"] = prueba
+
+    base = {"apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS,
+            "oddsFormat": "decimal", "dateFormat": "iso"}
+    detalle = {}
+    async with httpx.AsyncClient(timeout=15) as client:
+        for sk in prueba:
+            d = await odds_get(client, f"/v4/sports/{sk}/odds/",
+                               {**base, "markets": ODDS_MARKETS})
+            if d is None:
+                # ¿Es el combo de mercados o el deporte?
+                solo_h2h = await odds_get(client, f"/v4/sports/{sk}/odds/",
+                                          {**base, "markets": "h2h"})
+                detalle[sk] = {
+                    "con_mercados_completos": "falló",
+                    "solo_h2h": len(solo_h2h) if solo_h2h is not None else "falló",
+                }
+                continue
+            con_mkt = sum(1 for ev in d if parse_markets(ev))
+            ejemplo = {}
+            for ev in d:
+                mk = parse_markets(ev)
+                if mk:
+                    ejemplo = {"partido": f"{ev.get('home_team')} vs {ev.get('away_team')}",
+                               "mercados": {k: len(v) for k, v in mk.items()},
+                               "bookmakers": len(ev.get("bookmakers", []))}
+                    break
+            detalle[sk] = {"eventos": len(d), "con_mercados": con_mkt,
+                           "ejemplo": ejemplo}
+    reporte["detalle"] = detalle
+
+    entrada = _football_cache.get("all_markets")
+    reporte["cache"] = {
+        "tiene_datos": bool(entrada),
+        "deportes_en_cache": len((entrada[0] or {}).get("sports", [])) if entrada else 0,
+        "antiguedad_seg": round(time.time() - entrada[1]) if entrada else None,
+    }
+    reporte["creditos"] = dict(_odds_credits)
+    return reporte
+
+
 @app.get("/api/_diag/live")
 async def diag_live(_=Depends(auth.require_admin)):
     """
@@ -1631,6 +1741,8 @@ async def _armar_all_markets():
             })
 
     log.info(f"Prematch: {len(result['sports'])} deportes con eventos")
+    if not result["sports"]:
+        log.error("Prematch vacío: revisá /api/_diag/prematch")
     return result
 
 
