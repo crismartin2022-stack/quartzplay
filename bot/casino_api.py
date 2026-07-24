@@ -418,41 +418,52 @@ MERCADOS_VALIDOS  = {"h2h", "spreads", "totals", "outrights"}
 ODDS_MARKETS      = os.environ.get("ODDS_MARKETS", "h2h,totals,spreads")
 # Plan de 15M créditos/mes: no hace falta racionar. Todo al tope.
 ODDS_SPORTS_LIMIT = int(os.environ.get("ODDS_SPORTS_LIMIT", "80"))
-ODDS_TTL_PREMATCH = int(os.environ.get("ODDS_TTL_PREMATCH", "120"))
-ODDS_TTL_LIVE     = int(os.environ.get("ODDS_TTL_LIVE", "30"))
+ODDS_TTL_PREMATCH = int(os.environ.get("ODDS_TTL_PREMATCH", "180"))
+ODDS_TTL_LIVE     = int(os.environ.get("ODDS_TTL_LIVE", "45"))
 ODDS_FULL_TOP     = int(os.environ.get("ODDS_FULL_TOP", "80"))
 ODDS_MAX_EVENTOS  = int(os.environ.get("ODDS_MAX_EVENTOS", "40"))
 # En vivo refresca cada 30s. Con los 80 deportes se iría a 20M/mes,
 # así que acá van los que de verdad se juegan en vivo.
-ODDS_LIVE_SPORTS  = int(os.environ.get("ODDS_LIVE_SPORTS", "25"))
+ODDS_LIVE_SPORTS  = int(os.environ.get("ODDS_LIVE_SPORTS", "20"))
 
 # Mercados adicionales: NO viajan en el endpoint masivo, hay que pedirlos
 # evento por evento. Por eso se traen a demanda cuando el usuario despliega
 # un partido, y no de entrada para todo el catálogo.
-# Candidatos de mercados adicionales. NO todos existen para todo deporte
-# ni en toda región: el endpoint por evento los prueba y se queda con los
-# que responden. /api/_diag/mercados/{sport}/{event} dice cuáles hay de verdad.
+# Claves EXACTAS según la documentación de The Odds API.
+# Las que había antes (totals_corners, spreads_cards...) no existen:
+# los mercados de córners y tarjetas se llaman todos "alternate_*".
 MERCADOS_CANDIDATOS = [
     # Resultado
-    "btts", "draw_no_bet", "double_chance", "h2h_3_way",
+    "btts", "btts_h1", "double_chance", "double_chance_h1",
+    "draw_no_bet", "h2h_3_way", "halftime_fulltime", "to_qualify",
+    "correct_score", "correct_score_h1",
     # Líneas alternativas
     "alternate_totals", "alternate_spreads",
     "team_totals", "alternate_team_totals",
+    # Primer tiempo
+    "h2h_h1", "totals_h1", "spreads_h1",
     # Córners
-    "totals_corners", "alternate_totals_corners", "spreads_corners",
+    "alternate_totals_corners", "alternate_spreads_corners",
+    "alternate_team_totals_corners", "corners_1x2",
     # Tarjetas
-    "totals_cards", "alternate_totals_cards", "spreads_cards",
-    # Goleadores
+    "alternate_totals_cards", "alternate_spreads_cards",
+    # Goleadores y jugadores (solo casas de US, y en las 6 ligas grandes)
     "player_goal_scorer_anytime", "player_first_goal_scorer",
-    "player_last_goal_scorer",
-    # Otros de jugador
-    "player_shots_on_target", "player_shots", "player_assists",
+    "player_last_goal_scorer", "player_to_receive_card",
+    "player_to_receive_red_card", "player_shots_on_target",
+    "player_shots", "player_assists",
 ]
 MERCADOS_EXTRA = os.environ.get(
     "ODDS_MERCADOS_EXTRA", ",".join(MERCADOS_CANDIDATOS))
 
-# Los props de jugador suelen estar solo en casas de UK/US, no en EU
-ODDS_REGIONS_EXTRA = os.environ.get("ODDS_REGIONS_EXTRA", "eu,uk,us")
+# La doc lo dice claro: los props de jugador de fútbol solo están en casas
+# de Estados Unidos. Sin "us" en las regiones no aparece ningún goleador.
+ODDS_REGIONS_EXTRA = os.environ.get("ODDS_REGIONS_EXTRA", "us,uk,eu")
+
+# Y esto explica por qué Prematch no mostraba Over/Under ni Hándicap:
+# "spreads and totals are mainly available for US sports and bookmakers".
+# Pidiendo solo regions=eu, el fútbol venía con 1X2 y nada más.
+ODDS_REGIONS = os.environ.get("ODDS_REGIONS", "eu,us")
 ODDS_TTL_EVENTO = int(os.environ.get("ODDS_TTL_EVENTO", "120"))
 
 # Filtra lo que no sirva, así una variable mal puesta no deja la app sin cuotas
@@ -1104,7 +1115,7 @@ async def live_combined():
         return sk, await asyncio.to_thread(
             sync_get,
             f"https://api.the-odds-api.com/v4/sports/{sk}/odds/",
-            {"apiKey": ODDS_API_KEY, "regions": "eu",
+            {"apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS,
              "markets": ODDS_MARKETS, "oddsFormat": "decimal",
              "dateFormat": "iso"},
             None, 12)
@@ -1401,7 +1412,7 @@ async def all_markets():
 
     async def fetch_sport(sport_key):
         url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/"
-        base = {"apiKey": ODDS_API_KEY, "regions": "eu",
+        base = {"apiKey": ODDS_API_KEY, "regions": ODDS_REGIONS,
                 "oddsFormat": "decimal", "dateFormat": "iso"}
         mkts = ODDS_MARKETS if sport_key in completos else "h2h"
         data = await asyncio.to_thread(
