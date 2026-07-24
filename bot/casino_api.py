@@ -332,6 +332,9 @@ async def create_betslip(request: Request):
     body  = await request.json()
     picks = body.get("picks") or []
     inf   = (body.get("inf_code") or "")[:64] or None
+    # Lo escribe el cajero en el mostrador; antes solo salía impreso
+    # en el ticket y no quedaba en ningún lado.
+    cliente = (body.get("cliente") or "")[:80] or None
 
     if not isinstance(picks, list) or not (1 <= len(picks) <= MAX_PICKS):
         raise HTTPException(400, f"El boleto debe tener entre 1 y {MAX_PICKS} selecciones")
@@ -380,11 +383,11 @@ async def create_betslip(request: Request):
                 await conn.execute("""
                     INSERT INTO betslips
                         (code, user_id, picks, stake, odd_total,
-                         potential_win, status, inf_code,
+                         potential_win, status, inf_code, cliente_nombre,
                          created_at, expires_at)
-                    VALUES ($1, NULL, $2, 0, $3, 0, 'pending', $4,
+                    VALUES ($1, NULL, $2, 0, $3, 0, 'pending', $4, $5,
                             NOW(), NOW() + interval '24 hours')
-                """, code, str(limpios), odd_total, inf)
+                """, code, str(limpios), odd_total, inf, cliente)
                 return {
                     "code": code,
                     "odd_total": odd_total,
@@ -395,6 +398,209 @@ async def create_betslip(request: Request):
                 continue
     log.error("No se pudo generar un código único tras 20 intentos")
     raise HTTPException(503, "No se pudo generar el código, probá de nuevo")
+
+# ── IDENTIDAD DEL USUARIO DE TELEGRAM ─────────────────────────
+# La web app no sabía quién era el usuario, por eso el saldo estaba
+# escrito a mano. Telegram firma los datos del usuario con el token del
+# bot; validando esa firma sabemos de verdad quién entró.
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
+
+
+def validar_init_data(init_data: str):
+    """
+    Verifica la firma de Telegram.WebApp.initData.
+    Devuelve el dict del usuario o None si la firma no cierra.
+    """
+    if not init_data or not TELEGRAM_TOKEN:
+        return None
+    import urllib.parse
+    try:
+        pares = urllib.parse.parse_qsl(init_data, keep_blank_values=True)
+        datos = dict(pares)
+        recibido = datos.pop("hash", None)
+        if not recibido:
+            return None
+
+        # No aceptar sesiones viejas
+        try:
+            if time.time() - int(datos.get("auth_date", 0)) > 86400:
+                return None
+        except ValueError:
+            return None
+
+        cadena = "\n".join(f"{k}={datos[k]}" for k in sorted(datos))
+        secreto = hmac.new(b"WebAppData", TELEGRAM_TOKEN.encode(),
+                           hashlib.sha256).digest()
+        esperado = hmac.new(secreto, cadena.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(esperado, recibido):
+            return None
+        return json.loads(datos.get("user", "{}")) or None
+    except Exception as e:
+        log.error(f"initData inválido: {e}")
+        return None
+
+
+@app.post("/api/me")
+async def quien_soy(request: Request):
+    """
+    Identifica al usuario de la web app y devuelve su saldo real.
+    Sin firma válida no devuelve saldo: preferimos no mostrar nada
+    antes que mostrar un número inventado.
+    """
+    body = await request.json()
+    user = validar_init_data(body.get("init_data",""))
+    if not user or not user.get("id"):
+        return {"autenticado": False}
+
+    tg_id = str(user["id"])
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT id, username, first_name, balance
+            FROM users WHERE id::text = $1 OR telegram_id::text = $1
+        """, tg_id)
+        activas = 0
+        if row:
+            activas = await conn.fetchval("""
+                SELECT COUNT(*) FROM sports_bets
+                WHERE user_id = $1 AND status = 'active'
+            """, row["id"]) or 0
+
+    if not row:
+        # Entró por la web pero nunca usó el bot
+        return {"autenticado": True, "registrado": False,
+                "nombre": user.get("first_name") or user.get("username") or "",
+                "saldo": None, "apuestas_activas": 0}
+
+    return {
+        "autenticado": True,
+        "registrado": True,
+        "nombre": row["username"] or row["first_name"] or "",
+        "saldo": int(row["balance"] or 0) // 100,
+        "apuestas_activas": activas,
+    }
+
+
+@app.post("/api/me/apuestas")
+async def mis_apuestas(request: Request):
+    """Apuestas del usuario. Lista vacía si no está registrado."""
+    body = await request.json()
+    user = validar_init_data(body.get("init_data",""))
+    if not user or not user.get("id"):
+        return {"apuestas": [], "autenticado": False}
+
+    tg_id = str(user["id"])
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        u = await conn.fetchrow(
+            "SELECT id FROM users WHERE id::text=$1 OR telegram_id::text=$1", tg_id)
+        if not u:
+            return {"apuestas": [], "autenticado": True, "registrado": False}
+        rows = await conn.fetch("""
+            SELECT picks, stake, odd_total, potential_win, status, mode, created_at
+            FROM sports_bets
+            WHERE user_id = $1
+            ORDER BY created_at DESC LIMIT 30
+        """, u["id"])
+
+    salida = []
+    for r in rows:
+        try:
+            picks = ast.literal_eval(r["picks"]) if r["picks"] else []
+        except Exception:
+            picks = []
+        salida.append({
+            "picks": picks,
+            "resumen": " + ".join(
+                p.get("sel","") for p in picks[:2] if isinstance(p, dict)) or "—",
+            "stake": r["stake"] or 0,
+            "odd_total": float(r["odd_total"]) if r["odd_total"] else 1,
+            "potential_win": r["potential_win"] or 0,
+            "status": r["status"],
+            "mode": r["mode"],
+            "fecha": r["created_at"].strftime("%d/%m %H:%M") if r["created_at"] else "",
+        })
+    return {"apuestas": salida, "autenticado": True, "registrado": True}
+
+
+# ── AGENCIA — DATOS REALES DE CAJA ────────────────────────────
+@app.get("/api/agencias/me/tickets")
+async def mis_tickets(limite: int = 50,
+                      agencia_code: str = Depends(auth.require_agencia)):
+    """Últimos tickets emitidos por la agencia de la sesión."""
+    limite = max(1, min(int(limite), 200))
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT at.betslip_code, at.tipo, at.stake, at.potential_win,
+                   at.created_at, b.status, b.odd_total,
+                   COALESCE(u.username, b.cliente_nombre) AS cliente
+            FROM agencia_tickets at
+            LEFT JOIN betslips b ON b.code = at.betslip_code
+            LEFT JOIN users u    ON u.id   = b.user_id
+            WHERE at.agencia_code = $1
+            ORDER BY at.created_at DESC
+            LIMIT $2
+        """, agencia_code, limite)
+    return {"tickets": [
+        {"code": r["betslip_code"],
+         "tipo": r["tipo"],
+         "stake": r["stake"] or 0,
+         "potential_win": r["potential_win"] or 0,
+         "odd_total": float(r["odd_total"]) if r["odd_total"] else None,
+         "estado": r["status"] or "—",
+         "cliente": r["cliente"] or "Cliente mostrador",
+         "fecha": r["created_at"].strftime("%d/%m %H:%M") if r["created_at"] else "",
+        } for r in rows]}
+
+
+@app.get("/api/agencias/me/cierre")
+async def mi_cierre(desde: str = None, hasta: str = None,
+                    agencia_code: str = Depends(auth.require_agencia)):
+    """
+    Cierre de caja con datos reales.
+
+    OJO: "pagado" son los premios entregados. Todavía no existe el flujo
+    de pago de ganadores, así que hoy es 0 y el neto es igual a lo cobrado.
+    Prefiero mostrar cero antes que un número inventado que descuadre
+    la caja de verdad.
+    """
+    pool = await get_db()
+    filtros = ["agencia_code = $1"]
+    args = [agencia_code]
+    if desde:
+        args.append(desde); filtros.append(f"created_at >= ${len(args)}::date")
+    if hasta:
+        args.append(hasta); filtros.append(f"created_at < ${len(args)}::date + 1")
+    where = " AND ".join(filtros)
+
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(f"""
+            SELECT COUNT(*)                                      AS tickets,
+                   COUNT(*) FILTER (WHERE tipo='bot')            AS tickets_bot,
+                   COUNT(*) FILTER (WHERE tipo='manual')         AS tickets_manual,
+                   COALESCE(SUM(stake),0)                        AS cobrado,
+                   COALESCE(SUM(potential_win),0)                AS expuesto,
+                   MIN(created_at)                               AS primero,
+                   MAX(created_at)                               AS ultimo
+            FROM agencia_tickets
+            WHERE {where}
+        """, *args)
+
+    cobrado = int(row["cobrado"] or 0)
+    return {
+        "tickets":         row["tickets"] or 0,
+        "tickets_bot":     row["tickets_bot"] or 0,
+        "tickets_manual":  row["tickets_manual"] or 0,
+        "cobrado":         cobrado,
+        "expuesto":        int(row["expuesto"] or 0),
+        "pagado":          0,
+        "neto":            cobrado,
+        "pagos_no_implementados": True,
+        "primero": row["primero"].strftime("%d/%m/%Y %H:%M") if row["primero"] else None,
+        "ultimo":  row["ultimo"].strftime("%d/%m/%Y %H:%M")  if row["ultimo"]  else None,
+    }
+
 
 # ── FOOTBALL LIVE SCORES ──────────────────────────────────────
 FOOTBALL_API = "https://free-api-live-football-data.p.rapidapi.com"
