@@ -3,7 +3,7 @@ from decimal import Decimal
 from datetime import datetime, timezone
 import asyncpg
 import httpx
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
@@ -95,6 +95,85 @@ def validate_sign(body_raw, x_code, x_time, x_sign):
         body_raw.decode() if body_raw else None, x_code, x_time)
     return hmac.compare_digest(expected, x_sign)
 
+
+
+# ── SESIONES PERSISTENTES ─────────────────────────────────────
+# Las sesiones vivían en memoria: cada deploy o reinicio echaba a todas
+# las agencias. Ahora quedan en la base.
+async def sesion_guardar(token: str, agencia_code: str, horas: int = 12):
+    try:
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO agencia_sesiones (token, agencia_code, expira_at)
+                VALUES ($1, $2, NOW() + ($3 || ' hours')::interval)
+                ON CONFLICT (token) DO NOTHING
+            """, token, agencia_code, str(horas))
+    except Exception as e:
+        log.error(f"No se pudo guardar la sesión: {e}")
+
+
+async def sesion_buscar(token: str):
+    try:
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT agencia_code FROM agencia_sesiones
+                WHERE token = $1 AND expira_at > NOW()
+            """, token)
+            return row["agencia_code"] if row else None
+    except Exception as e:
+        log.error(f"No se pudo leer la sesión: {e}")
+        return None
+
+
+async def requiere_agencia(authorization: str = Header(None)) -> str:
+    """
+    Igual que auth.require_agencia pero mirando también la base,
+    así una sesión sigue viva después de un reinicio.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(401, "Falta token de sesión")
+    token = authorization[7:].strip()
+
+    try:
+        return auth.require_agencia(authorization)   # memoria: instantáneo
+    except HTTPException:
+        pass
+
+    code = await sesion_buscar(token)                # base: sobrevive deploys
+    if not code:
+        raise HTTPException(401, "Sesión expirada")
+    auth._sessions[token] = {"code": code,
+                             "exp": time.time() + auth.SESSION_TTL}
+    return code
+
+
+# ── ERRORES: que nunca se vean como "sin conexión" ────────────
+@app.exception_handler(Exception)
+async def error_no_manejado(request: Request, exc: Exception):
+    log.exception(f"500 en {request.method} {request.url.path}: {exc}")
+    origen = request.headers.get("origin", "")
+    cabeceras = {}
+    if origen in ALLOWED_ORIGINS:
+        cabeceras["Access-Control-Allow-Origin"] = origen
+        cabeceras["Vary"] = "Origin"
+    return JSONResponse(
+        {"detail": "Error interno del servidor"},
+        status_code=500, headers=cabeceras)
+
+
+@app.exception_handler(HTTPException)
+async def error_http(request: Request, exc: HTTPException):
+    origen = request.headers.get("origin", "")
+    cabeceras = dict(getattr(exc, "headers", None) or {})
+    if origen in ALLOWED_ORIGINS:
+        cabeceras["Access-Control-Allow-Origin"] = origen
+        cabeceras["Vary"] = "Origin"
+    return JSONResponse({"detail": exc.detail},
+                        status_code=exc.status_code, headers=cabeceras)
+
+
 # ── HEALTH ────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
@@ -122,8 +201,10 @@ async def agencia_login(request: Request):
                 row["code"], auth.hash_password(password))
         await conn.execute(
             "UPDATE agencias SET last_login=NOW() WHERE code=$1", row["code"])
+    token = auth.create_session(row["code"])
+    await sesion_guardar(token, row["code"])
     return {
-        "token":   auth.create_session(row["code"]),
+        "token":   token,
         "code":    row["code"],
         "name":    row["name"],
         "address": row["address"],
@@ -211,7 +292,7 @@ async def update_agencia(code: str, request: Request, _=Depends(auth.require_adm
 # ── AGENCIAS — STATS (cada agencia ve solo las suyas) ─────────
 @app.get("/api/agencias/{code}/stats")
 async def agencia_stats(code: str, dias: int=30,
-                        agencia_code: str = Depends(auth.require_agencia)):
+                        agencia_code: str = Depends(requiere_agencia)):
     if code != agencia_code:
         raise HTTPException(status_code=403,
             detail="No podés ver las estadísticas de otra agencia")
@@ -232,7 +313,7 @@ async def agencia_stats(code: str, dias: int=30,
 
 # ── BETSLIP — GET (solo agencias logueadas) ───────────────────
 @app.get("/api/betslip/{code}")
-async def get_betslip(code: str, _agencia: str = Depends(auth.require_agencia)):
+async def get_betslip(code: str, _agencia: str = Depends(requiere_agencia)):
     pool = await get_db()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
@@ -266,7 +347,7 @@ async def get_betslip(code: str, _agencia: str = Depends(auth.require_agencia)):
 # ── BETSLIP — PAY (solo agencias logueadas) ───────────────────
 @app.post("/api/betslip/{code}/pay")
 async def pay_betslip(code: str, request: Request,
-                      agencia_code: str = Depends(auth.require_agencia)):
+                      agencia_code: str = Depends(requiere_agencia)):
     body = await request.json()
     # El monto lo valida el servidor: nunca se confía en el cliente.
     try:
@@ -526,7 +607,7 @@ async def mis_apuestas(request: Request):
 # ── AGENCIA — DATOS REALES DE CAJA ────────────────────────────
 @app.get("/api/agencias/me/tickets")
 async def mis_tickets(limite: int = 50,
-                      agencia_code: str = Depends(auth.require_agencia)):
+                      agencia_code: str = Depends(requiere_agencia)):
     """Últimos tickets emitidos por la agencia de la sesión."""
     limite = max(1, min(int(limite), 200))
     pool = await get_db()
@@ -556,49 +637,79 @@ async def mis_tickets(limite: int = 50,
 
 @app.get("/api/agencias/me/cierre")
 async def mi_cierre(desde: str = None, hasta: str = None,
-                    agencia_code: str = Depends(auth.require_agencia)):
+                    agencia_code: str = Depends(requiere_agencia)):
     """
-    Cierre de caja con datos reales.
+    Cierre de caja real: tickets vendidos, premios pagados y cargas
+    de saldo hechas en el mostrador.
+    """
+    # asyncpg exige datetime.date cuando la consulta dice ::date.
+    # Pasarle el string suelto tiraba un 500 que el navegador mostraba
+    # como "sin conexión con el servidor".
+    def a_fecha(txt):
+        if not txt:
+            return None
+        try:
+            return datetime.strptime(txt[:10], "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(400, f"Fecha inválida: {txt}")
 
-    OJO: "pagado" son los premios entregados. Todavía no existe el flujo
-    de pago de ganadores, así que hoy es 0 y el neto es igual a lo cobrado.
-    Prefiero mostrar cero antes que un número inventado que descuadre
-    la caja de verdad.
-    """
+    d1, d2 = a_fecha(desde), a_fecha(hasta)
+
+    cond, args = ["agencia_code = $1"], [agencia_code]
+    if d1:
+        args.append(d1); cond.append(f"created_at >= ${len(args)}")
+    if d2:
+        args.append(d2); cond.append(f"created_at < ${len(args)} + 1")
+    where = " AND ".join(cond)
+
     pool = await get_db()
-    filtros = ["agencia_code = $1"]
-    args = [agencia_code]
-    if desde:
-        args.append(desde); filtros.append(f"created_at >= ${len(args)}::date")
-    if hasta:
-        args.append(hasta); filtros.append(f"created_at < ${len(args)}::date + 1")
-    where = " AND ".join(filtros)
-
     async with pool.acquire() as conn:
-        row = await conn.fetchrow(f"""
-            SELECT COUNT(*)                                      AS tickets,
-                   COUNT(*) FILTER (WHERE tipo='bot')            AS tickets_bot,
-                   COUNT(*) FILTER (WHERE tipo='manual')         AS tickets_manual,
-                   COALESCE(SUM(stake),0)                        AS cobrado,
-                   COALESCE(SUM(potential_win),0)                AS expuesto,
-                   MIN(created_at)                               AS primero,
-                   MAX(created_at)                               AS ultimo
+        tk = await conn.fetchrow(f"""
+            SELECT COUNT(*)                              AS tickets,
+                   COUNT(*) FILTER (WHERE tipo='bot')    AS tickets_bot,
+                   COUNT(*) FILTER (WHERE tipo='manual') AS tickets_manual,
+                   COALESCE(SUM(stake),0)                AS cobrado,
+                   COALESCE(SUM(potential_win),0)        AS expuesto,
+                   MIN(created_at)                       AS primero,
+                   MAX(created_at)                       AS ultimo
             FROM agencia_tickets
             WHERE {where}
         """, *args)
 
-    cobrado = int(row["cobrado"] or 0)
+        mv = await conn.fetchrow(f"""
+            SELECT
+              COALESCE(SUM(monto) FILTER (WHERE tipo='pago_premio'),0) AS premios,
+              COUNT(*)           FILTER (WHERE tipo='pago_premio')     AS premios_n,
+              COALESCE(SUM(monto) FILTER (WHERE tipo='carga'),0)       AS cargas,
+              COUNT(*)           FILTER (WHERE tipo='carga')           AS cargas_n,
+              COALESCE(SUM(monto) FILTER (WHERE tipo='retiro'),0)      AS retiros,
+              COUNT(*)           FILTER (WHERE tipo='retiro')          AS retiros_n
+            FROM agencia_movimientos
+            WHERE {where}
+        """, *args)
+
+    cobrado = int(tk["cobrado"] or 0)
+    premios = int(mv["premios"] or 0)
+    cargas  = int(mv["cargas"] or 0)
+    retiros = int(mv["retiros"] or 0)
+
     return {
-        "tickets":         row["tickets"] or 0,
-        "tickets_bot":     row["tickets_bot"] or 0,
-        "tickets_manual":  row["tickets_manual"] or 0,
+        "tickets":         tk["tickets"] or 0,
+        "tickets_bot":     tk["tickets_bot"] or 0,
+        "tickets_manual":  tk["tickets_manual"] or 0,
         "cobrado":         cobrado,
-        "expuesto":        int(row["expuesto"] or 0),
-        "pagado":          0,
-        "neto":            cobrado,
-        "pagos_no_implementados": True,
-        "primero": row["primero"].strftime("%d/%m/%Y %H:%M") if row["primero"] else None,
-        "ultimo":  row["ultimo"].strftime("%d/%m/%Y %H:%M")  if row["ultimo"]  else None,
+        "expuesto":        int(tk["expuesto"] or 0),
+        "pagado":          premios,
+        "premios_n":       mv["premios_n"] or 0,
+        "cargas":          cargas,
+        "cargas_n":        mv["cargas_n"] or 0,
+        "retiros":         retiros,
+        "retiros_n":       mv["retiros_n"] or 0,
+        # Lo que tiene que haber en la caja: entra plata por apuestas y
+        # cargas, sale por premios y retiros.
+        "neto":            cobrado + cargas - premios - retiros,
+        "primero": tk["primero"].strftime("%d/%m/%Y %H:%M") if tk["primero"] else None,
+        "ultimo":  tk["ultimo"].strftime("%d/%m/%Y %H:%M")  if tk["ultimo"]  else None,
     }
 
 
