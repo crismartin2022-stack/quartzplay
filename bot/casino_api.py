@@ -10,6 +10,9 @@ import auth
 
 log = logging.getLogger(__name__)
 
+# Saldo de créditos de The Odds API (se llena solo al consultar el feed)
+_odds_credits = {"remaining": None, "used": None, "last_check": None}
+
 def sync_get(url, params=None, headers=None, timeout=30):
     """HTTP GET sincrónico usando urllib para evitar conflictos de event loop"""
     import urllib.request, urllib.parse, json as _json
@@ -18,6 +21,12 @@ def sync_get(url, params=None, headers=None, timeout=30):
     req = urllib.request.Request(url, headers=headers or {})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
+            # The Odds API informa el saldo de créditos en los headers
+            rem = r.headers.get("x-requests-remaining")
+            if rem is not None:
+                _odds_credits["remaining"] = rem
+                _odds_credits["used"] = r.headers.get("x-requests-used")
+                _odds_credits["last_check"] = time.strftime("%d/%m %H:%M")
             return _json.loads(r.read().decode())
     except Exception as e:
         log.error(f"sync_get error {url}: {e}")
@@ -343,6 +352,15 @@ async def create_betslip(request: Request):
     if odd_total > MAX_ODD_TOTAL:
         raise HTTPException(400, "La cuota combinada supera el máximo permitido")
 
+    # Contrasta cada cuota contra el feed real antes de guardar nada
+    problemas = await validar_cuotas(limpios)
+    if problemas:
+        if ODDS_VALIDATION == "strict":
+            log.warning(f"Boleto rechazado por cuotas: {problemas}")
+            raise HTTPException(400,
+                "Las cuotas cambiaron o no se pudieron verificar. Volvé a armar el boleto.")
+        log.warning(f"[ODDS-WARN] boleto aceptado con observaciones: {problemas}")
+
     pool = await get_db()
     async with pool.acquire() as conn:
         # Reintenta si el código sorteado ya existe.
@@ -380,6 +398,45 @@ FOOTBALL_HEADERS = {
 
 _football_cache = {}
 FOOTBALL_TTL = 30  # 30 segundos de caché
+
+# ── CONFIGURACIÓN DE CUOTAS ───────────────────────────────────
+# OJO CON EL COSTO: The Odds API cobra 1 crédito por mercado por deporte
+# por request. Pedir 4 mercados en 20 deportes = 80 créditos por refresco.
+# Subí el TTL o bajá la lista antes de agrandar esto.
+ODDS_MARKETS      = os.environ.get("ODDS_MARKETS", "h2h,totals,btts")
+ODDS_SPORTS_LIMIT = int(os.environ.get("ODDS_SPORTS_LIMIT", "12"))
+ODDS_TTL_PREMATCH = int(os.environ.get("ODDS_TTL_PREMATCH", "300"))
+
+def parse_markets(ev):
+    """
+    Junta los mercados de TODOS los bookmakers, quedándose con la mejor
+    cuota de cada resultado.
+
+    El código anterior cortaba en el primer bookmaker con datos: si ese
+    solo traía 1X2, el Over/Under y el BTTS del resto se perdían. Por eso
+    la oferta llegaba incompleta.
+    """
+    markets = {}
+    for bm in ev.get("bookmakers", []):
+        for mkt in bm.get("markets", []):
+            key = mkt.get("key")
+            if not key:
+                continue
+            destino = markets.setdefault(key, {})
+            for o in mkt.get("outcomes", []):
+                nombre = o.get("name", "")
+                # Over/Under y hándicap necesitan la línea en el nombre:
+                # sin esto quedaba "Over" pelado y el front mostraba "Más ".
+                punto = o.get("point")
+                if punto is not None:
+                    nombre = f"{nombre} {punto}"
+                try:
+                    precio = round(float(o["price"]), 2)
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if precio > destino.get(nombre, 0):
+                    destino[nombre] = precio
+    return markets
 
 @app.get("/api/live/football")
 async def live_football():
@@ -595,27 +652,152 @@ async def prematch_odds():
 
 
 # ── LIVE COMBINED (scores + cuotas en vivo) ───────────────────
+import re as _re
+import unicodedata as _ud
+
+# Palabras que no distinguen a un equipo de otro.
+# "united", "city" y "athletic" NO van acá: son justamente lo que
+# diferencia a Manchester United de Manchester City.
+_RUIDO = {"fc","cf","sc","ac","afc","cd","ca","club","de","del","el","la",
+          "futbol","football","futebol","calcio","if","sk","bk","aif"}
+
+def _sin_acentos(t):
+    return "".join(c for c in _ud.normalize("NFD", t)
+                   if _ud.category(c) != "Mn")
+
+def tokens_equipo(name):
+    """Devuelve el conjunto de palabras significativas de un nombre."""
+    t = _sin_acentos((name or "").lower())
+    t = _re.sub(r'[^a-z0-9 ]', ' ', t)
+    return {w for w in t.split() if w and w not in _RUIDO}
+
 def normalize_name(name):
-    """Normaliza nombre de equipo para matching"""
-    import re
-    name = name.lower()
-    # Remover sufijos comunes
-    for suffix in [" fc", " cf", " sc", " ac", " united", " city", " athletic"]:
-        name = name.replace(suffix, "")
-    # Remover caracteres especiales
-    name = re.sub(r'[^a-z0-9 ]', '', name)
-    return name.strip()
+    """Nombre normalizado y ordenado — sirve de clave estable."""
+    return " ".join(sorted(tokens_equipo(name)))
 
 def match_teams(name1, name2):
-    """Compara dos nombres de equipos con fuzzy matching"""
-    n1 = normalize_name(name1)
-    n2 = normalize_name(name2)
-    if n1 == n2: return True
-    if n1 in n2 or n2 in n1: return True
-    # Comparar primeras palabras
-    w1 = n1.split()[0] if n1.split() else ""
-    w2 = n2.split()[0] if n2.split() else ""
-    return w1 == w2 and len(w1) > 3
+    """
+    Compara nombres de equipos.
+
+    Antes 'Manchester United' y 'Manchester City' quedaban ambos en
+    'manchester' y matcheaban: un partido en vivo podía terminar mostrando
+    las cuotas del otro. Ahora exige que ninguna palabra significativa
+    se contradiga.
+    """
+    t1, t2 = tokens_equipo(name1), tokens_equipo(name2)
+    if not t1 or not t2:
+        return False
+    if t1 == t2:
+        return True
+    comunes = t1 & t2
+    if not comunes:
+        return False
+    # Uno contenido en el otro: "Racing" vs "Racing Club" -> sí.
+    if t1 <= t2 or t2 <= t1:
+        return True
+    # Si cada lado aporta una palabra propia distinta, son equipos distintos
+    # ("manchester united" vs "manchester city").
+    return False
+
+# ── VALIDACIÓN DE CUOTAS ──────────────────────────────────────
+# Las cuotas llegan del navegador. Sin este chequeo, cualquiera puede
+# editar la petición y armarse un boleto de 900x para cobrar en el local.
+#
+# ODDS_VALIDATION:
+#   warn   → deja pasar pero loguea lo sospechoso (default, para estrenar)
+#   strict → rechaza el boleto
+#   off    → sin chequeo
+ODDS_VALIDATION = os.environ.get("ODDS_VALIDATION", "warn").lower()
+ODDS_TOLERANCIA = 1.05   # 5% de margen por movimiento de cuota entre refrescos
+
+
+def _recolectar_odds(dst, home, away, valores):
+    """Suma las cuotas conocidas de un evento al índice."""
+    nums = [float(v) for v in valores if isinstance(v, (int, float)) and v]
+    if not nums or not home:
+        return
+    dst.setdefault((normalize_name(home), normalize_name(away)), set()).update(nums)
+
+
+def construir_indice_odds():
+    """
+    Arma {(home, away): {cuotas conocidas}} a partir de lo que ya está
+    en caché. No pega a ninguna API: usa lo mismo que vio el cliente.
+    """
+    idx = {}
+
+    data, _ = _football_cache.get("all_markets", ({}, 0))
+    for sport in (data or {}).get("sports", []):
+        for ev in sport.get("events", []):
+            vals = []
+            for mercado in (ev.get("markets") or {}).values():
+                if isinstance(mercado, dict):
+                    vals.extend(mercado.values())
+            vals.extend((ev.get("odds") or {}).values())
+            _recolectar_odds(idx, ev.get("h",""), ev.get("a",""), vals)
+
+    data, _ = _football_cache.get("prematch_all", ({}, 0))
+    for sport in (data or {}).get("sports", []):
+        for ev in sport.get("events", []):
+            _recolectar_odds(idx, ev.get("h",""), ev.get("a",""),
+                             (ev.get("odds") or {}).values())
+
+    data, _ = _football_cache.get("live_combined", ({}, 0))
+    for m in (data or {}).get("matches", []):
+        _recolectar_odds(idx, m.get("home",""), m.get("away",""),
+                         (m.get("odds") or {}).values())
+
+    data, _ = _football_cache.get("ai_combos", ({}, 0))
+    for combo in (data or {}).get("combos", []):
+        for p in combo.get("picks", []):
+            _recolectar_odds(idx, p.get("h",""), p.get("a",""), [p.get("odd")])
+
+    return idx
+
+
+def _buscar_evento(idx, home, away):
+    """Busca exacto y, si no, con el matcher difuso que ya usamos para live."""
+    clave = (normalize_name(home), normalize_name(away))
+    if clave in idx:
+        return idx[clave]
+    for (h, a), vals in idx.items():
+        if match_teams(home, h) and match_teams(away, a):
+            return vals
+    return None
+
+
+async def validar_cuotas(picks):
+    """
+    Devuelve lista de problemas encontrados (vacía = todo bien).
+    Solo bloquea cuotas INFLADAS: una cuota menor a la real no perjudica
+    a la casa, así que no hace falta rechazarla.
+    """
+    if ODDS_VALIDATION == "off":
+        return []
+
+    idx = construir_indice_odds()
+    if not idx:
+        # Caché fría (recién arrancó la API). La calentamos una vez.
+        try:
+            await all_markets()
+            idx = construir_indice_odds()
+        except Exception as e:
+            log.error(f"No se pudo calentar la caché de cuotas: {e}")
+
+    problemas = []
+    for p in picks:
+        conocidas = _buscar_evento(idx, p["home"], p["away"])
+        if not conocidas:
+            problemas.append(
+                f"{p['home']} vs {p['away']}: evento no encontrado en el feed")
+            continue
+        techo = max(conocidas) * ODDS_TOLERANCIA
+        if p["odd"] > techo:
+            problemas.append(
+                f"{p['home']} vs {p['away']}: cuota {p['odd']} supera "
+                f"el máximo real {max(conocidas):.2f}")
+    return problemas
+
 
 @app.get("/api/live/combined")
 async def live_combined():
@@ -701,19 +883,28 @@ async def live_combined():
 
     # 3. Combinar scores + cuotas
     result = []
+    sin_match = []   # para el endpoint de diagnóstico
     for match in live_scores:
         home_name = match.get("home",{}).get("name","")
         away_name = match.get("away",{}).get("name","")
 
-        # Buscar cuotas matcheando por nombre
+        # Buscar cuotas por nombre. Los dos feeds no coinciden en qué equipo
+        # ponen de local, así que probamos las dos orientaciones y damos
+        # vuelta las cuotas cuando el match es invertido.
         odds = {"L": None, "E": None, "V": None}
-        for key, odd_data in live_odds.items():
-            parts = key.split("|")
-            if len(parts) == 2:
-                if (match_teams(home_name, parts[0]) and
-                    match_teams(away_name, parts[1])):
-                    odds = {"L": odd_data["L"], "E": odd_data["E"], "V": odd_data["V"]}
-                    break
+        for key, od in live_odds.items():
+            partes = key.split("|")
+            if len(partes) != 2:
+                continue
+            if match_teams(home_name, partes[0]) and match_teams(away_name, partes[1]):
+                odds = {"L": od["L"], "E": od["E"], "V": od["V"]}
+                break
+            if match_teams(home_name, partes[1]) and match_teams(away_name, partes[0]):
+                odds = {"L": od["V"], "E": od["E"], "V": od["L"]}
+                break
+
+        if odds["L"] is None:
+            sin_match.append(f"{home_name} vs {away_name}")
 
         result.append({
             "id":        str(match.get("id","")),
@@ -732,8 +923,40 @@ async def live_combined():
             "hasOdds":   odds["L"] is not None,
         })
 
+    if sin_match:
+        log.info(f"Live sin cuotas ({len(sin_match)}): {sin_match[:5]}")
+    _football_cache["live_sin_match"] = (
+        {"sin_cuotas": sin_match,
+         "claves_odds": sorted(live_odds.keys())[:40]}, now)
+
     _football_cache[cache_key] = ({"matches": result, "count": len(result)}, now)
     return {"matches": result, "count": len(result)}
+
+
+@app.get("/api/_diag/live")
+async def diag_live(_=Depends(auth.require_admin)):
+    """
+    Por qué un partido en vivo no muestra cuotas.
+    Compara los nombres que da el feed de scores contra los del feed
+    de cuotas: casi siempre el problema es que se escriben distinto.
+    """
+    data, ts = _football_cache.get("live_sin_match", ({}, 0))
+    return {
+        "sin_cuotas": (data or {}).get("sin_cuotas", []),
+        "nombres_en_feed_de_cuotas": (data or {}).get("claves_odds", []),
+        "actualizado_hace_seg": round(time.time() - ts) if ts else None,
+    }
+
+
+@app.get("/api/_diag/creditos")
+async def diag_creditos(_=Depends(auth.require_admin)):
+    """Saldo de créditos de The Odds API."""
+    return {
+        **_odds_credits,
+        "markets_configurados": ODDS_MARKETS,
+        "sports_limit": ODDS_SPORTS_LIMIT,
+        "ttl_prematch_seg": ODDS_TTL_PREMATCH,
+    }
 
 
 @app.get("/api/live/markets/{sport_key}")
@@ -773,7 +996,7 @@ async def all_markets():
     now = time.time()
     if cache_key in _football_cache:
         data, ts = _football_cache[cache_key]
-        if now - ts < 120:
+        if now - ts < ODDS_TTL_PREMATCH:
             return data
 
     # Obtener deportes activos sin bloquear el event loop
@@ -787,7 +1010,7 @@ async def all_markets():
     )
     if all_sports_data:
         for s in all_sports_data:
-            if s.get("active") and not s.get("has_outrights", False) and len(SPORTS) < 20:
+            if s.get("active") and not s.get("has_outrights", False) and len(SPORTS) < ODDS_SPORTS_LIMIT:
                 SPORTS.append(s["key"])
         log.info(f"Sports activos: {len(SPORTS)} — {SPORTS[:5]}")
     else:
@@ -823,7 +1046,7 @@ async def all_markets():
             {
                 "apiKey": ODDS_API_KEY,
                 "regions": "eu",
-                "markets": "h2h,totals",
+                "markets": ODDS_MARKETS,
                 "oddsFormat": "decimal",
                 "dateFormat": "iso",
             },
@@ -855,15 +1078,7 @@ async def all_markets():
                 for ev in events_raw:
                     home = ev.get("home_team","")
                     away = ev.get("away_team","")
-                    markets = {}
-                    for bm in ev.get("bookmakers",[]):
-                        for mkt in bm.get("markets",[]):
-                            key = mkt["key"]
-                            if key not in markets:
-                                markets[key] = {}
-                                for o in mkt.get("outcomes",[]):
-                                    markets[key][o["name"]] = round(o["price"],2)
-                        if markets: break
+                    markets = parse_markets(ev)
                     try:
                         from datetime import datetime
                         dt=datetime.fromisoformat(ev.get("commence_time","").replace("Z","+00:00"))
