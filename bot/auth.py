@@ -16,34 +16,36 @@ ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "")
 SESSION_TTL = int(os.environ.get("SESSION_TTL_H", "8")) * 3600
 
 # ── HASHING ───────────────────────────────────────────────────
+# Usamos la librería bcrypt directamente. passlib 1.7 con bcrypt 4.x
+# lanza "password cannot be longer than 72 bytes" en vez de manejarlo,
+# y eso tumbaba el login entero.
 try:
-    from passlib.hash import bcrypt
+    import bcrypt as _bcrypt
     _HAS_BCRYPT = True
 except ImportError:
     _HAS_BCRYPT = False
-    log.warning("passlib no instalado — usando SHA256 (inseguro)")
+    log.warning("bcrypt no instalado — usando SHA256 (inseguro)")
 
 
-def _trunc(p: str) -> bytes:
-    # bcrypt no admite más de 72 bytes. Cortamos por bytes (no por
-    # caracteres) para no romper un UTF-8 multibyte a la mitad.
-    b = p.encode("utf-8")
+def _bytes72(p: str) -> bytes:
+    """bcrypt solo mira los primeros 72 bytes. Cortamos ahí, cuidando
+    de no partir un carácter UTF-8 por la mitad."""
+    b = (p or "").encode("utf-8")
     if len(b) <= 72:
         return b
-    cortado = b[:72]
-    while cortado:
+    corte = b[:72]
+    while corte:
         try:
-            cortado.decode("utf-8")
-            break
+            corte.decode("utf-8"); break
         except UnicodeDecodeError:
-            cortado = cortado[:-1]
-    return cortado
+            corte = corte[:-1]
+    return corte
 
 
 def hash_password(p: str) -> str:
     if _HAS_BCRYPT:
-        return bcrypt.hash(_trunc(p).decode("utf-8", "ignore"))
-    return hashlib.sha256(p.encode()).hexdigest()
+        return _bcrypt.hashpw(_bytes72(p), _bcrypt.gensalt()).decode("utf-8")
+    return hashlib.sha256((p or "").encode()).hexdigest()
 
 
 def verify_password(plain: str, stored: str) -> bool:
@@ -54,11 +56,12 @@ def verify_password(plain: str, stored: str) -> bool:
         if not _HAS_BCRYPT:
             return False
         try:
-            return bcrypt.verify(_trunc(plain).decode("utf-8", "ignore"), stored)
-        except Exception:
+            return _bcrypt.checkpw(_bytes72(plain), stored.encode("utf-8"))
+        except Exception as e:
+            log.error(f"Error verificando bcrypt: {e}")
             return False
     # legacy sha256 — comparación en tiempo constante
-    legacy = hashlib.sha256(plain.encode()).hexdigest()
+    legacy = hashlib.sha256((plain or "").encode()).hexdigest()
     return hmac.compare_digest(legacy, stored)
 
 
