@@ -24,9 +24,25 @@ except ImportError:
     log.warning("passlib no instalado — usando SHA256 (inseguro)")
 
 
+def _trunc(p: str) -> bytes:
+    # bcrypt no admite más de 72 bytes. Cortamos por bytes (no por
+    # caracteres) para no romper un UTF-8 multibyte a la mitad.
+    b = p.encode("utf-8")
+    if len(b) <= 72:
+        return b
+    cortado = b[:72]
+    while cortado:
+        try:
+            cortado.decode("utf-8")
+            break
+        except UnicodeDecodeError:
+            cortado = cortado[:-1]
+    return cortado
+
+
 def hash_password(p: str) -> str:
     if _HAS_BCRYPT:
-        return bcrypt.hash(p)
+        return bcrypt.hash(_trunc(p).decode("utf-8", "ignore"))
     return hashlib.sha256(p.encode()).hexdigest()
 
 
@@ -38,7 +54,7 @@ def verify_password(plain: str, stored: str) -> bool:
         if not _HAS_BCRYPT:
             return False
         try:
-            return bcrypt.verify(plain, stored)
+            return bcrypt.verify(_trunc(plain).decode("utf-8", "ignore"), stored)
         except Exception:
             return False
     # legacy sha256 — comparación en tiempo constante
@@ -54,7 +70,7 @@ def needs_rehash(stored: str) -> bool:
 # ── SESIONES DE AGENCIA ───────────────────────────────────────
 # En memoria: la API corre en un solo proceso (ver main.py).
 # Si algún día escalás a varias réplicas, mové esto a Postgres o Redis.
-_sessions = {}
+_sessions: dict[str, dict] = {}
 
 
 def _purge():
@@ -74,7 +90,7 @@ def destroy_session(token: str):
     _sessions.pop(token, None)
 
 
-def _bearer(authorization):
+def _bearer(authorization: str | None) -> str:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(401, "Falta token de sesión")
     return authorization[7:].strip()
