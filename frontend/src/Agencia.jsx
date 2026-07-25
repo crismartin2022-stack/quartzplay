@@ -78,7 +78,7 @@ function GCard({ children, style={}, glow }){
       border:`1px solid ${glow?glow+"44":Q.border}`,
       borderRadius:16,
       boxShadow:`0 8px 32px rgba(0,0,0,0.5)${glow?`, 0 0 24px ${glow}22`:""}`,
-      position:"relative", overflow:"hidden", ...style,
+      position:"relative", overflow:"hidden", maxWidth:"100%", minWidth:0, ...style,
     }}>
       <div style={{position:"absolute",top:0,left:0,right:0,height:1,
         background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)",
@@ -1040,7 +1040,7 @@ function FlujoManual({ agencia }){
                       <button key={opt.label}
                         onClick={()=>togglePick({home:ev.h,away:ev.a},d.name,opt.label,opt.odd)}
                         style={{
-                          flex:1,
+                          flex:"1 1 0",minWidth:0,overflow:"hidden",
                           background:hasPick({home:ev.h,away:ev.a},opt.label)
                             ?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`
                             :"rgba(255,255,255,0.04)",
@@ -1048,7 +1048,8 @@ function FlujoManual({ agencia }){
                           borderRadius:10,padding:"8px 4px",cursor:"pointer",
                           textAlign:"center",
                         }}>
-                        <div style={{color:Q.muted,fontSize:9}}>{opt.label}</div>
+                        <div style={{color:Q.muted,fontSize:9,overflow:"hidden",
+                          textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt.label}</div>
                         <div style={{color:hasPick({home:ev.h,away:ev.a},opt.label)?Q.cyan:Q.text,
                           fontWeight:700,fontSize:15,
                           fontFamily:"'Space Grotesk',system-ui"}}>{opt.odd}</div>
@@ -1191,8 +1192,401 @@ function DoneScreen({ slip, titulo, color, tipo, onReset }){
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CLIENTES — alta, búsqueda, carga de saldo, historial
+// ═══════════════════════════════════════════════════════════════
+function Clientes({ agencia, onSesionExpirada }){
+  const [q,setQ]=useState("");
+  const [lista,setLista]=useState([]);
+  const [cargando,setCargando]=useState(false);
+  const [sel,setSel]=useState(null);      // usuario abierto
+  const [alta,setAlta]=useState(false);   // form de alta
+  const [msg,setMsg]=useState("");
+
+  const buscar=async(texto)=>{
+    setCargando(true); setMsg("");
+    try{
+      const r=await fetch(`${API_URL}/api/agencias/me/usuarios?q=${encodeURIComponent(texto||"")}`,
+        {headers:authHeaders(agencia.token)});
+      if(r.status===401){ onSesionExpirada(); return; }
+      if(!r.ok) throw new Error(`Error ${r.status}`);
+      setLista((await r.json()).usuarios||[]);
+    }catch(e){ setMsg(e.message==="Failed to fetch"?"Sin conexión":e.message); }
+    setCargando(false);
+  };
+
+  useEffect(()=>{ buscar(""); // eslint-disable-next-line
+  },[]);
+
+  if(sel) return <FichaCliente agencia={agencia} user={sel}
+    onVolver={()=>{setSel(null);buscar(q);}} onSesionExpirada={onSesionExpirada}/>;
+
+  if(alta) return <AltaCliente agencia={agencia}
+    onListo={(u)=>{setAlta(false);buscar("");if(u)setSel(u);}}
+    onCancel={()=>setAlta(false)} onSesionExpirada={onSesionExpirada}/>;
+
+  return(
+    <div>
+      <div style={{display:"flex",gap:8,marginBottom:12}}>
+        <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:8,
+          background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
+          borderRadius:10,padding:"9px 12px"}}>
+          <span style={{color:Q.muted,fontSize:14}}>🔍</span>
+          <input value={q}
+            onChange={e=>{setQ(e.target.value);buscar(e.target.value);}}
+            placeholder="Buscar por nombre o documento..."
+            style={{background:"transparent",border:"none",color:Q.text,
+              fontSize:14,flex:1,minWidth:0,
+              fontFamily:"'Space Grotesk',system-ui"}}/>
+        </div>
+        <Btn label="+ Nuevo" onClick={()=>setAlta(true)} color={Q.violet} size="sm"/>
+      </div>
+
+      <AlertaError mensaje={msg}/>
+
+      {cargando&&<div style={{color:Q.muted,textAlign:"center",padding:16,
+        fontFamily:"'Space Grotesk',system-ui"}}>Buscando...</div>}
+
+      {!cargando&&lista.length===0&&(
+        <GCard style={{padding:26,textAlign:"center"}}>
+          <div style={{fontSize:28,marginBottom:8}}>👤</div>
+          <div style={{color:Q.muted,fontSize:13,
+            fontFamily:"'Space Grotesk',system-ui"}}>
+            {q?"No se encontró ningún cliente":"Todavía no cargaste clientes"}
+          </div>
+        </GCard>
+      )}
+
+      {lista.map(u=>(
+        <GCard key={u.id} onClick={()=>setSel(u)}
+          style={{padding:"12px 14px",marginBottom:8,cursor:"pointer"}}>
+          <div style={{display:"flex",justifyContent:"space-between",
+            alignItems:"center",gap:8}}>
+            <div style={{minWidth:0,flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                <span style={{color:Q.text,fontWeight:600,fontSize:14,
+                  fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                  textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.nombre}</span>
+                {u.tiene_telegram&&<span style={{color:Q.cyan,fontSize:11}}>✈️</span>}
+              </div>
+              <div style={{color:Q.muted,fontSize:11}}>
+                {u.documento?`Doc ${u.documento}`:"Sin documento"}
+                {u.telefono?` · ${u.telefono}`:""}
+              </div>
+            </div>
+            <div style={{textAlign:"right",flexShrink:0}}>
+              <div style={{color:u.saldo>0?Q.green:Q.muted,fontWeight:700,fontSize:15,
+                fontFamily:"'Space Grotesk',system-ui"}}>{ars(u.saldo)}</div>
+              <span style={{color:Q.muted,fontSize:16}}>›</span>
+            </div>
+          </div>
+        </GCard>
+      ))}
+    </div>
+  );
+}
+
+function AltaCliente({ agencia, onListo, onCancel, onSesionExpirada }){
+  const [nombre,setNombre]=useState("");
+  const [doc,setDoc]=useState("");
+  const [tel,setTel]=useState("");
+  const [msg,setMsg]=useState("");
+  const [guardando,setGuardando]=useState(false);
+
+  const crear=async()=>{
+    if(!nombre.trim()){ setMsg("El nombre es obligatorio"); return; }
+    setGuardando(true); setMsg("");
+    try{
+      const r=await fetch(`${API_URL}/api/agencias/me/usuarios`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
+        body:JSON.stringify({nombre,documento:doc,telefono:tel}),
+      });
+      if(r.status===401){ onSesionExpirada(); return; }
+      if(!r.ok){ const e=await r.json().catch(()=>({}));
+        throw new Error(e.detail||`Error ${r.status}`); }
+      const d=await r.json();
+      onListo({id:d.id,nombre:d.nombre,documento:d.documento,saldo:0,
+        telefono:tel,tiene_telegram:false,de_esta_agencia:true});
+    }catch(e){ setMsg(e.message); setGuardando(false); }
+  };
+
+  return(
+    <div>
+      <button onClick={onCancel} style={{background:"transparent",border:"none",
+        color:Q.muted,fontSize:22,cursor:"pointer",marginBottom:10,padding:0}}>‹ Volver</button>
+      <GCard glow={Q.violet} style={{padding:18}}>
+        <div style={{color:Q.violet2,fontWeight:700,fontSize:15,marginBottom:14,
+          fontFamily:"'Space Grotesk',system-ui"}}>Nuevo cliente</div>
+        {[["Nombre y apellido",nombre,setNombre,"Juan Pérez","text"],
+          ["Documento (opcional)",doc,setDoc,"30111222","text"],
+          ["Teléfono (opcional)",tel,setTel,"+54 11...","text"],
+        ].map(([l,v,sv,ph,t])=>(
+          <div key={l} style={{marginBottom:12}}>
+            <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
+              letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",
+              marginBottom:5}}>{l}</div>
+            <input type={t} value={v} onChange={e=>sv(e.target.value)} placeholder={ph}
+              style={{width:"100%",background:"rgba(255,255,255,0.05)",
+                border:`1px solid ${Q.border}`,borderRadius:10,padding:"11px 14px",
+                color:Q.text,fontSize:16,fontFamily:"'Space Grotesk',system-ui"}}/>
+          </div>
+        ))}
+        <AlertaError mensaje={msg}/>
+        <div style={{display:"flex",gap:8,marginTop:4}}>
+          <Btn label="Cancelar" onClick={onCancel} outline color={Q.muted} full disabled={guardando}/>
+          <Btn label={guardando?"CREANDO...":"CREAR"} onClick={crear} color={Q.violet} full disabled={guardando}/>
+        </div>
+      </GCard>
+    </div>
+  );
+}
+
+function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
+  const [saldo,setSaldo]=useState(user.saldo);
+  const [movs,setMovs]=useState(null);
+  const [monto,setMonto]=useState(1000);
+  const [modo,setModo]=useState("carga");   // carga | retiro
+  const [msg,setMsg]=useState("");
+  const [proc,setProc]=useState(false);
+
+  const cargarMovs=async()=>{
+    try{
+      const r=await fetch(`${API_URL}/api/agencias/me/usuarios/${user.id}/movimientos`,
+        {headers:authHeaders(agencia.token)});
+      if(r.status===401){ onSesionExpirada(); return; }
+      if(r.ok){ const d=await r.json(); setMovs(d.movimientos||[]); setSaldo(d.saldo); }
+    }catch(e){ setMovs([]); }
+  };
+  useEffect(()=>{ cargarMovs(); // eslint-disable-next-line
+  },[]);
+
+  const aplicar=async()=>{
+    if(proc||!monto) return;
+    setProc(true); setMsg("");
+    try{
+      const r=await fetch(`${API_URL}/api/agencias/me/cargar`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
+        body:JSON.stringify({user_id:user.id,
+          monto: modo==="carga"? monto : -monto}),
+      });
+      if(r.status===401){ onSesionExpirada(); return; }
+      if(!r.ok){ const e=await r.json().catch(()=>({}));
+        throw new Error(e.detail||`Error ${r.status}`); }
+      const d=await r.json();
+      setSaldo(d.saldo);
+      setMsg(`✅ ${modo==="carga"?"Cargado":"Retirado"} ${ars(monto)}`);
+      cargarMovs();
+    }catch(e){ setMsg("⚠️ "+e.message); }
+    setProc(false);
+  };
+
+  const tipoTxt={carga:"Carga",retiro:"Retiro",pago_premio:"Premio pagado",ajuste:"Ajuste"};
+  const tipoColor={carga:Q.green,retiro:Q.amber,pago_premio:Q.violet2,ajuste:Q.muted};
+
+  return(
+    <div>
+      <button onClick={onVolver} style={{background:"transparent",border:"none",
+        color:Q.muted,fontSize:22,cursor:"pointer",marginBottom:10,padding:0}}>‹ Volver</button>
+
+      <GCard glow={Q.violet} style={{padding:18,marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:Q.text,fontWeight:700,fontSize:17,
+              fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+              textOverflow:"ellipsis"}}>{user.nombre}</div>
+            <div style={{color:Q.muted,fontSize:11,marginTop:2}}>
+              {user.documento?`Doc ${user.documento}`:"Sin documento"}
+              {user.tiene_telegram?" · Telegram ✈️":""}
+            </div>
+          </div>
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",
+              letterSpacing:1}}>Saldo</div>
+            <div style={{color:saldo>0?Q.green:Q.text,fontWeight:900,fontSize:22,
+              fontFamily:"'Space Grotesk',system-ui"}}>{ars(saldo)}</div>
+          </div>
+        </div>
+      </GCard>
+
+      <GCard style={{padding:16,marginBottom:12}}>
+        <div style={{display:"flex",gap:6,marginBottom:12}}>
+          {[["carga","➕ Cargar",Q.green],["retiro","➖ Retirar",Q.amber]].map(([k,l,c])=>(
+            <button key={k} onClick={()=>setModo(k)} style={{
+              flex:1,background:modo===k?`${c}22`:"rgba(255,255,255,0.04)",
+              border:`1.5px solid ${modo===k?c:Q.border}`,borderRadius:10,
+              padding:"9px",cursor:"pointer",color:modo===k?c:Q.muted,
+              fontSize:13,fontWeight:700,fontFamily:"'Space Grotesk',system-ui",
+            }}>{l}</button>
+          ))}
+        </div>
+
+        <input type="number" value={monto} onChange={e=>setMonto(Number(e.target.value))}
+          style={{width:"100%",background:"rgba(255,255,255,0.06)",
+            border:`1.5px solid ${modo==="carga"?Q.green:Q.amber}`,borderRadius:10,
+            padding:"12px 16px",color:Q.text,fontSize:22,fontWeight:700,
+            fontFamily:"'Space Grotesk',system-ui",marginBottom:10}}/>
+
+        <div style={{display:"flex",gap:5,marginBottom:12}}>
+          {[500,1000,2000,5000,10000].map(v=>(
+            <button key={v} onClick={()=>setMonto(v)} style={{
+              flex:1,background:monto===v?`${Q.violet}33`:"rgba(255,255,255,0.04)",
+              border:`1px solid ${monto===v?Q.violet:Q.border}`,borderRadius:8,
+              padding:"6px 2px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
+              fontSize:10,fontFamily:"'Space Grotesk',system-ui",
+            }}>{v>=1000?`${v/1000}K`:v}</button>
+          ))}
+        </div>
+
+        {msg&&<div style={{fontSize:12,marginBottom:10,
+          color:msg.startsWith("✅")?Q.green:Q.red,
+          fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+
+        <Btn label={proc?"PROCESANDO...":
+          `${modo==="carga"?"CARGAR":"RETIRAR"} ${ars(monto)}`}
+          onClick={aplicar} color={modo==="carga"?Q.green:Q.amber} full size="lg"
+          disabled={proc||!monto}/>
+      </GCard>
+
+      <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
+        fontFamily:"'Space Grotesk',system-ui",marginBottom:8,marginLeft:4}}>
+        Movimientos
+      </div>
+      {movs===null&&<div style={{color:Q.muted,textAlign:"center",padding:12,
+        fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+      {movs&&movs.length===0&&(
+        <GCard style={{padding:20,textAlign:"center"}}>
+          <div style={{color:Q.muted,fontSize:12,
+            fontFamily:"'Space Grotesk',system-ui"}}>Sin movimientos</div>
+        </GCard>
+      )}
+      {(movs||[]).map((m,i)=>(
+        <GCard key={i} style={{padding:"10px 14px",marginBottom:6}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <span style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
+                fontFamily:"'Space Grotesk',system-ui"}}>{tipoTxt[m.tipo]||m.tipo}</span>
+              <div style={{color:Q.muted,fontSize:10}}>{m.fecha}{m.betslip?` · ${m.betslip}`:""}</div>
+            </div>
+            <div style={{color:m.tipo==="retiro"?Q.amber:Q.green,fontWeight:700,fontSize:14,
+              fontFamily:"'Space Grotesk',system-ui"}}>
+              {m.tipo==="retiro"?"-":"+"}{ars(m.monto)}
+            </div>
+          </div>
+        </GCard>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // HISTORIAL
 // ═══════════════════════════════════════════════════════════════
+// Ticket del historial con liquidación (Ganó/Perdió) y pago de premio
+function TicketHistorial({ t, agencia, onCambio, onSesionExpirada }){
+  const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState("");
+  const [res,setRes]=useState(t.resultado||null);
+  const [pagado,setPagado]=useState(!!t.pagado);
+
+  const accion=async(ruta,body,okMsg)=>{
+    if(proc) return null;
+    setProc(true); setMsg("");
+    try{
+      const r=await fetch(`${API_URL}/api/agencias/me/${ruta}`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
+        body:JSON.stringify(body),
+      });
+      if(r.status===401){ onSesionExpirada(); return null; }
+      if(!r.ok){ const e=await r.json().catch(()=>({}));
+        throw new Error(e.detail||`Error ${r.status}`); }
+      const d=await r.json();
+      if(okMsg) setMsg("✅ "+okMsg);
+      return d;
+    }catch(e){ setMsg("⚠️ "+e.message); return null; }
+    finally{ setProc(false); }
+  };
+
+  const liquidar=async(resultado)=>{
+    const d=await accion("liquidar",{code:t.code,resultado},
+      resultado==="ganada"?"Marcada como ganada":"Marcada como perdida");
+    if(d){ setRes(resultado); onCambio&&onCambio(); }
+  };
+  const pagar=async()=>{
+    const d=await accion("pagar-premio",{code:t.code},"Premio pagado");
+    if(d){ setPagado(true); onCambio&&onCambio(); }
+  };
+
+  const colorEstado = pagado?Q.violet2 : res==="ganada"?Q.green
+    : res==="perdida"?Q.red : t.tipo==="bot"?Q.violet:Q.amber;
+  const textoEstado = pagado?"PAGADA" : res==="ganada"?"GANADA"
+    : res==="perdida"?"PERDIDA" : (t.tipo||"").toUpperCase();
+
+  return(
+    <GCard glow={res==="ganada"&&!pagado?Q.green:undefined}
+      style={{padding:"12px 16px",marginBottom:8}}>
+      <div style={{display:"flex",justifyContent:"space-between",
+        alignItems:"center",gap:8}}>
+        <div style={{minWidth:0,flex:1}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+            <span style={{color:Q.cyan,fontWeight:700,fontSize:13,
+              fontFamily:"'Space Grotesk',system-ui"}}>{t.code}</span>
+            <span style={{background:`${colorEstado}22`,
+              border:`1px solid ${colorEstado}`,borderRadius:20,padding:"1px 8px",
+              fontSize:9,fontWeight:700,color:colorEstado,
+              fontFamily:"'Space Grotesk',system-ui"}}>{textoEstado}</span>
+          </div>
+          <div style={{color:Q.muted,fontSize:11,overflow:"hidden",
+            textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+            {t.cliente} · {t.fecha}{t.odd_total?` · ${fmt(t.odd_total)}x`:""}
+          </div>
+        </div>
+        <div style={{textAlign:"right",flexShrink:0}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:13,
+            fontFamily:"'Space Grotesk',system-ui"}}>{ars(t.stake)}</div>
+          <div style={{color:Q.green,fontSize:11}}>ret: {ars(t.potential_win)}</div>
+        </div>
+      </div>
+
+      {!pagado&&(
+        <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${Q.dim}`}}>
+          {!res&&(
+            <div style={{display:"flex",gap:6}}>
+              <button disabled={proc} onClick={()=>liquidar("ganada")} style={{
+                flex:1,background:`${Q.green}18`,border:`1px solid ${Q.green}`,
+                borderRadius:9,padding:"8px",cursor:"pointer",color:Q.green,
+                fontSize:12,fontWeight:700,
+                fontFamily:"'Space Grotesk',system-ui"}}>✓ Ganó</button>
+              <button disabled={proc} onClick={()=>liquidar("perdida")} style={{
+                flex:1,background:`${Q.red}18`,border:`1px solid ${Q.red}`,
+                borderRadius:9,padding:"8px",cursor:"pointer",color:Q.red,
+                fontSize:12,fontWeight:700,
+                fontFamily:"'Space Grotesk',system-ui"}}>✗ Perdió</button>
+            </div>
+          )}
+          {res==="ganada"&&(
+            <button disabled={proc} onClick={pagar} style={{
+              width:"100%",background:`linear-gradient(135deg,${Q.green},#00a854)`,
+              border:"none",borderRadius:10,padding:"11px",cursor:"pointer",
+              color:"#04120a",fontWeight:900,fontSize:14,
+              fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+            }}>💵 Pagar premio {ars(t.potential_win)}</button>
+          )}
+          {res==="perdida"&&(
+            <div style={{textAlign:"center",color:Q.muted,fontSize:11,
+              fontFamily:"'Space Grotesk',system-ui"}}>Sin premio a pagar</div>
+          )}
+        </div>
+      )}
+
+      {msg&&<div style={{fontSize:11,marginTop:8,
+        color:msg.startsWith("✅")?Q.green:Q.red,
+        fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+    </GCard>
+  );
+}
+
 function Historial({ agencia, onSesionExpirada }){
   const [tickets,setTickets]=useState(null);
   const [err,setErr]=useState("");
@@ -1269,34 +1663,8 @@ function Historial({ agencia, onSesionExpirada }){
       )}
 
       {lista.map((t,i)=>(
-        <GCard key={t.code+i} style={{padding:"12px 16px",marginBottom:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{minWidth:0,flex:1}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
-                <span style={{color:Q.cyan,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{t.code}</span>
-                <span style={{
-                  background:t.tipo==="bot"?`${Q.violet}22`:`${Q.amber}22`,
-                  border:`1px solid ${t.tipo==="bot"?Q.violet:Q.amber}`,
-                  borderRadius:20,padding:"1px 8px",fontSize:9,fontWeight:700,
-                  color:t.tipo==="bot"?Q.violet:Q.amber,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
-                  {(t.tipo||"").toUpperCase()}
-                </span>
-              </div>
-              <div style={{color:Q.muted,fontSize:11,overflow:"hidden",
-                textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                {t.cliente} · {t.fecha}
-                {t.odd_total?` · ${fmt(t.odd_total)}x`:""}
-              </div>
-            </div>
-            <div style={{textAlign:"right",flexShrink:0}}>
-              <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                fontFamily:"'Space Grotesk',system-ui"}}>{ars(t.stake)}</div>
-              <div style={{color:Q.green,fontSize:11}}>ret: {ars(t.potential_win)}</div>
-            </div>
-          </div>
-        </GCard>
+        <TicketHistorial key={t.code+i} t={t} agencia={agencia}
+          onCambio={cargar} onSesionExpirada={onSesionExpirada}/>
       ))}
     </div>
   );
@@ -1811,6 +2179,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
     {k:"codigo",   l:"Código / Bot"},
     {k:"envivo",   l:"🔴 En Vivo"},
     {k:"manual",   l:"Apuesta manual"},
+    {k:"clientes", l:"👤 Clientes"},
     {k:"historial",l:"Historial"},
     {k:"cierres",  l:"Cierres"},
     {k:"config",   l:"Config"},
@@ -1855,63 +2224,4 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         ))}
       </div>
 
-      <div style={{flex:1,minHeight:0,overflowY:"auto",
-        WebkitOverflowScrolling:"touch",position:"relative",zIndex:1}}>
-      <div style={{padding:"14px 12px",maxWidth:620,margin:"0 auto",
-        paddingBottom:"calc(28px + env(safe-area-inset-bottom))"}}>
-        {tab==="codigo"   &&<FlujoCodigo  agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
-        {tab==="envivo"   &&<EnVivo/>}
-        {tab==="manual"   &&<FlujoManual  agencia={agencia}/>}
-        {tab==="historial"&&<Historial agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
-        {tab==="cierres"  &&<Cierres      agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
-        {tab==="config"   &&<Config       agencia={agencia}/>}
-      </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
-// APP ROOT
-// ═══════════════════════════════════════════════════════════════
-export default function QuartzAgencia(){
-  const [agencia,setAgencia]=useState(null);
-  const [avisoSesion,setAvisoSesion]=useState(false);
-
-  const sesionExpirada=()=>{
-    setAgencia(null);
-    setAvisoSesion(true);
-  };
-
-  return(
-    <div style={{background:Q.void,minHeight:"100vh"}}>
-      <style>{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        html,body,#root{height:100%;overscroll-behavior:none}
-        /* 16px evita que iOS haga zoom al tocar un campo */
-        input,select,textarea{font-size:16px}
-        button{font-family:inherit;-webkit-tap-highlight-color:transparent;
-               touch-action:manipulation}
-        @keyframes qPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.4)}}
-        input:focus{outline:none} button:active{opacity:.85}
-        ::-webkit-scrollbar{width:3px}
-        ::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.3)}
-      `}</style>
-      {!agencia ? (
-        <div style={{position:"relative"}}>
-          {avisoSesion&&(
-            <div style={{position:"fixed",top:12,left:"50%",transform:"translateX(-50%)",
-              zIndex:100,width:"calc(100% - 32px)",maxWidth:380}}>
-              <AlertaError mensaje="La sesión expiró por inactividad. Volvé a ingresar."/>
-            </div>
-          )}
-          <LoginScreen onLogin={a=>{setAvisoSesion(false);setAgencia(a);}}/>
-        </div>
-      ) : (
-        <AgenciaPanel agencia={agencia}
-          onLogout={()=>setAgencia(null)}
-          onSesionExpirada={sesionExpirada}/>
-      )}
-    </div>
-  );
-}
+      <div style={{flex:1,minHeight:0,overflo
