@@ -657,11 +657,11 @@ async def mi_cierre(desde: str = None, hasta: str = None,
 
     cond, args = ["agencia_code = $1"], [agencia_code]
     if d1:
-        args.append(d1); cond.append(f"created_at >= ${len(args)}")
+        # created_at es timestamptz; lo pasamos a ::date para comparar
+        # fecha contra fecha, sin problemas de hora ni de zona horaria.
+        args.append(d1); cond.append(f"created_at::date >= ${len(args)}")
     if d2:
-        # d2 es el último día inclusive: sumamos 1 día para tomarlo entero.
-        # Antes decía "+ 1" (entero), que Postgres no puede sumar a una fecha.
-        args.append(d2); cond.append(f"created_at < ${len(args)} + interval '1 day'")
+        args.append(d2); cond.append(f"created_at::date <= ${len(args)}")
     where = " AND ".join(cond)
 
     pool = await get_db()
@@ -1561,6 +1561,21 @@ async def _armar_live():
                          for m in live_scores][:40]}, time.time())
     log.info(f"En vivo: {len(en_vivo)} apostables, {len(sin_score)} sin marcador")
     return {"matches": en_vivo, "count": len(en_vivo)}
+
+
+@app.get("/api/_diag/sesiones")
+async def diag_sesiones(_=Depends(auth.require_admin)):
+    """Cuántas sesiones hay guardadas y si la tabla responde."""
+    try:
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            total = await conn.fetchval("SELECT COUNT(*) FROM agencia_sesiones")
+            vigentes = await conn.fetchval(
+                "SELECT COUNT(*) FROM agencia_sesiones WHERE expira_at > NOW()")
+        return {"tabla_ok": True, "total": total, "vigentes": vigentes,
+                "en_memoria": len(auth._sessions)}
+    except Exception as e:
+        return {"tabla_ok": False, "error": str(e)}
 
 
 @app.get("/api/_diag/prematch")
