@@ -659,7 +659,9 @@ async def mi_cierre(desde: str = None, hasta: str = None,
     if d1:
         args.append(d1); cond.append(f"created_at >= ${len(args)}")
     if d2:
-        args.append(d2); cond.append(f"created_at < ${len(args)} + 1")
+        # d2 es el último día inclusive: sumamos 1 día para tomarlo entero.
+        # Antes decía "+ 1" (entero), que Postgres no puede sumar a una fecha.
+        args.append(d2); cond.append(f"created_at < ${len(args)} + interval '1 day'")
     where = " AND ".join(cond)
 
     pool = await get_db()
