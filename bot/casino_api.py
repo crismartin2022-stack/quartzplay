@@ -604,6 +604,238 @@ async def mis_apuestas(request: Request):
     return {"apuestas": salida, "autenticado": True, "registrado": True}
 
 
+# ── LIQUIDACIÓN Y PAGO DE PREMIOS (manual) ────────────────────
+@app.post("/api/agencias/me/liquidar")
+async def liquidar_apuesta(request: Request,
+                           agencia_code: str = Depends(requiere_agencia)):
+    """
+    Marca una apuesta como ganada o perdida. No mueve plata todavía:
+    el pago del premio es un paso aparte, para que el cajero controle
+    antes de entregar el efectivo.
+    """
+    body = await request.json()
+    code = (body.get("code") or "").strip().upper()
+    resultado = body.get("resultado")   # 'ganada' | 'perdida'
+    if resultado not in ("ganada", "perdida"):
+        raise HTTPException(400, "Resultado inválido")
+    if not code:
+        raise HTTPException(400, "Falta el código")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM betslips WHERE code=$1", code)
+        if not row:
+            raise HTTPException(404, "Código no encontrado")
+        await conn.execute("""
+            UPDATE betslips
+            SET resultado = $2, liquidado_at = NOW(), liquidado_por = $3
+            WHERE code = $1
+        """, code, resultado, agencia_code)
+    return {"ok": True, "code": code, "resultado": resultado,
+            "premio": row["potential_win"] if resultado == "ganada" else 0}
+
+
+@app.post("/api/agencias/me/pagar-premio")
+async def pagar_premio(request: Request,
+                       agencia_code: str = Depends(requiere_agencia)):
+    """
+    Paga el premio de una apuesta ganada: registra el movimiento y,
+    si el boleto tiene dueño, le suma el premio al saldo.
+    El índice único mov_premio_unico impide pagarlo dos veces.
+    """
+    body = await request.json()
+    code = (body.get("code") or "").strip().upper()
+    if not code:
+        raise HTTPException(400, "Falta el código")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            row = await conn.fetchrow(
+                "SELECT * FROM betslips WHERE code=$1 FOR UPDATE", code)
+            if not row:
+                raise HTTPException(404, "Código no encontrado")
+            if row["resultado"] != "ganada":
+                raise HTTPException(400,
+                    "La apuesta no está marcada como ganada")
+            if row["pagado_at"]:
+                raise HTTPException(409, "El premio ya fue pagado")
+
+            premio = int(row["potential_win"] or 0)
+            try:
+                await conn.execute("""
+                    INSERT INTO agencia_movimientos
+                        (agencia_code, tipo, user_id, betslip_code,
+                         monto, detalle, operador)
+                    VALUES ($1, 'pago_premio', $2, $3, $4,
+                            'Premio apuesta ganada', $1)
+                """, agencia_code, row["user_id"], code, premio)
+            except asyncpg.UniqueViolationError:
+                raise HTTPException(409, "El premio ya fue pagado")
+
+            await conn.execute("""
+                UPDATE betslips
+                SET pagado_at = NOW(), pagado_por = $2, status = 'paid'
+                WHERE code = $1
+            """, code, agencia_code)
+
+            # Si el boleto es de un usuario, el premio va a su saldo
+            if row["user_id"]:
+                await conn.execute(
+                    "UPDATE users SET balance = balance + $2 WHERE id = $1",
+                    row["user_id"], premio * 100)
+    return {"ok": True, "code": code, "pagado": premio}
+
+
+# ── CLIENTES DE AGENCIA: alta, búsqueda y carga de saldo ──────
+@app.get("/api/agencias/me/usuarios")
+async def buscar_usuarios(q: str = "", limite: int = 20,
+                          agencia_code: str = Depends(requiere_agencia)):
+    """
+    Busca usuarios por documento, nombre, usuario o telegram_id.
+    Con q vacío devuelve los últimos que creó esta agencia.
+    """
+    limite = max(1, min(int(limite), 50))
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        if q.strip():
+            patron = f"%{q.strip().lower()}%"
+            rows = await conn.fetch("""
+                SELECT id, username, nombre_completo, documento, telefono,
+                       telegram_id, balance, creado_por, created_at
+                FROM users
+                WHERE lower(COALESCE(documento,''))       LIKE $1
+                   OR lower(COALESCE(nombre_completo,''))  LIKE $1
+                   OR lower(COALESCE(username,''))         LIKE $1
+                   OR CAST(telegram_id AS TEXT)            LIKE $1
+                ORDER BY created_at DESC NULLS LAST
+                LIMIT $2
+            """, patron, limite)
+        else:
+            rows = await conn.fetch("""
+                SELECT id, username, nombre_completo, documento, telefono,
+                       telegram_id, balance, creado_por, created_at
+                FROM users
+                WHERE creado_por = $1
+                ORDER BY created_at DESC NULLS LAST
+                LIMIT $2
+            """, agencia_code, limite)
+    return {"usuarios": [{
+        "id": r["id"],
+        "username": r["username"],
+        "nombre": r["nombre_completo"] or r["username"] or "Sin nombre",
+        "documento": r["documento"],
+        "telefono": r["telefono"],
+        "telegram_id": r["telegram_id"],
+        "saldo": int(r["balance"] or 0) // 100,
+        "de_esta_agencia": r["creado_por"] == agencia_code,
+        "tiene_telegram": r["telegram_id"] is not None,
+    } for r in rows]}
+
+
+@app.post("/api/agencias/me/usuarios")
+async def crear_usuario(request: Request,
+                        agencia_code: str = Depends(requiere_agencia)):
+    """Da de alta un cliente en el mostrador."""
+    body = await request.json()
+    nombre = (body.get("nombre") or "").strip()[:120]
+    doc    = (body.get("documento") or "").strip()[:40] or None
+    tel    = (body.get("telefono") or "").strip()[:40] or None
+    if not nombre:
+        raise HTTPException(400, "El nombre es obligatorio")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        if doc:
+            existe = await conn.fetchrow(
+                "SELECT id FROM users WHERE documento = $1", doc)
+            if existe:
+                raise HTTPException(409, "Ya existe un usuario con ese documento")
+        # username interno para no chocar con los de Telegram
+        base_user = "loc_" + (doc or str(int(time.time())))
+        row = await conn.fetchrow("""
+            INSERT INTO users
+                (username, nombre_completo, documento, telefono,
+                 balance, creado_por, created_at)
+            VALUES ($1, $2, $3, $4, 0, $5, NOW())
+            RETURNING id
+        """, base_user, nombre, doc, tel, agencia_code)
+    return {"id": row["id"], "nombre": nombre, "documento": doc,
+            "saldo": 0, "creado": True}
+
+
+@app.post("/api/agencias/me/cargar")
+async def cargar_saldo(request: Request,
+                       agencia_code: str = Depends(requiere_agencia)):
+    """
+    Carga (o descuenta) saldo a un usuario y lo deja registrado en
+    agencia_movimientos. Un monto negativo es un retiro.
+    """
+    body = await request.json()
+    try:
+        user_id = int(body.get("user_id"))
+        monto   = int(body.get("monto"))
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Datos inválidos")
+    if monto == 0:
+        raise HTTPException(400, "El monto no puede ser cero")
+    if abs(monto) > 5_000_000:
+        raise HTTPException(400, "Monto fuera de rango")
+    detalle = (body.get("detalle") or "").strip()[:200] or None
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            u = await conn.fetchrow(
+                "SELECT id, balance FROM users WHERE id = $1 FOR UPDATE", user_id)
+            if not u:
+                raise HTTPException(404, "Usuario no encontrado")
+            # monto va en pesos; balance en centavos
+            nuevo = u["balance"] + monto * 100
+            if nuevo < 0:
+                raise HTTPException(400, "Saldo insuficiente para el retiro")
+            await conn.execute(
+                "UPDATE users SET balance = $2 WHERE id = $1", user_id, nuevo)
+            await conn.execute("""
+                INSERT INTO agencia_movimientos
+                    (agencia_code, tipo, user_id, monto, detalle, operador)
+                VALUES ($1, $2, $3, $4, $5, $1)
+            """, agencia_code, "carga" if monto > 0 else "retiro",
+                user_id, abs(monto), detalle)
+    return {"ok": True, "saldo": nuevo // 100,
+            "movimiento": "carga" if monto > 0 else "retiro"}
+
+
+@app.get("/api/agencias/me/usuarios/{user_id}/movimientos")
+async def movimientos_usuario(user_id: int,
+                              agencia_code: str = Depends(requiere_agencia)):
+    """Historial de cargas, retiros y premios de un usuario."""
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        u = await conn.fetchrow(
+            "SELECT nombre_completo, username, balance FROM users WHERE id=$1",
+            user_id)
+        if not u:
+            raise HTTPException(404, "Usuario no encontrado")
+        rows = await conn.fetch("""
+            SELECT tipo, monto, detalle, betslip_code, agencia_code, created_at
+            FROM agencia_movimientos
+            WHERE user_id = $1
+            ORDER BY created_at DESC LIMIT 50
+        """, user_id)
+    return {
+        "nombre": u["nombre_completo"] or u["username"] or "Usuario",
+        "saldo": int(u["balance"] or 0) // 100,
+        "movimientos": [{
+            "tipo": r["tipo"],
+            "monto": r["monto"],
+            "detalle": r["detalle"],
+            "betslip": r["betslip_code"],
+            "fecha": r["created_at"].strftime("%d/%m/%Y %H:%M") if r["created_at"] else "",
+        } for r in rows],
+    }
+
+
 # ── AGENCIA — DATOS REALES DE CAJA ────────────────────────────
 @app.get("/api/agencias/me/tickets")
 async def mis_tickets(limite: int = 50,
@@ -615,6 +847,7 @@ async def mis_tickets(limite: int = 50,
         rows = await conn.fetch("""
             SELECT at.betslip_code, at.tipo, at.stake, at.potential_win,
                    at.created_at, b.status, b.odd_total,
+                   b.resultado, b.pagado_at,
                    COALESCE(u.username, b.cliente_nombre) AS cliente
             FROM agencia_tickets at
             LEFT JOIN betslips b ON b.code = at.betslip_code
@@ -630,6 +863,8 @@ async def mis_tickets(limite: int = 50,
          "potential_win": r["potential_win"] or 0,
          "odd_total": float(r["odd_total"]) if r["odd_total"] else None,
          "estado": r["status"] or "—",
+         "resultado": r["resultado"],
+         "pagado": r["pagado_at"] is not None,
          "cliente": r["cliente"] or "Cliente mostrador",
          "fecha": r["created_at"].strftime("%d/%m %H:%M") if r["created_at"] else "",
         } for r in rows]}
