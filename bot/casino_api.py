@@ -2434,7 +2434,7 @@ async def ai_combos():
             "odd": ev["fav_odd"],
             "mkt": "1X2",
             "sport": ev["sport"],
-    time": ev["time"],
+            "time": ev["time"],
             "live": False,
         })
 
