@@ -429,6 +429,10 @@ async def create_betslip(request: Request):
         away = str(p.get("away") or p.get("a") or "")[:80]
         sel  = str(p.get("sel") or "")[:120]
         sport= str(p.get("sport") or "")[:60]
+        # event_id y sport_key permiten cruzar la apuesta con el
+        # resultado final para la auto-liquidación.
+        event_id  = str(p.get("event_id") or p.get("id") or "")[:64] or None
+        sport_key = str(p.get("sport_key") or "")[:60] or None
         try:
             odd = float(p.get("odd"))
         except (TypeError, ValueError):
@@ -438,7 +442,8 @@ async def create_betslip(request: Request):
         if not home or not sel:
             raise HTTPException(400, "Faltan datos de la selección")
         limpios.append({"home":home,"away":away,"sel":sel,
-                        "odd":round(odd,2),"sport":sport})
+                        "odd":round(odd,2),"sport":sport,
+                        "event_id":event_id,"sport_key":sport_key})
         odd_total *= odd
 
     odd_total = round(odd_total, 3)
@@ -602,6 +607,173 @@ async def mis_apuestas(request: Request):
             "fecha": r["created_at"].strftime("%d/%m %H:%M") if r["created_at"] else "",
         })
     return {"apuestas": salida, "autenticado": True, "registrado": True}
+
+
+# ── AUTO-LIQUIDACIÓN POR RESULTADOS ───────────────────────────
+# The Odds API da el marcador final en /scores. Con eso se resuelven
+# los mercados que dependen solo del resultado: 1X2, Over/Under de goles
+# y ambos-anotan. Córners, tarjetas y goleadores NO (el marcador no
+# alcanza) y quedan para el botón manual.
+
+def _norm(t):
+    return "".join(c for c in (t or "").lower() if c.isalnum())
+
+
+def resolver_pick(pick, sh, sa, home, away):
+    """
+    Decide si un pick ganó (True), perdió (False) o no se puede
+    resolver con el marcador (None).
+    pick = {'sel': 'River gana' | 'Más de 2.5' | 'Ambos anotan: Sí' ...}
+    sh, sa = goles local y visitante (int)
+    """
+    sel = (pick.get("sel") or pick.get("label") or "").strip()
+    low = sel.lower()
+    total = sh + sa
+
+    # 1X2 / ganador
+    if _norm(home) in _norm(sel) and ("gana" in low or _norm(sel)==_norm(home)):
+        return sh > sa
+    if _norm(away) in _norm(sel) and ("gana" in low or _norm(sel)==_norm(away)):
+        return sa > sh
+    if "empate" in low or low == "draw":
+        return sh == sa
+    if "doble" in low:  # doble oportunidad: no la resolvemos sola
+        return None
+
+    # Estos mercados usan "más/menos" pero NO se resuelven con el marcador
+    # de goles: córners, tarjetas, tiros, hándicaps. Los excluimos primero.
+    NO_ES_GOLES = ("córner","corner","tarjeta","card","tiro","remate",
+                   "shot","hándicap","handicap","spread","gol de","1er tiempo",
+                   "primer tiempo","half")
+    if any(t in low for t in NO_ES_GOLES):
+        return None
+
+    # Más / Menos de goles (totales del partido)
+    import re
+    m = re.search(r"m[áa]s de\s*([\d.]+)", low) or re.search(r"over\s*([\d.]+)", low)
+    if m:
+        return total > float(m.group(1))
+    m = re.search(r"menos de\s*([\d.]+)", low) or re.search(r"under\s*([\d.]+)", low)
+    if m:
+        return total < float(m.group(1))
+
+    # Ambos anotan (btts). Ojo: "anotan" contiene "no", así que hay que
+    # detectar la negación por el sufijo ": no" / " no", no por "no" suelto.
+    if "ambos" in low or "btts" in low:
+        ambos = sh > 0 and sa > 0
+        niega = low.rstrip().endswith("no") or ": no" in low or "= no" in low
+        return (not ambos) if niega else ambos
+
+    # Córners, tarjetas, goleadores, hándicaps: el marcador no alcanza
+    return None
+
+
+async def _traer_resultados(sport_ids):
+    """
+    Trae resultados finales. sport_ids es {sport_key: [event_id, ...]}.
+    Usamos el parámetro eventIds para pedir solo los partidos que nos
+    interesan, en vez de todos los del deporte.
+    """
+    ODDS_API_KEY = os.environ.get("ODDS_API_KEY","")
+    resultados = {}
+    async with httpx.AsyncClient(timeout=15) as client:
+        async def uno(sk, ids):
+            params = {"apiKey": ODDS_API_KEY, "daysFrom": 3}
+            if ids:
+                params["eventIds"] = ",".join(ids)
+            d = await odds_get(client, f"/v4/sports/{sk}/scores/", params)
+            return d
+        tareas = [uno(sk, ids) for sk, ids in sport_ids.items()]
+        for fut in asyncio.as_completed(tareas):
+            data = await fut
+            for ev in (data or []):
+                if ev.get("completed") and ev.get("scores"):
+                    resultados[ev["id"]] = ev
+    return resultados
+
+
+@app.post("/api/agencias/me/auto-liquidar")
+async def auto_liquidar(agencia_code: str = Depends(requiere_agencia)):
+    """
+    Liquida automáticamente las apuestas pendientes cuyos partidos ya
+    terminaron y cuyos mercados se resuelven con el marcador.
+    Devuelve un resumen: cuántas ganaron, perdieron y cuántas quedan
+    para revisar a mano.
+    """
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        pendientes = await conn.fetch("""
+            SELECT b.code, b.picks, b.potential_win
+            FROM betslips b
+            JOIN agencia_tickets at ON at.betslip_code = b.code
+            WHERE at.agencia_code = $1
+              AND b.resultado IS NULL
+              AND b.created_at > NOW() - interval '4 days'
+        """, agencia_code)
+
+    if not pendientes:
+        return {"revisadas": 0, "ganadas": 0, "perdidas": 0,
+                "sin_resolver": 0, "mensaje": "No hay apuestas pendientes"}
+
+    # Mapa sport_key -> {event_ids} para pedir solo lo necesario
+    sport_ids, boletos = {}, []
+    for r in pendientes:
+        try:
+            picks = ast.literal_eval(r["picks"]) if r["picks"] else []
+        except Exception:
+            picks = []
+        for p in picks:
+            if isinstance(p, dict) and p.get("sport_key") and p.get("event_id"):
+                sport_ids.setdefault(p["sport_key"], set()).add(p["event_id"])
+        boletos.append((r["code"], picks, r["potential_win"]))
+
+    # convertir sets a listas
+    sport_ids = {k: list(v) for k, v in sport_ids.items()}
+    resultados = await _traer_resultados(sport_ids) if sport_ids else {}
+
+    ganadas = perdidas = sin_resolver = 0
+    async with pool.acquire() as conn:
+        for code, picks, premio in boletos:
+            estados = []
+            for p in picks:
+                if not isinstance(p, dict):
+                    estados.append(None); continue
+                res = resultados.get(p.get("event_id") or p.get("id"))
+                if not res:
+                    estados.append(None); continue
+                sh = sa = None
+                for sc in res.get("scores", []):
+                    if _norm(sc["name"]) == _norm(res["home_team"]):
+                        sh = int(sc["score"])
+                    elif _norm(sc["name"]) == _norm(res["away_team"]):
+                        sa = int(sc["score"])
+                if sh is None or sa is None:
+                    estados.append(None); continue
+                estados.append(resolver_pick(p, sh, sa,
+                                             res["home_team"], res["away_team"]))
+
+            # Una combinada: si algún pick no se puede resolver, queda manual.
+            # Si todos resueltos: gana solo si TODOS ganaron.
+            if any(e is None for e in estados) or not estados:
+                sin_resolver += 1
+                continue
+            gano = all(e is True for e in estados)
+            await conn.execute("""
+                UPDATE betslips
+                SET resultado=$2, liquidado_at=NOW(), liquidado_por='auto'
+                WHERE code=$1
+            """, code, "ganada" if gano else "perdida")
+            if gano: ganadas += 1
+            else:    perdidas += 1
+
+    return {
+        "revisadas": len(boletos),
+        "ganadas": ganadas,
+        "perdidas": perdidas,
+        "sin_resolver": sin_resolver,
+        "mensaje": f"{ganadas} ganadas, {perdidas} perdidas. "
+                   f"{sin_resolver} quedan para revisar a mano.",
+    }
 
 
 # ── LIQUIDACIÓN Y PAGO DE PREMIOS (manual) ────────────────────
@@ -1742,12 +1914,30 @@ async def _armar_live():
             odds = {"L": h2h.get(home), "E": h2h.get("Draw"), "V": h2h.get(away)}
             if odds["L"] is None and odds["V"] is None:
                 continue
+
+            # Minuto estimado desde el inicio, como respaldo si el feed
+            # de fútbol no cruza. Solo tiene sentido para fútbol (90').
+            transcurrido = int((ahora - comienzo).total_seconds() // 60)
+            es_futbol = sk.startswith("soccer")
+            min_estimado = ""
+            if es_futbol and 0 <= transcurrido <= 130:
+                if transcurrido <= 45:
+                    min_estimado = f"~{transcurrido}'"
+                elif transcurrido <= 60:
+                    min_estimado = "~ET"          # entretiempo aprox
+                elif transcurrido <= 105:
+                    min_estimado = f"~{transcurrido-15}'"
+                else:
+                    min_estimado = "~90+'"
+
             en_vivo.append({
                 "id": ev.get("id",""), "sport_key": sk,
                 "home": home, "away": away,
                 "homeId": None, "awayId": None,
                 "homeScore": None, "awayScore": None,
-                "scoreStr": "", "minute": "", "minuteLong": "",
+                "scoreStr": "", "minute": min_estimado, "minuteLong": "",
+                "minuto_estimado": bool(min_estimado),
+                "comenzo_hace": transcurrido,
                 "liga": meta["name"], "icon": meta["icon"],
                 "status": "live", "ongoing": True,
                 "markets": markets, "odds": odds,
@@ -1781,7 +1971,10 @@ async def _armar_live():
             aw = m.get("away",{}).get("score", 0)
             ev["homeScore"] = aw if invertido else hs
             ev["awayScore"] = hs if invertido else aw
-            ev["minute"]     = m.get("liveTime",{}).get("short","")
+            min_real = m.get("liveTime",{}).get("short","")
+            if min_real:                       # el real pisa al estimado
+                ev["minute"] = min_real
+                ev["minuto_estimado"] = False
             ev["minuteLong"] = m.get("liveTime",{}).get("long","")
             ev["hasScore"]   = True
             break
@@ -2241,183 +2434,4 @@ async def ai_combos():
             "odd": ev["fav_odd"],
             "mkt": "1X2",
             "sport": ev["sport"],
-            "time": ev["time"],
-            "live": False,
-        })
-
-    def calc_odd(picks):
-        r = 1
-        for p in picks: r *= p["odd"]
-        return round(r, 2)
-
-    combos = []
-    if combo1_picks:
-        combos.append({
-            "id": "c1",
-            "name": "Combo Seguros",
-            "tag": "Baja cuota · Alta confianza",
-            "tagColor": "#00FF88",
-            "conf": 9,
-            "picks": combo1_picks,
-            "odd_total": calc_odd(combo1_picks),
-            "note": "Favoritos claros en sus respectivos deportes",
-        })
-    if combo2_picks:
-        combos.append({
-            "id": "c2",
-            "name": "Combo Goles",
-            "tag": "Over/Under · Partidos con goles",
-            "tagColor": "#FFB800",
-            "conf": 7,
-            "picks": combo2_picks,
-            "odd_total": calc_odd(combo2_picks),
-            "note": "Partidos con historial ofensivo y cuotas equilibradas",
-        })
-    if combo3_picks:
-        combos.append({
-            "id": "c3",
-            "name": "Combo Alta Cuota",
-            "tag": "Riesgo moderado · Gran retorno",
-            "tagColor": "#9F5FFF",
-            "conf": 6,
-            "picks": combo3_picks,
-            "odd_total": calc_odd(combo3_picks),
-            "note": "Favoritos con mayor margen pero mayor retorno potencial",
-        })
-
-    result = {"combos": combos, "generated_at": time.strftime("%d/%m %H:%M")}
-    _football_cache[cache_key] = (result, now)
-    return result
-
-
-# ── INFLUENCER TRACKING WEB ───────────────────────────────────
-@app.post("/api/influencer/track")
-async def track_influencer(request: Request):
-    """Trackea eventos de influencer desde la web app"""
-    try:
-        body = await request.json()
-        code   = (body.get("code","") or "")[:64]
-        event  = body.get("event","click_web")
-        if event not in ("click_web","apuesta_web","registro"):
-            event = "click_web"
-        try:
-            amount = int(body.get("amount", 0) or 0)
-        except (TypeError, ValueError):
-            amount = 0
-        if not code:
-            return {"ok": False}
-        pool = await get_db()
-        async with pool.acquire() as conn:
-            await conn.execute("""
-                INSERT INTO influencer_events
-                    (influencer_code, user_id, event, amount)
-                VALUES ($1, NULL, $2, $3)
-            """, code, event, amount)
-        return {"ok": True}
-    except Exception as e:
-        log.error(f"Track influencer error: {e}")
-        return {"ok": False}
-
-@app.get("/api/influencer/{code}/stats")
-async def influencer_stats(code: str, _=Depends(auth.require_admin)):
-    """Stats de un influencer específico"""
-    try:
-        pool = await get_db()
-        async with pool.acquire() as conn:
-            row = await conn.fetchrow("""
-                SELECT
-                    COUNT(*) FILTER (WHERE event='click') as clics_bot,
-                    COUNT(*) FILTER (WHERE event='click_web') as clics_web,
-                    COUNT(*) FILTER (WHERE event='registro') as registros,
-                    COUNT(*) FILTER (WHERE event='apuesta') as apuestas_bot,
-                    COUNT(*) FILTER (WHERE event='apuesta_web') as apuestas_web,
-                    COALESCE(SUM(amount) FILTER (WHERE event IN ('apuesta','apuesta_web')),0) as volumen
-                FROM influencer_events
-                WHERE influencer_code=$1
-            """, code)
-            return dict(row) if row else {}
-    except Exception as e:
-        log.error(f"Stats error: {e}")
-        return {}
-
-@app.get("/api/influencer/link/{code}")
-async def influencer_link(code: str):
-    """Genera los links del influencer (bot + web)"""
-    return {
-        "code": code,
-        "link_bot": f"https://t.me/QuartzPlayBot?start=combo_{code}",
-        "link_web": f"https://valiant-gentleness-production-a779.up.railway.app?ref={code}",
-        "link_short": f"https://t.me/QuartzPlayBot?start=combo_{code}",
-    }
-
-# ── WALLET API (44neoluck) ────────────────────────────────────
-@app.post("/api/wallet/")
-@app.post("/api/wallet/getBalance")
-@app.post("/api/wallet/setBalance")
-async def wallet(request: Request):
-    body_raw = await request.body()
-    x_code   = request.headers.get("X-Code","")
-    x_time   = request.headers.get("X-Time","")
-    x_sign   = request.headers.get("X-Sign","")
-    if not validate_sign(body_raw, x_code, x_time, x_sign):
-        return JSONResponse({"status":False,"error":"invalid_signature"})
-    try:
-        data = json.loads(body_raw)
-    except:
-        return JSONResponse({"status":False,"error":"invalid_packet"})
-    method = data.get("method") or request.url.path.split("/")[-1]
-    player = data.get("player","")
-    pool   = await get_db()
-    if method == "getBalance":
-        async with pool.acquire() as conn:
-            row = await conn.fetchrow(
-                "SELECT balance FROM users WHERE username=$1 OR id::text=$1", player)
-        if not row:
-            return JSONResponse({"status":False,"error":"player_not_found"})
-        bal = Decimal(row["balance"]) / 100
-        return JSONResponse({"status":True,
-            "balance":str(bal.quantize(Decimal("0.01")))})
-    elif method == "setBalance":
-        try:
-            amount = Decimal(data.get("amount","0"))
-            bet    = Decimal(data.get("bet","0"))
-            win    = Decimal(data.get("win","0"))
-        except:
-            return JSONResponse({"status":False,"error":"invalid_packet"})
-        amount_cents = int(amount * 100)
-        bet_cents    = int(bet * 100)
-        transaction  = data.get("transaction","")
-        async with pool.acquire() as conn:
-            async with conn.transaction():
-                row = await conn.fetchrow(
-                    "SELECT id,balance FROM users WHERE username=$1 OR id::text=$1",
-                    player)
-                if not row:
-                    return JSONResponse({"status":False,"error":"player_not_found"})
-                uid=row["id"]; balance=row["balance"]
-                dup = await conn.fetchrow(
-                    "SELECT id FROM casino_rounds WHERE external_tx=$1", transaction)
-                if dup:
-                    bal = Decimal(balance)/100
-                    return JSONResponse({"status":True,
-                        "balance":str(bal.quantize(Decimal("0.01"))),
-                        "transaction":transaction})
-                if amount_cents < 0 and balance < abs(amount_cents):
-                    return JSONResponse({"status":False,"error":"insufficient_funds"})
-                new_balance = balance + amount_cents
-                await conn.execute(
-                    "UPDATE users SET balance=balance+$2 WHERE id=$1",
-                    uid, amount_cents)
-                await conn.execute("""
-                    INSERT INTO casino_rounds
-                        (user_id,game,provider,stake,win,ggr,external_tx,created_at)
-                    VALUES ($1,$2,'44neoluck',$3,$4,$5,$6,NOW())
-                    ON CONFLICT DO NOTHING
-                """, uid, data.get("action","gameplay"),
-                    bet_cents, int(win*100),
-                    bet_cents-int(win*100), transaction)
-        new_bal = Decimal(new_balance)/100
-        return JSONResponse({"status":True,
-            "balance":str(new_bal.quantize(Decimal("0.01"))),
-            "transaction":transaction})
-    return JSONResponse({"status":False,"error":"invalid_packet"})
+    
