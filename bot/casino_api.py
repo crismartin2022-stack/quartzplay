@@ -2434,4 +2434,183 @@ async def ai_combos():
             "odd": ev["fav_odd"],
             "mkt": "1X2",
             "sport": ev["sport"],
-    
+    time": ev["time"],
+            "live": False,
+        })
+
+    def calc_odd(picks):
+        r = 1
+        for p in picks: r *= p["odd"]
+        return round(r, 2)
+
+    combos = []
+    if combo1_picks:
+        combos.append({
+            "id": "c1",
+            "name": "Combo Seguros",
+            "tag": "Baja cuota · Alta confianza",
+            "tagColor": "#00FF88",
+            "conf": 9,
+            "picks": combo1_picks,
+            "odd_total": calc_odd(combo1_picks),
+            "note": "Favoritos claros en sus respectivos deportes",
+        })
+    if combo2_picks:
+        combos.append({
+            "id": "c2",
+            "name": "Combo Goles",
+            "tag": "Over/Under · Partidos con goles",
+            "tagColor": "#FFB800",
+            "conf": 7,
+            "picks": combo2_picks,
+            "odd_total": calc_odd(combo2_picks),
+            "note": "Partidos con historial ofensivo y cuotas equilibradas",
+        })
+    if combo3_picks:
+        combos.append({
+            "id": "c3",
+            "name": "Combo Alta Cuota",
+            "tag": "Riesgo moderado · Gran retorno",
+            "tagColor": "#9F5FFF",
+            "conf": 6,
+            "picks": combo3_picks,
+            "odd_total": calc_odd(combo3_picks),
+            "note": "Favoritos con mayor margen pero mayor retorno potencial",
+        })
+
+    result = {"combos": combos, "generated_at": time.strftime("%d/%m %H:%M")}
+    _football_cache[cache_key] = (result, now)
+    return result
+
+
+# ── INFLUENCER TRACKING WEB ───────────────────────────────────
+@app.post("/api/influencer/track")
+async def track_influencer(request: Request):
+    """Trackea eventos de influencer desde la web app"""
+    try:
+        body = await request.json()
+        code   = (body.get("code","") or "")[:64]
+        event  = body.get("event","click_web")
+        if event not in ("click_web","apuesta_web","registro"):
+            event = "click_web"
+        try:
+            amount = int(body.get("amount", 0) or 0)
+        except (TypeError, ValueError):
+            amount = 0
+        if not code:
+            return {"ok": False}
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO influencer_events
+                    (influencer_code, user_id, event, amount)
+                VALUES ($1, NULL, $2, $3)
+            """, code, event, amount)
+        return {"ok": True}
+    except Exception as e:
+        log.error(f"Track influencer error: {e}")
+        return {"ok": False}
+
+@app.get("/api/influencer/{code}/stats")
+async def influencer_stats(code: str, _=Depends(auth.require_admin)):
+    """Stats de un influencer específico"""
+    try:
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT
+                    COUNT(*) FILTER (WHERE event='click') as clics_bot,
+                    COUNT(*) FILTER (WHERE event='click_web') as clics_web,
+                    COUNT(*) FILTER (WHERE event='registro') as registros,
+                    COUNT(*) FILTER (WHERE event='apuesta') as apuestas_bot,
+                    COUNT(*) FILTER (WHERE event='apuesta_web') as apuestas_web,
+                    COALESCE(SUM(amount) FILTER (WHERE event IN ('apuesta','apuesta_web')),0) as volumen
+                FROM influencer_events
+                WHERE influencer_code=$1
+            """, code)
+            return dict(row) if row else {}
+    except Exception as e:
+        log.error(f"Stats error: {e}")
+        return {}
+
+@app.get("/api/influencer/link/{code}")
+async def influencer_link(code: str):
+    """Genera los links del influencer (bot + web)"""
+    return {
+        "code": code,
+        "link_bot": f"https://t.me/QuartzPlayBot?start=combo_{code}",
+        "link_web": f"https://valiant-gentleness-production-a779.up.railway.app?ref={code}",
+        "link_short": f"https://t.me/QuartzPlayBot?start=combo_{code}",
+    }
+
+# ── WALLET API (44neoluck) ────────────────────────────────────
+@app.post("/api/wallet/")
+@app.post("/api/wallet/getBalance")
+@app.post("/api/wallet/setBalance")
+async def wallet(request: Request):
+    body_raw = await request.body()
+    x_code   = request.headers.get("X-Code","")
+    x_time   = request.headers.get("X-Time","")
+    x_sign   = request.headers.get("X-Sign","")
+    if not validate_sign(body_raw, x_code, x_time, x_sign):
+        return JSONResponse({"status":False,"error":"invalid_signature"})
+    try:
+        data = json.loads(body_raw)
+    except:
+        return JSONResponse({"status":False,"error":"invalid_packet"})
+    method = data.get("method") or request.url.path.split("/")[-1]
+    player = data.get("player","")
+    pool   = await get_db()
+    if method == "getBalance":
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT balance FROM users WHERE username=$1 OR id::text=$1", player)
+        if not row:
+            return JSONResponse({"status":False,"error":"player_not_found"})
+        bal = Decimal(row["balance"]) / 100
+        return JSONResponse({"status":True,
+            "balance":str(bal.quantize(Decimal("0.01")))})
+    elif method == "setBalance":
+        try:
+            amount = Decimal(data.get("amount","0"))
+            bet    = Decimal(data.get("bet","0"))
+            win    = Decimal(data.get("win","0"))
+        except:
+            return JSONResponse({"status":False,"error":"invalid_packet"})
+        amount_cents = int(amount * 100)
+        bet_cents    = int(bet * 100)
+        transaction  = data.get("transaction","")
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                row = await conn.fetchrow(
+                    "SELECT id,balance FROM users WHERE username=$1 OR id::text=$1",
+                    player)
+                if not row:
+                    return JSONResponse({"status":False,"error":"player_not_found"})
+                uid=row["id"]; balance=row["balance"]
+                dup = await conn.fetchrow(
+                    "SELECT id FROM casino_rounds WHERE external_tx=$1", transaction)
+                if dup:
+                    bal = Decimal(balance)/100
+                    return JSONResponse({"status":True,
+                        "balance":str(bal.quantize(Decimal("0.01"))),
+                        "transaction":transaction})
+                if amount_cents < 0 and balance < abs(amount_cents):
+                    return JSONResponse({"status":False,"error":"insufficient_funds"})
+                new_balance = balance + amount_cents
+                await conn.execute(
+                    "UPDATE users SET balance=balance+$2 WHERE id=$1",
+                    uid, amount_cents)
+                await conn.execute("""
+                    INSERT INTO casino_rounds
+                        (user_id,game,provider,stake,win,ggr,external_tx,created_at)
+                    VALUES ($1,$2,'44neoluck',$3,$4,$5,$6,NOW())
+                    ON CONFLICT DO NOTHING
+                """, uid, data.get("action","gameplay"),
+                    bet_cents, int(win*100),
+                    bet_cents-int(win*100), transaction)
+        new_bal = Decimal(new_balance)/100
+        return JSONResponse({"status":True,
+            "balance":str(new_bal.quantize(Decimal("0.01"))),
+            "transaction":transaction})
+    return JSONResponse({"status":False,"error":"invalid_packet"})
