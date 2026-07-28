@@ -798,7 +798,8 @@ function FlujoManual({ agencia }){
     setPicks(p=>{
       const w=p.filter(x=>x.id!==id);
       if(p.find(x=>x.id===id)) return w;
-      return[...w,{id,home:ev.home,away:ev.away,sel:label,odd,sport}];
+      return[...w,{id,home:ev.home,away:ev.away,sel:label,odd,sport,
+        event_id:ev.event_id||ev.id||null, sport_key:ev.sport_key||null}];
     });
   };
   const hasPick=(ev,label)=>picks.some(x=>x.id===`${ev.home}-${ev.away}-${label}`);
@@ -822,6 +823,7 @@ function FlujoManual({ agencia }){
         body:JSON.stringify({
           picks: picks.map(p=>({
             home:p.home, away:p.away, sel:p.sel, odd:p.odd, sport:p.sport,
+            event_id:p.event_id||null, sport_key:p.sport_key||null,
           })),
           cliente: cliente || null,
         }),
@@ -934,7 +936,7 @@ function FlujoManual({ agencia }){
                   m.odds.E?{label:"Empate",odd:m.odds.E}:null,
                   {label:m.away+" gana",odd:m.odds.V}]
                   .filter(Boolean).filter(o=>o.odd).map(opt=>(
-                  <button key={opt.label} onClick={()=>togglePick({home:m.home,away:m.away},"Live",opt.label,opt.odd)} style={{
+                  <button key={opt.label} onClick={()=>togglePick({home:m.home,away:m.away,event_id:m.id,sport_key:m.sport_key},"Live",opt.label,opt.odd)} style={{
                     flex:1,
                     background:hasPick({home:m.home,away:m.away},opt.label)?`linear-gradient(135deg,${Q.pink}44,${Q.violet}22)`:"rgba(255,255,255,0.04)",
                     border:`1.5px solid ${hasPick({home:m.home,away:m.away},opt.label)?Q.pink:Q.border}`,
@@ -959,7 +961,7 @@ function FlujoManual({ agencia }){
                 <MercadosEvento ev={m}
                   bets={picks.map(p=>({id:m.id,label:p.sel}))}
                   onToggle={(e,label,odd)=>
-                    togglePick({home:m.home,away:m.away},"En vivo",label,odd)}
+                    togglePick({home:m.home,away:m.away,event_id:m.id,sport_key:m.sport_key},"En vivo",label,odd)}
                   color={Q.pink}/>
               )}
             </GCard>
@@ -1038,7 +1040,7 @@ function FlujoManual({ agencia }){
                       {label:ev.a+" gana",odd:ev.odds?.V}]
                       .filter(Boolean).filter(o=>o.odd).map(opt=>(
                       <button key={opt.label}
-                        onClick={()=>togglePick({home:ev.h,away:ev.a},d.name,opt.label,opt.odd)}
+                        onClick={()=>togglePick({home:ev.h,away:ev.a,event_id:ev.id,sport_key:ev.sport_key},d.name,opt.label,opt.odd)}
                         style={{
                           flex:"1 1 0",minWidth:0,overflow:"hidden",
                           background:hasPick({home:ev.h,away:ev.a},opt.label)
@@ -1068,7 +1070,7 @@ function FlujoManual({ agencia }){
                     <MercadosEvento ev={ev}
                       bets={picks.map(p=>({id:ev.id,label:p.sel}))}
                       onToggle={(e,label,odd)=>
-                        togglePick({home:ev.h,away:ev.a}, d.name, label, odd)}
+                        togglePick({home:ev.h,away:ev.a,event_id:ev.id,sport_key:ev.sport_key}, d.name, label, odd)}
                       color={Q.cyan}/>
                   )}
                 </div>
@@ -1482,6 +1484,55 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
 // ═══════════════════════════════════════════════════════════════
 // HISTORIAL
 // ═══════════════════════════════════════════════════════════════
+// Liquida en bloque las apuestas cuyos partidos terminaron.
+// Solo resuelve lo que depende del marcador (1X2, goles, ambos anotan);
+// el resto queda para los botones manuales.
+function AutoLiquidar({ agencia, onListo, onSesionExpirada }){
+  const [proc,setProc]=useState(false);
+  const [res,setRes]=useState(null);
+
+  const correr=async()=>{
+    if(proc) return;
+    setProc(true); setRes(null);
+    try{
+      const r=await fetch(`${API_URL}/api/agencias/me/auto-liquidar`,{
+        method:"POST",headers:authHeaders(agencia.token)});
+      if(r.status===401){ onSesionExpirada(); return; }
+      const d=await r.json();
+      setRes(d.mensaje||"Listo");
+      onListo&&onListo();
+    }catch(e){ setRes("No se pudo liquidar automáticamente"); }
+    setProc(false);
+  };
+
+  return(
+    <GCard style={{padding:"12px 14px",marginBottom:12,
+      background:`linear-gradient(135deg,${Q.violet}12,${Q.cyan}08)`}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,
+        justifyContent:"space-between"}}>
+        <div style={{minWidth:0,flex:1}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:13,
+            fontFamily:"'Space Grotesk',system-ui"}}>⚡ Liquidar automático</div>
+          <div style={{color:Q.muted,fontSize:10,marginTop:2}}>
+            Resuelve 1X2, goles y ambos anotan con el resultado real
+          </div>
+        </div>
+        <button onClick={correr} disabled={proc} style={{
+          background:proc?"rgba(255,255,255,0.06)"
+            :`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
+          border:"none",borderRadius:9,padding:"9px 14px",
+          cursor:proc?"wait":"pointer",color:proc?Q.muted:"#fff",
+          fontWeight:700,fontSize:12,flexShrink:0,
+          fontFamily:"'Space Grotesk',system-ui"}}>
+          {proc?"Buscando...":"Ejecutar"}
+        </button>
+      </div>
+      {res&&<div style={{color:Q.cyan,fontSize:11,marginTop:8,
+        fontFamily:"'Space Grotesk',system-ui"}}>{res}</div>}
+    </GCard>
+  );
+}
+
 // Ticket del historial con liquidación (Ganó/Perdió) y pago de premio
 function TicketHistorial({ t, agencia, onCambio, onSesionExpirada }){
   const [proc,setProc]=useState(false);
@@ -1625,6 +1676,9 @@ function Historial({ agencia, onSesionExpirada }){
         <Btn label={cargando?"...":"Actualizar"} onClick={cargar}
           outline color={Q.muted} size="sm"/>
       </div>
+
+      <AutoLiquidar agencia={agencia} onListo={cargar}
+        onSesionExpirada={onSesionExpirada}/>
 
       <AlertaError mensaje={err}/>
 
@@ -1909,6 +1963,7 @@ function EnVivo({ agencia }){
         body:JSON.stringify({
           picks: ticket.map(b=>({
             home:b.home, away:b.away, sel:b.label, odd:b.odd, sport:"En vivo",
+            event_id:b.event_id||b.id||null, sport_key:b.sport_key||null,
           })),
           cliente: cliente || null,
         }),
@@ -1971,7 +2026,8 @@ function EnVivo({ agencia }){
     setTicket(p=>{
       const w=p.filter(b=>b.id!==ev.id);
       if(p.find(b=>b.id===ev.id&&b.label===label)) return w;
-      return[...w,{id:ev.id,label,odd,home:ev.home,away:ev.away}];
+      return[...w,{id:ev.id,label,odd,home:ev.home,away:ev.away,
+        event_id:ev.id,sport_key:ev.sport_key}];
     });
   };
   const isSel=(id,l)=>ticket.some(b=>b.id===id&&b.label===l);
@@ -2174,54 +2230,3 @@ function EnVivo({ agencia }){
 // ═══════════════════════════════════════════════════════════════
 function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   const [tab,setTab]=useState("codigo");
-
-  const TABS=[
-    {k:"codigo",   l:"Código / Bot"},
-    {k:"envivo",   l:"🔴 En Vivo"},
-    {k:"manual",   l:"Apuesta manual"},
-    {k:"clientes", l:"👤 Clientes"},
-    {k:"historial",l:"Historial"},
-    {k:"cierres",  l:"Cierres"},
-    {k:"config",   l:"Config"},
-  ];
-
-  return(
-    <div style={{background:Q.void,height:"100dvh",
-      display:"flex",flexDirection:"column",overflow:"hidden",
-      fontFamily:"system-ui,-apple-system,sans-serif"}}>
-      <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
-        backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
-        backgroundSize:"28px 28px"}}/>
-      <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
-        padding:"10px 14px",display:"flex",alignItems:"center",flexShrink:0,
-        justifyContent:"space-between",zIndex:50,overflow:"hidden"}}>
-        <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
-          background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        <QPLogo size={16}/>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{textAlign:"right"}}>
-            <div style={{color:Q.text,fontSize:12,fontWeight:600,
-              fontFamily:"'Space Grotesk',system-ui"}}>{agencia.name}</div>
-            <div style={{color:Q.muted,fontSize:10}}>{agencia.code}</div>
-          </div>
-          <button onClick={onLogout} style={{background:"transparent",
-            border:`1px solid ${Q.border}`,borderRadius:8,padding:"5px 10px",
-            color:Q.muted,fontSize:11,cursor:"pointer"}}>Salir</button>
-        </div>
-      </div>
-
-      <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
-        padding:"6px 10px",display:"flex",gap:5,overflowX:"auto",
-        flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"}}>
-        {TABS.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={{
-            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
-            borderRadius:10,padding:"7px 14px",cursor:"pointer",flexShrink:0,
-            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
-            fontFamily:"'Space Grotesk',system-ui",
-          }}>{t.l}</button>
-        ))}
-      </div>
-
-      <div style={{flex:1,minHeight:0,overflo
