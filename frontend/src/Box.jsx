@@ -61,6 +61,14 @@ export default function Box(){
   const [slip,setSlip]=useState(null);
   const [enviando,setEnviando]=useState(false);
   const [errEnvio,setErrEnvio]=useState("");
+  const [seccion,setSeccion]=useState("armar");    // armar | combos | mejorar
+  // Combos IA
+  const [combos,setCombos]=useState(null);
+  // Mejorar por captura
+  const [imgMejora,setImgMejora]=useState(null);
+  const [analizando,setAnalizando]=useState(false);
+  const [resMejora,setResMejora]=useState(null);
+  const [errMejora,setErrMejora]=useState("");
 
   // Validar la agencia de la URL
   useEffect(()=>{
@@ -79,6 +87,66 @@ export default function Box(){
       .then(d=>setDeportes(d?.sports||[]))
       .catch(()=>setDeportes([]));
   },[agencia]);
+
+  // Cargar combos (IA + manuales de esta agencia) al abrir la sección
+  useEffect(()=>{
+    if(seccion!=="combos" || combos!==null) return;
+    Promise.all([
+      fetch(`${API}/api/ai/combos`).then(r=>r.ok?r.json():{combos:[]}).catch(()=>({combos:[]})),
+      fetch(`${API}/api/box/${agenciaCode}/combos-manuales`)
+        .then(r=>r.ok?r.json():{combos:[]}).catch(()=>({combos:[]})),
+    ]).then(([ia, man])=>{
+      // Los manuales primero (son los que la casa quiere destacar)
+      setCombos([...(man.combos||[]), ...(ia.combos||[])]);
+    });
+  },[seccion, combos, agenciaCode]);
+
+  // Cargar un combo IA al carrito
+  const cargarCombo=(combo)=>{
+    setPicks(combo.picks.map(p=>({
+      id:`${p.h}-${p.a}-${p.sel}`, home:p.h, away:p.a, sel:p.sel,
+      odd:p.odd, sport:p.sport, event_id:p.event_id, sport_key:p.sport_key,
+    })));
+    setSeccion("armar");
+  };
+
+  // Analizar captura de otro sitio
+  const elegirImg=(e)=>{
+    const file=e.target.files?.[0];
+    if(!file) return;
+    if(file.size>8*1024*1024){ setErrMejora("La imagen es muy grande (máx 8MB)"); return; }
+    setErrMejora(""); setResMejora(null);
+    const rd=new FileReader();
+    rd.onload=()=>setImgMejora({b64:rd.result.split(",")[1],
+      tipo:file.type||"image/jpeg", preview:rd.result});
+    rd.readAsDataURL(file);
+  };
+  const analizarImg=async()=>{
+    if(!imgMejora||analizando) return;
+    setAnalizando(true); setErrMejora(""); setResMejora(null);
+    try{
+      const r=await fetch(`${API}/api/mejorar-combinada`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({imagen:imgMejora.b64,media_type:imgMejora.tipo}),
+      });
+      if(!r.ok){ const e=await r.json().catch(()=>({}));
+        throw new Error(e.detail||`Error ${r.status}`); }
+      const d=await r.json();
+      if(!d.ok) setErrMejora(d.mensaje||"No se pudo leer la imagen");
+      else setResMejora(d);
+    }catch(e){ setErrMejora(e.message==="Failed to fetch"?"Sin conexión":e.message); }
+    setAnalizando(false);
+  };
+  // Cargar al carrito los picks que sí podemos tomar de una captura
+  const cargarMejora=()=>{
+    const validos=(resMejora?.picks||[]).filter(p=>p.odd_final);
+    setPicks(validos.map(p=>({
+      id:`${p.home}-${p.away}-${p.selection}`, home:p.home, away:p.away,
+      sel:p.selection, odd:p.odd_final, sport:p.market,
+      event_id:p.event_id, sport_key:p.sport_key,
+    })));
+    setSeccion("armar"); setImgMejora(null); setResMejora(null);
+  };
 
   const togglePick=(ev,dep,label,odd)=>{
     const id=`${ev.h}-${ev.a}-${label}`;
@@ -239,9 +307,159 @@ export default function Box(){
         )}
       </div>
 
+      {/* Pestañas */}
+      <div style={{display:"flex",gap:6,padding:"12px 20px 0",
+        maxWidth:720,margin:"0 auto",width:"100%"}}>
+        {[["armar","🎯 Armar"],["combos","⚡ Combos"],["mejorar","📸 Mejorar"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setSeccion(k)} style={{
+            flex:1,background:seccion===k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
+            border:`1.5px solid ${seccion===k?Q.cyan:Q.border}`,borderRadius:12,
+            padding:"11px 6px",cursor:"pointer",color:seccion===k?Q.cyan:Q.muted,
+            fontSize:13,fontWeight:seccion===k?700:400}}>{l}</button>
+        ))}
+      </div>
+
       {/* Cuerpo scroll */}
       <div style={{flex:1,overflowY:"auto",padding:"16px 20px 120px",
         maxWidth:720,margin:"0 auto",width:"100%"}}>
+
+        {/* ── SECCIÓN COMBOS ── */}
+        {seccion==="combos"&&(
+          <div>
+            <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>Combos sugeridos</div>
+            <div style={{color:Q.muted,fontSize:12,marginBottom:14}}>
+              Tocá uno para cargarlo y sacar tu código
+            </div>
+            {combos===null&&<div style={{color:Q.muted,textAlign:"center",
+              padding:30,fontSize:15}}>Cargando combos...</div>}
+            {combos&&combos.length===0&&(
+              <div style={{textAlign:"center",padding:30}}>
+                <div style={{fontSize:30,marginBottom:8}}>🌙</div>
+                <div style={{color:Q.muted,fontSize:14}}>No hay combos ahora</div>
+              </div>
+            )}
+            {(combos||[]).map((combo,ci)=>(
+              <div key={combo.id||ci} style={{background:Q.dark,borderRadius:14,
+                padding:16,marginBottom:12,border:`1px solid ${combo.tagColor||Q.border}44`}}>
+                <div style={{display:"flex",justifyContent:"space-between",
+                  alignItems:"flex-start",marginBottom:10,gap:8}}>
+                  <div style={{minWidth:0,flex:1}}>
+                    <div style={{fontWeight:700,fontSize:15}}>{combo.name}</div>
+                    <div style={{color:combo.tagColor||Q.muted,fontSize:11,
+                      marginTop:2}}>{combo.tag}</div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{color:Q.gold,fontWeight:900,fontSize:19}}>{fmt(combo.odd_total)}x</div>
+                    <div style={{color:Q.muted,fontSize:10}}>{combo.picks.length} picks</div>
+                  </div>
+                </div>
+                {combo.picks.slice(0,4).map((p,i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",
+                    padding:"5px 0",gap:8,fontSize:12}}>
+                    <span style={{color:Q.muted,overflow:"hidden",
+                      textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {p.h} vs {p.a} · {p.sel}</span>
+                    <span style={{color:Q.cyan,fontWeight:700,flexShrink:0}}>{fmt(p.odd)}</span>
+                  </div>
+                ))}
+                <button onClick={()=>cargarCombo(combo)} style={{width:"100%",
+                  marginTop:10,background:`linear-gradient(135deg,${combo.tagColor||Q.violet},${Q.violet})`,
+                  border:"none",borderRadius:10,padding:"12px",cursor:"pointer",
+                  color:"#fff",fontWeight:700,fontSize:14}}>
+                  Usar este combo</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── SECCIÓN MEJORAR ── */}
+        {seccion==="mejorar"&&(
+          <div>
+            <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>Mejorá tu apuesta</div>
+            <div style={{color:Q.muted,fontSize:12,marginBottom:14,lineHeight:1.4}}>
+              Subí la captura de una apuesta de otro sitio. La leemos y la
+              replicamos con nuestras cuotas.
+            </div>
+            {!imgMejora&&(
+              <div style={{display:"flex",gap:10}}>
+                <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:14,
+                  padding:"28px 12px",textAlign:"center",cursor:"pointer"}}>
+                  <input type="file" accept="image/*" capture="environment"
+                    onChange={elegirImg} style={{display:"none"}}/>
+                  <div style={{fontSize:30,marginBottom:6}}>📸</div>
+                  <div style={{fontWeight:700,fontSize:12}}>Sacar foto</div>
+                </label>
+                <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:14,
+                  padding:"28px 12px",textAlign:"center",cursor:"pointer"}}>
+                  <input type="file" accept="image/*" onChange={elegirImg}
+                    style={{display:"none"}}/>
+                  <div style={{fontSize:30,marginBottom:6}}>🖼️</div>
+                  <div style={{fontWeight:700,fontSize:12}}>Galería</div>
+                </label>
+              </div>
+            )}
+            {imgMejora&&(
+              <div>
+                <img src={imgMejora.preview} alt="captura" style={{width:"100%",
+                  borderRadius:12,marginBottom:10,maxHeight:220,objectFit:"contain",
+                  background:"#000"}}/>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>{setImgMejora(null);setResMejora(null);}}
+                    disabled={analizando} style={{flex:1,background:"transparent",
+                    border:`1px solid ${Q.border}`,borderRadius:12,padding:"13px",
+                    cursor:"pointer",color:Q.muted,fontSize:14}}>Cambiar</button>
+                  <button onClick={analizarImg} disabled={analizando} style={{flex:2,
+                    background:analizando?"rgba(255,255,255,0.06)":`linear-gradient(135deg,${Q.cyan},${Q.violet})`,
+                    border:"none",borderRadius:12,padding:"13px",
+                    cursor:analizando?"wait":"pointer",color:analizando?Q.muted:"#fff",
+                    fontWeight:700,fontSize:14}}>
+                    {analizando?"Leyendo...":"🔍 Analizar"}</button>
+                </div>
+              </div>
+            )}
+            {errMejora&&<div style={{color:Q.pink,fontSize:13,marginTop:10}}>{errMejora}</div>}
+            {analizando&&<div style={{color:Q.violet2,fontSize:13,textAlign:"center",
+              padding:16}}>La IA está leyendo tu apuesta...</div>}
+            {resMejora&&(
+              <div style={{marginTop:14}}>
+                <div style={{color:Q.muted,fontSize:12,marginBottom:10}}>
+                  Leímos {resMejora.picks_total} · podemos tomar {resMejora.picks_ok}
+                </div>
+                {resMejora.picks.map((p,i)=>{
+                  const c=p.odd_final?(p.ajustada?Q.amber:Q.green):Q.red;
+                  return(
+                  <div key={i} style={{background:Q.dark,borderRadius:12,padding:12,
+                    marginBottom:8,border:`1px solid ${c}44`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",gap:8}}>
+                      <div style={{minWidth:0,flex:1}}>
+                        <div style={{fontSize:13,fontWeight:600,overflow:"hidden",
+                          textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.home} vs {p.away}</div>
+                        <div style={{color:Q.muted,fontSize:11}}>{p.selection}</div>
+                      </div>
+                      <div style={{textAlign:"right",flexShrink:0,fontSize:12}}>
+                        {p.odd_original&&<div style={{color:Q.dim}}>Origen {fmt(p.odd_original)}</div>}
+                        {p.odd_final?<div style={{color:c,fontWeight:700}}>
+                          Nuestra {fmt(p.odd_final)}{p.ajustada?" ↑":""}</div>
+                          :<div style={{color:Q.red,fontSize:10}}>No disponible</div>}
+                      </div>
+                    </div>
+                  </div>
+                  );
+                })}
+                {resMejora.picks_ok>0&&(
+                  <button onClick={cargarMejora} style={{width:"100%",marginTop:6,
+                    background:`linear-gradient(135deg,${Q.green},#00a854)`,
+                    border:"none",borderRadius:12,padding:"14px",cursor:"pointer",
+                    color:"#04120a",fontWeight:900,fontSize:14}}>
+                    Cargar {resMejora.picks_ok} selecciones · {fmt(resMejora.cuota_total)}x</button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── SECCIÓN ARMAR ── */}
+        {seccion==="armar"&&<>
         <div style={{fontSize:15,fontWeight:700,marginBottom:12}}>
           Elegí tus partidos
         </div>
@@ -336,6 +554,7 @@ export default function Box(){
             ))}
           </div>
         ))}
+        </>}
       </div>
 
       {/* Barra inferior fija con el resumen */}
