@@ -85,6 +85,34 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
           En nuestro sistema: <span style={{color:Q.cyan}}>{pick.home_real} vs {pick.away_real}</span>
         </div>
       )}
+      {/* Candidatos parecidos (cuando no encontró el partido) */}
+      {(pick.candidatos&&pick.candidatos.length>0)&&(
+        <div style={{marginBottom:10}}>
+          <div style={{color:Q.amber,fontSize:10,marginBottom:6,
+            fontFamily:"'Space Grotesk',system-ui"}}>
+            ¿Quisiste decir alguno de estos?
+          </div>
+          {pick.candidatos.map((ev,ci)=>(
+            <div key={ci} style={{background:`${Q.amber}0E`,
+              border:`1px solid ${Q.amber}44`,borderRadius:8,
+              padding:"8px 10px",marginBottom:6}}>
+              <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:5,
+                fontFamily:"'Space Grotesk',system-ui"}}>{ev.home} vs {ev.away}</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                {(ev.opciones||[]).map((op,j)=>(
+                  <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
+                    background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
+                    borderRadius:7,padding:"5px 9px",cursor:"pointer",
+                    color:Q.cyan,fontSize:11,fontWeight:600,
+                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    {op.sel} · {fmt(op.odd)}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{display:"flex",gap:6,marginBottom:10}}>
         <button onClick={()=>setModo("seleccion")} style={{flex:1,
           background:modo==="seleccion"?`${Q.violet}33`:"rgba(255,255,255,0.04)",
