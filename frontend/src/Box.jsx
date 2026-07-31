@@ -208,7 +208,7 @@ export default function Box(){
   // Combos IA
   const [combos,setCombos]=useState(null);
   // Mejorar por captura
-  const [imgMejora,setImgMejora]=useState(null);
+  const [imgsMejora,setImgsMejora]=useState([]);
   const [analizando,setAnalizando]=useState(false);
   const [resMejora,setResMejora]=useState(null);
   const [corrigiendo,setCorrigiendo]=useState(null);
@@ -276,22 +276,26 @@ export default function Box(){
 
   // Analizar captura de otro sitio
   const elegirImg=(e)=>{
-    const file=e.target.files?.[0];
-    if(!file) return;
-    if(file.size>8*1024*1024){ setErrMejora("La imagen es muy grande (máx 8MB)"); return; }
+    const files=Array.from(e.target.files||[]);
+    if(!files.length) return;
     setErrMejora(""); setResMejora(null);
-    const rd=new FileReader();
-    rd.onload=()=>setImgMejora({b64:rd.result.split(",")[1],
-      tipo:file.type||"image/jpeg", preview:rd.result});
-    rd.readAsDataURL(file);
+    files.forEach(file=>{
+      if(file.size>8*1024*1024){ setErrMejora("Una imagen supera 8MB"); return; }
+      const rd=new FileReader();
+      rd.onload=()=>setImgsMejora(prev=>[...prev,{b64:rd.result.split(",")[1],
+        tipo:file.type||"image/jpeg", preview:rd.result}]);
+      rd.readAsDataURL(file);
+    });
+    e.target.value="";
   };
+  const quitarImgMejora=(i)=>setImgsMejora(prev=>prev.filter((_,k)=>k!==i));
   const analizarImg=async()=>{
-    if(!imgMejora||analizando) return;
+    if(!imgsMejora.length||analizando) return;
     setAnalizando(true); setErrMejora(""); setResMejora(null);
     try{
       const r=await fetch(`${API}/api/mejorar-combinada`,{
         method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({imagen:imgMejora.b64,media_type:imgMejora.tipo}),
+        body:JSON.stringify({imagenes:imgsMejora.map(im=>({data:im.b64,media_type:im.tipo}))}),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
@@ -309,7 +313,7 @@ export default function Box(){
       sel:p.selection, odd:p.odd_final, sport:p.market,
       event_id:p.event_id, sport_key:p.sport_key,
     })));
-    setSeccion("armar"); setImgMejora(null); setResMejora(null);
+    setSeccion("armar"); setImgsMejora([]); setResMejora(null);
   };
 
   const togglePick=(ev,dep,label,odd)=>{
@@ -544,42 +548,44 @@ export default function Box(){
               Subí la captura de una apuesta de otro sitio. La leemos y la
               replicamos con nuestras cuotas.
             </div>
-            {!imgMejora&&(
-              <div style={{display:"flex",gap:10}}>
-                <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:14,
-                  padding:"28px 12px",textAlign:"center",cursor:"pointer"}}>
-                  <input type="file" accept="image/*" capture="environment"
-                    onChange={elegirImg} style={{display:"none"}}/>
-                  <div style={{fontSize:30,marginBottom:6}}>📸</div>
-                  <div style={{fontWeight:700,fontSize:12}}>Sacar foto</div>
-                </label>
-                <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:14,
-                  padding:"28px 12px",textAlign:"center",cursor:"pointer"}}>
-                  <input type="file" accept="image/*" onChange={elegirImg}
-                    style={{display:"none"}}/>
-                  <div style={{fontSize:30,marginBottom:6}}>🖼️</div>
-                  <div style={{fontWeight:700,fontSize:12}}>Galería</div>
-                </label>
+            {imgsMejora.length>0&&(
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                {imgsMejora.map((im,i)=>(
+                  <div key={i} style={{position:"relative"}}>
+                    <img src={im.preview} alt={"f"+i} style={{width:64,height:64,
+                      objectFit:"cover",borderRadius:8,border:`1px solid ${Q.border}`}}/>
+                    <button onClick={()=>quitarImgMejora(i)} style={{position:"absolute",
+                      top:-6,right:-6,width:20,height:20,borderRadius:"50%",
+                      background:Q.pink,border:"none",color:"#fff",fontSize:11,
+                      cursor:"pointer",lineHeight:1}}>✕</button>
+                  </div>
+                ))}
               </div>
             )}
-            {imgMejora&&(
-              <div>
-                <img src={imgMejora.preview} alt="captura" style={{width:"100%",
-                  borderRadius:12,marginBottom:10,maxHeight:220,objectFit:"contain",
-                  background:"#000"}}/>
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>{setImgMejora(null);setResMejora(null);}}
-                    disabled={analizando} style={{flex:1,background:"transparent",
-                    border:`1px solid ${Q.border}`,borderRadius:12,padding:"13px",
-                    cursor:"pointer",color:Q.muted,fontSize:14}}>Cambiar</button>
-                  <button onClick={analizarImg} disabled={analizando} style={{flex:2,
-                    background:analizando?"rgba(255,255,255,0.06)":`linear-gradient(135deg,${Q.cyan},${Q.violet})`,
-                    border:"none",borderRadius:12,padding:"13px",
-                    cursor:analizando?"wait":"pointer",color:analizando?Q.muted:"#fff",
-                    fontWeight:700,fontSize:14}}>
-                    {analizando?"Leyendo...":"🔍 Analizar"}</button>
-                </div>
-              </div>
+            <div style={{display:"flex",gap:10,marginBottom:10}}>
+              <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:14,
+                padding:"22px 12px",textAlign:"center",cursor:"pointer"}}>
+                <input type="file" accept="image/*" capture="environment"
+                  onChange={elegirImg} style={{display:"none"}}/>
+                <div style={{fontSize:26,marginBottom:5}}>📸</div>
+                <div style={{fontWeight:700,fontSize:12}}>Sacar foto</div>
+              </label>
+              <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:14,
+                padding:"22px 12px",textAlign:"center",cursor:"pointer"}}>
+                <input type="file" accept="image/*" multiple onChange={elegirImg}
+                  style={{display:"none"}}/>
+                <div style={{fontSize:26,marginBottom:5}}>🖼️</div>
+                <div style={{fontWeight:700,fontSize:12}}>
+                  {imgsMejora.length>0?"Agregar más":"Galería"}</div>
+              </label>
+            </div>
+            {imgsMejora.length>0&&(
+              <button onClick={analizarImg} disabled={analizando} style={{width:"100%",
+                background:analizando?"rgba(255,255,255,0.06)":`linear-gradient(135deg,${Q.cyan},${Q.violet})`,
+                border:"none",borderRadius:12,padding:"14px",marginBottom:4,
+                cursor:analizando?"wait":"pointer",color:analizando?Q.muted:"#fff",
+                fontWeight:700,fontSize:14}}>
+                {analizando?"Leyendo...":`🔍 Analizar ${imgsMejora.length} foto${imgsMejora.length>1?"s":""}`}</button>
             )}
             {errMejora&&<div style={{color:Q.pink,fontSize:13,marginTop:10}}>{errMejora}</div>}
             {analizando&&<div style={{color:Q.violet2,fontSize:13,textAlign:"center",
@@ -589,6 +595,14 @@ export default function Box(){
                 <div style={{color:Q.muted,fontSize:12,marginBottom:10}}>
                   Leímos {resMejora.picks_total} · podemos tomar {resMejora.picks_ok}
                 </div>
+                {resMejora.faltan_picks&&(
+                  <div style={{background:`${Q.pink}12`,border:`1px solid ${Q.pink}66`,
+                    borderRadius:9,padding:"9px 11px",marginBottom:10,color:Q.pink,
+                    fontSize:11,lineHeight:1.4}}>
+                    ⚠️ El cupón marca cuota {fmt(resMejora.total_odd_cupon)} pero con lo
+                    leído no llegamos. Falta algún partido — agregá otra foto.
+                  </div>
+                )}
                 {resMejora.picks.map((p,i)=>{
                   const c=p.odd_final?(p.ajustada?Q.amber:Q.green):Q.red;
                   return(
