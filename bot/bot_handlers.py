@@ -9,6 +9,62 @@ log = logging.getLogger(__name__)
 
 def ars(n): return f"${round(n or 0):,.0f}".replace(",",".")
 
+
+async def _canjear_vinculo(pool, codigo, tg_id):
+    """Canjea un código de vinculación: fusiona el cliente de mostrador con
+    este Telegram (sumando saldos) o conecta la agencia. Devuelve el texto
+    para responderle al usuario."""
+    async with pool.acquire() as conn:
+        v = await conn.fetchrow("SELECT * FROM vinculos_telegram WHERE codigo=$1", codigo)
+        if not v:
+            return "Ese código de vinculación no existe o ya no es válido."
+        if v["usado"]:
+            return "Ese código ya se usó."
+        if v["expira_at"] and v["expira_at"] < datetime.now(timezone.utc):
+            return "Ese código venció. Pedí uno nuevo en tu agencia."
+
+        if v["tipo"] == "cliente":
+            user_id = int(v["objetivo"])
+            cli = await conn.fetchrow(
+                "SELECT id, balance, nombre_completo FROM users WHERE id=$1", user_id)
+            if not cli:
+                return "No encontramos la cuenta a vincular."
+            tg_user = await conn.fetchrow(
+                "SELECT id, balance FROM users WHERE telegram_id=$1", tg_id)
+            async with conn.transaction():
+                if tg_user and tg_user["id"] != user_id:
+                    await conn.execute(
+                        "UPDATE users SET balance = balance + $2 WHERE id=$1",
+                        user_id, tg_user["balance"] or 0)
+                    for tabla in ("betslips", "sports_bets", "wallet_transactions"):
+                        try:
+                            await conn.execute(
+                                f"UPDATE {tabla} SET user_id=$1 WHERE user_id=$2",
+                                user_id, tg_user["id"])
+                        except Exception:
+                            pass
+                    await conn.execute("DELETE FROM users WHERE id=$1", tg_user["id"])
+                await conn.execute(
+                    "UPDATE users SET telegram_id=$2 WHERE id=$1", user_id, tg_id)
+                await conn.execute(
+                    "UPDATE vinculos_telegram SET usado=true, telegram_id=$2 WHERE codigo=$1",
+                    codigo, tg_id)
+            saldo = await conn.fetchval("SELECT balance FROM users WHERE id=$1", user_id)
+            return (f"Cuenta vinculada. Hola {cli['nombre_completo'] or ''}\n\n"
+                    f"Ahora tu saldo de mostrador y Telegram son la misma cuenta.\n"
+                    f"Saldo: {ars(saldo)} ARS\n\n"
+                    f"Usá /start para ver el menú.")
+
+        elif v["tipo"] == "agencia":
+            code = v["objetivo"]
+            await conn.execute("UPDATE agencias SET telegram_id=$2 WHERE code=$1", code, tg_id)
+            await conn.execute(
+                "UPDATE vinculos_telegram SET usado=true, telegram_id=$2 WHERE codigo=$1",
+                codigo, tg_id)
+            return ("Telegram conectado a tu agencia. Vas a recibir los avisos por acá.\n\n"
+                    "Usá /start para el menú.")
+    return "No se pudo completar la vinculación."
+
 def gen_code():
     """Genera código único QP-XXXXX"""
     return "QP-" + "".join(random.choices(string.digits, k=5))
@@ -65,6 +121,14 @@ async def cmd_start(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         balance = row["balance"] if row else 0
 
     args = ctx.args
+
+    # ── Vinculación de cuenta: start=link_CODIGO ─────────────────
+    if args and args[0].startswith("link_"):
+        codigo = args[0].split("_", 1)[1].upper()
+        resultado = await _canjear_vinculo(pool, codigo, uid)
+        await u.message.reply_text(resultado)
+        return
+
     if args and args[0].startswith("combo"):
         parts = args[0].split("_", 1)
         inf_code = parts[1] if len(parts) > 1 else "directo"
