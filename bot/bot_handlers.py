@@ -1,4 +1,4 @@
-import os, logging, random, string
+import os, logging, random, string, ast
 from datetime import datetime, timedelta, timezone
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
@@ -459,6 +459,87 @@ async def cb_clear(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
     ctx.user_data["ticket"] = []
     await cb_sports(u, ctx)
 
+async def cb_combos_ia(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Muestra los combos IA que genera el sistema (guardados en combos_manuales)."""
+    q = u.callback_query
+    await q.answer("Cargando combos IA...")
+    pool = ctx.bot_data["db_pool"]
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT id, nombre, picks, odd_total
+            FROM combos_manuales
+            WHERE lower(coalesce(fuente,'')) IN ('ia','ai','auto')
+              AND visible = true
+              AND (primer_evento_at IS NULL OR primer_evento_at > NOW())
+            ORDER BY created_at DESC LIMIT 3
+        """)
+    if not rows:
+        await q.edit_message_text(
+            "No hay combos IA disponibles ahora. Volvé en un rato.",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("Menu", callback_data="back_main")]]))
+        return
+
+    text = "COMBOS IA del dia\n\n"
+    kb = []
+    for r in rows:
+        try:
+            picks = ast.literal_eval(r["picks"]) if r["picks"] else []
+        except Exception:
+            picks = []
+        text += f"⚡ {r['nombre']} — cuota {float(r['odd_total']):.2f}x\n"
+        for p in picks:
+            h = p.get("h") or p.get("home") or ""
+            a = p.get("a") or p.get("away") or ""
+            sel = p.get("sel") or ""
+            odd = p.get("odd") or ""
+            text += f"  • {h} vs {a} — {sel} @ {odd}\n"
+        text += "\n"
+        # Guardar el combo en user_data para poder apostarlo
+        ctx.user_data[f"combo_ia_{r['id']}"] = [{
+            "ev_id": p.get("event_id") or "",
+            "label": p.get("sel") or "",
+            "odd": float(p.get("odd") or 1),
+            "home": p.get("h") or p.get("home") or "",
+            "away": p.get("a") or p.get("away") or "",
+        } for p in picks]
+        kb.append([InlineKeyboardButton(
+            f"Apostar: {r['nombre'][:20]} ({float(r['odd_total']):.2f}x)",
+            callback_data=f"jugar_ia_{r['id']}")])
+    kb.append([InlineKeyboardButton("Menu", callback_data="back_main")])
+    await q.edit_message_text(text[:4000],
+        reply_markup=InlineKeyboardMarkup(kb))
+
+
+async def cb_jugar_ia(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Prepara un combo IA elegido para apostar."""
+    q = u.callback_query
+    await q.answer()
+    combo_id = q.data.split("_")[-1]
+    ticket = ctx.user_data.get(f"combo_ia_{combo_id}")
+    if not ticket:
+        await q.answer("Ese combo ya no está disponible", show_alert=True)
+        return
+    ctx.user_data["ticket"] = ticket
+    tot = 1
+    for b in ticket:
+        tot *= b["odd"]
+    text = f"Combo IA seleccionado ({len(ticket)} picks)\n\n"
+    for b in ticket:
+        text += f"- {b['home']} vs {b['away']} @ {b['odd']}\n"
+    text += f"\nCuota total: {tot:.2f}x\n\nElegi como apostar:"
+    await q.edit_message_text(text,
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"Apostar $5K online - ret ${round(5000*tot):,}",
+                callback_data="confirm_bet_500000")],
+            [InlineKeyboardButton(f"Apostar $10K online - ret ${round(10000*tot):,}",
+                callback_data="confirm_bet_1000000")],
+            [InlineKeyboardButton("Generar codigo para local",
+                callback_data="gen_code_local")],
+            [InlineKeyboardButton("Menu", callback_data="back_main")],
+        ]))
+
+
 async def cb_soon(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = u.callback_query
     await q.answer("Proximamente", show_alert=True)
@@ -472,6 +553,8 @@ def register_bot_handlers(app):
     app.add_handler(CallbackQueryHandler(cb_stats,         pattern="^menu_stats$"))
     app.add_handler(CallbackQueryHandler(cb_back,          pattern="^back_main$"))
     app.add_handler(CallbackQueryHandler(cb_clear,         pattern="^clear_ticket$"))
+    app.add_handler(CallbackQueryHandler(cb_combos_ia,  pattern="^sports_combo$"))
+    app.add_handler(CallbackQueryHandler(cb_jugar_ia,   pattern="^jugar_ia_"))
     app.add_handler(CallbackQueryHandler(cb_soon,
-        pattern="^(sports_pool|sports_p2p|sports_combo|menu_wallet)$"))
+        pattern="^(sports_pool|sports_p2p|menu_wallet)$"))
     log.info("Handlers registrados")
