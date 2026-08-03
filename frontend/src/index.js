@@ -1,23 +1,15 @@
-<!DOCTYPE html>
-<html lang="es">
-  <head>
-    <!-- Script de Telegram Web App: NECESARIO para que la app reconozca al usuario -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import Agencia from "./Agencia";
+import Admin from "./Admin";
+import Box from "./Box";
 
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#020208" />
-    <meta name="description" content="QuartzPlay Sports" />
+const path = window.location.pathname;
+const Component = path.startsWith('/admin')   ? Admin
+                : path.startsWith('/agencia') ? Agencia
+                : path.startsWith('/box')     ? Box
+                : App;
 
-    <!-- Fuente Space Grotesk -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
-
-    <title>QuartzPlay</title>
-  </head>
-  <body style="margin:0;background:#020208;">
-    <noscript>Necesitás activar JavaScript para usar QuartzPlay.</noscript>
-    <div id="root"></div>
-  </body>
-</html>
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<Component />);
