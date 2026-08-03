@@ -1,6 +1,6 @@
 import os, logging, random, string, ast
 from datetime import datetime, timedelta, timezone
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 from db import get_pool
 from odds_api import get_all_odds_cached
@@ -142,15 +142,11 @@ async def cmd_start(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await u.message.reply_text(
         f"Bienvenido a QuartzPlay\n\n"
         f"Hola {name}\n\n"
-        f"Saldo: {ars(balance)} ARS\n\n"
-        f"Elegi una opcion:",
+        f"Tocá el botón para abrir la app: apostá, mirá tus combos, "
+        f"tu saldo y todo desde un solo lugar.",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("Deportes",  callback_data="menu_sports"),
-             InlineKeyboardButton("AI Combo",  callback_data="sports_combo")],
-            [InlineKeyboardButton("Pool",      callback_data="sports_pool"),
-             InlineKeyboardButton("P2P",       callback_data="sports_p2p")],
-            [InlineKeyboardButton("Wallet",    callback_data="menu_wallet"),
-             InlineKeyboardButton("Mis stats", callback_data="menu_stats")],
+            [InlineKeyboardButton("🎯 Abrir QuartzPlay",
+                web_app=WebAppInfo(url="https://valiant-gentleness-production-a779.up.railway.app"))],
         ]),
     )
 
