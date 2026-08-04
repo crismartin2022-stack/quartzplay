@@ -92,7 +92,7 @@ async def save_betslip(pool, uid, picks, stake, odd_total, inf_code=None):
         await conn.execute("""
             INSERT INTO betslips
                 (code, user_id, picks, stake, odd_total,
-                 potential_win, status, inf_code, expires_at)
+                 potential_win, status, influencer_code, expires_at)
             SELECT $1, id, $2, $3, $4, $5, 'pending', $6, $7
             FROM users WHERE telegram_id=$8
         """,
