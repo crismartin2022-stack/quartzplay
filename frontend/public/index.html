@@ -1,23 +1,44 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <!-- Script de Telegram Web App: NECESARIO para que la app reconozca al usuario -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<head>
+  <!-- Telegram Web App: sin esto initData viene vacío y la app no reconoce
+       al usuario (saldo en blanco, /api/apuesta responde 401). No sacar. -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#020208" />
-    <meta name="description" content="QuartzPlay Sports" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta name="theme-color" content="#050914"/>
+  <meta name="description" content="QuartzPlay Sports"/>
 
-    <!-- Fuente Space Grotesk -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  <!-- Barlow Condensed para cuotas y títulos, Inter para el resto -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 
-    <title>QuartzPlay</title>
-  </head>
-  <body style="margin:0;background:#020208;">
-    <noscript>Necesitás activar JavaScript para usar QuartzPlay.</noscript>
-    <div id="root"></div>
-  </body>
+  <title>QuartzPlay</title>
+
+  <!-- Marca la superficie ANTES de pintar, así el sitio de escritorio no
+       arranca angosto y después salta. Las superficies de mostrador
+       (agencia, admin, box, sitio) usan todo el ancho; la app va a 430px. -->
+  <script>
+    (function(){
+      var p = window.location.pathname;
+      var anchas = ["/sitio","/agencia","/admin","/box"];
+      for (var i=0; i<anchas.length; i++){
+        if (p.indexOf(anchas[i]) === 0){
+          document.documentElement.className = "ancho";
+          break;
+        }
+      }
+    })();
+  </script>
+
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#050914;font-family:'Inter',system-ui,sans-serif}
+    #root{max-width:430px;margin:0 auto;min-height:100vh}
+    html.ancho #root{max-width:none;margin:0}
+  </style>
+</head>
+<body><div id="root"></div></body>
 </html>
