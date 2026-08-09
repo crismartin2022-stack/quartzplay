@@ -17,6 +17,7 @@
 // con las tres columnas de números que tienen encima.
 // ═══════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef } from "react";
+import Rueda3D from "./Rueda3D";
 
 const IAQP = "https://iaqp-production.up.railway.app";
 const MESA = "ruleta-01";
@@ -317,7 +318,7 @@ export default function Casino(){
               marginTop:6}}>{mesa?.crupier||"…"}</div>
           </div>
           <div style={{flex:1,minWidth:0}}>
-            <Rueda numero={ultimo} girando={girando}/>
+            <Rueda3D numero={ultimo} girando={girando} alto={150}/>
           </div>
         </div>
 
