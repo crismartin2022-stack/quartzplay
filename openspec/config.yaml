@@ -1,0 +1,68 @@
+schema: spec-driven
+
+context: |
+  Product: QuartzPlay betting, casino, agency, and admin platform.
+  Frontend: React 18 Create React App single-page application in frontend/.
+  Backend: Python async FastAPI API and python-telegram-bot service in bot/.
+  Data: PostgreSQL accessed with asyncpg; Supabase is present as local metadata.
+  Architecture: route-selected frontend surfaces call the FastAPI API directly.
+  Style: large JSX/Python modules, inline frontend styles, Spanish product copy/comments.
+
+strict_tdd: true
+
+testing:
+  detected: "2026-09-02"
+  runner:
+    available: true
+    framework: "Jest via react-scripts"
+    command: "cd frontend && npx react-scripts test --watchAll=false"
+    configured_script: false
+  layers:
+    unit:
+      available: true
+      tool: "Jest via react-scripts (frontend/src/projectMemoryValidation.test.js; command: cd frontend && npx react-scripts test --watchAll=false)"
+    integration:
+      available: false
+      tool: ""
+    e2e:
+      available: false
+      tool: ""
+  coverage:
+    available: false
+    command: ""
+  quality:
+    linter:
+      available: true
+      command: "react-scripts build (CRA ESLint integration; no standalone lint script)"
+    type_checker:
+      available: false
+      command: ""
+    formatter:
+      available: false
+      command: ""
+  build_command: "npm --prefix frontend run build"
+
+rules:
+  proposal:
+    - Include user-facing, data, API, security, and rollback impacts for betting or balance changes.
+    - Forecast changed lines; ask before any chained-PR strategy when the review budget exceeds 400 lines.
+  specs:
+    - Use RFC 2119 keywords and Given/When/Then scenarios.
+    - Specify authorization, money, odds, and idempotency behavior where applicable.
+  design:
+    - Document API, database, Telegram, and frontend boundaries affected by the change.
+    - Include migration and rollback strategy for persisted data changes.
+  tasks:
+    - Group tasks by phase and keep each task completable in one session.
+    - Add focused automated tests before production code when a test seam exists.
+  apply:
+    requirements:
+      - Follow existing React JSX and Python async patterns unless an approved design changes them.
+    tdd: true
+    test_command: "cd frontend && npx react-scripts test --watchAll=false"
+  verify:
+    test_command: "cd frontend && npx react-scripts test --watchAll=false"
+    build_command: "npm --prefix frontend run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive delta specifications.
