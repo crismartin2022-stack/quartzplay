@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, Component } from "react";
+import { getFrontendConfig } from "./config";
 
 // ═══════════════════════════════════════════════════════════════
 // IAQP SPORTS — Web App Telegram completa
@@ -90,7 +91,7 @@ function BotonTema({ tema, onCambiar, compacto }){
 const F_NUM  = "'Barlow Condensed','Inter',system-ui,sans-serif";
 const F_BODY = "'Inter',system-ui,sans-serif";
 
-const API = "https://api.iaqp.lat";
+const { apiUrl: API } = getFrontendConfig();
 
 const fmt = n => Number(n||0).toFixed(2);
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");

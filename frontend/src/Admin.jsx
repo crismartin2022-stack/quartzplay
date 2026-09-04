@@ -2,6 +2,7 @@
 // ARCHIVO DESTINO: frontend/src/Admin.jsx
 // ═══════════════════════════════════════════════════════════════
 import { useState, useRef, useEffect } from "react";
+import { getFrontendConfig } from "./config";
 
 const Q = {
   void:"#020208", deep:"#060612",
@@ -17,7 +18,7 @@ const Q = {
 
 const ars  = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt  = n => Number(n||0).toFixed(2);
-const API  = "https://api.iaqp.lat";
+const { apiUrl: API } = getFrontendConfig();
 
 // La clave viaja en un header, nunca se compara en el cliente.
 const adminHeaders = (key) => key ? {"X-Admin-Key": key} : {};

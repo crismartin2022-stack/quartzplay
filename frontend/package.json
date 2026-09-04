@@ -8,8 +8,12 @@
     "serve": "^14.2.0"
   },
   "scripts": {
+    "prestart": "node scripts/validate-env.js",
     "start": "react-scripts start",
+    "prebuild": "node scripts/validate-env.js",
     "build": "react-scripts build",
+    "pretest": "node scripts/validate-env.js",
+    "test": "react-scripts test",
     "serve": "serve -s build -l ${PORT:-3000}"
   },
   "browserslist": {

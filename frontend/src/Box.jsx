@@ -6,6 +6,7 @@
 // llegar a la caja.
 // ═══════════════════════════════════════════════════════════════
 import { useState, useEffect } from "react";
+import { getFrontendConfig } from "./config";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -23,7 +24,7 @@ function horaLocal(ev){
   return `${dd}/${mm} ${hh}:${mi}`;
 }
 
-const API = "https://api.iaqp.lat";
+const { apiUrl: API } = getFrontendConfig();
 
 // ── TEMAS ─────────────────────────────────────────────────────
 // Dos paletas con las MISMAS claves, así los ~1000 usos de Q.algo
