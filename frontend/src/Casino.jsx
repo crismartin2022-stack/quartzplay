@@ -18,8 +18,9 @@
 // ═══════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef } from "react";
 import Rueda3D from "./Rueda3D";
+import { getFrontendConfig } from "./config";
 
-const IAQP = "https://api-casino.iaqp.lat";
+const { iaqpUrl: IAQP } = getFrontendConfig();
 const MESA = "ruleta-01";
 
 const Q = {
