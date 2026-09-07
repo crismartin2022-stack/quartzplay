@@ -42,6 +42,16 @@ def test_procfile_runs_api_and_poller_as_independent_foreground_processes():
     assert "exec python server.py" in poller_script
 
 
+def test_api_readiness_routes_do_not_import_or_gate_on_worker_lifecycle():
+    api = (ROOT / "casino_api.py").read_text()
+    worker = (ROOT / "server.py").read_text()
+
+    assert "@app.get(\"/livez\")" in api
+    assert "@app.get(\"/readyz\")" in api
+    assert "run_poller" not in api
+    assert "run_poller" in worker
+
+
 def test_supervisor_waits_for_real_poller_exit_then_cleans_up_api():
     supervisor = (ROOT / "start.sh").read_text()
 

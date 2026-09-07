@@ -27,6 +27,7 @@ class StagingSettings:
     database_host: str
     allowed_origins: tuple[str, ...]
     telegram: TelegramIdentity
+    readiness_timeout_ms: int
 
 
 @dataclass(frozen=True)
@@ -119,6 +120,17 @@ def _ids(values: Mapping[str, str], key: str) -> tuple[int, ...]:
     return result
 
 
+def _readiness_timeout(values: Mapping[str, str]) -> int:
+    raw = values.get("READINESS_TIMEOUT_MS", "2000").strip()
+    try:
+        timeout = int(raw)
+    except ValueError:
+        _error("readiness_timeout.invalid")
+    if not 100 <= timeout <= 2000:
+        _error("readiness_timeout.invalid")
+    return timeout
+
+
 def parse_staging_settings(values: Mapping[str, str]) -> StagingSettings:
     if _required(values, "APP_ENV").lower() != "staging":
         _error("app_env.invalid")
@@ -148,7 +160,11 @@ def parse_staging_settings(values: Mapping[str, str]) -> StagingSettings:
         _error("telegram_username.production")
     if set(admin_ids) & set(production_admin_ids):
         _error("admin_ids.production")
-    return StagingSettings(database_url, database_host, origins, TelegramIdentity(token, int(match.group(1)), username, admin_ids))
+    return StagingSettings(
+        database_url, database_host, origins,
+        TelegramIdentity(token, int(match.group(1)), username, admin_ids),
+        _readiness_timeout(values),
+    )
 
 
 def cors_headers(settings: StagingSettings, origin: str) -> dict[str, str]:
