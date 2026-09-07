@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
+from config import cors_headers, get_staging_settings
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
@@ -44,7 +45,8 @@ def sync_get(url, params=None, headers=None, timeout=30):
         log.error(f"sync_get error {url.split('?')[0]}: {e}")
         return None
 
-DATABASE_URL = os.environ.get("DATABASE_URL","")
+SETTINGS = get_staging_settings()
+DATABASE_URL = SETTINGS.database_url
 X_CODE       = os.environ.get("CASINO_X_CODE","")
 SECRET_KEY   = os.environ.get("CASINO_SECRET_KEY","")
 
@@ -67,17 +69,7 @@ try:
 except Exception:
     TZ_CASA = timezone(timedelta(hours=-3))
 
-ALLOWED_ORIGINS = [
-    # Dominio propio. Es lo que permite mudar de proveedor sin que los
-    # clientes ni las agencias cambien de direccion.
-    "https://iaqp.lat",
-    "https://juego.iaqp.lat",
-    # El dominio viejo de Railway queda por ahora: si algo quedo con la
-    # direccion anterior, sigue andando. Se saca cuando este todo migrado.
-    "https://valiant-gentleness-production-a779.up.railway.app",
-    "https://web.telegram.org",
-    "http://localhost:3000",
-]
+ALLOWED_ORIGINS = SETTINGS.allowed_origins
 
 app.add_middleware(CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -172,9 +164,7 @@ async def limitar_peticiones(request: Request, call_next):
         # imposible para quien lo sufre.
         cabeceras = {"Retry-After": str(espera)}
         origen = request.headers.get("origin", "")
-        if origen in ALLOWED_ORIGINS:
-            cabeceras["Access-Control-Allow-Origin"] = origen
-            cabeceras["Vary"] = "Origin"
+        cabeceras.update(cors_headers(SETTINGS, origen))
         return JSONResponse(
             status_code=429,
             headers=cabeceras,
@@ -318,9 +308,7 @@ async def error_no_manejado(request: Request, exc: Exception):
     log.exception(f"500 en {request.method} {request.url.path}: {exc}")
     origen = request.headers.get("origin", "")
     cabeceras = {}
-    if origen in ALLOWED_ORIGINS:
-        cabeceras["Access-Control-Allow-Origin"] = origen
-        cabeceras["Vary"] = "Origin"
+    cabeceras.update(cors_headers(SETTINGS, origen))
     return JSONResponse(
         {"detail": "Error interno del servidor"},
         status_code=500, headers=cabeceras)
@@ -330,9 +318,7 @@ async def error_no_manejado(request: Request, exc: Exception):
 async def error_http(request: Request, exc: HTTPException):
     origen = request.headers.get("origin", "")
     cabeceras = dict(getattr(exc, "headers", None) or {})
-    if origen in ALLOWED_ORIGINS:
-        cabeceras["Access-Control-Allow-Origin"] = origen
-        cabeceras["Vary"] = "Origin"
+    cabeceras.update(cors_headers(SETTINGS, origen))
     return JSONResponse({"detail": exc.detail},
                         status_code=exc.status_code, headers=cabeceras)
 
@@ -10773,7 +10759,7 @@ async def marcar_aviso_visto(aviso_id: int,
 APP_URL = os.environ.get("APP_URL", "https://juego.iaqp.lat")
 # El usuario del bot, sin la arroba. Se usa para armar el enlace que
 # abre Telegram con la terminal ya cargada.
-TELEGRAM_BOT_USER = os.environ.get("TELEGRAM_BOT_USER", "Quartzplay_bot")
+TELEGRAM_BOT_USER = SETTINGS.telegram.username
 
 # Los mismos montos que muestra la app, para que el chat no sugiera
 # cifras que no tienen sentido en esa moneda.
@@ -16185,7 +16171,7 @@ async def cliente_cambiar_clave(request: Request,
 # La web app no sabía quién era el usuario, por eso el saldo estaba
 # escrito a mano. Telegram firma los datos del usuario con el token del
 # bot; validando esa firma sabemos de verdad quién entró.
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
+TELEGRAM_TOKEN = SETTINGS.telegram.token
 
 
 async def avisar_telegram(chat_id, texto):
@@ -17356,8 +17342,7 @@ def _resp_generico():
     from fastapi.responses import Response
     return Response(content=_ESCUDO_GENERICO, media_type="image/svg+xml",
                     status_code=404,
-                    headers={"Cache-Control":"public, max-age=3600",
-                             "Access-Control-Allow-Origin":"*"})
+                    headers={"Cache-Control":"public, max-age=3600"})
 
 
 async def _bajar_logo(team_id: str):
@@ -17439,8 +17424,7 @@ async def team_logo_by_id(team_id: str):
     if not content:
         return _resp_generico()
     return Response(content=content, media_type=ctype,
-                    headers={"Cache-Control":"public, max-age=86400",
-                             "Access-Control-Allow-Origin":"*"})
+                    headers={"Cache-Control":"public, max-age=86400"})
 
 
 @app.get("/api/team-logo/nombre/{nombre}")
@@ -17458,8 +17442,7 @@ async def team_logo_by_name(nombre: str):
     if not content:
         return _resp_generico()
     return Response(content=content, media_type=ctype,
-                    headers={"Cache-Control":"public, max-age=86400",
-                             "Access-Control-Allow-Origin":"*"})
+                    headers={"Cache-Control":"public, max-age=86400"})
 
 
 @app.get("/api/_diag/logos")
