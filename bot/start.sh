@@ -1,8 +1,18 @@
-#!/bin/bash
-uvicorn casino_api:app --host 0.0.0.0 --port $PORT &
+#!/usr/bin/env bash
+set -u
+
+bash start-api.sh &
 API_PID=$!
-echo "API started PID $API_PID"
-python server.py &
-BOT_PID=$!
-echo "Bot started PID $BOT_PID"
-wait $API_PID $BOT_PID
+bash start-poller.sh &
+POLLER_PID=$!
+
+cleanup() {
+  kill "$API_PID" "$POLLER_PID" 2>/dev/null || true
+}
+
+trap 'cleanup; exit 143' INT TERM
+wait "$POLLER_PID"
+STATUS=$?
+cleanup
+wait "$API_PID" "$POLLER_PID" 2>/dev/null || true
+exit $STATUS

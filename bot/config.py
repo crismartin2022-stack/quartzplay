@@ -29,6 +29,12 @@ class StagingSettings:
     telegram: TelegramIdentity
 
 
+@dataclass(frozen=True)
+class PollerSettings:
+    enabled: bool
+    worker_id: str | None
+
+
 KNOWN_PRODUCTION_HOSTS = frozenset({
     "iaqp.lat", "www.iaqp.lat", "api.iaqp.lat", "api-casino.iaqp.lat",
     "juego.iaqp.lat", "valiant-gentleness-production-a779.up.railway.app",
@@ -153,6 +159,20 @@ def cors_headers(settings: StagingSettings, origin: str) -> dict[str, str]:
     if canonical_origin not in settings.allowed_origins:
         return {}
     return {"Access-Control-Allow-Origin": canonical_origin, "Vary": "Origin"}
+
+
+def poller_settings(values: Mapping[str, str]) -> PollerSettings:
+    enabled = values.get("POLLING_ENABLED", "").strip().lower()
+    if enabled in {"", "false"}:
+        return PollerSettings(False, None)
+    if enabled != "true":
+        _error("polling_enabled.invalid")
+    worker_id = values.get("WORKER_ID", "").strip()
+    if not worker_id:
+        _error("worker_id.missing")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{2,63}", worker_id):
+        _error("worker_id.invalid")
+    return PollerSettings(True, worker_id)
 
 
 @lru_cache(maxsize=1)
