@@ -2,6 +2,7 @@
 // ARCHIVO DESTINO: frontend/src/Agencia.jsx
 // ═══════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef, Component } from "react";
+import { getFrontendConfig } from "./config";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -84,7 +85,7 @@ const nowStr = () => new Date().toLocaleString("es-AR",{hour12:false});
 const expires24 = () => { const d=new Date(); d.setHours(d.getHours()+24); return d.toLocaleString("es-AR",{hour12:false}); };
 
 // ── API ───────────────────────────────────────────────────────
-const API_URL = "https://api.iaqp.lat";
+const { apiUrl: API_URL, appOrigin: APP_ORIGIN, botUsername: BOT_USERNAME } = getFrontendConfig();
 
 // ── Compartir combos en redes: texto + placa PNG ──────────────
 function textoCombo(combo, ref, link){
@@ -156,7 +157,7 @@ function descargarPlacaCombo(combo, ref, link){
     x.fillText("👉 JUGÁ CONMIGO", W/2, y+10);
     // Bot de Telegram bien visible
     x.fillStyle="#00F0FF"; x.font="bold 40px system-ui";
-    x.fillText("📲 Telegram: @quartzplay_bot", W/2, y+90);
+    x.fillText(`📲 Telegram: @${BOT_USERNAME}`, W/2, y+90);
     // Descargar
     cv.toBlob(b=>{
       const a=document.createElement("a");
@@ -168,7 +169,7 @@ function descargarPlacaCombo(combo, ref, link){
   }catch(e){ return false; }
 }
 
-const API_BOT = "https://api.iaqp.lat";
+const API_BOT = API_URL;
 
 class SinConexion extends Error {
   constructor(){ super("Sin conexión con el servidor"); this.name="SinConexion"; }
@@ -419,7 +420,7 @@ ${tipo==="cobro"?`<div class="div"></div><div class="c b" style="font-size:16px"
 <div class="c" style="font-size:40px;margin:6px 0">▓▓▓▓▓▓</div>
 <div class="c b">${slip.code}</div>
 <div class="div"></div>
-<div class="ft">iaqp.lat · @Quartzplay_bot</div>
+<div class="ft">${APP_ORIGIN.replace(/^https?:\/\//,"")} · @${BOT_USERNAME}</div>
 <div class="ft">Jugá con responsabilidad · Solo mayores de 18</div>
 </body></html>`;
   return abrirVentanaImpresion(html, 420, 650);
@@ -8140,7 +8141,7 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
       {id:"nombre",tipo:"texto",texto:nombreCombo,x:W/2,y:220,size:64,color:"#ffffff",bold:true},
       {id:"codigo",tipo:"texto",texto:`Código: ${codigoRef}`,x:W/2,y:H-260,size:44,color:"#E8C547",bold:true},
       {id:"cta",tipo:"texto",texto:"👉 JUGÁ CONMIGO",x:W/2,y:H-160,size:40,color:"#00F0FF",bold:true},
-      {id:"bot",tipo:"texto",texto:"📲 @quartzplay_bot",x:W/2,y:H-90,size:36,color:"#9F5FFF",bold:true},
+       {id:"bot",tipo:"texto",texto:`📲 @${BOT_USERNAME}`,x:W/2,y:H-90,size:36,color:"#9F5FFF",bold:true},
     ]);
   // eslint-disable-next-line
   },[]);
@@ -8431,8 +8432,8 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
   const [data,setData]=useState(null);
   const [copiado,setCopiado]=useState("");
   const ref = agencia.codigo_ref || "";
-  const linkScanTg=`https://t.me/quartzplay_bot?start=scan_${ref}`;
-  const linkScanWeb=`https://valiant-gentleness-production-a779.up.railway.app/?scan=${ref}`;
+  const linkScanTg=`https://t.me/${BOT_USERNAME}?start=scan_${ref}`;
+  const linkScanWeb=`${APP_ORIGIN}/?scan=${ref}`;
 
   const cargar=async()=>{
     try{
@@ -8578,8 +8579,8 @@ function InfluencerHome({ agencia, onSesionExpirada }){
   },[desde,hasta]);
 
   const ref = (data&&data.codigo_ref) || agencia.codigo_ref || "";
-  const linkTelegram = `https://t.me/quartzplay_bot?start=${ref}`;
-  const linkWeb = `https://valiant-gentleness-production-a779.up.railway.app/?ref=${ref}`;
+  const linkTelegram = `https://t.me/${BOT_USERNAME}?start=${ref}`;
+  const linkWeb = `${APP_ORIGIN}/?ref=${ref}`;
 
   const copiar=(txt,cual)=>{
     try{ navigator.clipboard.writeText(txt); setCopiado(cual);
@@ -8698,8 +8699,8 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
 
       {(combos||[]).map(c=>{
         const abierta=abierto===c.id;
-        const linkTg=`https://t.me/quartzplay_bot?start=${ref}_c${c.id}`;
-        const linkWeb=`https://valiant-gentleness-production-a779.up.railway.app/?ref=${ref}&combo=${c.id}`;
+        const linkTg=`https://t.me/${BOT_USERNAME}?start=${ref}_c${c.id}`;
+        const linkWeb=`${APP_ORIGIN}/?ref=${ref}&combo=${c.id}`;
         return(
           <GCard key={c.id} style={{padding:"12px 14px",marginBottom:8}}>
             <div onClick={()=>setAbierto(abierta?null:c.id)}
@@ -8767,7 +8768,7 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
         );
       })}
       {editando&&<EditorPlaca combo={editando} codigoRef={agencia.codigo_ref||""}
-        link={`https://t.me/quartzplay_bot?start=${agencia.codigo_ref||""}_c${editando.id}`}
+        link={`https://t.me/${BOT_USERNAME}?start=${agencia.codigo_ref||""}_c${editando.id}`}
         onCerrar={()=>setEditando(null)}/>}
     </div>
   );
@@ -8815,8 +8816,8 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
       {(combos||[]).map(c=>{
         const abierta=abierto===c.id;
         const codOut=c.codigo||ref;
-        const linkTg=`https://t.me/quartzplay_bot?start=${ref}_c${c.id}`;
-        const linkWeb=`https://valiant-gentleness-production-a779.up.railway.app/?ref=${ref}&combo=${c.id}`;
+        const linkTg=`https://t.me/${BOT_USERNAME}?start=${ref}_c${c.id}`;
+        const linkWeb=`${APP_ORIGIN}/?ref=${ref}&combo=${c.id}`;
         return(
           <GCard key={c.id} style={{padding:"12px 14px",marginBottom:8}}>
             <div onClick={()=>setAbierto(abierta?null:c.id)}
@@ -8891,7 +8892,7 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
       })}
 
       {editando&&<EditorPlaca combo={editando} codigoRef={ref}
-        link={`https://t.me/quartzplay_bot?start=${ref}_c${editando.id}`}
+        link={`https://t.me/${BOT_USERNAME}?start=${ref}_c${editando.id}`}
         onCerrar={()=>setEditando(null)}/>}
     </div>
   );
@@ -9020,7 +9021,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
       )}
       {editando&&editando._abrir&&<EditorPlaca combo={editando}
         codigoRef={agencia.codigo_ref||""}
-        link={`https://t.me/quartzplay_bot?start=${agencia.codigo_ref||""}_c${editando.id}`}
+        link={`https://t.me/${BOT_USERNAME}?start=${agencia.codigo_ref||""}_c${editando.id}`}
         onCerrar={()=>setEditando({...editando,_abrir:false})}/>}
 
       {/* Oferta de prematch para elegir */}

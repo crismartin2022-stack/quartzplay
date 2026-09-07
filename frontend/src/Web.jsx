@@ -9,8 +9,9 @@
 // Cuando estén, el bloque BotonEntrar de abajo es el punto de enganche.
 // ═══════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useCallback, useRef, Component } from "react";
+import { getFrontendConfig } from "./config";
 
-const API = "https://api.iaqp.lat";
+const { apiUrl: API } = getFrontendConfig();
 
 // ── TEMAS ─────────────────────────────────────────────────────
 // Dos paletas con las MISMAS claves, así los ~1000 usos de Q.algo

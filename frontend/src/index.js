@@ -6,13 +6,13 @@ import Admin from "./Admin";
 import Box from "./Box";
 import Web from "./Web";
 import Casino from "./Casino";
+import { getFrontendConfig } from "./config";
 
 const path = window.location.pathname;
 const host = window.location.hostname;
 
-// iaqp.lat es la marca del casino: entrando por ahí se abre la mesa,
-// sin tener que escribir /casino. Los demás dominios muestran la app.
-const esCasino = host === "iaqp.lat" || host === "www.iaqp.lat";
+const { casinoHosts } = getFrontendConfig();
+const esCasino = casinoHosts.includes(host);
 
 const Component = path.startsWith('/admin')   ? Admin
                 : path.startsWith('/agencia') ? Agencia
