@@ -38,14 +38,6 @@ def test_enabled_poller_configuration_does_not_require_api_callback_settings():
         "TELEGRAM_TOKEN": "123456:production-token-value",
         "TELEGRAM_BOT_USER": "QuartzPlayBot",
         "ADMIN_IDS": "1001,1002",
-        "PRODUCTION_DATABASE_HOSTS": "prod-db.example.test",
-        "STAGING_DATABASE_HOSTS": "staging-db.example.test",
-        "PRODUCTION_TELEGRAM_BOT_IDS": "123456",
-        "STAGING_TELEGRAM_BOT_IDS": "987654",
-        "PRODUCTION_TELEGRAM_USERNAMES": "QuartzPlayBot",
-        "STAGING_TELEGRAM_USERNAMES": "QuartzPlayStagingBot",
-        "PRODUCTION_ADMIN_IDS": "1001,1002",
-        "STAGING_ADMIN_IDS": "2001,2002",
     })
 
     assert result.database_host == "prod-db.example.test"

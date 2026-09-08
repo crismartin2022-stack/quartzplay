@@ -118,8 +118,9 @@ def _origin(value: str, code: str) -> str:
 
 
 def _ids(values: Mapping[str, str], key: str) -> tuple[int, ...]:
+    items = _csv(values, key)
     try:
-        result = tuple(int(item) for item in _csv(values, key))
+        result = tuple(int(item) for item in items)
     except ValueError:
         _error(f"{key.lower()}.invalid")
     if any(item <= 0 for item in result):
@@ -161,6 +162,22 @@ def _require_disjoint(production: frozenset[object], staging: frozenset[object],
 
 def parse_poller_runtime_settings(values: Mapping[str, str]) -> PollerRuntimeSettings:
     app_env = _environment(values)
+    database_url, database_host = _database(_required(values, "DATABASE_URL"))
+    token = _required(values, "TELEGRAM_TOKEN")
+    match = TOKEN.fullmatch(token)
+    if not match:
+        _error("telegram_token.invalid")
+    username = _required(values, "TELEGRAM_BOT_USER").removeprefix("@").lower()
+    if not USERNAME.fullmatch(username):
+        _error("telegram_username.invalid")
+    runtime_admin_ids = _ids(values, "ADMIN_IDS")
+
+    if app_env == "production":
+        return PollerRuntimeSettings(
+            app_env, database_url, database_host,
+            TelegramIdentity(token, int(match.group(1)), username, runtime_admin_ids),
+        )
+
     production_database_hosts = _hosts(values, "PRODUCTION_DATABASE_HOSTS")
     staging_database_hosts = _hosts(values, "STAGING_DATABASE_HOSTS")
     production_bot_ids = frozenset(_ids(values, "PRODUCTION_TELEGRAM_BOT_IDS"))
@@ -175,27 +192,13 @@ def parse_poller_runtime_settings(values: Mapping[str, str]) -> PollerRuntimeSet
     _require_disjoint(production_usernames, staging_usernames, "telegram_usernames.overlap")
     _require_disjoint(production_admin_ids, staging_admin_ids, "admin_ids.overlap")
 
-    database_hosts = production_database_hosts if app_env == "production" else staging_database_hosts
-    bot_ids = production_bot_ids if app_env == "production" else staging_bot_ids
-    usernames = production_usernames if app_env == "production" else staging_usernames
-    admin_ids = production_admin_ids if app_env == "production" else staging_admin_ids
-
-    database_url, database_host = _database(_required(values, "DATABASE_URL"))
-    if database_host not in database_hosts:
+    if database_host not in staging_database_hosts:
         _error("database_host.environment")
-    token = _required(values, "TELEGRAM_TOKEN")
-    match = TOKEN.fullmatch(token)
-    if not match:
-        _error("telegram_token.invalid")
-    username = _required(values, "TELEGRAM_BOT_USER").removeprefix("@").lower()
-    if not USERNAME.fullmatch(username):
-        _error("telegram_username.invalid")
-    runtime_admin_ids = _ids(values, "ADMIN_IDS")
-    if int(match.group(1)) not in bot_ids:
+    if int(match.group(1)) not in staging_bot_ids:
         _error("telegram_bot_id.environment")
-    if username not in usernames:
+    if username not in staging_usernames:
         _error("telegram_username.environment")
-    if frozenset(runtime_admin_ids) != admin_ids:
+    if frozenset(runtime_admin_ids) != staging_admin_ids:
         _error("admin_ids.environment")
     return PollerRuntimeSettings(
         app_env, database_url, database_host,
@@ -205,23 +208,23 @@ def parse_poller_runtime_settings(values: Mapping[str, str]) -> PollerRuntimeSet
 
 def parse_runtime_settings(values: Mapping[str, str]) -> RuntimeSettings:
     poller = parse_poller_runtime_settings(values)
-    production_origin_hosts = _hosts(values, "PRODUCTION_ORIGIN_HOSTS")
-    staging_origin_hosts = _hosts(values, "STAGING_ORIGIN_HOSTS")
-    _require_disjoint(production_origin_hosts, staging_origin_hosts, "origin_hosts.overlap")
-    origin_hosts = (production_origin_hosts if poller.app_env == "production"
-                    else staging_origin_hosts)
     origins = tuple(_origin(item, "allowed_origins.invalid") for item in _csv(values, "ALLOWED_ORIGINS"))
     if len(set(origins)) != len(origins):
         _error("allowed_origins.duplicate")
-    if any(urlparse(origin).hostname not in origin_hosts for origin in origins):
-        _error("origin_host.environment")
     if poller.app_env == "production" and any(urlparse(origin).scheme != "https" for origin in origins):
         _error("allowed_origins.https_required")
     api_public_url = _origin(_required(values, "API_PUBLIC_URL"), "api_public_url.invalid")
-    if urlparse(api_public_url).hostname not in origin_hosts:
-        _error("api_public_url.environment")
     if poller.app_env == "production" and urlparse(api_public_url).scheme != "https":
         _error("api_public_url.https_required")
+
+    if poller.app_env == "staging":
+        production_origin_hosts = _hosts(values, "PRODUCTION_ORIGIN_HOSTS")
+        staging_origin_hosts = _hosts(values, "STAGING_ORIGIN_HOSTS")
+        _require_disjoint(production_origin_hosts, staging_origin_hosts, "origin_hosts.overlap")
+        if any(urlparse(origin).hostname not in staging_origin_hosts for origin in origins):
+            _error("origin_host.environment")
+        if urlparse(api_public_url).hostname not in staging_origin_hosts:
+            _error("api_public_url.environment")
     return RuntimeSettings(
         poller.app_env, poller.database_url, poller.database_host, origins, api_public_url,
         poller.telegram,
