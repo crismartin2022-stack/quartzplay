@@ -1,0 +1,20 @@
+# Local environment files
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+
+# Generated frontend artifacts
+frontend/node_modules/
+frontend/build/
+
+# macOS metadata
+.DS_Store
