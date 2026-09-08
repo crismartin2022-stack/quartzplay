@@ -28,14 +28,14 @@ async def run_poller(application, wait_for_shutdown):
 
 
 async def main():
-    from config import get_staging_settings, poller_settings
+    from config import get_poller_runtime_settings, poller_settings
 
     poller = poller_settings(os.environ)
     if not poller.enabled:
         log.info("Polling disabled; worker exits without starting Telegram client")
         return
 
-    settings = get_staging_settings()
+    settings = get_poller_runtime_settings()
     from telegram.ext import Application
     from admin_handlers import register_admin_handlers
     from bot_handlers import register_bot_handlers

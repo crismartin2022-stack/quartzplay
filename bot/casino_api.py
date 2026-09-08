@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
-from config import cors_headers, get_staging_settings
+from config import cors_headers, get_runtime_settings
 from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
 
 logging.basicConfig(
@@ -46,7 +46,7 @@ def sync_get(url, params=None, headers=None, timeout=30):
         log.error(f"sync_get error {url.split('?')[0]}: {e}")
         return None
 
-SETTINGS = get_staging_settings()
+SETTINGS = get_runtime_settings()
 DATABASE_URL = SETTINGS.database_url
 X_CODE       = os.environ.get("CASINO_X_CODE","")
 SECRET_KEY   = os.environ.get("CASINO_SECRET_KEY","")
@@ -20963,7 +20963,7 @@ async def sportradar_liquidar(_=Depends(auth.require_admin)):
 PSP_BASE_URL = os.environ.get("PSP_BASE_URL", "https://ingress.soportecallcenter.com")
 PSP_API_KEY = os.environ.get("PSP_API_KEY", "")
 # URL pública de esta API, para armar los callbacks que la PSP va a llamar
-API_PUBLIC_URL = os.environ.get("API_PUBLIC_URL", "https://amusing-vision-production.up.railway.app")
+API_PUBLIC_URL = SETTINGS.api_public_url
 
 
 async def _psp_get(path):
