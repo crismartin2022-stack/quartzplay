@@ -38,6 +38,24 @@ def test_parses_canonical_disjoint_staging_settings():
     assert result.telegram.admin_ids == (1001, 1002)
 
 
+@pytest.mark.parametrize("value", ["100", "2000"])
+def test_parses_readiness_timeout_at_allowed_bounds(value):
+    assert parse_staging_settings(settings(READINESS_TIMEOUT_MS=value)).readiness_timeout_ms == int(value)
+
+
+def test_defaults_readiness_timeout_to_two_seconds():
+    assert parse_staging_settings(settings()).readiness_timeout_ms == 2000
+
+
+@pytest.mark.parametrize("value", ["99", "2001", "one", "1000.5"])
+def test_rejects_invalid_readiness_timeout_without_value_leakage(value):
+    with pytest.raises(ConfigError) as error:
+        parse_staging_settings(settings(READINESS_TIMEOUT_MS=value))
+
+    assert str(error.value) == "readiness_timeout.invalid"
+    assert value not in str(error.value)
+
+
 @pytest.mark.parametrize("field,value,code", [
     ("APP_ENV", "production", "app_env.invalid"),
     ("DATABASE_URL", "https://staging.example.test", "database_url.invalid"),

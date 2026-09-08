@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
 from config import cors_headers, get_staging_settings
+from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
@@ -327,6 +328,37 @@ async def error_http(request: Request, exc: HTTPException):
 @app.get("/health")
 async def health():
     return {"status":"ok","service":"IAQP API"}
+
+
+@app.get("/livez")
+async def livez():
+    return {"status": "live"}
+
+
+async def _probe_readiness():
+    pool = await get_db()
+    await probe_readiness(pool)
+
+
+@app.get("/readyz")
+async def readyz():
+    try:
+        await asyncio.wait_for(
+            _probe_readiness(), timeout=SETTINGS.readiness_timeout_ms / 1000,
+        )
+        return {"status": "ready"}
+    except asyncio.TimeoutError:
+        reason = "timeout"
+    except DatabaseUnavailable:
+        reason = "database_unavailable"
+    except SchemaUnavailable:
+        reason = "schema_unavailable"
+    except Exception:
+        reason = "database_unavailable"
+    log.warning("readiness.%s", reason)
+    return JSONResponse(
+        status_code=503, content={"status": "not_ready", "reason": reason},
+    )
 
 # ── AGENCIAS — LOGIN (público) ────────────────────────────────
 @app.post("/api/agencias/login")

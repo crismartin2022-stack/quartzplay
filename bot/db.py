@@ -4,6 +4,41 @@ import asyncpg
 log = logging.getLogger(__name__)
 _pool = None
 
+
+class DatabaseUnavailable(RuntimeError):
+    pass
+
+
+class SchemaUnavailable(RuntimeError):
+    pass
+
+
+REQUIRED_COLUMNS = frozenset({
+    ("users", "id"), ("users", "balance"),
+    ("agencias", "code"), ("agencias", "status"),
+})
+
+
+async def probe_readiness(pool) -> None:
+    try:
+        async with pool.acquire() as conn:
+            await conn.fetchval("SELECT 1")
+            try:
+                rows = await conn.fetch(
+                    "SELECT table_name, column_name FROM information_schema.columns "
+                    "WHERE table_schema = 'public' AND table_name = ANY($1)",
+                    ["users", "agencias"],
+                )
+            except Exception as error:
+                raise SchemaUnavailable() from error
+    except SchemaUnavailable:
+        raise
+    except Exception as error:
+        raise DatabaseUnavailable() from error
+    found = {(row["table_name"], row["column_name"]) for row in rows}
+    if not REQUIRED_COLUMNS <= found:
+        raise SchemaUnavailable()
+
 async def get_pool():
     global _pool
     if not _pool:
