@@ -43,6 +43,14 @@ def settings(environment="production", **changes):
     return values
 
 
+def legacy_production_settings(**changes):
+    values = settings(**changes)
+    for key in tuple(values):
+        if key.startswith(("PRODUCTION_", "STAGING_")):
+            del values[key]
+    return values
+
+
 @pytest.mark.parametrize("environment", ["production", "staging"])
 def test_parses_safe_runtime_settings_for_each_environment(environment):
     result = parse_runtime_settings(settings(environment))
@@ -62,17 +70,19 @@ def test_preserves_tls_database_query_exactly():
     assert result.database_url == database_url
 
 
+def test_production_starts_with_active_runtime_configuration_without_staging_isolation():
+    result = parse_runtime_settings(legacy_production_settings())
+
+    assert result.app_env == "production"
+    assert result.database_url == PRODUCTION["DATABASE_URL"]
+    assert result.api_public_url == PRODUCTION["API_PUBLIC_URL"]
+
+
 @pytest.mark.parametrize("field,value,code", [
     ("APP_ENV", "Production", "app_env.invalid"),
     ("APP_ENV", " staging", "app_env.invalid"),
-    ("DATABASE_URL", "postgresql://user:pass@staging-db.example.test/quartzplay", "database_host.environment"),
-    ("ALLOWED_ORIGINS", "https://app.staging.example.test", "origin_host.environment"),
-    ("API_PUBLIC_URL", "https://api.staging.example.test", "api_public_url.environment"),
-    ("TELEGRAM_TOKEN", "987654:staging-token-value", "telegram_bot_id.environment"),
-    ("TELEGRAM_BOT_USER", "QuartzPlayStagingBot", "telegram_username.environment"),
-    ("ADMIN_IDS", "2001", "admin_ids.environment"),
 ])
-def test_rejects_cross_environment_runtime_values(field, value, code):
+def test_requires_exact_runtime_environment(field, value, code):
     with pytest.raises(ConfigError, match=code):
         parse_runtime_settings(settings(**{field: value}))
 
@@ -86,13 +96,12 @@ def test_rejects_cross_environment_runtime_values(field, value, code):
 ])
 def test_rejects_overlapping_cross_environment_allowlists(field, value, code):
     with pytest.raises(ConfigError, match=code):
-        parse_runtime_settings(settings(**{field: value}))
+        parse_runtime_settings(settings("staging", **{field: value}))
 
 
 @pytest.mark.parametrize("field,value,code", [
     ("API_PUBLIC_URL", "", "api_public_url.missing"),
     ("API_PUBLIC_URL", "https://api.prod.example.test/path", "api_public_url.invalid"),
-    ("PRODUCTION_DATABASE_HOSTS", "", "production_database_hosts.missing"),
     ("TELEGRAM_TOKEN", "invalid", "telegram_token.invalid"),
     ("ADMIN_IDS", "1001,1001", "admin_ids.duplicate"),
 ])
@@ -133,6 +142,26 @@ def test_staging_keeps_explicit_local_http_origin_support():
     ))
 
     assert result.allowed_origins == ("http://localhost:3000",)
+
+
+@pytest.mark.parametrize("field,code", [
+    ("PRODUCTION_DATABASE_HOSTS", "production_database_hosts.missing"),
+    ("STAGING_DATABASE_HOSTS", "staging_database_hosts.missing"),
+    ("PRODUCTION_TELEGRAM_BOT_IDS", "production_telegram_bot_ids.missing"),
+    ("STAGING_TELEGRAM_BOT_IDS", "staging_telegram_bot_ids.missing"),
+    ("PRODUCTION_TELEGRAM_USERNAMES", "production_telegram_usernames.missing"),
+    ("STAGING_TELEGRAM_USERNAMES", "staging_telegram_usernames.missing"),
+    ("PRODUCTION_ADMIN_IDS", "production_admin_ids.missing"),
+    ("STAGING_ADMIN_IDS", "staging_admin_ids.missing"),
+    ("PRODUCTION_ORIGIN_HOSTS", "production_origin_hosts.missing"),
+    ("STAGING_ORIGIN_HOSTS", "staging_origin_hosts.missing"),
+])
+def test_staging_requires_explicit_isolation_configuration(field, code):
+    values = settings("staging")
+    del values[field]
+
+    with pytest.raises(ConfigError, match=code):
+        parse_runtime_settings(values)
 
 
 def test_api_import_fails_when_runtime_configuration_is_invalid(monkeypatch):
