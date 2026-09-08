@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 
-from config import ConfigError, poller_settings
+from config import ConfigError, parse_poller_runtime_settings, poller_settings
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +31,27 @@ def test_enabled_polling_requires_a_safe_worker_identity():
     assert result.worker_id == "staging-poller-1"
 
 
+def test_enabled_poller_configuration_does_not_require_api_callback_settings():
+    result = parse_poller_runtime_settings({
+        "APP_ENV": "production",
+        "DATABASE_URL": "postgresql://user:pass@prod-db.example.test/quartzplay",
+        "TELEGRAM_TOKEN": "123456:production-token-value",
+        "TELEGRAM_BOT_USER": "QuartzPlayBot",
+        "ADMIN_IDS": "1001,1002",
+        "PRODUCTION_DATABASE_HOSTS": "prod-db.example.test",
+        "STAGING_DATABASE_HOSTS": "staging-db.example.test",
+        "PRODUCTION_TELEGRAM_BOT_IDS": "123456",
+        "STAGING_TELEGRAM_BOT_IDS": "987654",
+        "PRODUCTION_TELEGRAM_USERNAMES": "QuartzPlayBot",
+        "STAGING_TELEGRAM_USERNAMES": "QuartzPlayStagingBot",
+        "PRODUCTION_ADMIN_IDS": "1001,1002",
+        "STAGING_ADMIN_IDS": "2001,2002",
+    })
+
+    assert result.database_host == "prod-db.example.test"
+    assert result.telegram.username == "quartzplaybot"
+
+
 def test_procfile_runs_api_and_poller_as_independent_foreground_processes():
     procfile = (ROOT / "Procfile").read_text()
     api_script = (ROOT / "start-api.sh").read_text()
@@ -39,7 +60,28 @@ def test_procfile_runs_api_and_poller_as_independent_foreground_processes():
     assert "web: bash start-api.sh" in procfile
     assert "worker: bash start-poller.sh" in procfile
     assert "exec uvicorn casino_api:app" in api_script
+    assert '"${PORT:?PORT is required}"' in api_script
     assert "exec python server.py" in poller_script
+
+
+def test_api_start_script_passes_railway_port_to_uvicorn(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    args_file = tmp_path / "uvicorn-args"
+    uvicorn = bin_dir / "uvicorn"
+    uvicorn.write_text(f"#!/usr/bin/env bash\nprintf '%s\\n' \"$@\" > {args_file}\n")
+    uvicorn.chmod(0o755)
+
+    result = subprocess.run(
+        ["bash", "start-api.sh"],
+        cwd=ROOT,
+        env={**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "PORT": "45123"},
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert args_file.read_text().splitlines() == ["casino_api:app", "--host", "0.0.0.0", "--port", "45123"]
 
 
 def test_api_readiness_routes_do_not_import_or_gate_on_worker_lifecycle():

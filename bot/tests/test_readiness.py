@@ -7,7 +7,7 @@ import time
 import httpx
 import pytest
 
-from test_staging_config import settings
+from test_runtime_config import settings
 
 
 @pytest.fixture
@@ -15,7 +15,7 @@ def api(monkeypatch):
     for key, value in settings().items():
         monkeypatch.setenv(key, value)
     import config
-    config.get_staging_settings.cache_clear()
+    config.get_runtime_settings.cache_clear()
     return importlib.reload(importlib.import_module("casino_api"))
 
 
