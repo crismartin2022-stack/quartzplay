@@ -315,3 +315,67 @@ QuartzPlay PostgreSQL ──► users.balance + casino_movimientos(ref)
 ### Documentation Rollback
 
 Before merge, remove unaccepted OpenSpec documentation. After merge, revert only the documentation work unit. This memory authorizes no runtime, wallet, deployment, cloud-setting, secret, or IAQP modification.
+
+## 10. Staging Authority and Safety Record
+
+QuartzPlay Railway production PostgreSQL is approved as schema authority for this controlled
+record. Its exact service identity remains outside Git. This approval authorizes sanitized
+OpenSpec metadata only; it authorizes no connection, capture, migration, deployment, or data
+handling.
+
+| Field | Record |
+|---|---|
+| Operations owner | Juan León |
+| Rollback owner | Juan León |
+| Data owner | Juan León |
+| Change window | Pending |
+| Capture scope | Approved schema-only, least-privilege capture outside Git. |
+| Source identity evidence | Approved outside Git; not retained in OpenSpec. |
+| Destination | Sanitized OpenSpec authority and manifest records only. |
+
+### Safety Boundary
+
+Rows, credentials, connection strings, tunnel logs, and private topology MUST NOT enter
+project memory or the manifest. Production rows MUST NOT be copied, seeded, or used for
+staging. Wallet balances, payments, identifiers, Telegram identities, agency credentials,
+and tokens require separate data-owner approval before any handling decision.
+
+Supabase and `bot/db.py` remain reference-only and MUST NOT generate migrations. Unknown or destructive differences remain blocked until data-owner approval. No runnable migration is approved by this record. Staging isolation, bindings, non-production data policy, and smoke evidence remain pending Unit 2 approval.
+
+### Review and Rollback
+
+Review `migration-manifest.md` for sanitized metadata only. Rollback removes this authority
+record, the manifest, and their documentation validation; no runtime or data state changes
+exist.
+
+## 11. Staging Isolation Contract
+
+### Approved Boundary
+
+Staging MUST use distinct Supabase, Railway API, Railway worker, PostgreSQL, and Redis identities.
+Each staging binding MUST resolve only to its staging identity and MUST NOT resolve to a production domain. Production PSP and Telegram credentials MUST NOT be present in staging. This contract
+authorizes documentation and validation only; it creates no cloud resource, binding, secret, or
+deployment.
+
+### Data Policy
+
+Staging MUST contain zero production rows and only empty or approved synthetic schema data.
+Wallet balances, payments, player identifiers, Telegram identities, agency credentials, tokens,
+and PSP data remain excluded. A separate data-owner approval is required before any exception to
+this policy is considered.
+
+### Functional Readiness and Smoke Evidence
+
+Functional staging and its smoke evidence are required by the next-day delivery target. Smoke evidence MUST verify staging identity, expected schema version, API health, worker health, Redis health, and absence of production bindings without printing values. It MUST record pass/fail
+outcomes only and MUST NOT expose domains, credentials, connection strings, rows, or private
+topology.
+
+### Future Production Migration Boundary
+
+Railway-to-Supabase production migration remains a separate future change requiring backup, restore, validation, cutover, and explicit approval. It is outside this staging contract and
+remains blocked until its separate review and execution gates are approved.
+
+### Rollback
+
+Remove only this isolation contract and its Unit 2 assertions. No runtime, data, cloud, secret,
+or deployment state exists to restore.
