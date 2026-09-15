@@ -71,6 +71,20 @@
 
 - Commit `8e0364b`; PR #25 into `chore/quartzplay-foundation-migrations`.
 
+## TDD Cycle Evidence
+
+Strict TDD is active for this project. No task in this change authors production code: the change commits pre-existing artifacts as written, edits OpenSpec records, and adjusts ignore and config files. The code committed in PR 2 and PR 3 was authored under `quartzplay-staging-foundations` with its own TDD evidence and is committed here unmodified.
+
+| Task | RED | GREEN | TRIANGULATE | SAFETY NET | REFACTOR |
+|---|---|---|---|---|---|
+| 1.1–1.3 branch, ignores, config facts | ➖ N/A — no production code | ✅ Frontend suite 29/29 after the change | ➖ N/A | ✅ Suites run before and after | ➖ None |
+| 2.1–2.6 OpenSpec records (PR 1) | ➖ N/A — records only | ✅ Frontend suite 29/29 | ➖ N/A | ✅ 29/29 before commit | ➖ None |
+| 3.1–3.2 migrations and manifest (PR 2) | ➖ N/A — artifacts committed as written | ✅ `bot.tests.test_staging_schema` 8/8 locally | ➖ N/A | ✅ Suite run before commit | ➖ None |
+| 4.1–4.2 replay harness (PR 3) | ➖ N/A — artifacts committed as written | ✅ `bot.tests.test_disposable_replay` 39/39; combined 47/47 | ➖ N/A | ✅ Suites run before commit; independent verifier PASS | ➖ None |
+| 5.1–5.2 native status and worktree retirement | ➖ N/A — repository state | ✅ Native status clean; 7 worktrees removed after per-worktree checks | ➖ N/A | ✅ Commit containment checked before each removal | ➖ None |
+
+No test file was created or modified by this change, so the assertion-quality audit has no new assertions to review; the committed suites are audited by their authoring change.
+
 ## Phase 5 Progress
 
 - 5.1: native status lists every QuartzPlay change once with no blocked reasons (consolidation, bootstrap, backend config, foundations, roadmap).

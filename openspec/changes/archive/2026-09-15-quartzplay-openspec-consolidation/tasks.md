@@ -54,4 +54,4 @@ Pre-existing, verified, and generated content cannot reach 400 lines per PR with
 ## Phase 5: Verification and Retirement
 
 - [x] 5.1 Native status in `app/` lists every change once with no blocked reasons (spec: Active change reported once).
-- [ ] 5.2 After the chain merges into the tracker, check each quartzplay worktree for unique commits or files; remove clean ones; prune; report any stopped removal.
+- [x] 5.2 After the chain merges into the tracker, check each quartzplay worktree for unique commits or files; remove clean ones; prune; report any stopped removal.

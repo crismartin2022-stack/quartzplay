@@ -2,7 +2,7 @@
 
 ## Technical Approach
 
-Land the existing canonical `app/` state through the Foundation feature-branch chain, add retroactive and superseded records, and record the 2026-09-15 sanitized live inventory. No product code changes; existing harness, suites, and migrations are committed as written. Satisfies `specs/project-memory/spec.md` (canonical location, attested live state, merged and superseded trackers).
+Land the existing canonical `app/` state through the Foundation feature-branch chain, add retroactive and superseded records, and record the 2026-09-15 sanitized live inventory. No product code changes; existing harness, suites, and migrations are committed as written. Satisfies `specs/openspec-governance/spec.md` (canonical location, attested live state, merged and superseded trackers), relocated from `project-memory` at archive time.
 
 ## Architecture Decisions
 
