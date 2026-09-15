@@ -10,6 +10,8 @@ const migrationManifestPath = path.join(
   repositoryRoot,
   "openspec/changes/quartzplay-staging-foundations/migration-manifest.md"
 );
+const forbiddenConnectionUri = ["post", "gres", "://"].join("");
+const forbiddenDatabaseAssignment = ["DATABASE", "URL="].join("_");
 
 function readFile(filePath) {
   return fs.readFileSync(filePath, "utf8");
@@ -69,13 +71,69 @@ describe("QuartzPlay project-memory handoff", () => {
     const manifest = readFile(migrationManifestPath);
 
     expect(manifest).toContain("# QuartzPlay Staging Migration Manifest");
-    expect(manifest).toContain("Schema-only metadata; no runnable migrations.");
+    expect(manifest).toContain(
+      "Schema-only migration metadata; Foundation chain is runnable only after required staging approvals."
+    );
     expect(manifest).toContain(
       "Rows, credentials, connection strings, tunnel output, and private topology are excluded."
     );
-    expect(manifest).toContain("| Reconciliation status | Blocked pending approved differences |");
-    expect(manifest).not.toContain("postgres://");
-    expect(manifest).not.toContain("DATABASE_URL=");
+    expect(manifest).toContain("| Reconciliation status | Classified; not approved for execution. |");
+    expect(manifest).not.toContain(forbiddenConnectionUri);
+    expect(manifest).not.toContain(forbiddenDatabaseAssignment);
+  });
+
+  test("keeps rejected candidate provenance fail-closed", () => {
+    const manifest = readFile(migrationManifestPath);
+
+    expect(manifest).toContain("## Rejected-Candidate Correction");
+    expect(manifest).toContain(
+      "| Rejected candidate correction | Rejected; never authority; no source claim retained. |"
+    );
+    expect(manifest).toContain(
+      "Snapshot-derived object names, identifiers, locations, raw checksums, connection data, rows, tunnel logs, and private topology are not recorded."
+    );
+  });
+
+  test("quarantines legacy history as non-authoritative and blocks execution", () => {
+    const manifest = readFile(migrationManifestPath);
+
+    expect(manifest).toContain("## Reconciliation Decision");
+    expect(manifest).toContain(
+      "| Legacy migration history | Retired from executable path; current local untracked baseline is quarantined as non-authoritative; historical byte-exact provenance is unrecoverable. |"
+    );
+    expect(manifest).toContain(
+      "| Object reconciliation | Complete as a review-safe opaque inventory; every destination action remains blocked pending approval. |"
+    );
+    expect(manifest).toContain(
+      "No migration was applied to any database."
+    );
+  });
+
+  test("records validated aggregate inventory without retaining checksums", () => {
+    const manifest = readFile(migrationManifestPath);
+
+    expect(manifest).toContain("| Count completeness | Passed: all required aggregate counts match the validated inventory. |");
+    expect(manifest).toContain("| Sanitization | Passed: no rows or prohibited connection-like content detected. |");
+    expect(manifest).toContain("| Fingerprints | Validated locally; omitted from Git because checksums are prohibited. |");
+    expect(manifest).toContain("| Table | 80 | `001-080` | `create` | `blocked` |");
+    expect(manifest).not.toContain(forbiddenConnectionUri);
+    expect(manifest).not.toContain(forbiddenDatabaseAssignment);
+  });
+
+  test("records complete opaque reconciliation coverage from validated authority evidence", () => {
+    const manifest = readFile(migrationManifestPath);
+
+    expect(manifest).toContain("## Review-Safe Per-Object Reconciliation Inventory");
+    expect(manifest).toContain("| Table | 80 | `001-080` | `create` | `blocked` |");
+    expect(manifest).toContain("| Column | 845 | `001-845` | `create` | `blocked` |");
+    expect(manifest).toContain("| Constraint | 90 | `001-090` | `create` | `blocked` |");
+    expect(manifest).toContain("| Index | 224 | `001-224` | `mixed` | `blocked` |");
+    expect(manifest).toContain("| Sequence | 72 | `001-072` | `create` | `blocked` |");
+    expect(manifest).toContain("| Type | 162 | `001-162` | `exclude` | `blocked` |");
+    expect(manifest).toContain("| View | 1 | `001` | `create` | `blocked` |");
+    expect(manifest).toContain("| Extension | 5 | `001-005` | `translate` | `blocked` |");
+    expect(manifest).toContain("| Rejected candidate correction | Rejected; never authority; no source claim retained. |");
+    expect(manifest).not.toMatch(/`[a-f0-9]{64}`/i);
   });
 
   test("defines distinct staging identities and staging-only bindings", () => {

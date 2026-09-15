@@ -1,0 +1,53 @@
+# Tasks: QuartzPlay Isolated Staging Bootstrap
+
+## Review Workload Forecast
+
+| Field | Value |
+|---|---|
+| Estimated changed lines | 180-260 (evidence records; 0 source lines) |
+| 400-line budget risk | Low |
+| Chained PRs recommended | Yes, to isolate console approvals and rollback boundaries |
+| Suggested split | Tracker -> GitHub -> Railway -> Supabase -> smoke acceptance |
+| Delivery strategy | ask-always |
+| Chain strategy | feature-branch-chain |
+
+Decision needed before apply: Yes
+Chained PRs recommended: Yes
+Chain strategy: feature-branch-chain
+400-line budget risk: Low
+
+### Suggested Work Units
+
+| Unit | Goal | Likely PR | Notes |
+|---|---|---|---|
+| 1 | Protected staging lane | PR 1 | Base: tracker `staging`; GitHub evidence only. |
+| 2 | Isolated Railway runtime | PR 2 | Base: PR 1; owner gate, no local CLI linkage. |
+| 3 | Empty Supabase boundary | PR 3 | Base: PR 2; data-owner gate, no app binding. |
+| 4 | Sanitized smoke acceptance | PR 4 | Base: PR 3; `/livez`; `/readyz` blocked without schema. |
+
+## Phase 1: GitHub Gate
+
+- [x] 1.1 RED: Record approved `main` commit and observed same-repository required-check name; obtain owner approval before GitHub action.
+- [x] 1.2 GREEN: Create protected `staging` from approved `main`; require PRs, one approval, stale-review dismissal, resolved conversations, and observed check; block direct/force pushes and deletion.
+- [x] 1.3 Verify: Create staging deployment environment restricted to `staging`; retain value-free policy attestation. Rollback: remove only staging rules/environment.
+
+## Phase 2: Railway Isolation
+
+- [x] 2.1 RED: Obtain owner approval and prepare value-free checklist for QuartzPlay selection, distinct API/worker/PostgreSQL/Redis, staging bindings, and prohibited identities.
+- [ ] 2.2 GREEN: Create Railway staging environment and distinct resources; bind API/worker only to staging `DATABASE_URL`, set `APP_ENV=staging` and disjoint allowlists, set `POLLING_ENABLED=false`, and provide no Telegram credentials.
+- [ ] 2.3 Verify: Record sanitized resource/binding attestations and API/worker deployment plus Redis health statuses. Rollback: stop/delete staging worker/API, remove bindings, then staging PostgreSQL/Redis.
+  - 2026-09-15 reconciliation: API deployed, worker never deployed, Redis deployed, no PostgreSQL service in the project; Telegram token owner-confirmed as a staging bot. Stays open. See live-state-reconciliation.md.
+
+## Phase 3: Supabase Boundary
+
+- [ ] 3.1 RED: Obtain data-owner approval naming `quartzplay-staging-foundations` schema authority; reject production, non-empty, seeded, migrated, or app-bound candidates.
+- [ ] 3.2 GREEN: Create isolated non-production Supabase project/schema with zero rows, storage objects, and Auth users; do not create app bindings or provide production credentials.
+- [ ] 3.3 Verify: Record sanitized aggregate-zero and no-production-credential attestations with data-owner and owner acceptance. Rollback: remove bindings before deleting only staging Supabase.
+  - 2026-09-15 reconciliation: the staging Supabase project exists and is active with 0 Edge Functions; zero-inventory is unproven. Stays open. See live-state-reconciliation.md.
+
+## Phase 4: Smoke and Acceptance
+
+- [ ] 4.1 Verify bootstrap liveness: record value-free API `/livez` HTTP 200 and `{"status":"live"}`; this proves process bootstrap only, not database schema or parity.
+- [ ] 4.2 Verify readiness prerequisite: run `/readyz` only after approved `quartzplay-staging-foundations` schema exists in isolated Railway PostgreSQL with required `users` and `agencias` columns; otherwise record Blocked, never Passed or Failed.
+- [ ] 4.3 Verify: Record GitHub guard, worker deployment, Redis health, and zero Supabase inventory; reject secrets, IDs, domains, PSP/Telegram data, bindings, probes, parity, or production-readiness claims.
+- [ ] 4.4 Obtain final owner acceptance and record bounded rollback order; retain `staging` unless owner approval confirms no open PR, deployment, or child-branch dependent.
