@@ -40,6 +40,20 @@
 - Commit `d74b141` on `chore/quartzplay-openspec-records`; PR #23 into `staging-foundations`; closes issue #22.
 - Native status after PR 1: every QuartzPlay change listed once, no blocked reasons.
 
+## Batch 2 — PR 2 Migrations (2026-09-15)
+
+| Evidence | Result |
+|---|---|
+| Staged | 8 files, +11,039 / −3 (generated manifest 8,956) |
+| Focused test (local working tree) | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest bot.tests.test_staging_schema`: 8/8 passed |
+| Clean checkout of the PR 2 commit | 4/8: the two legacy-baseline tests and the trailing-whitespace test (for the baseline and `.atl/skill-registry.md`) fail because those files exist only locally |
+| Secret scan / diff check | 0 hits / clean |
+| Runtime harness | N/A: no database execution authorized |
+| Rollback boundary | Revert the PR 2 commit |
+
+- Commit `e90ba37` on `chore/quartzplay-foundation-migrations`.
+- Follow-up for `quartzplay-staging-foundations`: make the schema suite portable (local-only references must not be required in a clean checkout). Not fixed here: the consolidation commits artifacts as written.
+
 ### Remaining
 
-- Phases 3–5.
+- 3.2 delivery (push, PR 2); phases 4–5.
