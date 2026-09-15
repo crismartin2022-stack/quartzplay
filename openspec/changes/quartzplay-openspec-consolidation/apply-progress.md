@@ -40,6 +40,46 @@
 - Commit `d74b141` on `chore/quartzplay-openspec-records`; PR #23 into `staging-foundations`; closes issue #22.
 - Native status after PR 1: every QuartzPlay change listed once, no blocked reasons.
 
+## Batch 2 — PR 2 Migrations (2026-09-15)
+
+| Evidence | Result |
+|---|---|
+| Staged | 8 files, +11,039 / −3 (generated manifest 8,956) |
+| Focused test (local working tree) | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest bot.tests.test_staging_schema`: 8/8 passed |
+| Clean checkout of the PR 2 commit | 4/8: the two legacy-baseline tests and the trailing-whitespace test (for the baseline and `.atl/skill-registry.md`) fail because those files exist only locally |
+| Secret scan / diff check | 0 hits / clean |
+| Runtime harness | N/A: no database execution authorized |
+| Rollback boundary | Revert the PR 2 commit |
+
+- Commit `e90ba37` on `chore/quartzplay-foundation-migrations`.
+- Follow-up for `quartzplay-staging-foundations`: make the schema suite portable (local-only references must not be required in a clean checkout). Not fixed here: the consolidation commits artifacts as written.
+
+- Delivery: native risk assessment `medium` (committed-only scope); PR #24 into `chore/quartzplay-openspec-records`.
+
+## Batch 3 — PR 3 Replay Harness (2026-09-15)
+
+| Evidence | Result |
+|---|---|
+| Staged | 5 files, +1,242 / −3 |
+| Fixture check | Connection URIs in added lines use only synthetic single-label hosts; password literals are the synthetic `secret` |
+| Focused test (local) | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest bot.tests.test_disposable_replay bot.tests.test_staging_schema`: 47/47 |
+| Clean checkout of the PR 3 commit | 43/47: all 39 harness tests pass; the 4 known schema portability failures remain |
+| Native risk assessment | `high` (Docker subprocess integration) |
+| Independent verifier | PASS: no import-time side effects; execution requires `--execute`; no published ports or remote hosts; argument-list subprocesses only; owner-label-scoped cleanup; synthetic test secrets and per-target generated passwords. Non-blocking warning: `build_ledger_insert_command` interpolates migration version and name into SQL (fixed, validated inputs today) |
+| Runtime harness | N/A: replay execution not authorized |
+| Rollback boundary | Revert the PR 3 commit |
+
+- Commit `8e0364b`; PR #25 into `chore/quartzplay-foundation-migrations`.
+
+## Phase 5 Progress
+
+- 5.1: native status lists every QuartzPlay change once with no blocked reasons (consolidation, bootstrap, backend config, foundations, roadmap).
+
+### Follow-ups (outside this change)
+
+- `quartzplay-staging-foundations`: make the schema suite portable in a clean checkout; harden the ledger insert against SQL interpolation.
+- `quartzplay-staging-backend-config`: tasks 2.1–2.4.
+
 ### Remaining
 
-- Phases 3–5.
+- 5.2 worktree retirement after the chain merges into the tracker.

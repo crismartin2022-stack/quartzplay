@@ -44,14 +44,14 @@ Pre-existing, verified, and generated content cannot reach 400 lines per PR with
 ## Phase 3: Migrations (PR 2)
 
 - [x] 3.1 Branch from PR 1; stage `supabase/migrations/20260914090000_quartzplay_foundation_extensions.sql`, `supabase/migrations/20260914090100_quartzplay_foundation_sequences.sql`, `supabase/migrations/20260914090200_quartzplay_foundation_tables.sql`, `supabase/foundation-schema-manifest.json`, `supabase/.gitignore`, `bot/tests/test_staging_schema.py`.
-- [ ] 3.2 Run the schema suite; scan; commit; push; open PR 2 into PR 1 branch.
+- [x] 3.2 Run the schema suite; scan; commit; push; open PR 2 into PR 1 branch.
 
 ## Phase 4: Harness (PR 3)
 
-- [ ] 4.1 Branch from PR 2; stage `bot/tools/disposable_replay.py`, `bot/tools/disposable-replay-policy.json`, `bot/tests/test_disposable_replay.py`; exclude bytecode.
-- [ ] 4.2 Run both backend suites; scan; commit; push; open PR 3 into PR 2 branch.
+- [x] 4.1 Branch from PR 2; stage `bot/tools/disposable_replay.py`, `bot/tools/disposable-replay-policy.json`, `bot/tests/test_disposable_replay.py`; exclude bytecode.
+- [x] 4.2 Run both backend suites; scan; commit; push; open PR 3 into PR 2 branch.
 
 ## Phase 5: Verification and Retirement
 
-- [ ] 5.1 Native status in `app/` lists every change once with no blocked reasons (spec: Active change reported once).
+- [x] 5.1 Native status in `app/` lists every change once with no blocked reasons (spec: Active change reported once).
 - [ ] 5.2 After the chain merges into the tracker, check each quartzplay worktree for unique commits or files; remove clean ones; prune; report any stopped removal.
