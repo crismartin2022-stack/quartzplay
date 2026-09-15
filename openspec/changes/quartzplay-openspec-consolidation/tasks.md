@@ -49,9 +49,9 @@ Pre-existing, verified, and generated content cannot reach 400 lines per PR with
 ## Phase 4: Harness (PR 3)
 
 - [x] 4.1 Branch from PR 2; stage `bot/tools/disposable_replay.py`, `bot/tools/disposable-replay-policy.json`, `bot/tests/test_disposable_replay.py`; exclude bytecode.
-- [ ] 4.2 Run both backend suites; scan; commit; push; open PR 3 into PR 2 branch.
+- [x] 4.2 Run both backend suites; scan; commit; push; open PR 3 into PR 2 branch.
 
 ## Phase 5: Verification and Retirement
 
-- [ ] 5.1 Native status in `app/` lists every change once with no blocked reasons (spec: Active change reported once).
+- [x] 5.1 Native status in `app/` lists every change once with no blocked reasons (spec: Active change reported once).
 - [ ] 5.2 After the chain merges into the tracker, check each quartzplay worktree for unique commits or files; remove clean ones; prune; report any stopped removal.
