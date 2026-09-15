@@ -39,11 +39,11 @@ Pre-existing, verified, and generated content cannot reach 400 lines per PR with
 - [x] 2.3 Migrate the backend-recovery worktree tracker into active `openspec/changes/quartzplay-staging-backend-config/` with `migration-note.md`; keep verified open tasks 2.1–2.4 open (design deviation recorded in apply-progress).
 - [x] 2.4 Write `openspec/changes/quartzplay-isolated-staging-bootstrap/live-state-reconciliation.md`; add a pointer in its `apply-progress.md`; annotate tasks 2.2–3.3 in its `tasks.md` per the reconciliation rule.
 - [x] 2.5 Stage `openspec/changes/quartzplay-staging-homologation-roadmap/` and `openspec/changes/quartzplay-openspec-consolidation/`.
-- [ ] 2.6 Run the frontend suite, secret-pattern scan, and `git diff --check --cached`; commit; push; open PR 1.
+- [x] 2.6 Run the frontend suite, secret-pattern scan, and `git diff --check --cached`; commit; push; open PR 1.
 
 ## Phase 3: Migrations (PR 2)
 
-- [ ] 3.1 Branch from PR 1; stage `supabase/migrations/20260914090000_quartzplay_foundation_extensions.sql`, `supabase/migrations/20260914090100_quartzplay_foundation_sequences.sql`, `supabase/migrations/20260914090200_quartzplay_foundation_tables.sql`, `supabase/foundation-schema-manifest.json`, `supabase/.gitignore`, `bot/tests/test_staging_schema.py`.
+- [x] 3.1 Branch from PR 1; stage `supabase/migrations/20260914090000_quartzplay_foundation_extensions.sql`, `supabase/migrations/20260914090100_quartzplay_foundation_sequences.sql`, `supabase/migrations/20260914090200_quartzplay_foundation_tables.sql`, `supabase/foundation-schema-manifest.json`, `supabase/.gitignore`, `bot/tests/test_staging_schema.py`.
 - [ ] 3.2 Run the schema suite; scan; commit; push; open PR 2 into PR 1 branch.
 
 ## Phase 4: Harness (PR 3)
