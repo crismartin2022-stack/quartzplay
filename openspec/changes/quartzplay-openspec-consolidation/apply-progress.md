@@ -34,6 +34,12 @@
 
 - `bot/tests/test_runtime_config.py`, `bot/tests/test_process_safety.py`, and `bot/tests/test_readiness.py` fail to import locally: they require `pytest` and `httpx`, which are not installed. Pre-existing on `main`; not part of this change; dependencies were not installed.
 
+### Delivery
+
+- 2.1, 2.5, 2.6 done: 50 files staged explicitly (+3,640 / −21); secret-pattern scan 0 hits; `git diff --check` clean; native risk assessment `medium` (`.gitignore` executable change) — writer self-verification plus spot check (backend reference suite re-run: OK).
+- Commit `d74b141` on `chore/quartzplay-openspec-records`; PR #23 into `staging-foundations`; closes issue #22.
+- Native status after PR 1: every QuartzPlay change listed once, no blocked reasons.
+
 ### Remaining
 
-- 2.1, 2.5, 2.6 (stage, scan, commit, PR 1); phases 3–5.
+- Phases 3–5.
