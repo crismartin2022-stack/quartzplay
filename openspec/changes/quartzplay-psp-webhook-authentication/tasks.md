@@ -46,3 +46,13 @@ Chain strategy: size-exception
 
 - [x] 4.1 Open the PR into `staging` closing #13 (PR #34, merged and deployed to staging).
 - [ ] 4.2 With owner approval, set `PSP_WEBHOOK_SECRET` in staging and production API services before enabling the PSP.
+
+## Production Release Gate (CRITICAL)
+
+Recorded 2026-09-16 by owner decision. The PSP MUST NOT be enabled in production until every item is done:
+
+- [ ] G.1 Obtain `PSP_API_KEY` from the PSP provider. Status: not available; the owner must request it.
+- [ ] G.2 Generate and set `PSP_WEBHOOK_SECRET` (at least 32 characters) in the staging and production API services.
+- [ ] G.3 Run an end-to-end staging test of one small cash-in and one small payout, confirming a single credit or refund per signed callback.
+- [ ] G.4 Ask the provider whether callbacks are signed or come from published IPs; add that check as a second layer if available.
+- [ ] G.5 Enable the PSP from the admin configuration only after G.1 to G.3 pass.
