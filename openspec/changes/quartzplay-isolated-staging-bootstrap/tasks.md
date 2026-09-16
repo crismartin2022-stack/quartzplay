@@ -34,9 +34,11 @@ Chain strategy: feature-branch-chain
 ## Phase 2: Railway Isolation
 
 - [x] 2.1 RED: Obtain owner approval and prepare value-free checklist for QuartzPlay selection, distinct API/worker/PostgreSQL/Redis, staging bindings, and prohibited identities.
-- [ ] 2.2 GREEN: Create Railway staging environment and distinct resources; bind API/worker only to staging `DATABASE_URL`, set `APP_ENV=staging` and disjoint allowlists, set `POLLING_ENABLED=false`, and provide no Telegram credentials.
-- [ ] 2.3 Verify: Record sanitized resource/binding attestations and API/worker deployment plus Redis health statuses. Rollback: stop/delete staging worker/API, remove bindings, then staging PostgreSQL/Redis.
-  - 2026-09-15 reconciliation: API deployed, worker never deployed, Redis deployed, no PostgreSQL service in the project; Telegram token owner-confirmed as a staging bot. Stays open. See live-state-reconciliation.md.
+- [x] 2.2 GREEN: Create Railway staging environment and distinct resources; bind API/worker only to staging `DATABASE_URL`, set `APP_ENV=staging` and disjoint allowlists, set `POLLING_ENABLED=false`, and provide no Telegram credentials.
+  - 2026-09-16: API and worker bind only to the staging Supabase database (pooler host verified in `STAGING_DATABASE_HOSTS`); `APP_ENV=staging`; allowlists disjoint and enforced fail-closed by `_require_disjoint`. Differs from the task text on two owner-approved points: the worker has `POLLING_ENABLED` enabled (it is the poller; the API keeps it disabled), and a Telegram token for the staging bot is present (owner-confirmed 2026-09-15; production bot identities are rejected at startup).
+- [x] 2.3 Verify: Record sanitized resource/binding attestations and API/worker deployment plus Redis health statuses. Rollback: stop/delete staging worker/API, remove bindings, then staging PostgreSQL/Redis.
+  - 2026-09-15 reconciliation: API deployed, worker never deployed, Redis deployed, no PostgreSQL service in the project; Telegram token owner-confirmed as a staging bot. See live-state-reconciliation.md.
+  - 2026-09-16: API running (`/readyz` ready); worker running as `staging-worker-1` after a first crash (`worker_id.missing`) fixed by adding `WORKER_ID`; frontend serving. Redis health is recorded from its successful deployment status only; no direct Redis probe was run.
 
 ## Phase 3: Supabase Boundary
 
@@ -50,7 +52,10 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: Smoke and Acceptance
 
-- [ ] 4.1 Verify bootstrap liveness: record value-free API `/livez` HTTP 200 and `{"status":"live"}`; this proves process bootstrap only, not database schema or parity.
-- [ ] 4.2 Verify readiness prerequisite: run `/readyz` only after approved `quartzplay-staging-foundations` schema exists in isolated Railway PostgreSQL with required `users` and `agencias` columns; otherwise record Blocked, never Passed or Failed.
+- [x] 4.1 Verify bootstrap liveness: record value-free API `/livez` HTTP 200 and `{"status":"live"}`; this proves process bootstrap only, not database schema or parity.
+  - 2026-09-16: `/livez` returned HTTP 200 `{"status":"live"}`.
+- [x] 4.2 Verify readiness prerequisite: run `/readyz` only after approved `quartzplay-staging-foundations` schema exists in isolated Railway PostgreSQL with required `users` and `agencias` columns; otherwise record Blocked, never Passed or Failed.
+  - 2026-09-16: run after the approved Foundation schema was applied; the isolated database is the staging Supabase project, not Railway PostgreSQL. `/readyz` returned HTTP 200 `{"status":"ready"}`, before and after the worker started.
 - [ ] 4.3 Verify: Record GitHub guard, worker deployment, Redis health, and zero Supabase inventory; reject secrets, IDs, domains, PSP/Telegram data, bindings, probes, parity, or production-readiness claims.
+  - 2026-09-16 partial: GitHub guard recorded under 1.x; worker deployment running; Redis from deployment status only. Zero Supabase inventory is NOT proven: rows, Auth users and Storage objects were never measured, and the worker has already started against the database. Stays open.
 - [ ] 4.4 Obtain final owner acceptance and record bounded rollback order; retain `staging` unless owner approval confirms no open PR, deployment, or child-branch dependent.

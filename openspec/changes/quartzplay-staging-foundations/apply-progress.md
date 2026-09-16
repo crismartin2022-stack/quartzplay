@@ -866,3 +866,16 @@ evidence. Staging only; production execution remains closed.
 Before any application binding: delete and recreate the isolated staging project, then reapply the
 chain from this repository. After a binding exists: reviewed forward compensation only. Reverting
 this section changes repository records only and does not undo destination state.
+
+### Post-Startup Drift (2026-09-16)
+
+- After the staging worker started, a new dump of the destination reported 80 tables, 72
+  sequences, 0 constraints, **7 indexes**, and 0 views.
+- Attribution: `bot/db.py` runs 9 `CREATE TABLE IF NOT EXISTS` and 7 `CREATE INDEX` statements at
+  startup (log line `Schema listo`). The table statements are no-ops over the Foundation tables; the
+  index statements created the 7 indexes. No `ALTER TABLE` exists in that bootstrap.
+- Consequence: schema DDL now runs outside the migration chain in staging. The Relational slice must
+  reconcile these 7 indexes against the production catalog before creating indexes, to avoid
+  duplicates or name conflicts. Disabling or migrating the runtime bootstrap belongs to
+  `quartzplay-staging-backend-config` or a dedicated change.
+- Readiness after the drift: `/readyz` still returns `200 {"status":"ready"}`.

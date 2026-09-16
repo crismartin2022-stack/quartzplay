@@ -133,7 +133,8 @@ project reference, domain, or object name is recorded here.
 | Extension capability | The extensions migration's preflight succeeded; it fails closed when the managed extensions schema is unavailable |
 | Applied chain | `20260914090000`, `20260914090100`, `20260914090200`, in order, with no seeds and no roles |
 | Post-apply parity | Ledger shows all three versions present remotely; destination dump reports 80 tables and 72 sequences |
-| Boundary held | 0 constraints, 0 indexes and 0 views exist in the destination, so Relational content was not introduced |
+| Boundary held | At apply time: 0 constraints, 0 indexes and 0 views in the destination, so the Foundation chain introduced no Relational content |
+| Post-startup drift (2026-09-16) | After the staging worker started, the destination reports 7 indexes (tables 80, sequences 72, constraints 0 and views 0 unchanged). They come from the application's startup bootstrap in `bot/db.py`, which runs 9 `CREATE TABLE IF NOT EXISTS` (no-ops over the existing tables) and 7 `CREATE INDEX`. This is DDL outside the migration chain; the Relational slice must reconcile these indexes before creating its own |
 | Data | No rows were written: the chain is schema-only and the push reported no seeds |
 | Credential handling | Password read from a local file through a command substitution, never printed or stored in Git; the file is deleted after the run |
 | Rollback owner | Juan León |
