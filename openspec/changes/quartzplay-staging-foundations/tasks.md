@@ -42,6 +42,8 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Explicit Staging Apply Gate (PR 3)
 
-- [ ] 3.1 Update `migration-manifest.md` with destination identity, empty tables/ledger, rollback owner, change window, extension capability, and data-owner approvals; retain redaction/no-production policy.
-- [ ] 3.2 Record static and replay evidence plus pre-binding recreation rollback and post-binding forward-compensation procedure; require explicit owner approval before staging execution.
-- [ ] 3.3 Keep execution closed until two clean approved replays pass; stop before Relational/Security work; do not add constraints, foreign keys, indexes, views, grants, RLS, policies, cloud, runtime, Git, or production changes.
+- [x] 3.1 Update `migration-manifest.md` with destination identity, empty tables/ledger, rollback owner, change window, extension capability, and data-owner approvals; retain redaction/no-production policy.
+- [x] 3.2 Record static and replay evidence plus pre-binding recreation rollback and post-binding forward-compensation procedure; require explicit owner approval before staging execution.
+  - 2026-09-15: static evidence recorded; there is NO replay evidence. The owner replaced the replay gate with applied-target evidence on the empty staging project (recorded exception). Rollback procedures and owner approval are in `migration-manifest.md`.
+- [x] 3.3 Execution is open for the isolated staging target only, under the recorded owner exception; production execution stays closed. Stop before Relational/Security work; do not add constraints, foreign keys, indexes, views, grants, RLS, policies, cloud, runtime, or production changes.
+  - 2026-09-15: rewritten from "keep execution closed until two clean approved replays pass", which the owner exception superseded. Deviation recorded in `apply-progress.md`. Verified after apply: 0 constraints, 0 indexes, 0 views in the destination.

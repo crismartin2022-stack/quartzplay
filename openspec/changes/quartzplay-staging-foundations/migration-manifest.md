@@ -11,7 +11,7 @@ Schema-only migration metadata; Foundation chain is runnable only after required
 | Operations owner | Juan León |
 | Rollback owner | Juan León |
 | Data owner | Juan León |
-| Change window | Pending |
+| Change window | 2026-09-15, owner-approved staging window; closed after the recorded application |
 | Capture approval | Local validation passed; candidate content is not retained. |
 
 ## Evidence Validation
@@ -55,7 +55,7 @@ data-owner approval before any handling decision.
 | Bootstrap reference | Reference-only aggregate scan: 9 tables, 7 indexes; it cannot generate migrations. |
 | Empty Supabase baseline | Destination reference only; no destination query, apply, or inspection occurred. |
 | Object reconciliation | Complete as a review-safe opaque inventory; every destination action remains blocked pending approval. |
-| Reconciliation status | Classified; not approved for execution. |
+| Reconciliation status | Foundation applied to the isolated staging target on 2026-09-15 under the recorded owner exception; Relational and Security remain unapproved, and production remains excluded. |
 | Legacy migration history | Retired from executable path; current local untracked baseline is quarantined as non-authoritative; historical byte-exact provenance is unrecoverable. |
 | Runnable migrations | Foundation chain (`20260914*`) only; retired `20260907*` baselines are excluded from execution. |
 
@@ -69,14 +69,14 @@ or configuration action is permitted.
 
 | Kind | Count | Opaque ordinal coverage | Classification | Destination action |
 |---|---:|---|---|---|
-| Table | 80 | `001-080` | `create` | `blocked` |
-| Column | 845 | `001-845` | `create` | `blocked` |
+| Table | 80 | `001-080` | `create` | `applied (staging only)` |
+| Column | 845 | `001-845` | `create` | `applied (staging only)` |
 | Constraint | 90 | `001-090` | `create` | `blocked` |
 | Index | 224 | `001-224` | `mixed` | `blocked` |
-| Sequence | 72 | `001-072` | `create` | `blocked` |
+| Sequence | 72 | `001-072` | `create` | `applied (staging only)` |
 | Type | 162 | `001-162` | `exclude` | `blocked` |
 | View | 1 | `001` | `create` | `blocked` |
-| Extension | 5 | `001-005` | `translate` | `blocked` |
+| Extension | 5 | `001-005` | `translate` | `applied (staging only)` |
 
 | Kind detail | Count | Opaque ordinal coverage | Classification | Dependencies / review condition |
 |---|---:|---|---|---|
@@ -110,16 +110,40 @@ future Relational scope only; no definition from those categories is included in
 Foundation migrations deliberately omit constraints, foreign keys, indexes, views, policies,
 roles, grants, RLS, application configuration, runtime bindings, rows, and seed data. They use
 unguarded creation so an already-present object stops migration rather than concealing drift.
-No migration was applied to any database.
+The chain was applied to the isolated staging target on 2026-09-15; see the Staging Application
+Record below. No production database was connected, queried, or changed.
 
 ## Next Gate
 
-Foundation static work is complete. Do not begin Relational or Security work without its separate
-approved work unit. Applying these migrations still requires destination identity, extension
-capability, empty-target, migration-ledger, rollback-owner, and change-window approval.
+Foundation is applied in staging. Do not begin Relational or Security work without its separate
+approved work unit, and do not treat this staging application as approval for any production
+destination: production still requires destination identity, extension capability, empty-target,
+migration-ledger, rollback-owner, and change-window approval, plus its own owner decision.
+
+## Staging Application Record (2026-09-15)
+
+Sanitized attestation. Destination identity stays outside Git; no connection string, password,
+project reference, domain, or object name is recorded here.
+
+| Field | Record |
+|---|---|
+| Destination | The isolated staging Supabase project approved for QuartzPlay staging; identity outside Git |
+| Authority | Owner exception recorded 2026-09-15: the empty, recreatable staging project is the disposable target, replacing the two local A/B replays for staging only |
+| Empty-target proof | Remote migration ledger empty; `public` schema dump contained headers only, with 0 tables, 0 sequences and 0 views |
+| Extension capability | The extensions migration's preflight succeeded; it fails closed when the managed extensions schema is unavailable |
+| Applied chain | `20260914090000`, `20260914090100`, `20260914090200`, in order, with no seeds and no roles |
+| Post-apply parity | Ledger shows all three versions present remotely; destination dump reports 80 tables and 72 sequences |
+| Boundary held | At apply time: 0 constraints, 0 indexes and 0 views in the destination, so the Foundation chain introduced no Relational content |
+| Post-startup drift (2026-09-16) | After the staging worker started, the destination reports 7 indexes (tables 80, sequences 72, constraints 0 and views 0 unchanged). They come from the application's startup bootstrap in `bot/db.py`, which runs 9 `CREATE TABLE IF NOT EXISTS` (no-ops over the existing tables) and 7 `CREATE INDEX`. This is DDL outside the migration chain; the Relational slice must reconcile these indexes before creating its own |
+| Data | No rows were written: the chain is schema-only and the push reported no seeds |
+| Credential handling | Password read from a local file through a command substitution, never printed or stored in Git; the file is deleted after the run |
+| Rollback owner | Juan León |
 
 ## Rollback
 
-Remove Foundation migration files, Foundation static manifest, paired static test, and this
-Foundation manifest section together. No runtime, database, cloud, deployment, configuration,
-or data state changed in this work unit.
+Before any binding, roll back by deleting and recreating the isolated staging project; the
+Foundation chain can then be reapplied from this repository. After a binding exists, use reviewed
+forward compensation instead. Removing the Foundation migration files, the static manifest, the
+paired static test, and this manifest section reverts the repository side only; it does not undo
+the staging destination state recorded above. No production, runtime, cloud, deployment, or
+configuration state changed in this work unit.

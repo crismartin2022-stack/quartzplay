@@ -282,3 +282,13 @@ An authorized Railway workspace owner must grant project-creation permission or 
 ## Live-State Reconciliation Pointer (2026-09-15)
 
 A sanitized read-only inventory of the staging projects was recorded by `quartzplay-openspec-consolidation` in `live-state-reconciliation.md`. It closes no task; see that file for divergences and owner actions.
+
+## Railway Execution (2026-09-16)
+
+- **Authority:** owner authorized the agent, scoped to project `QuartzPlay Staging`, services `staging-api`, `staging-worker`, and `staging-frontend`: read variable values, set worker and frontend variables, connect sources on branch `staging`, redeploy, and HTTP probes. Deleting or renaming resources, touching `IAQP Staging`, and changing API variables were excluded.
+- **API:** `DATABASE_URL` verified match-only against the staging Supabase database; `/livez` 200 and `/readyz` 200 ready. No API setting changed.
+- **Worker:** service settings root directory `bot` and start command `bash start-poller.sh` (without the start command, the Procfile `web` process would start a second API); 14 variables copied from the API through standard input without printing values, with `POLLING_ENABLED` enabled; source connected. The first deploy crashed with `worker_id.missing`, because `poller_settings` also requires `WORKER_ID`; after setting `WORKER_ID=staging-worker-1` it runs with Telegram long-polling and no configuration errors.
+- **Frontend:** root directory `frontend`; 7 validated build variables, with `REACT_APP_CASINO_HOSTS` set to a reserved `.invalid` host because the variable lists hostnames where the whole SPA renders as the casino; source connected. It serves the production build (`GET /` 200 with SPA root and bundle; `/casino` 200).
+- **Schema drift:** after the worker started, the destination reports 7 indexes created by the `bot/db.py` startup bootstrap outside the migration chain; recorded in `quartzplay-staging-foundations`.
+- **Process gap:** this runtime-bearing work was not claimed in the native `gentle-ai sdd-attempt` ledger before launch. The omission is recorded here instead of being backfilled.
+- **Open:** tasks 3.3 and 4.3 (zero rows, Auth users and Storage objects unmeasured) and 4.4 (owner acceptance).
