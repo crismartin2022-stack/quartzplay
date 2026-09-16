@@ -20,10 +20,10 @@ OpenSpec must be the single source of truth, but QuartzPlay SDD state is uncommi
 ## Capabilities
 
 ### New Capabilities
-None
+- `openspec-governance`: SDD change state lives only in `app/openspec`; worktrees carry no change trackers; records claim only attested live state.
 
 ### Modified Capabilities
-- `project-memory`: SDD change state lives only in `app/openspec`; worktrees carry no change trackers; records claim only attested live state.
+None. (Relocated from `project-memory` at archive time on 2026-09-15: that spec is a narrative memory document without requirement headings, so the native composer cannot merge requirements into it.)
 
 ## Approach
 
@@ -34,7 +34,7 @@ Exploration approach 1. Commit existing artifacts as-is except reconciliation ed
 | Area | Impact | Description |
 |---|---|---|
 | `openspec/changes/**`, `openspec/changes/archive/**` | New/Modified/Removed | Canonical records |
-| `openspec/specs/project-memory/spec.md` | Modified | Canonical-location requirement |
+| `openspec/specs/openspec-governance/spec.md` | New | Canonical location, attested live state, merged and superseded trackers |
 | `openspec/config.yaml` | Modified | Testing facts |
 | `bot/tools/`, `bot/tests/test_disposable_replay.py`, `bot/tests/test_staging_schema.py` | New | Existing harness and suites |
 | `supabase/` | New | Foundation migrations and manifest; CLI temp ignored |

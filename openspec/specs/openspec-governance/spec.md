@@ -1,6 +1,10 @@
-# Delta for project-memory
+# OpenSpec Governance Specification
 
-## ADDED Requirements
+## Purpose
+
+Define where QuartzPlay SDD change state lives and how OpenSpec records stay truthful.
+
+## Requirements
 
 ### Requirement: Canonical SDD State Location
 
