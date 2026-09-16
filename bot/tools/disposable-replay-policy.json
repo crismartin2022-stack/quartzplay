@@ -1,0 +1,18 @@
+{
+  "target": "portless-disposable-only",
+  "replays": 2,
+  "no_seed": true,
+  "expected_counts": {
+    "tables": 80,
+    "columns": 845,
+    "sequences": 72
+  },
+  "receipt": "redacted-local-only",
+  "network_mode": "internal",
+  "database_image": "supabase/postgres:15.8.1.060",
+  "platform_version": "15.8",
+  "architecture": "arm64",
+  "executor": "container-internal-psql",
+  "ledger_semantics": "psql-success-recorded",
+  "independent_targets": "separate-containers-volumes-and-internal-networks"
+}
