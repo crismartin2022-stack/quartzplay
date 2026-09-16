@@ -1,0 +1,38 @@
+# Tasks: Production Sanitation
+
+## Review Workload Forecast
+
+| Field | Value |
+|-------|-------|
+| Estimated changed lines | Documentation only |
+| 400-line budget risk | Low |
+| Chained PRs recommended | No |
+| Suggested split | Single documentation PR |
+| Delivery strategy | auto-chain |
+| Chain strategy | size-exception |
+
+Decision needed before apply: No
+Chained PRs recommended: No
+Chain strategy: size-exception
+400-line budget risk: Low
+
+## Phase 1: Executed With Owner Approval
+
+- [x] 1.1 Production bot polling identity configured and verified.
+- [x] 1.2 Production frontend variables set and release verified.
+- [x] 1.3 Bot moved to the API database and verified.
+- [x] 1.4 Supabase project "IAQP Production" created.
+- [x] 1.5 Panel migration rehearsed, cut over, accepted, and backed up.
+- [x] 1.6 Railway cleanup and service renames verified.
+- [x] 1.7 PSP webhook authentication merged and deployed to staging.
+
+## Phase 2: Open
+
+- [ ] 2.1 Owner sets the restart policy of the panel queue service to Always and redeploys it (the queue exits after one hour by design).
+- [ ] 2.2 Delete `Postgres-RETIRADO-20260916` after the owner accepts about seven days of panel operation on Supabase.
+- [ ] 2.3 Release the PSP webhook authentication to `main`.
+- [ ] 2.4 PSP production gate (issue #35): provider API key, webhook secret, staging end-to-end test.
+- [ ] 2.5 Resolve sports odds provider HTTP 403 (provider account or plan).
+- [ ] 2.6 Panel repository: duplicate route name breaks route caching on deploy (report to the panel maintainer).
+- [ ] 2.7 Replace the hardcoded Railway frontend domain in bot and API links with the custom domain.
+- [ ] 2.8 Add a secret token check to the Telegram webhook route.

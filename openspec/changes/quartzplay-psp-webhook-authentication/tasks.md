@@ -44,5 +44,5 @@ Chain strategy: size-exception
 
 ## Phase 4: Delivery
 
-- [ ] 4.1 Open the PR into `staging` closing #13.
+- [x] 4.1 Open the PR into `staging` closing #13 (PR #34, merged and deployed to staging).
 - [ ] 4.2 With owner approval, set `PSP_WEBHOOK_SECRET` in staging and production API services before enabling the PSP.
