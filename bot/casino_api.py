@@ -7,8 +7,10 @@ from fastapi import FastAPI, Request, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
+import psp_webhook_auth
 from config import cors_headers, get_runtime_settings
 from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
+from urllib.parse import urlencode
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
@@ -20966,6 +20968,11 @@ PSP_API_KEY = os.environ.get("PSP_API_KEY", "")
 API_PUBLIC_URL = SETTINGS.api_public_url
 
 
+def _psp_webhook_secret():
+    """Secreto para firmar/verificar los callbacks de la PSP (None si no está configurado)."""
+    return SETTINGS.psp_webhook_secret
+
+
 async def _psp_get(path):
     if not PSP_API_KEY:
         raise HTTPException(503, "PSP no configurada (falta PSP_API_KEY)")
@@ -21276,6 +21283,10 @@ async def me_psp_cargar(request: Request):
     if len(cuit) != 11:
         raise HTTPException(400, "El CUIT debe tener 11 dígitos")
 
+    secret = _psp_webhook_secret()
+    if not secret:
+        raise HTTPException(503, "PSP no configurada (falta PSP_WEBHOOK_SECRET)")
+
     tg_id = str(user["id"])
     pool = await get_db()
     async with pool.acquire() as conn:
@@ -21292,13 +21303,14 @@ async def me_psp_cargar(request: Request):
     # Registrar el CashIn Request (referenciaInt = user_id para correlacionar)
     from datetime import datetime, timedelta, timezone as _tz
     expira = (datetime.now(_tz.utc) + timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    callback_query = psp_webhook_auth.cashin_callback_query(secret, u["id"])
     req = await _psp_post("/api/v1/cashin-requests", {
         "cuit": cuit,
         "accountNumber": str(u["id"]),
         "currency": "032",
         "expectedAmount": float(monto),
         "expiresAt": expira,
-        "clientCallbackUrl": f"{API_PUBLIC_URL}/api/psp/webhook/cashin",
+        "clientCallbackUrl": f"{API_PUBLIC_URL}/api/psp/webhook/cashin?{urlencode(callback_query)}",
         "referenciaString": f"carga-{u['id']}",
         "referenciaInt": int(u["id"]),
     })
@@ -21319,41 +21331,50 @@ async def me_psp_cargar(request: Request):
 @app.post("/api/psp/webhook/cashin")
 async def psp_webhook_cashin(request: Request):
     """La PSP llama acá cuando un pago entrante fue matcheado (o expiró)."""
+    secret = _psp_webhook_secret()
+    params = request.query_params
+    uid = params.get("uid") or ""
+    n = params.get("n") or ""
+    sig = params.get("sig")
+    status = psp_webhook_auth.verify(secret, "cashin", {"uid": uid, "n": n}, sig)
+    if status == "unconfigured":
+        raise HTTPException(503, "PSP no configurada")
+    if status != "ok":
+        raise HTTPException(401, "No autorizado")
+
     try:
         body = await request.json()
     except Exception:
         return {"ok": True}
-    # Evento EXPIRED: marcar la carga como vencida
-    if body.get("event") == "EXPIRED":
-        request_id = body.get("requestId")
-        if request_id:
-            pool = await get_db()
-            async with pool.acquire() as conn:
-                await conn.execute(
-                    "UPDATE psp_cargas SET estado='vencido' WHERE request_id=$1 AND estado='pendiente'",
-                    request_id)
-        return {"ok": True}
 
-    # Evento MATCHED: acreditar
     request_id = body.get("requestId")
-    monto_psp = body.get("amount")
     if not request_id:
         return {"ok": True}
+    monto_psp = body.get("amount")
 
     pool = await get_db()
     async with pool.acquire() as conn:
-        carga = await conn.fetchrow("""
-            SELECT id, user_id, monto, estado, agencia_code FROM psp_cargas
-            WHERE request_id=$1
-        """, request_id)
-        if not carga:
-            return {"ok": True}
-        # Idempotencia: si ya está acreditada, no duplicar
-        if carga["estado"] == "acreditado":
-            return {"ok": True}
-        # Usar el monto real del pago si vino, si no el esperado
-        monto = int(float(monto_psp)) if monto_psp else carga["monto"]
+        credited = None
         async with conn.transaction():
+            carga = await conn.fetchrow("""
+                SELECT id, user_id, monto, estado, agencia_code FROM psp_cargas
+                WHERE request_id=$1 FOR UPDATE
+            """, request_id)
+            if not carga or str(carga["user_id"]) != uid:
+                return {"ok": True}
+
+            if body.get("event") == "EXPIRED":
+                if carga["estado"] == "pendiente":
+                    await conn.execute(
+                        "UPDATE psp_cargas SET estado='vencido' WHERE id=$1", carga["id"])
+                return {"ok": True}
+
+            # Idempotencia: se acredita una sola vez; una transferencia que llega
+            # después del vencimiento igual se acredita porque el dinero ingresó.
+            if carga["estado"] not in ("pendiente", "vencido"):
+                return {"ok": True}
+            # Usar el monto real del pago si vino, si no el esperado
+            monto = int(float(monto_psp)) if monto_psp else carga["monto"]
             await conn.execute("""
                 UPDATE users SET balance = balance + $2 WHERE id=$1
             """, carga["user_id"], monto * 100)
@@ -21387,12 +21408,14 @@ async def psp_webhook_cashin(request: Request):
                         conn, carga["user_id"], carga["agencia_code"] or "", "cualquier_deposito", monto)
             except Exception as e:
                 log.error(f"[PSP] bono auto error: {e}")
-        # Aviso al cliente
-        try:
-            await avisar_cliente(conn, carga["user_id"],
-                f"✅ Se acreditó tu carga de ${monto:,.0f}".replace(",","."))
-        except Exception:
-            pass
+            credited = (carga["user_id"], monto)
+        if credited:
+            credited_user_id, credited_monto = credited
+            try:
+                await avisar_cliente(conn, credited_user_id,
+                    f"✅ Se acreditó tu carga de ${credited_monto:,.0f}".replace(",","."))
+            except Exception:
+                pass
     return {"ok": True}
 
 
@@ -21400,14 +21423,18 @@ async def psp_webhook_cashin(request: Request):
 
 async def _ejecutar_payout(conn, retiro_id):
     """Ejecuta el PayOut en la PSP para un retiro ya aprobado."""
+    secret = _psp_webhook_secret()
+    if not secret:
+        raise HTTPException(503, "PSP no configurada (falta PSP_WEBHOOK_SECRET)")
     r = await conn.fetchrow("SELECT id, destino, monto FROM psp_retiros WHERE id=$1", retiro_id)
     if not r:
         return None
+    callback_query = psp_webhook_auth.payout_callback_query(secret, retiro_id)
     resp = await _psp_post("/api/v1/payout/requests", {
         "destination": r["destino"],
         "amount": float(r["monto"]),
         "receiptFormat": "stringbase64",
-        "callbackUrl": f"{API_PUBLIC_URL}/api/psp/webhook/payout",
+        "callbackUrl": f"{API_PUBLIC_URL}/api/psp/webhook/payout?{urlencode(callback_query)}",
     })
     payout_id = str(resp.get("id") or "")
     await conn.execute("""
@@ -21597,52 +21624,72 @@ async def admin_psp_aprobar_retiro(retiro_id: int, request: Request,
 @app.post("/api/psp/webhook/payout")
 async def psp_webhook_payout(request: Request):
     """La PSP avisa el resultado del PayOut."""
+    secret = _psp_webhook_secret()
+    params = request.query_params
+    rid = params.get("rid") or ""
+    sig = params.get("sig")
+    status = psp_webhook_auth.verify(secret, "payout", {"rid": rid}, sig)
+    if status == "unconfigured":
+        raise HTTPException(503, "PSP no configurada")
+    if status != "ok":
+        raise HTTPException(401, "No autorizado")
+
     try:
         body = await request.json()
     except Exception:
         return {"ok": True}
     payout_id = str(body.get("id") or "")
-    status = body.get("status", "")
+    result_status = body.get("status", "")
     if not payout_id:
         return {"ok": True}
+
     pool = await get_db()
     async with pool.acquire() as conn:
-        r = await conn.fetchrow(
-            "SELECT id, user_id, monto, estado FROM psp_retiros WHERE payout_id=$1", payout_id)
-        if not r:
-            return {"ok": True}
-        if status == "COMPLETED":
-            await conn.execute(
-                "UPDATE psp_retiros SET estado='completado' WHERE id=$1", r["id"])
-            # Registrar en agencia_movimientos
-            try:
-                ag = await conn.fetchval("SELECT creado_por FROM users WHERE id=$1", r["user_id"])
-                await conn.execute("""
-                    INSERT INTO agencia_movimientos
-                        (agencia_code, tipo, user_id, monto, detalle, operador)
-                    VALUES ($1, 'retiro', $2, $3, $4, 'psp')
-                """, ag or "admin", r["user_id"], r["monto"], "Retiro digital PSP")
-            except Exception:
-                pass
-            try:
-                await avisar_cliente(conn, r["user_id"],
-                    f"✅ Tu retiro de ${r['monto']:,.0f} se acreditó en tu cuenta bancaria.".replace(",","."))
-            except Exception:
-                pass
-        elif status == "FAILED":
-            # Reintegrar el saldo si falló
-            if r["estado"] != "fallido":
-                async with conn.transaction():
-                    await conn.execute(
-                        "UPDATE users SET balance = balance + $2 WHERE id=$1",
-                        r["user_id"], r["monto"] * 100)
-                    await conn.execute(
-                        "UPDATE psp_retiros SET estado='fallido' WHERE id=$1", r["id"])
+        notify = None
+        async with conn.transaction():
+            r = await conn.fetchrow(
+                "SELECT id, user_id, monto, estado FROM psp_retiros WHERE payout_id=$1 FOR UPDATE",
+                payout_id)
+            if not r or str(r["id"]) != rid:
+                return {"ok": True}
+            terminal = r["estado"] in ("completado", "fallido")
+            if result_status == "COMPLETED":
+                if terminal:
+                    return {"ok": True}
+                await conn.execute(
+                    "UPDATE psp_retiros SET estado='completado' WHERE id=$1", r["id"])
+                # Registrar en agencia_movimientos
                 try:
-                    await avisar_cliente(conn, r["user_id"],
-                        f"⚠️ Tu retiro no se pudo procesar. Te devolvimos ${r['monto']:,.0f} al saldo.".replace(",","."))
+                    ag = await conn.fetchval("SELECT creado_por FROM users WHERE id=$1", r["user_id"])
+                    await conn.execute("""
+                        INSERT INTO agencia_movimientos
+                            (agencia_code, tipo, user_id, monto, detalle, operador)
+                        VALUES ($1, 'retiro', $2, $3, $4, 'psp')
+                    """, ag or "admin", r["user_id"], r["monto"], "Retiro digital PSP")
                 except Exception:
                     pass
+                notify = ("completado", r["user_id"], r["monto"])
+            elif result_status == "FAILED":
+                # Reintegrar el saldo si falló
+                if terminal:
+                    return {"ok": True}
+                await conn.execute(
+                    "UPDATE users SET balance = balance + $2 WHERE id=$1",
+                    r["user_id"], r["monto"] * 100)
+                await conn.execute(
+                    "UPDATE psp_retiros SET estado='fallido' WHERE id=$1", r["id"])
+                notify = ("fallido", r["user_id"], r["monto"])
+        if notify:
+            estado_final, notify_user_id, notify_monto = notify
+            try:
+                if estado_final == "completado":
+                    await avisar_cliente(conn, notify_user_id,
+                        f"✅ Tu retiro de ${notify_monto:,.0f} se acreditó en tu cuenta bancaria.".replace(",","."))
+                else:
+                    await avisar_cliente(conn, notify_user_id,
+                        f"⚠️ Tu retiro no se pudo procesar. Te devolvimos ${notify_monto:,.0f} al saldo.".replace(",","."))
+            except Exception:
+                pass
     return {"ok": True}
 
 
