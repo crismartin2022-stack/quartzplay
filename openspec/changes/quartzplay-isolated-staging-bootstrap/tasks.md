@@ -40,10 +40,13 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Supabase Boundary
 
-- [ ] 3.1 RED: Obtain data-owner approval naming `quartzplay-staging-foundations` schema authority; reject production, non-empty, seeded, migrated, or app-bound candidates.
-- [ ] 3.2 GREEN: Create isolated non-production Supabase project/schema with zero rows, storage objects, and Auth users; do not create app bindings or provide production credentials.
+- [x] 3.1 RED: Obtain data-owner approval naming `quartzplay-staging-foundations` schema authority; reject production, non-empty, seeded, migrated, or app-bound candidates.
+  - 2026-09-15: data owner approved the Foundation chain as the schema authority for the isolated staging project, which was verified empty and unmigrated before the apply.
+- [x] 3.2 GREEN: Create isolated non-production Supabase project/schema with zero rows, storage objects, and Auth users; do not create app bindings or provide production credentials.
+  - 2026-09-15: the project already existed and was empty; the Foundation chain was applied to it (80 tables, 72 sequences, no seeds, no rows). No application binding was created and no production credential was used.
 - [ ] 3.3 Verify: Record sanitized aggregate-zero and no-production-credential attestations with data-owner and owner acceptance. Rollback: remove bindings before deleting only staging Supabase.
-  - 2026-09-15 reconciliation: the staging Supabase project exists and is active with 0 Edge Functions; zero-inventory is unproven. Stays open. See live-state-reconciliation.md.
+  - 2026-09-15 reconciliation: the staging Supabase project exists and is active with 0 Edge Functions; zero-inventory was unproven at inventory time. See live-state-reconciliation.md.
+  - 2026-09-15 apply: schema-only Foundation chain applied with no seeds and no rows; destination reports 80 tables and 72 sequences and no constraints, indexes or views. Storage objects and Auth users remain unmeasured, so owner acceptance is still required before this task closes.
 
 ## Phase 4: Smoke and Acceptance
 

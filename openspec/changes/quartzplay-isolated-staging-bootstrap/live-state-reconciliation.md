@@ -16,7 +16,7 @@
 | Worker | Worker deployment status (2.3) | `staging-worker` has no source and was never deployed | Worker absent at runtime | Deploy and attest under 2.2–2.3 |
 | Frontend | Not covered by bootstrap tasks | `staging-frontend` has no source and was never deployed; a public domain is pre-provisioned | None | Future change |
 | Redis | Redis health (2.3) | Deployed from an image; private networking only | None | Attest under 2.3 |
-| Supabase project | Empty isolated project (3.2) | `QuartzPlay Staging` is active, PostgreSQL 17, 0 Edge Functions | Records said creation was blocked on the owner | Zero-inventory proof (3.3) needs linked or credentialed access under separate approval |
+| Supabase project | Empty isolated project (3.2) | `QuartzPlay Staging` is active, PostgreSQL 17, 0 Edge Functions. On 2026-09-15 the Foundation chain was applied to it: 80 tables, 72 sequences, no seeds, no rows, and no constraints, indexes or views | Records said creation was blocked on the owner; the schema is now present | Tasks 3.1 and 3.2 closed; 3.3 still needs Storage and Auth inventory plus owner acceptance |
 | Earlier `staging-isolated` environment (see `apply-progress.md`) | — | Not visible to the current CLI account | Unknown | Owner to confirm whether it still exists or should be removed |
 
 ## Task Status Effect

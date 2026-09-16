@@ -817,3 +817,52 @@ replay, database, remote/cloud, staging, or production action ran.
 
 Revert only `bot/tools/disposable_replay.py`, `bot/tests/test_disposable_replay.py`,
 and this progress section. No runtime resource or external state exists to roll back.
+
+## Phase 3 — Foundation Applied to the Staging Target (2026-09-15)
+
+### Authority
+
+The owner, who is also the data owner, approved an explicit exception to the two-replay gate: the
+empty, recreatable staging project is used as the disposable target and its applied result is the
+evidence. Staging only; production execution remains closed.
+
+### Preflight (before any write)
+
+| Check | Result |
+|---|---|
+| Remote migration ledger | Empty: all three local migrations reported an empty remote counterpart |
+| Destination `public` schema | Headers only: 0 tables, 0 sequences, 0 views |
+| Dry run | Exactly the three Foundation versions, in order |
+| Fail-closed property | The chain uses `CREATE` without `IF NOT EXISTS`, and the extensions migration raises when the managed extensions schema is unavailable |
+
+### Apply
+
+| Evidence | Result |
+|---|---|
+| Command | `supabase db push --linked` against the staging project; password read from a local file and never printed |
+| Applied | `20260914090000`, `20260914090100`, `20260914090200`; no seeds, no roles |
+| Post-apply ledger | All three versions present remotely |
+| Destination objects | 80 tables, 72 sequences |
+| Boundary | 0 constraints, 0 indexes, 0 views — Relational content was not introduced |
+| Rows | None: schema-only chain, and the push reported no seeds |
+
+### Deviations
+
+- Task 3.3 previously required keeping execution closed until two clean replays passed. The owner
+  exception superseded that rule, so the task text was rewritten to the rule that now governs, and
+  the rewrite is recorded here. The replay harness stays in the repository, unused for this apply.
+- Task 3.2 is complete without replay evidence, because no replay was run.
+
+### Incidents
+
+- A preflight dump invoked with `-f -` wrote 1933 bytes into a stray file named `-` inside the
+  repository instead of standard output, which first looked like an empty schema. The file was
+  removed, the working tree verified clean, and the emptiness proof repeated against a real file.
+- `supabase inspect db table-stats` rejects `--password`, so the emptiness proof came from the
+  schema dump instead.
+
+### Rollback Boundary
+
+Before any application binding: delete and recreate the isolated staging project, then reapply the
+chain from this repository. After a binding exists: reviewed forward compensation only. Reverting
+this section changes repository records only and does not undo destination state.
