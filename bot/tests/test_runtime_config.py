@@ -192,6 +192,27 @@ def test_api_uses_runtime_settings_for_cors_and_public_url(monkeypatch):
     assert response.headers["access-control-allow-origin"] == "https://app.prod.example.test"
 
 
+def test_accepts_absent_psp_webhook_secret():
+    result = parse_runtime_settings(settings())
+
+    assert result.psp_webhook_secret is None
+
+
+def test_accepts_a_valid_psp_webhook_secret():
+    secret = "a" * 32
+
+    result = parse_runtime_settings(settings(PSP_WEBHOOK_SECRET=secret))
+
+    assert result.psp_webhook_secret == secret
+
+
+def test_rejects_a_short_psp_webhook_secret_without_leaking_it():
+    with pytest.raises(ConfigError, match="psp_webhook_secret.invalid") as exc_info:
+        parse_runtime_settings(settings(PSP_WEBHOOK_SECRET="short-secret"))
+
+    assert "short-secret" not in str(exc_info.value)
+
+
 def _request(headers):
     from starlette.requests import Request
 
