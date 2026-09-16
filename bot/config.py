@@ -30,6 +30,7 @@ class RuntimeSettings:
     api_public_url: str
     telegram: TelegramIdentity
     readiness_timeout_ms: int
+    psp_webhook_secret: str | None
 
 
 @dataclass(frozen=True)
@@ -148,6 +149,15 @@ def _readiness_timeout(values: Mapping[str, str]) -> int:
     return timeout
 
 
+def _psp_webhook_secret(values: Mapping[str, str]) -> str | None:
+    raw = values.get("PSP_WEBHOOK_SECRET", "").strip()
+    if not raw:
+        return None
+    if len(raw) < 32:
+        _error("psp_webhook_secret.invalid")
+    return raw
+
+
 def _environment(values: Mapping[str, str]) -> str:
     app_env = values.get("APP_ENV", "")
     if app_env not in {"production", "staging"}:
@@ -229,6 +239,7 @@ def parse_runtime_settings(values: Mapping[str, str]) -> RuntimeSettings:
         poller.app_env, poller.database_url, poller.database_host, origins, api_public_url,
         poller.telegram,
         _readiness_timeout(values),
+        _psp_webhook_secret(values),
     )
 
 
