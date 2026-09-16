@@ -1,7 +1,15 @@
 schema: spec-driven
+project: QuartzPlay
+
+execution_mode: auto
+artifact_store:
+  mode: openspec
+delivery_strategy: ask-on-risk
+review_budget_lines: 400
 
 context: |
   Product: QuartzPlay betting, casino, agency, and admin platform.
+  Scope: this app repository only; IAQP and its OpenSpec are out of scope.
   Frontend: React 18 Create React App single-page application in frontend/.
   Backend: Python async FastAPI API and python-telegram-bot service in bot/.
   Data: PostgreSQL accessed with asyncpg; Supabase is present as local metadata.
@@ -11,16 +19,19 @@ context: |
 strict_tdd: true
 
 testing:
-  detected: "2026-09-02"
+  detected: "2026-09-10"
   runner:
     available: true
     framework: "Jest via react-scripts"
     command: "cd frontend && npx react-scripts test --watchAll=false"
-    configured_script: false
+    configured_script: true
+    last_verified: "2026-09-10: 1 suite, 4 tests passed"
   layers:
     unit:
       available: true
-      tool: "Jest via react-scripts (frontend/src/projectMemoryValidation.test.js; command: cd frontend && npx react-scripts test --watchAll=false)"
+      tool: "Jest via react-scripts (frontend/src/projectMemoryValidation.test.js; command: cd frontend && npx react-scripts test --watchAll=false); Python unittest (bot/tests)"
+      backend_command: "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest bot.tests.test_disposable_replay bot.tests.test_staging_schema"
+      backend_pytest_modules: "bot/tests/test_runtime_config.py, bot/tests/test_process_safety.py, bot/tests/test_readiness.py require pytest and httpx, not installed locally as of 2026-09-15"
     integration:
       available: false
       tool: ""
@@ -41,11 +52,15 @@ testing:
       available: false
       command: ""
   build_command: "npm --prefix frontend run build"
+  limitations:
+    - "Backend unittest suites live in bot/tests; broad discovery needs local dependencies, so run the named modules."
+    - "The repository CI workflow runs Semgrep only; it does not run tests or builds."
 
 rules:
   proposal:
     - Include user-facing, data, API, security, and rollback impacts for betting or balance changes.
     - Forecast changed lines; ask before any chained-PR strategy when the review budget exceeds 400 lines.
+    - Ask before splitting or accepting size:exception when the review forecast flags budget risk (delivery_strategy is ask-on-risk).
   specs:
     - Use RFC 2119 keywords and Given/When/Then scenarios.
     - Specify authorization, money, odds, and idempotency behavior where applicable.
