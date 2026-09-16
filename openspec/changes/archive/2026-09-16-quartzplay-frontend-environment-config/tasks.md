@@ -42,6 +42,6 @@ Chain strategy: size-exception
 
 ## Phase 4: Delivery
 
-- [ ] 4.1 Open the PR into `staging`; after merge, confirm the staging frontend still serves the SPA.
-- [ ] 4.2 With owner approval, set the seven production variables on `valiant-gentleness` (values in `design.md`).
-- [ ] 4.3 With owner approval, release `staging` to `main`; confirm the production frontend deployment succeeds and serves the SPA with its bundle.
+- [x] 4.1 Open the PR into `staging` (PR #32); after merge, confirm the staging frontend still serves the SPA.
+- [x] 4.2 With owner approval, set the seven production variables on `valiant-gentleness`, now named `quartzplay-frontend` (values in `design.md`).
+- [x] 4.3 With owner approval, release `staging` to `main` (PR #33); confirm the production frontend deployment succeeds and serves the SPA with its bundle.
