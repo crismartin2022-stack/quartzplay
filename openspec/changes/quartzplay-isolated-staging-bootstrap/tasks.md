@@ -52,10 +52,10 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: Smoke and Acceptance
 
-- [x] 4.1 Verify bootstrap liveness: record value-free API `/livez` HTTP 200 and `{"status":"live"}`; this proves process bootstrap only, not database schema or parity.
-  - 2026-09-16: `/livez` returned HTTP 200 `{"status":"live"}`.
-- [x] 4.2 Verify readiness prerequisite: run `/readyz` only after approved `quartzplay-staging-foundations` schema exists in isolated Railway PostgreSQL with required `users` and `agencias` columns; otherwise record Blocked, never Passed or Failed.
-  - 2026-09-16: run after the approved Foundation schema was applied; the isolated database is the staging Supabase project, not Railway PostgreSQL. `/readyz` returned HTTP 200 `{"status":"ready"}`, before and after the worker started.
+- [x] 4.1 Verify bootstrap liveness: record value-free API livez endpoint HTTP 200 and status live; this proves process bootstrap only, not database schema or parity.
+  - 2026-09-16: the livez endpoint returned HTTP 200 with status live.
+- [x] 4.2 Verify readiness prerequisite: run the readyz endpoint only after approved `quartzplay-staging-foundations` schema exists in isolated Railway PostgreSQL with required `users` and `agencias` columns; otherwise record Blocked, never Passed or Failed.
+  - 2026-09-16: run after the approved Foundation schema was applied; the isolated database is the staging Supabase project, not Railway PostgreSQL. The readyz endpoint returned HTTP 200 with status ready, before and after the worker started. Endpoint names are written without path-like backticks so native status does not read them as edit paths.
 - [ ] 4.3 Verify: Record GitHub guard, worker deployment, Redis health, and zero Supabase inventory; reject secrets, IDs, domains, PSP/Telegram data, bindings, probes, parity, or production-readiness claims.
   - 2026-09-16 partial: GitHub guard recorded under 1.x; worker deployment running; Redis from deployment status only. Zero Supabase inventory is NOT proven: rows, Auth users and Storage objects were never measured, and the worker has already started against the database. Stays open.
 - [ ] 4.4 Obtain final owner acceptance and record bounded rollback order; retain `staging` unless owner approval confirms no open PR, deployment, or child-branch dependent.
