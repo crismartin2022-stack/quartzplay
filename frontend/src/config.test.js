@@ -14,11 +14,46 @@ const stagingEnvironment = {
   REACT_APP_BOT_USERNAME: "quartzplay_staging_bot",
 };
 
+const productionEnvironment = {
+  APP_ENV: "production",
+  REACT_APP_ENV: "production",
+  REACT_APP_API_URL: "https://api.iaqp.lat",
+  REACT_APP_IAQP_URL: "https://api-casino.iaqp.lat",
+  REACT_APP_APP_ORIGIN: "https://valiant-gentleness-production-a779.up.railway.app",
+  REACT_APP_CASINO_HOSTS: "iaqp.lat, www.iaqp.lat",
+  REACT_APP_BOT_USERNAME: "quartzplay_bot",
+};
+
+const validatorPath = path.resolve(__dirname, "../scripts/validate-env.js");
+
+function runPreflight(environment) {
+  return spawnSync(process.execPath, [validatorPath], {
+    env: { ...process.env, ...environment },
+    encoding: "utf8",
+  });
+}
+
+function expectRejectedWithoutValue(environment, variableName) {
+  expect(() => resolveFrontendConfig(environment)).toThrow(variableName);
+  try {
+    resolveFrontendConfig(environment);
+  } catch (error) {
+    if (environment[variableName]) {
+      expect(error.message).not.toContain(environment[variableName]);
+    }
+  }
+}
+
 describe("frontend destination configuration", () => {
   test("uses CRA-exposed staging identity for browser configuration", () => {
     const browserEnvironment = { ...stagingEnvironment, APP_ENV: undefined };
     expect(getFrontendConfig(browserEnvironment)).toEqual(resolveFrontendConfig(stagingEnvironment));
     expect(() => getFrontendConfig({ ...browserEnvironment, REACT_APP_API_URL: "not-a-url" })).toThrow("REACT_APP_API_URL");
+  });
+
+  test("uses CRA-exposed production identity for browser configuration", () => {
+    const browserEnvironment = { ...productionEnvironment, APP_ENV: undefined };
+    expect(getFrontendConfig(browserEnvironment)).toEqual(resolveFrontendConfig(productionEnvironment));
   });
 
   test.each([
@@ -41,6 +76,16 @@ describe("frontend destination configuration", () => {
     });
   });
 
+  test("resolves normalized production destinations", () => {
+    expect(resolveFrontendConfig({ ...productionEnvironment, REACT_APP_API_URL: "https://API.IAQP.LAT." })).toEqual({
+      apiUrl: "https://api.iaqp.lat",
+      iaqpUrl: "https://api-casino.iaqp.lat",
+      appOrigin: "https://valiant-gentleness-production-a779.up.railway.app",
+      casinoHosts: ["iaqp.lat", "www.iaqp.lat"],
+      botUsername: "quartzplay_bot",
+    });
+  });
+
   test.each([
     [{ ...stagingEnvironment, REACT_APP_API_URL: "" }, "REACT_APP_API_URL"],
     [{ ...stagingEnvironment, REACT_APP_IAQP_URL: "not-a-url" }, "REACT_APP_IAQP_URL"],
@@ -48,16 +93,21 @@ describe("frontend destination configuration", () => {
     [{ ...stagingEnvironment, REACT_APP_API_URL: "https://api.iaqp.lat" }, "REACT_APP_API_URL"],
     [{ ...stagingEnvironment, REACT_APP_API_URL: "https://api.iaqp.lat." }, "REACT_APP_API_URL"],
     [{ ...stagingEnvironment, REACT_APP_CASINO_HOSTS: "iaqp.lat." }, "REACT_APP_CASINO_HOSTS"],
-    [{ ...stagingEnvironment, APP_ENV: "production" }, "APP_ENV"],
-  ])("rejects unsafe destinations without exposing values", (environment, variableName) => {
-    expect(() => resolveFrontendConfig(environment)).toThrow(variableName);
-    try {
-      resolveFrontendConfig(environment);
-    } catch (error) {
-      if (environment[variableName]) {
-        expect(error.message).not.toContain(environment[variableName]);
-      }
-    }
+    [{ ...stagingEnvironment, REACT_APP_APP_ORIGIN: "https://juego.iaqp.lat" }, "REACT_APP_APP_ORIGIN"],
+    [{ ...stagingEnvironment, REACT_APP_BOT_USERNAME: "quartzplay_bot" }, "REACT_APP_BOT_USERNAME"],
+    [{ ...stagingEnvironment, APP_ENV: "production" }, "REACT_APP_API_URL"],
+  ])("rejects unsafe staging destinations without exposing values", (environment, variableName) => {
+    expectRejectedWithoutValue(environment, variableName);
+  });
+
+  test.each([
+    [{ ...productionEnvironment, APP_ENV: "development" }, "APP_ENV"],
+    [{ ...productionEnvironment, REACT_APP_API_URL: "https://api.staging.quartzplay.example" }, "REACT_APP_API_URL"],
+    [{ ...productionEnvironment, REACT_APP_API_URL: "http://api.iaqp.lat" }, "REACT_APP_API_URL"],
+    [{ ...productionEnvironment, REACT_APP_CASINO_HOSTS: "casino.staging.iaqp.example" }, "REACT_APP_CASINO_HOSTS"],
+    [{ ...productionEnvironment, REACT_APP_BOT_USERNAME: "quartzplay_staging_bot" }, "REACT_APP_BOT_USERNAME"],
+  ])("rejects unsafe production destinations without exposing values", (environment, variableName) => {
+    expectRejectedWithoutValue(environment, variableName);
   });
 
   test("keeps first-party production destinations out of frontend sources", () => {
@@ -66,6 +116,7 @@ describe("frontend destination configuration", () => {
     const productionDestinations = [
       "api.iaqp.lat",
       "api-casino.iaqp.lat",
+      "juego.iaqp.lat",
       "valiant-gentleness-production-a779.up.railway.app",
       "t.me/quartzplay_bot",
       "@quartzplay_bot",
@@ -82,12 +133,8 @@ describe("frontend destination configuration", () => {
   });
 
   test("startup preflight rejects production destinations without printing them", () => {
-    const validatorPath = path.resolve(__dirname, "../scripts/validate-env.js");
     const unsafeApiUrl = "https://api.iaqp.lat";
-    const result = spawnSync(process.execPath, [validatorPath], {
-      env: { ...process.env, ...stagingEnvironment, REACT_APP_API_URL: unsafeApiUrl },
-      encoding: "utf8",
-    });
+    const result = runPreflight({ ...stagingEnvironment, REACT_APP_API_URL: unsafeApiUrl });
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("REACT_APP_API_URL");
@@ -100,13 +147,23 @@ describe("frontend destination configuration", () => {
     [{ APP_ENV: "production" }, "APP_ENV"],
     [{ REACT_APP_ENV: "production" }, "REACT_APP_ENV"],
   ])("startup preflight rejects unsafe normalized values", (override, variableName) => {
-    const validatorPath = path.resolve(__dirname, "../scripts/validate-env.js");
-    const result = spawnSync(process.execPath, [validatorPath], {
-      env: { ...process.env, ...stagingEnvironment, ...override },
-      encoding: "utf8",
-    });
+    const result = runPreflight({ ...stagingEnvironment, ...override });
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain(variableName);
+  });
+
+  test("startup preflight accepts a coherent production environment", () => {
+    const result = runPreflight(productionEnvironment);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Frontend environment validation passed.");
+  });
+
+  test("startup preflight rejects mismatched environments naming APP_ENV", () => {
+    const result = runPreflight({ ...productionEnvironment, REACT_APP_ENV: "staging" });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("APP_ENV");
   });
 });

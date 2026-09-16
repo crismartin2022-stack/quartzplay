@@ -1,8 +1,8 @@
 import {
-  isStagingEnvironment,
   parseBotUsername,
   parseCasinoHosts,
-  parseStagingUrl,
+  parseDestinationUrl,
+  resolveEnvironment,
 } from "./environmentValidation";
 
 const REQUIRED_DESTINATIONS = [
@@ -25,15 +25,16 @@ export function resolveFrontendConfig(environment) {
     }
   });
 
-  if (!isStagingEnvironment(environment)) {
+  const appEnvironment = resolveEnvironment(environment.APP_ENV);
+  if (!appEnvironment) {
     throw configurationError("APP_ENV");
   }
 
-  const apiUrl = parseStagingUrl(environment.REACT_APP_API_URL);
-  const iaqpUrl = parseStagingUrl(environment.REACT_APP_IAQP_URL);
-  const appOrigin = parseStagingUrl(environment.REACT_APP_APP_ORIGIN);
-  const casinoHosts = parseCasinoHosts(environment.REACT_APP_CASINO_HOSTS);
-  const botUsername = parseBotUsername(environment.REACT_APP_BOT_USERNAME);
+  const apiUrl = parseDestinationUrl(environment.REACT_APP_API_URL, appEnvironment);
+  const iaqpUrl = parseDestinationUrl(environment.REACT_APP_IAQP_URL, appEnvironment);
+  const appOrigin = parseDestinationUrl(environment.REACT_APP_APP_ORIGIN, appEnvironment);
+  const casinoHosts = parseCasinoHosts(environment.REACT_APP_CASINO_HOSTS, appEnvironment);
+  const botUsername = parseBotUsername(environment.REACT_APP_BOT_USERNAME, appEnvironment);
 
   if (!apiUrl) throw configurationError("REACT_APP_API_URL");
   if (!iaqpUrl) throw configurationError("REACT_APP_IAQP_URL");
