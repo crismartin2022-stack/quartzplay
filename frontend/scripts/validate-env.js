@@ -1,8 +1,8 @@
 const {
-  isStagingEnvironment,
   parseBotUsername,
   parseCasinoHosts,
-  parseStagingUrl,
+  parseDestinationUrl,
+  resolveEnvironment,
 } = require("../src/environmentValidation");
 
 const requiredVariables = [
@@ -24,14 +24,25 @@ requiredVariables.forEach((variableName) => {
   if (!process.env[variableName]?.trim()) fail(variableName);
 });
 
-["REACT_APP_API_URL", "REACT_APP_IAQP_URL", "REACT_APP_APP_ORIGIN"].forEach((variableName) => {
-  if (!parseStagingUrl(process.env[variableName])) fail(variableName);
-});
+const appEnvironment = resolveEnvironment(process.env.APP_ENV);
+const clientEnvironment = resolveEnvironment(process.env.REACT_APP_ENV);
 
-if (!isStagingEnvironment(process.env)) fail("APP_ENV");
-if (!isStagingEnvironment({ APP_ENV: process.env.REACT_APP_ENV })) fail("REACT_APP_ENV");
-if (!parseCasinoHosts(process.env.REACT_APP_CASINO_HOSTS)) fail("REACT_APP_CASINO_HOSTS");
-if (!parseBotUsername(process.env.REACT_APP_BOT_USERNAME)) fail("REACT_APP_BOT_USERNAME");
+if (!appEnvironment) fail("APP_ENV");
+if (!clientEnvironment) fail("REACT_APP_ENV");
+if (appEnvironment && clientEnvironment && appEnvironment !== clientEnvironment) {
+  fail("APP_ENV");
+  fail("REACT_APP_ENV");
+}
+
+const environment = appEnvironment && appEnvironment === clientEnvironment ? appEnvironment : null;
+
+if (environment) {
+  ["REACT_APP_API_URL", "REACT_APP_IAQP_URL", "REACT_APP_APP_ORIGIN"].forEach((variableName) => {
+    if (!parseDestinationUrl(process.env[variableName], environment)) fail(variableName);
+  });
+  if (!parseCasinoHosts(process.env.REACT_APP_CASINO_HOSTS, environment)) fail("REACT_APP_CASINO_HOSTS");
+  if (!parseBotUsername(process.env.REACT_APP_BOT_USERNAME, environment)) fail("REACT_APP_BOT_USERNAME");
+}
 
 if (!process.exitCode) {
   console.log("Frontend environment validation passed.");

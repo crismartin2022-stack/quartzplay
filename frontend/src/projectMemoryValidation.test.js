@@ -77,7 +77,7 @@ describe("QuartzPlay project-memory handoff", () => {
     expect(manifest).toContain(
       "Rows, credentials, connection strings, tunnel output, and private topology are excluded."
     );
-    expect(manifest).toContain("| Reconciliation status | Classified; not approved for execution. |");
+    expect(manifest).toContain("| Reconciliation status | Foundation applied to the isolated staging target on 2026-09-15 under the recorded owner exception; Relational and Security remain unapproved, and production remains excluded. |");
     expect(manifest).not.toContain(forbiddenConnectionUri);
     expect(manifest).not.toContain(forbiddenDatabaseAssignment);
   });
@@ -105,7 +105,7 @@ describe("QuartzPlay project-memory handoff", () => {
       "| Object reconciliation | Complete as a review-safe opaque inventory; every destination action remains blocked pending approval. |"
     );
     expect(manifest).toContain(
-      "No migration was applied to any database."
+      "No production database was connected, queried, or changed."
     );
   });
 
@@ -115,7 +115,7 @@ describe("QuartzPlay project-memory handoff", () => {
     expect(manifest).toContain("| Count completeness | Passed: all required aggregate counts match the validated inventory. |");
     expect(manifest).toContain("| Sanitization | Passed: no rows or prohibited connection-like content detected. |");
     expect(manifest).toContain("| Fingerprints | Validated locally; omitted from Git because checksums are prohibited. |");
-    expect(manifest).toContain("| Table | 80 | `001-080` | `create` | `blocked` |");
+    expect(manifest).toContain("| Table | 80 | `001-080` | `create` | `applied (staging only)` |");
     expect(manifest).not.toContain(forbiddenConnectionUri);
     expect(manifest).not.toContain(forbiddenDatabaseAssignment);
   });
@@ -124,14 +124,14 @@ describe("QuartzPlay project-memory handoff", () => {
     const manifest = readFile(migrationManifestPath);
 
     expect(manifest).toContain("## Review-Safe Per-Object Reconciliation Inventory");
-    expect(manifest).toContain("| Table | 80 | `001-080` | `create` | `blocked` |");
-    expect(manifest).toContain("| Column | 845 | `001-845` | `create` | `blocked` |");
+    expect(manifest).toContain("| Table | 80 | `001-080` | `create` | `applied (staging only)` |");
+    expect(manifest).toContain("| Column | 845 | `001-845` | `create` | `applied (staging only)` |");
     expect(manifest).toContain("| Constraint | 90 | `001-090` | `create` | `blocked` |");
     expect(manifest).toContain("| Index | 224 | `001-224` | `mixed` | `blocked` |");
-    expect(manifest).toContain("| Sequence | 72 | `001-072` | `create` | `blocked` |");
+    expect(manifest).toContain("| Sequence | 72 | `001-072` | `create` | `applied (staging only)` |");
     expect(manifest).toContain("| Type | 162 | `001-162` | `exclude` | `blocked` |");
     expect(manifest).toContain("| View | 1 | `001` | `create` | `blocked` |");
-    expect(manifest).toContain("| Extension | 5 | `001-005` | `translate` | `blocked` |");
+    expect(manifest).toContain("| Extension | 5 | `001-005` | `translate` | `applied (staging only)` |");
     expect(manifest).toContain("| Rejected candidate correction | Rejected; never authority; no source claim retained. |");
     expect(manifest).not.toMatch(/`[a-f0-9]{64}`/i);
   });
