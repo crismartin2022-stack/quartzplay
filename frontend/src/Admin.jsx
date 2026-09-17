@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { useState, useRef, useEffect } from "react";
 import { getFrontendConfig } from "./config";
+import CameraCapture from "./CameraCapture";
 
 const Q = {
   void:"#020208", deep:"#060612",
@@ -1866,6 +1867,7 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
 
 function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
   const [imgs,setImgs]=useState([]);
+  const [camaraAbierta,setCamaraAbierta]=useState(false);
   const [analizando,setAnalizando]=useState(false);
   const [res,setRes]=useState(null);
   const [corrigiendo,setCorrigiendo]=useState(null);
@@ -1969,14 +1971,13 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       )}
       {!res&&(
         <div style={{display:"flex",gap:10,marginBottom:12}}>
-          <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:12,
+          <button onClick={()=>setCamaraAbierta(true)} style={{flex:1,
+            background:"transparent",border:`2px dashed ${Q.border}`,borderRadius:12,
             padding:"22px 10px",textAlign:"center",cursor:"pointer"}}>
-            <input type="file" accept="image/*" capture="environment"
-              onChange={elegir} style={{display:"none"}}/>
             <div style={{fontSize:26,marginBottom:5}}>📸</div>
             <div style={{fontWeight:700,fontSize:12,color:Q.text,
               fontFamily:"'Space Grotesk',system-ui"}}>Cámara</div>
-          </label>
+          </button>
           <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:12,
             padding:"22px 10px",textAlign:"center",cursor:"pointer"}}>
             <input type="file" accept="image/*" multiple onChange={elegir} style={{display:"none"}}/>
@@ -1986,6 +1987,12 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
               {imgs.length>0?"Agregar más":"Archivo"}</div>
           </label>
         </div>
+      )}
+
+      {camaraAbierta&&(
+        <CameraCapture Q={Q} F_BODY={"'Space Grotesk',system-ui"}
+          onCapture={(img)=>{ setImgs(prev=>[...prev,img]); setCamaraAbierta(false); }}
+          onClose={()=>setCamaraAbierta(false)}/>
       )}
 
       {imgs.length>0&&!res&&(
