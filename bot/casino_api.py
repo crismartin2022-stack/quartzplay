@@ -10,12 +10,16 @@ import auth
 import psp_webhook_auth
 from config import cors_headers, get_runtime_settings
 from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
+from log_hygiene import silence_request_urls
 from urllib.parse import urlencode
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
     format="%(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
+
+# Request URLs carry the bot token; never let a client library log them.
+silence_request_urls()
 
 # Saldo de créditos de The Odds API (se llena solo al consultar el feed)
 _odds_credits = {"remaining": None, "used": None, "last_check": None}
