@@ -10,7 +10,9 @@ The owner demonstrates the product in a browser. There the scanner was presented
 - "Cámara" opens the in-app camera; "Archivo" chooses files and becomes "Agregar más" once an image is loaded.
 - The player app inside Telegram keeps its conversational presentation, where a bubble belongs.
 
-Out of scope: the admin scanner, analysis, and the rest of the flow.
+- The admin scan screen keeps its layout and gains the same in-app camera, replacing the file hint that opened a picker in browsers.
+
+Out of scope: analysis and the rest of the flow.
 
 ## Rollback
 

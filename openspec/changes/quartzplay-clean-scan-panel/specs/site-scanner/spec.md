@@ -28,3 +28,12 @@ The panel MUST offer exactly two capture options: "Cámara", which opens the in-
 
 - WHEN one image is already loaded
 - THEN the file option reads "Agregar más"
+
+### Requirement: Admin Scan Screen Uses The Same Camera
+
+The admin scan screen MUST open the in-app camera for its camera option and MUST keep its file option.
+
+#### Scenario: Administrator takes a photo
+
+- WHEN an administrator chooses the camera option
+- THEN the in-app camera opens, the same one used by the site

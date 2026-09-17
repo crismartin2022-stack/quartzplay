@@ -22,3 +22,17 @@ describe("public site scanner panel", () => {
     expect(scanner).toContain("<CameraCapture");
   });
 });
+
+const admin = fs.readFileSync(path.resolve(__dirname, "Admin.jsx"), "utf8");
+const adminScanner = admin.slice(admin.indexOf("function EscanearComboAdmin"), admin.indexOf("function", admin.indexOf("function EscanearComboAdmin") + 40));
+
+describe("admin scan screen", () => {
+  test("the camera option opens the in-app camera instead of a file hint", () => {
+    expect(adminScanner).toContain("<CameraCapture");
+    expect(adminScanner).not.toContain("capture=\"environment\"");
+  });
+
+  test("keeps the file option", () => {
+    expect(adminScanner).toMatch(/Agregar más"\s*:\s*"Archivo"/);
+  });
+});

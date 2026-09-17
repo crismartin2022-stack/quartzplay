@@ -23,7 +23,8 @@ Chain strategy: size-exception
 ## Phase 2: GREEN
 
 - [x] 2.1 Replace the bubble with the panel and relabel the options.
-- [x] 2.2 Run the frontend suite green and build.
+- [x] 2.2 Wire the in-app camera into the admin scan screen.
+- [x] 2.3 Run the frontend suite green and build.
 
 ## Phase 3: Verify
 
