@@ -119,7 +119,8 @@ async def cmd_start(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await conn.execute("""
             INSERT INTO users (telegram_id, username, first_name)
             VALUES ($1, $2, $3)
-            ON CONFLICT (telegram_id) DO UPDATE SET last_seen=NOW()
+            ON CONFLICT (telegram_id) WHERE telegram_id IS NOT NULL
+            DO UPDATE SET last_seen=NOW()
         """, uid, u.effective_user.username or str(uid), name)
         row = await conn.fetchrow(
             "SELECT balance FROM users WHERE telegram_id=$1", uid)

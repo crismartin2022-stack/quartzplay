@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, Component } from "react";
 import { getFrontendConfig } from "./config";
+import CameraCapture from "./CameraCapture";
 
 // ═══════════════════════════════════════════════════════════════
 // IAQP SPORTS — Web App Telegram completa
@@ -2278,6 +2279,11 @@ function ScreenMejorar({ onAction, user, refCode, escaneo, setEscaneo }){
   const quitarImagen=(i)=>setImagenes(prev=>prev.filter((_,k)=>k!==i));
   const [boleto,setBoleto]=useState(null);
   const [generando,setGenerando]=useState(false);
+  const [camaraAbierta,setCamaraAbierta]=useState(false);
+  const agregarCapturada=(frame)=>{
+    setErr(""); setRes(null);
+    setImagenes(prev=>[...prev,frame]);
+  };
 
   const generarBoleto=async()=>{
     if(!res||generando) return;
@@ -2384,14 +2390,14 @@ function ScreenMejorar({ onAction, user, refCode, escaneo, setEscaneo }){
         )}
 
         <div style={{display:"flex",gap:8,marginBottom:8}}>
-          <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:12,
-            padding:"18px 10px",textAlign:"center",cursor:"pointer"}}>
-            <input type="file" accept="image/*" capture="environment"
-              onChange={elegir} style={{display:"none"}}/>
+          <button onClick={()=>setCamaraAbierta(true)} style={{flex:1,
+            background:"transparent",border:`2px dashed ${Q.border}`,
+            borderRadius:12,padding:"18px 10px",textAlign:"center",
+            cursor:"pointer"}}>
             <div style={{fontSize:24,marginBottom:4}}>📸</div>
             <div style={{color:Q.text,fontWeight:700,fontSize:11,
               fontFamily:"'Inter',system-ui"}}>Sacar foto</div>
-          </label>
+          </button>
           <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:12,
             padding:"18px 10px",textAlign:"center",cursor:"pointer"}}>
             <input type="file" accept="image/*" multiple onChange={elegir}
@@ -2402,6 +2408,12 @@ function ScreenMejorar({ onAction, user, refCode, escaneo, setEscaneo }){
               {imagenes.length>0?"Agregar más":"Galería"}</div>
           </label>
         </div>
+
+        {camaraAbierta&&(
+          <CameraCapture Q={Q} F_BODY={F_BODY}
+            onCapture={agregarCapturada}
+            onClose={()=>setCamaraAbierta(false)}/>
+        )}
 
         {imagenes.length>0&&(
           <button onClick={analizar} disabled={analizando} style={{width:"100%",
