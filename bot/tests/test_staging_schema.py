@@ -12,11 +12,24 @@ MANIFEST = ROOT / "supabase" / "foundation-schema-manifest.json"
 CHANGE = ROOT / "openspec" / "changes" / "quartzplay-staging-foundations"
 OPENSPEC_CONFIG = ROOT / "openspec" / "config.yaml"
 
-AUTHORITATIVE_CHAIN = [
+FOUNDATION_CHAIN = [
     "20260914090000_quartzplay_foundation_extensions.sql",
     "20260914090100_quartzplay_foundation_sequences.sql",
     "20260914090200_quartzplay_foundation_tables.sql",
 ]
+
+SLICE_CHAIN = [
+    "20260917010000_quartzplay_relational_keys.sql",
+    "20260917010100_quartzplay_relational_indexes.sql",
+    "20260917010200_quartzplay_relational_foreign_keys.sql",
+    "20260917010300_quartzplay_relational_views.sql",
+    "20260917010400_quartzplay_security_baseline.sql",
+]
+
+# Backward-compatible alias: this is the pinned Foundation-only chain the
+# manifest's executable_chain still describes (the manifest is the Foundation
+# manifest, not the combined executable ledger).
+AUTHORITATIVE_CHAIN = FOUNDATION_CHAIN
 
 
 class FoundationSchemaTests(unittest.TestCase):
@@ -24,8 +37,8 @@ class FoundationSchemaTests(unittest.TestCase):
         manifest = json.loads(MANIFEST.read_text())
         executable_files = sorted(file.name for file in MIGRATIONS.glob("*.sql"))
 
-        self.assertEqual(executable_files, AUTHORITATIVE_CHAIN)
-        self.assertEqual(manifest["executable_chain"], AUTHORITATIVE_CHAIN)
+        self.assertEqual(executable_files, sorted(FOUNDATION_CHAIN + SLICE_CHAIN))
+        self.assertEqual(manifest["executable_chain"], FOUNDATION_CHAIN)
         self.assertEqual(
             {
                 key: manifest["legacy_reference"][key]
@@ -178,6 +191,103 @@ class FoundationSchemaTests(unittest.TestCase):
 
         self.assertEqual(package["scripts"]["test"], "react-scripts test")
         self.assertIn("configured_script: true", config)
+
+
+class RelationalSecuritySliceTests(unittest.TestCase):
+    KEYS_FILE = MIGRATIONS / SLICE_CHAIN[0]
+    INDEXES_FILE = MIGRATIONS / SLICE_CHAIN[1]
+    FOREIGN_KEYS_FILE = MIGRATIONS / SLICE_CHAIN[2]
+    VIEWS_FILE = MIGRATIONS / SLICE_CHAIN[3]
+    SECURITY_FILE = MIGRATIONS / SLICE_CHAIN[4]
+    ALL_SLICE_FILES = (KEYS_FILE, INDEXES_FILE, FOREIGN_KEYS_FILE, VIEWS_FILE, SECURITY_FILE)
+
+    GUARDED_INDEX_NAMES = {
+        "idx_users_tg",
+        "idx_bets_user",
+        "idx_inf_events",
+        "idx_betslips_code",
+        "idx_agencias_code",
+        "idx_agencias_user",
+        "idx_agencia_tickets",
+    }
+
+    def test_keys_migration_creates_exact_primary_and_unique_constraint_counts(self):
+        sql = self.KEYS_FILE.read_text()
+
+        self.assertEqual(len(re.findall(r"ADD CONSTRAINT", sql)), 87)
+        self.assertEqual(len(re.findall(r"PRIMARY KEY", sql)), 79)
+        self.assertEqual(len(re.findall(r"UNIQUE \(", sql)), 8)
+
+    def test_indexes_migration_creates_exact_index_count_and_guards_only_bootstrap_names(self):
+        sql = self.INDEXES_FILE.read_text()
+
+        self.assertEqual(len(re.findall(r"(?m)^CREATE (?:UNIQUE )?INDEX", sql)), 144)
+
+        guarded_names = re.findall(r"(?m)^CREATE (?:UNIQUE )?INDEX IF NOT EXISTS (\S+)", sql)
+        self.assertEqual(set(guarded_names), self.GUARDED_INDEX_NAMES)
+        self.assertEqual(len(guarded_names), len(self.GUARDED_INDEX_NAMES))
+
+        unguarded_count = len(re.findall(r"(?m)^CREATE (?:UNIQUE )?INDEX (?!IF NOT EXISTS)\S+", sql))
+        self.assertEqual(unguarded_count, 144 - len(self.GUARDED_INDEX_NAMES))
+
+    def test_foreign_keys_migration_creates_exact_foreign_key_count(self):
+        sql = self.FOREIGN_KEYS_FILE.read_text()
+
+        self.assertEqual(len(re.findall(r"FOREIGN KEY", sql)), 3)
+
+    def test_views_migration_creates_exactly_the_reporting_view(self):
+        sql = self.VIEWS_FILE.read_text()
+
+        self.assertEqual(len(re.findall(r"(?m)^CREATE VIEW", sql)), 1)
+        self.assertIn("CREATE VIEW public.v_actividad AS", sql)
+
+    def test_security_baseline_enables_rls_for_exactly_the_manifest_tables(self):
+        manifest = json.loads(MANIFEST.read_text())
+        sql = self.SECURITY_FILE.read_text()
+
+        enabled_tables = set(re.findall(r"(?m)^ALTER TABLE public\.(\S+) ENABLE ROW LEVEL SECURITY;", sql))
+        manifest_tables = {table["name"] for table in manifest["tables"]}
+
+        self.assertEqual(len(enabled_tables), 80)
+        self.assertEqual(enabled_tables, manifest_tables)
+
+    def test_security_baseline_revokes_anon_and_authenticated_for_every_object_kind(self):
+        sql = self.SECURITY_FILE.read_text()
+
+        self.assertIn("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;", sql)
+        self.assertIn("REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;", sql)
+        self.assertIn("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;", sql)
+        self.assertIn(
+            "ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated;", sql
+        )
+        self.assertIn(
+            "ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;", sql
+        )
+        self.assertIn(
+            "ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon, authenticated;", sql
+        )
+
+    def test_slice_migrations_contain_no_data_ownership_or_privilege_statements(self):
+        for path in self.ALL_SLICE_FILES:
+            with self.subTest(file=path.name):
+                sql = path.read_text()
+                self.assertNotRegex(sql, r"(?im)^\s*INSERT\s+INTO\b")
+                self.assertNotRegex(sql, r"(?im)^\s*COPY\b")
+                self.assertNotRegex(sql, r"(?im)\bOWNER\s+TO\b")
+                self.assertNotRegex(sql, r"(?im)^\s*GRANT\b")
+
+    def test_only_the_seven_bootstrap_indexes_use_if_not_exists_and_only_in_the_index_file(self):
+        for path in self.ALL_SLICE_FILES:
+            if path is self.INDEXES_FILE:
+                continue
+            with self.subTest(file=path.name):
+                self.assertNotIn("IF NOT EXISTS", path.read_text())
+
+        index_sql = self.INDEXES_FILE.read_text()
+        guarded_statement_lines = [
+            line for line in index_sql.splitlines() if line.startswith("CREATE") and "IF NOT EXISTS" in line
+        ]
+        self.assertEqual(len(guarded_statement_lines), len(self.GUARDED_INDEX_NAMES))
 
 
 if __name__ == "__main__":
