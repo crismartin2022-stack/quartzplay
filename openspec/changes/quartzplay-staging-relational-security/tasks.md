@@ -30,8 +30,8 @@ Chain strategy: size-exception
 ## Phase 3: Verify
 
 - [x] 3.1 Replay the full chain on a disposable Postgres 17 container: constraints 79/8/3, 231 indexes, 1 view, no RLS gaps, no anon grants.
-- [ ] 3.2 Transactional dry run against staging, then apply with the Supabase CLI and rerun the parity check.
+- [x] 3.2 Transactional dry run against staging, then apply with the Supabase CLI and rerun the parity check (2026-09-17: dry run 79/8/3, 231 indexes, 1 view; applied; parity 0 differences).
 
 ## Phase 4: Delivery
 
-- [ ] 4.1 Open the PR into `staging`.
+- [x] 4.1 Open the PR into `staging` (PR #41, merged).
