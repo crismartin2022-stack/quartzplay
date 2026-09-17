@@ -42,4 +42,4 @@ Chain strategy: size-exception
 Recorded 2026-09-17 by owner decision. Both items MUST be done before the next release reaches production.
 
 - [ ] 3.1 Rotate both Telegram bot tokens in BotFather and update them in Railway (staging worker and production bot). The previous tokens were printed in deployment logs until the log hygiene fix.
-- [ ] 3.2 Obtain a dedicated Anthropic API key for staging and set it on the staging API with the prepared script, so the scanner can be exercised outside production. Never reuse the production key.
+- [x] 3.2 Dedicated Anthropic API key obtained and set on the staging API on 2026-09-18; the scan endpoint no longer reports a missing key. The production key was not reused.
