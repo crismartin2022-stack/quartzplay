@@ -28,9 +28,9 @@ Chain strategy: size-exception
 
 ## Phase 2: Open
 
-- [ ] 2.1 Owner sets the restart policy of the panel queue service to Always and redeploys it (the queue exits after one hour by design).
-- [ ] 2.2 Delete `Postgres-RETIRADO-20260916` after the owner accepts about seven days of panel operation on Supabase.
-- [ ] 2.3 Release the PSP webhook authentication to `main`.
+- [x] 2.1 Owner sets the restart policy of the panel queue service to Always and redeploys it (the queue exits after one hour by design). The panel scheduler also runs with Always.
+- [ ] 2.2 Delete both `Postgres-RETIRADO-20260916` services (panel in `laudable-enthusiasm`, IAQP service in `pleasing-gratitude`) after the owner accepts about seven days of operation on Supabase.
+- [x] 2.3 Release the PSP webhook authentication to `main` (PR #39).
 - [ ] 2.4 PSP production gate (issue #35): provider API key, webhook secret, staging end-to-end test.
 - [ ] 2.5 Resolve sports odds provider HTTP 403 (provider account or plan).
 - [ ] 2.6 Panel repository: duplicate route name breaks route caching on deploy (report to the panel maintainer).
