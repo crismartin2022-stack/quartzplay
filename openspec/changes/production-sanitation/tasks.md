@@ -33,6 +33,13 @@ Chain strategy: size-exception
 - [x] 2.3 Release the PSP webhook authentication to `main` (PR #39).
 - [ ] 2.4 PSP production gate (issue #35): provider API key, webhook secret, staging end-to-end test.
 - [ ] 2.5 Resolve sports odds provider HTTP 403 (provider account or plan).
-- [ ] 2.6 Panel repository: duplicate route name breaks route caching on deploy (report to the panel maintainer).
-- [ ] 2.7 Replace the hardcoded Railway frontend domain in bot and API links with the custom domain.
+- [x] 2.6 Panel repository: duplicate route name breaks route caching on deploy (fixed, panel PR #2 and release PR #3).
+- [x] 2.7 Replace the hardcoded Railway frontend domain in bot and API links with environment settings (PR #46).
 - [ ] 2.8 Add a secret token check to the Telegram webhook route.
+
+## Phase 3: Gate Before The Next Production Release (owner)
+
+Recorded 2026-09-17 by owner decision. Both items MUST be done before the next release reaches production.
+
+- [ ] 3.1 Rotate both Telegram bot tokens in BotFather and update them in Railway (staging worker and production bot). The previous tokens were printed in deployment logs until the log hygiene fix.
+- [ ] 3.2 Obtain a dedicated Anthropic API key for staging and set it on the staging API with the prepared script, so the scanner can be exercised outside production. Never reuse the production key.
