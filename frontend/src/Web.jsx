@@ -2078,10 +2078,13 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
 
   return(
     <div style={{background:Q.void,minHeight:"100%",padding:"14px 12px"}}>
-      <BotMsgWeb time="">
-        <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,
-          fontFamily:F_BODY}}>📸 Mejorar mi apuesta</div>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:12,lineHeight:1.4,
+      {/* Panel limpio: en el navegador el escáner no se presenta como un
+          chat de bot, sino como una pantalla propia con dos opciones. */}
+      <div style={{border:`1px solid ${Q.border}`,borderRadius:16,
+        padding:"16px 14px",background:"rgba(255,255,255,.03)"}}>
+        <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
+          fontFamily:F_NUM}}>Escanear y mejorar</div>
+        <div style={{color:Q.muted,fontSize:12,marginBottom:14,lineHeight:1.5,
           fontFamily:F_BODY}}>
           Subí la captura de una apuesta de otro sitio. La leemos y te decimos
           si podemos igualarla o mejorarla con nuestras cuotas.
@@ -2107,18 +2110,18 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
             background:"transparent",border:`2px dashed ${Q.border}`,
             borderRadius:12,padding:"18px 10px",textAlign:"center",
             cursor:"pointer"}}>
-            <div style={{fontSize:24,marginBottom:4}}>📸</div>
-            <div style={{color:Q.text,fontWeight:700,fontSize:11,
-              fontFamily:F_BODY}}>Sacar foto</div>
+            <div style={{fontSize:26,marginBottom:5}}>📸</div>
+            <div style={{color:Q.text,fontWeight:700,fontSize:12,
+              fontFamily:F_BODY}}>Cámara</div>
           </button>
           <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:12,
             padding:"18px 10px",textAlign:"center",cursor:"pointer"}}>
             <input type="file" accept="image/*" multiple onChange={elegir}
               style={{display:"none"}}/>
-            <div style={{fontSize:24,marginBottom:4}}>🖼️</div>
-            <div style={{color:Q.text,fontWeight:700,fontSize:11,
+            <div style={{fontSize:26,marginBottom:5}}>🖼️</div>
+            <div style={{color:Q.text,fontWeight:700,fontSize:12,
               fontFamily:F_BODY}}>
-              {imagenes.length>0?"Agregar más":"Galería"}</div>
+              {imagenes.length>0?"Agregar más":"Archivo"}</div>
           </label>
         </div>
 
@@ -2283,7 +2286,7 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
         <div style={{marginTop:14}}>
           <QKBWeb rows={[[{label:"◀ Sports",action:"sports"}]]} onPress={onAction}/>
         </div>
-      </BotMsgWeb>
+      </div>
     </div>
   );
 }
