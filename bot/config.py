@@ -31,6 +31,7 @@ class RuntimeSettings:
     telegram: TelegramIdentity
     readiness_timeout_ms: int
     psp_webhook_secret: str | None
+    app_public_url: str
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,7 @@ class PollerRuntimeSettings:
     database_url: str
     database_host: str
     telegram: TelegramIdentity
+    app_public_url: str
 
 
 @dataclass(frozen=True)
@@ -165,6 +167,30 @@ def _environment(values: Mapping[str, str]) -> str:
     return app_env
 
 
+PRODUCTION_APP_HOSTS = frozenset({
+    "iaqp.lat",
+    "www.iaqp.lat",
+    "juego.iaqp.lat",
+    "valiant-gentleness-production-a779.up.railway.app",
+})
+
+
+def _app_public_url(values: Mapping[str, str], app_env: str) -> str:
+    if app_env == "production":
+        raw = values.get("APP_URL", "").strip()
+        if not raw:
+            return "https://juego.iaqp.lat"
+        app_url = _origin(raw, "app_url.invalid")
+        if urlparse(app_url).scheme != "https":
+            _error("app_url.https_required")
+        return app_url
+
+    app_url = _origin(_required(values, "APP_URL"), "app_url.invalid")
+    if urlparse(app_url).hostname in PRODUCTION_APP_HOSTS:
+        _error("app_url.environment")
+    return app_url
+
+
 def _require_disjoint(production: frozenset[object], staging: frozenset[object], code: str):
     if production & staging:
         _error(code)
@@ -181,11 +207,13 @@ def parse_poller_runtime_settings(values: Mapping[str, str]) -> PollerRuntimeSet
     if not USERNAME.fullmatch(username):
         _error("telegram_username.invalid")
     runtime_admin_ids = _ids(values, "ADMIN_IDS")
+    app_public_url = _app_public_url(values, app_env)
 
     if app_env == "production":
         return PollerRuntimeSettings(
             app_env, database_url, database_host,
             TelegramIdentity(token, int(match.group(1)), username, runtime_admin_ids),
+            app_public_url,
         )
 
     production_database_hosts = _hosts(values, "PRODUCTION_DATABASE_HOSTS")
@@ -213,6 +241,7 @@ def parse_poller_runtime_settings(values: Mapping[str, str]) -> PollerRuntimeSet
     return PollerRuntimeSettings(
         app_env, database_url, database_host,
         TelegramIdentity(token, int(match.group(1)), username, runtime_admin_ids),
+        app_public_url,
     )
 
 
@@ -240,6 +269,7 @@ def parse_runtime_settings(values: Mapping[str, str]) -> RuntimeSettings:
         poller.telegram,
         _readiness_timeout(values),
         _psp_webhook_secret(values),
+        poller.app_public_url,
     )
 
 

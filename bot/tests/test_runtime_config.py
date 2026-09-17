@@ -38,6 +38,7 @@ def settings(environment="production", **changes):
             "TELEGRAM_TOKEN": "987654:staging-token-value",
             "TELEGRAM_BOT_USER": "QuartzPlayStagingBot",
             "ADMIN_IDS": "2001,2002",
+            "APP_URL": "https://app.staging.example.test",
         })
     values.update(changes)
     return values
@@ -211,6 +212,47 @@ def test_rejects_a_short_psp_webhook_secret_without_leaking_it():
         parse_runtime_settings(settings(PSP_WEBHOOK_SECRET="short-secret"))
 
     assert "short-secret" not in str(exc_info.value)
+
+
+def test_public_app_url_defaults_to_the_production_app_domain():
+    result = parse_runtime_settings(settings())
+
+    assert result.app_public_url == "https://juego.iaqp.lat"
+
+
+def test_production_app_url_must_use_https():
+    with pytest.raises(ConfigError, match="app_url.https_required"):
+        parse_runtime_settings(settings(APP_URL="http://juego.iaqp.lat"))
+
+
+def test_production_app_url_must_be_a_valid_origin():
+    with pytest.raises(ConfigError, match="app_url.invalid"):
+        parse_runtime_settings(settings(APP_URL="not a url"))
+
+
+def test_staging_requires_an_explicit_app_url():
+    values = settings("staging")
+    del values["APP_URL"]
+
+    with pytest.raises(ConfigError, match="app_url.missing"):
+        parse_runtime_settings(values)
+
+
+@pytest.mark.parametrize("host", [
+    "iaqp.lat",
+    "www.iaqp.lat",
+    "juego.iaqp.lat",
+    "valiant-gentleness-production-a779.up.railway.app",
+])
+def test_staging_app_url_rejects_production_frontend_hosts(host):
+    with pytest.raises(ConfigError, match="app_url.environment"):
+        parse_runtime_settings(settings("staging", APP_URL=f"https://{host}"))
+
+
+def test_staging_accepts_a_valid_non_production_app_url():
+    result = parse_runtime_settings(settings("staging"))
+
+    assert result.app_public_url == "https://app.staging.example.test"
 
 
 def _request(headers):
