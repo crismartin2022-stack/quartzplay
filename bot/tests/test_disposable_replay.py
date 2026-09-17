@@ -355,6 +355,69 @@ class DisposableReplayTests(unittest.TestCase):
         self.assertIn("20260914090100", insert[-1])
         self.assertIn("quartzplay_foundation_sequences", insert[-1])
 
+    def test_migration_files_ignores_later_non_foundation_slices(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            migrations = root / "supabase" / "migrations"
+            migrations.mkdir(parents=True)
+            for name in (
+                "20260914090000_quartzplay_foundation_extensions.sql",
+                "20260914090100_quartzplay_foundation_sequences.sql",
+                "20260914090200_quartzplay_foundation_tables.sql",
+                "20260917010000_quartzplay_relational_keys.sql",
+                "20260917010100_quartzplay_relational_indexes.sql",
+                "20260917010200_quartzplay_relational_foreign_keys.sql",
+                "20260917010300_quartzplay_relational_views.sql",
+                "20260917010400_quartzplay_security_baseline.sql",
+            ):
+                (migrations / name).write_text("-- placeholder\n")
+
+            with patch("disposable_replay.ROOT", root):
+                files = migration_files()
+
+            self.assertEqual(
+                [path.name for path in files],
+                [
+                    "20260914090000_quartzplay_foundation_extensions.sql",
+                    "20260914090100_quartzplay_foundation_sequences.sql",
+                    "20260914090200_quartzplay_foundation_tables.sql",
+                ],
+            )
+
+    def test_migration_files_still_refuses_retired_versions_when_slices_present(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            migrations = root / "supabase" / "migrations"
+            migrations.mkdir(parents=True)
+            for name in (
+                "20260907190103_retired.sql",
+                "20260914090000_quartzplay_foundation_extensions.sql",
+                "20260914090100_quartzplay_foundation_sequences.sql",
+                "20260914090200_quartzplay_foundation_tables.sql",
+                "20260917010000_quartzplay_relational_keys.sql",
+            ):
+                (migrations / name).write_text("-- placeholder\n")
+
+            with patch("disposable_replay.ROOT", root):
+                with self.assertRaisesRegex(SafetyError, "Foundation lexical chain"):
+                    migration_files()
+
+    def test_migration_files_refuses_incomplete_foundation_subset_when_slices_present(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            migrations = root / "supabase" / "migrations"
+            migrations.mkdir(parents=True)
+            for name in (
+                "20260914090000_quartzplay_foundation_extensions.sql",
+                "20260914090200_quartzplay_foundation_tables.sql",
+                "20260917010000_quartzplay_relational_keys.sql",
+            ):
+                (migrations / name).write_text("-- placeholder\n")
+
+            with patch("disposable_replay.ROOT", root):
+                with self.assertRaisesRegex(SafetyError, "Foundation lexical chain"):
+                    migration_files()
+
     def test_topology_and_receipt_never_describe_a_cli_or_tool_target(self):
         target = _target("a")
         validation = validate_snapshot(valid_snapshot())

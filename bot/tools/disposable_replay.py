@@ -123,11 +123,23 @@ def build_database_command(target, policy):
 
 
 def migration_files():
+    """Return only the Foundation ledger files, ignoring later non-Foundation slices.
+
+    This harness proves the Foundation chain only. Slice migrations (relational
+    keys, indexes, foreign keys, views, security baseline) live alongside the
+    Foundation files in the same migrations directory but are out of scope for
+    this replay tool and must not affect its safety checks.
+    """
     files = tuple(sorted((ROOT / "supabase" / "migrations").glob("*.sql")))
-    versions = tuple(path.name.split("_", 1)[0] for path in files)
-    if versions != EXPECTED_FOUNDATION_LEDGER or any(path.name.startswith(RETIRED_LEDGER_PREFIX) for path in files):
+    if any(path.name.startswith(RETIRED_LEDGER_PREFIX) for path in files):
         raise SafetyError("migration directory is not exact Foundation lexical chain; refusing replay")
-    return files
+    foundation_files = tuple(
+        path for path in files if path.name.split("_", 1)[0] in EXPECTED_FOUNDATION_LEDGER
+    )
+    versions = tuple(path.name.split("_", 1)[0] for path in foundation_files)
+    if versions != EXPECTED_FOUNDATION_LEDGER:
+        raise SafetyError("migration directory is not exact Foundation lexical chain; refusing replay")
+    return foundation_files
 
 
 def build_migration_command(target, migration_path):

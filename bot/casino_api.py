@@ -10790,7 +10790,7 @@ async def marcar_aviso_visto(aviso_id: int,
 # libre pasa por el modelo, y va al modelo chico salvo que necesite
 # entender algo complejo.
 
-APP_URL = os.environ.get("APP_URL", "https://juego.iaqp.lat")
+APP_URL = SETTINGS.app_public_url
 # El usuario del bot, sin la arroba. Se usa para armar el enlace que
 # abre Telegram con la terminal ya cargada.
 TELEGRAM_BOT_USER = SETTINGS.telegram.username
@@ -22224,7 +22224,7 @@ async def influencer_link(code: str):
     return {
         "code": code,
         "link_bot": f"https://t.me/{TELEGRAM_BOT_USER}?start=combo_{code}",
-        "link_web": f"https://valiant-gentleness-production-a779.up.railway.app?ref={code}",
+        "link_web": f"{APP_URL}?ref={code}",
         "link_short": f"https://t.me/{TELEGRAM_BOT_USER}?start=combo_{code}",
     }
 

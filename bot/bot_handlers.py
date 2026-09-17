@@ -2,12 +2,17 @@ import os, logging, random, string, ast
 from datetime import datetime, timedelta, timezone
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
+from config import get_poller_runtime_settings
 from db import get_pool
 from odds_api import get_all_odds_cached
 
 log = logging.getLogger(__name__)
 
 def ars(n): return f"${round(n or 0):,.0f}".replace(",",".")
+
+
+def _web_app_url() -> str:
+    return get_poller_runtime_settings().app_public_url
 
 
 async def _canjear_vinculo(pool, codigo, tg_id):
@@ -146,7 +151,7 @@ async def cmd_start(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"tu saldo y todo desde un solo lugar.",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🎯 Abrir QuartzPlay",
-                web_app=WebAppInfo(url="https://valiant-gentleness-production-a779.up.railway.app"))],
+                web_app=WebAppInfo(url=_web_app_url()))],
         ]),
     )
 

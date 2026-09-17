@@ -1,6 +1,7 @@
 import os, logging, hashlib
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler
+from config import get_poller_runtime_settings
 
 log = logging.getLogger(__name__)
 ADMIN_IDS = [int(x) for x in os.environ.get("ADMIN_IDS","0").split(",")]
@@ -8,6 +9,15 @@ ADMIN_IDS = [int(x) for x in os.environ.get("ADMIN_IDS","0").split(",")]
 def ars(n): return f"${round(n or 0):,.0f}".replace(",",".")
 def is_admin(uid): return uid in ADMIN_IDS
 def hash_password(p): return hashlib.sha256(p.encode()).hexdigest()
+
+
+def _combo_link(code: str) -> str:
+    username = get_poller_runtime_settings().telegram.username
+    return f"https://t.me/{username}?start=combo_{code}"
+
+
+def _agencia_url_message() -> str:
+    return f"URL: {get_poller_runtime_settings().app_public_url}/agencia"
 
 async def cmd_ggr(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not is_admin(u.effective_user.id): return
@@ -181,7 +191,7 @@ async def cmd_link(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await u.message.reply_text("Uso: /link nombre_influencer")
         return
     code = ctx.args[0].lower().replace(" ","_")
-    link = f"https://t.me/QuartzPlayBot?start=combo_{code}"
+    link = _combo_link(code)
     await u.message.reply_text(f"Link para {code}\n\n{link}\n\nCompartilo con el influencer.")
 
 async def cmd_nueva_agencia(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -212,7 +222,7 @@ async def cmd_nueva_agencia(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"Codigo: {code}\n"
         f"Usuario: {username}\n"
         f"Clave: {password}\n\n"
-        f"URL: https://valiant-gentleness-production-a779.up.railway.app/agencia"
+        f"{_agencia_url_message()}"
     )
 
 async def cmd_agencias(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
