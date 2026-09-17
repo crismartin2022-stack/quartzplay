@@ -4,12 +4,17 @@ import os
 
 from dotenv import load_dotenv
 
+from log_hygiene import silence_request_urls
+
 load_dotenv()
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 log = logging.getLogger(__name__)
+
+# Request URLs carry the bot token; never let a client library log them.
+silence_request_urls()
 
 
 async def run_poller(application, wait_for_shutdown):
