@@ -33,3 +33,19 @@ describe("static hosting configuration", () => {
     expect(packageJson.scripts.serve).toBe("serve build -l ${PORT:-3000}");
   });
 });
+
+describe("railway service configuration", () => {
+  const railwayConfig = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, "../railway.json"), "utf8")
+  );
+
+  test("pins the build and start commands used by every environment", () => {
+    expect(railwayConfig.build.buildCommand).toBe("npm run build");
+    expect(packageJson.scripts.build).toBe("react-scripts build");
+    expect(railwayConfig.deploy.startCommand).toBe("npm run serve");
+  });
+
+  test("keeps the start command aligned with the configured static server", () => {
+    expect(packageJson.scripts.serve).toContain("serve build");
+  });
+});
