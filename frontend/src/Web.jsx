@@ -4361,6 +4361,15 @@ export default function Web(){
   aplicarTema(tema);
   const [ancho,setAncho]=useState(typeof window!=="undefined"?window.innerWidth>=1000:true);
 
+  // Código de referido del enlace (?ref=CODIGO o ?scan=CODIGO). Sin esto,
+  // abrir Bet Best rompía la pantalla entera: la variable no existía.
+  const [refCode,setRefCode]=useState(null);
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    const code=params.get("ref")||params.get("scan")||"";
+    if(code) setRefCode(code);
+  },[]);
+
   useEffect(()=>{
     const r=()=>setAncho(window.innerWidth>=1000);
     window.addEventListener("resize",r);

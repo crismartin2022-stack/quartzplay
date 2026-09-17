@@ -5440,6 +5440,18 @@ function TabConfig({ adminKey, onNoAutorizado }){
 function TabBonos({ adminKey, onNoAutorizado }){
   const [bonos,setBonos]=useState([]);
   const [agencias,setAgencias]=useState([]);
+
+  // Lista los bonos definidos. Antes esta función no existía y cada
+  // guardado, activación o borrado rompía la pantalla del admin.
+  const cargar=async()=>{
+    try{
+      const r=await fetch(`${API}/api/admin/bonos`,{headers:adminHeaders(adminKey)});
+      if(r.status===401){ onNoAutorizado(); return; }
+      const d=await r.json().catch(()=>({}));
+      setBonos(d.bonos||[]);
+    }catch(e){ setMsg("⚠️ No se pudieron cargar los bonos"); }
+  };
+  useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[adminKey]);
   const [form,setForm]=useState({nombre:"",tipo:"bienvenida",monto_fijo:"",
     porcentaje:"",tope:"",rollover:"5",deposito_minimo:"",cuota_minima:"1.50",
     requiere_verificacion:true,evento:"primer_deposito",
