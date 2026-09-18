@@ -15679,6 +15679,10 @@ async def create_betslip(request: Request):
         # resultado final para la auto-liquidación.
         event_id  = str(p.get("event_id") or p.get("id") or "")[:64] or None
         sport_key = str(p.get("sport_key") or "")[:60] or None
+        # Se guarda también el mercado: sin esto, todo lo que lee el
+        # pick ya guardado (bloqueos, ajustes de cuota, exposición)
+        # cae siempre al valor por defecto "h2h".
+        market    = str(p.get("market") or "")[:40] or None
         try:
             odd = float(p.get("odd"))
         except (TypeError, ValueError):
@@ -15690,6 +15694,7 @@ async def create_betslip(request: Request):
         limpios.append({"home":home,"away":away,"sel":sel,
                         "odd":round(odd,2),"sport":sport,
                         "event_id":event_id,"sport_key":sport_key,
+                        "market":market,
                         "commence_time":(str(p.get("commence_time")
                                          or p.get("start_time") or "")[:40]
                                          or None)})
@@ -15828,6 +15833,7 @@ async def crear_apuesta(request: Request):
         limpios.append({"home":home,"away":away,"sel":sel,
                         "odd":round(odd,2),"sport":sport,
                         "event_id":event_id,"sport_key":sport_key,
+                        "market":market,
                         "commence_time":(str(p.get("commence_time")
                                          or p.get("start_time") or "")[:40]
                                          or None)})
