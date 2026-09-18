@@ -50,7 +50,7 @@ Chain strategy: stacked
 - [x] 3.5 Show the accepted bet with its stake and total odd; keep the code
       option when the bet is refused.
 - [x] 3.6 Tests for the screen decisions that do not need a browser.
-- [ ] 3.7 Open PR 1 into `staging`.
+- [x] 3.7 Open PR 1 into `staging`.
 
 ## Phase 4: The scanned pick keeps its market and its start time
 
