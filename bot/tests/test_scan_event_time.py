@@ -151,3 +151,62 @@ def test_scanner_item_carries_the_start_time_of_a_suggested_candidate(api, monke
     assert response.status_code == 200
     item = response.json()["picks"][0]
     assert item["commence_time"] == "2026-09-21T20:00:00+00:00"
+
+
+# ── The admin scanner (published combos) carries the same start time ──
+#
+# /api/admin/combos already stores whatever commence_time its picks
+# carry; the admin scanner built its item without one, so a combo
+# published from a scanned capture had nothing to store.
+
+def _post_admin(app, path, json_body, admin_key):
+    async def _call():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            return await client.post(path, json=json_body, headers={"X-Admin-Key": admin_key})
+    return asyncio.run(_call())
+
+
+def test_admin_scanner_item_carries_the_start_time_of_the_directly_matched_event(api, monkeypatch):
+    monkeypatch.setattr(api.auth, "ADMIN_API_KEY", "test-admin-key")
+    stub_leer_captura(api, monkeypatch, [PICK_LEIDO])
+
+    async def fake_buscar_cuota_nuestra(home, away, market, selection):
+        ev = {"id": "ev1", "sport_key": "soccer_epl", "h": "Team A", "a": "Team B",
+              "commence_time": "2026-09-20T18:00:00+00:00", "markets": {}}
+        return 2.5, ev
+
+    monkeypatch.setattr(api, "buscar_cuota_nuestra", fake_buscar_cuota_nuestra)
+
+    response = _post_admin(api.app, "/api/admin/escanear-combo",
+        {"imagen": "fake-base64"}, "test-admin-key")
+
+    assert response.status_code == 200
+    item = response.json()["picks"][0]
+    assert item["commence_time"] == "2026-09-20T18:00:00+00:00"
+
+
+def test_admin_scanner_item_carries_the_start_time_of_a_suggested_candidate(api, monkeypatch):
+    monkeypatch.setattr(api.auth, "ADMIN_API_KEY", "test-admin-key")
+    stub_leer_captura(api, monkeypatch, [PICK_LEIDO])
+
+    async def fake_buscar_cuota_nuestra(home, away, market, selection):
+        return None, None
+
+    async def fake_candidatos_parecidos(home, away, limite=4):
+        return [{
+            "home": "Team A", "away": "Team B",
+            "event_id": "ev2", "sport_key": "soccer_epl",
+            "opciones": [], "parecido": 0.9,
+            "commence_time": "2026-09-21T20:00:00+00:00",
+        }]
+
+    monkeypatch.setattr(api, "buscar_cuota_nuestra", fake_buscar_cuota_nuestra)
+    monkeypatch.setattr(api, "candidatos_parecidos", fake_candidatos_parecidos)
+
+    response = _post_admin(api.app, "/api/admin/escanear-combo",
+        {"imagen": "fake-base64"}, "test-admin-key")
+
+    assert response.status_code == 200
+    item = response.json()["picks"][0]
+    assert item["commence_time"] == "2026-09-21T20:00:00+00:00"
