@@ -99,3 +99,28 @@ describe("picksDeCombo", () => {
     expect(pick.event_id).not.toBe(comboPick.h);
   });
 });
+
+// Editing a combo loads it into the builder, and from there it can be
+// bet like any other selection. That path used to build its own object
+// literal and put the home team name in `id`, so editing a combo cost
+// the ticket its event, its market and its start time.
+describe("the builder mapping used when a combo is edited", () => {
+  const comboPick = {
+    h: "River", a: "Boca", sel: "River gana", odd: 1.85,
+    event_id: "evt-9", sport_key: "soccer_argentina_primera_division",
+    market: "h2h", commence_time: "2026-09-22T21:00:00+00:00",
+  };
+
+  test("is the same mapping used to bet the combo directly", () => {
+    const [pick] = picksDeCombo([comboPick]);
+    expect(pick.event_id).toBe("evt-9");
+    expect(pick.market).toBe("h2h");
+    expect(pick.commence_time).toBe("2026-09-22T21:00:00+00:00");
+    expect(pick.id).not.toBe(comboPick.h);
+  });
+
+  test("accepts a selection already named `label`", () => {
+    const [pick] = picksDeCombo([{ ...comboPick, sel: undefined, label: "Empate" }]);
+    expect(pick.label).toBe("Empate");
+  });
+});

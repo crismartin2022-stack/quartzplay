@@ -1596,7 +1596,7 @@ function GenerarCombo({ moneda, onUsar, userId }){
 export function picksDeCombo(picks){
   return (picks||[]).map(p=>({
     id: p.event_id || "",
-    label: p.sel || "",
+    label: p.sel || p.label || "",
     odd: p.odd,
     h: p.h || p.home || "",
     a: p.a || p.away || "",
@@ -6524,10 +6524,10 @@ export default function QuartzSports(){
   const quitarPick=(id,label)=>setBuilderPicks(ps=>ps.filter(p=>!(p.id===id&&p.label===label)));
   const limpiarPicks=()=>setBuilderPicks([]);
   const cargarComboAlBuilder=(picks)=>{
-    // Cargar los picks de un combo IA al builder para editarlos
-    setBuilderPicks(picks.map(p=>({
-      id:p.h||p.home||p.id, label:p.sel||p.label, odd:p.odd,
-      h:p.h||p.home, a:p.a||p.away})));
+    // Cargar los picks de un combo IA al builder para editarlos.
+    // Mismo mapeo que al apostar el combo directo: editarlo no puede
+    // costarle al boleto el evento, el mercado ni la hora de inicio.
+    setBuilderPicks(picksDeCombo(picks));
     setScreen("builder");
   };
   // La barra de pasos es un atajo de desarrollo: se ve con ?dev=1
