@@ -12,8 +12,11 @@ import { useState, useEffect, useMemo, useCallback, useRef, Component } from "re
 import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
 import { betslipPicks } from "./betslipPicks";
+import {
+  estadoDeAcciones, stakeValido, mensajeDeDetalle, cuerpoDeApuesta,
+} from "./betBestActions";
 
-const { apiUrl: API } = getFrontendConfig();
+const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 
 // ── TEMAS ─────────────────────────────────────────────────────
 // Dos paletas con las MISMAS claves, así los ~1000 usos de Q.algo
@@ -657,7 +660,7 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
         });
         if(!r.ok){
           const e=await r.json().catch(()=>({}));
-          throw new Error(e.detail||`Error ${r.status}`);
+          throw new Error(mensajeDeDetalle(e.detail).mensaje||`Error ${r.status}`);
         }
         res.push(await r.json());
       }
@@ -1943,12 +1946,16 @@ function CorregirPickWeb({ pick, onAplicar, onQuitar }){
 // ═══════════════════════════════════════════════════════════════
 // PANTALLA — MEJORAR MI APUESTA (sube captura de otro sitio)
 // ═══════════════════════════════════════════════════════════════
-function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
+function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscaneo }){
   // El escaneo vive en la raíz: si el cliente sale a mirar otra cosa
   // y vuelve, lo que escaneó sigue ahí. Antes se perdía y había que
   // sacar la foto de nuevo.
   const imagenes = escaneo?.imagenes || [];
   const res = escaneo?.res || null;
+  // Una sola derivación decide qué ofrece la pantalla y qué envía: así
+  // el botón de código y el de apostar nunca pueden discrepar sobre
+  // qué picks son jugables.
+  const estado = estadoDeAcciones(res);
   const setImagenes = (v)=>setEscaneo(e=>({...(e||{}),
     imagenes: typeof v==="function" ? v(e?.imagenes||[]) : v}));
   const setRes = (v)=>setEscaneo(e=>({...(e||{}),
@@ -1981,6 +1988,7 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
     const files=Array.from(e.target.files||[]);
     if(!files.length) return;
     setErr(""); setRes(null);
+    setApuestaOk(null); setApuestaErr(""); setStakeTexto("");
     files.forEach(file=>{
       if(file.size>8*1024*1024){ setErr("Una imagen supera 8MB"); return; }
       const rd=new FileReader();
@@ -1994,19 +2002,24 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
   const [boleto,setBoleto]=useState(null);
   const [generando,setGenerando]=useState(false);
   const [camaraAbierta,setCamaraAbierta]=useState(false);
+  const [stakeTexto,setStakeTexto]=useState("");
+  const [apostando,setApostando]=useState(false);
+  const [apuestaErr,setApuestaErr]=useState("");
+  const [apuestaOk,setApuestaOk]=useState(null);
+  const [pideSesion,setPideSesion]=useState(false);
   const agregarCapturada=(frame)=>{
     setErr(""); setRes(null);
+    setApuestaOk(null); setApuestaErr(""); setStakeTexto("");
     setImagenes(prev=>[...prev,frame]);
   };
 
   const generarBoleto=async()=>{
     if(!res||generando) return;
-    const validos=(res.picks||[]).filter(p=>p.odd_final);
-    if(!validos.length) return;
+    if(!estado.puedeJugar){ setErr(estado.mensaje); return; }
     setGenerando(true);
     try{
       const body={
-        picks: betslipPicks(validos),
+        picks: betslipPicks(estado.jugables),
       };
       if(refCode){ body.inf_code=refCode; body.codigo_influencer=refCode; }
       const r=await fetch(`${API}/api/betslip`,{
@@ -2014,7 +2027,7 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
         body:JSON.stringify(body),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({}));
-        throw new Error(e.detail||`Error ${r.status}`); }
+        throw new Error(mensajeDeDetalle(e.detail).mensaje||`Error ${r.status}`); }
       const d=await r.json();
       setBoleto(d);
       // Ya se generó el código: se limpia el escaneo para que no
@@ -2034,6 +2047,35 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
     setGenerando(false);
   };
 
+  const apostar=async()=>{
+    if(!res||apostando) return;
+    if(!estado.puedeJugar){ setErr(estado.mensaje); return; }
+    const stake=stakeValido(stakeTexto);
+    if(stake===null){ setApuestaErr("Ingresá un monto válido para apostar."); return; }
+    if(!sesion?.token){ setPideSesion(true); return; }
+    setApostando(true); setApuestaErr("");
+    try{
+      const body=cuerpoDeApuesta({picks:estado.jugables, stake, initData:"", refCode});
+      const r=await fetch(`${API}/api/apuesta`,{
+        method:"POST",headers:{"Content-Type":"application/json",
+          Authorization:`Bearer ${sesion.token}`},
+        body:JSON.stringify(body),
+      });
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok){
+        const {reason,mensaje}=mensajeDeDetalle(d.detail);
+        setApuestaErr(mensaje);
+        if(reason==="login_required") setPideSesion(true);
+      } else {
+        setApuestaOk({stake, cuotaTotal:d.odd_total||res.cuota_total});
+      }
+    }catch(e){
+      setApuestaErr(e.message==="Failed to fetch"?"Sin conexión":
+        "No pudimos enviar la apuesta. Probá de nuevo.");
+    }
+    setApostando(false);
+  };
+
   const analizar=async()=>{
     if(!imagenes.length||analizando) return;
     setAnalizando(true); setErr(""); setRes(null);
@@ -2045,7 +2087,7 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
           init_data:initData}),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({}));
-        throw new Error(e.detail||`Error ${r.status}`); }
+        throw new Error(mensajeDeDetalle(e.detail).mensaje||`Error ${r.status}`); }
       const d=await r.json();
       if(!d.ok) setErr(d.mensaje||"No se pudo leer la imagen");
       else {
@@ -2223,7 +2265,16 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
               </div>
             )}
 
-            {res.picks_ok>0&&!boleto&&(
+            {!estado.puedeJugar&&!boleto&&(
+              <div style={{background:`${Q.red}12`,border:`1px solid ${Q.red}66`,
+                borderRadius:10,padding:"12px 14px",marginTop:6,color:Q.red,
+                fontSize:12,lineHeight:1.5,textAlign:"center",
+                fontFamily:F_BODY}}>
+                {estado.mensaje}
+              </div>
+            )}
+
+            {estado.puedeJugar&&!boleto&&!apuestaOk&&(
               <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:12,padding:14,marginTop:6}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
                   <span style={{color:Q.muted,fontSize:12,
@@ -2231,6 +2282,39 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
                   <span style={{color:Q.gold,fontWeight:900,fontSize:20,
                     fontFamily:F_BODY}}>{fmt(res.cuota_total)}x</span>
                 </div>
+
+                {/* Monto y confirmación: apostar con el saldo de la
+                    cuenta, sin salir de la pantalla del escáner. */}
+                <div style={{marginBottom:10}}>
+                  <label htmlFor="qp-stake-mejorar" style={{display:"block",
+                    color:Q.muted,fontSize:11,marginBottom:5,
+                    fontFamily:F_BODY}}>
+                    Monto a apostar
+                    {sesion?.user?.saldo!=null&&(
+                      <span style={{color:Q.dim}}> · Saldo {ars(sesion.user.saldo)}</span>
+                    )}
+                  </label>
+                  <input id="qp-stake-mejorar" type="number" inputMode="numeric"
+                    min="1" value={stakeTexto}
+                    onChange={e=>setStakeTexto(e.target.value)}
+                    placeholder="Ej: 2000" style={{width:"100%",background:Q.inset,
+                      border:`1px solid ${Q.border}`,borderRadius:9,
+                      padding:"11px 13px",color:Q.text,fontSize:15,
+                      fontFamily:F_NUM}}/>
+                </div>
+
+                {apuestaErr&&<div style={{color:Q.red,fontSize:12,
+                  marginBottom:8,fontFamily:F_BODY}}>{apuestaErr}</div>}
+
+                <button onClick={apostar} disabled={apostando} style={{width:"100%",
+                  background:apostando?ov(0.06)
+                    :`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
+                  border:"none",borderRadius:10,padding:"13px",
+                  color:apostando?Q.muted:"#fff",fontWeight:800,fontSize:15,
+                  cursor:apostando?"wait":"pointer",marginBottom:8,
+                  fontFamily:F_BODY}}>
+                  {apostando?"Apostando...":"Apostar con mi saldo"}</button>
+
                 <button onClick={generarBoleto} disabled={generando}
                   style={{width:"100%",background:`linear-gradient(135deg,${Q.green},${Q.cyan})`,
                     border:"none",borderRadius:10,padding:"13px",color:"#001",
@@ -2255,6 +2339,17 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
                 <div style={{color:Q.muted,fontSize:10,lineHeight:1.4,textAlign:"center",
                   fontFamily:F_BODY}}>
                   Con el código jugás acá o lo llevás a una agencia.</div>
+              </div>
+            )}
+
+            {apuestaOk&&(
+              <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:12,padding:18,marginTop:6,textAlign:"center"}}>
+                <div style={{color:Q.green,fontWeight:800,fontSize:14,
+                  marginBottom:8,fontFamily:F_BODY}}>Apuesta confirmada</div>
+                <div style={{color:Q.text,fontSize:13,marginBottom:4,
+                  fontFamily:F_BODY}}>Jugaste {ars(apuestaOk.stake)}</div>
+                <div style={{color:Q.gold,fontWeight:900,fontSize:22,
+                  fontFamily:F_BODY}}>Cuota {fmt(apuestaOk.cuotaTotal)}x</div>
               </div>
             )}
 
@@ -2283,6 +2378,53 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
         <div style={{marginTop:14}}>
           <QKBWeb rows={[[{label:"◀ Sports",action:"sports"}]]} onPress={onAction}/>
         </div>
+      </div>
+
+      {pideSesion&&(
+        <ModalNoSesion refCode={refCode}
+          onCerrar={()=>setPideSesion(false)}
+          onIngresar={()=>{ setPideSesion(false); onAbrirLogin&&onAbrirLogin(); }}/>
+      )}
+    </div>
+  );
+}
+
+// Se abre cuando la apuesta se intenta sin sesión, o cuando el
+// servidor la rechaza porque expiró: el jugador nunca se queda sin
+// saber por qué no pasó nada. No dispara ningún pedido por sí sola,
+// solo ofrece entrar o crear una cuenta por Telegram.
+function ModalNoSesion({ onCerrar, onIngresar, refCode }){
+  const enlaceCuenta = `https://t.me/${BOT_USERNAME}${refCode?`?start=${refCode}`:""}`;
+  return(
+    <div onClick={onCerrar} style={{position:"fixed",inset:0,zIndex:450,
+      background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",
+      justifyContent:"center",padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:Q.surface,
+        border:`1px solid ${Q.border}`,borderRadius:14,width:"100%",
+        maxWidth:380,padding:18,textAlign:"center"}}>
+        <div style={{color:Q.text,fontWeight:800,fontSize:16,marginBottom:8,
+          fontFamily:F_BODY}}>Necesitás una cuenta para apostar</div>
+        <div style={{color:Q.muted,fontSize:12.5,lineHeight:1.55,
+          marginBottom:16,fontFamily:F_BODY}}>
+          Con tu usuario y clave podés apostar con tu saldo desde acá.
+          Si todavía no tenés cuenta, la creás gratis por Telegram.</div>
+
+        <button onClick={onIngresar} style={{width:"100%",
+          background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
+          border:"none",borderRadius:10,padding:"13px",color:"#fff",
+          fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10,
+          fontFamily:F_BODY}}>
+          Iniciar sesión</button>
+
+        <a href={enlaceCuenta} target="_blank" rel="noreferrer"
+          style={{display:"block",color:Q.cyan,fontSize:13,fontWeight:600,
+            textDecoration:"none",padding:"6px 0",marginBottom:10,
+            fontFamily:F_BODY}}>
+          Crear cuenta por Telegram</a>
+
+        <button onClick={onCerrar} style={{background:"transparent",
+          border:"none",color:Q.dim,fontSize:12.5,cursor:"pointer",
+          fontFamily:F_BODY}}>Cerrar</button>
       </div>
     </div>
   );
@@ -4640,8 +4782,9 @@ export default function Web(){
         <CazaError>
           <div style={{maxWidth:640,margin:"0 auto",
             padding:"14px 14px 90px"}}>
-            <BetBestWeb user={sesion?.user||{}} refCode={refCode}
+            <BetBestWeb sesion={sesion} refCode={refCode}
               escaneo={escaneo} setEscaneo={setEscaneo}
+              onAbrirLogin={()=>setLogin(true)}
               onAction={()=>{}}/>
           </div>
         </CazaError>
