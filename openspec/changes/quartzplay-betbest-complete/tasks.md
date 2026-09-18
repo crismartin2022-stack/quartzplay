@@ -86,6 +86,24 @@ production: `betslipPicks` sends neither `market` nor `commence_time`.
 - [ ] 5.4 Tests for the added decisions.
 - [ ] 5.5 Open PR 3 on top of PR 2.
 
+### The same loss, two more places
+
+Found while reviewing work unit 2. Both belong to the published-combo path, not
+to the scanner, and both drop what work unit 2 just rescued.
+
+- `App.jsx:1764` maps a combo's picks to `{id, label, odd, h, a}` before
+  betting them, dropping `market`, `event_id`, `sport_key` and
+  `commence_time`. Whatever the combo carries is thrown away at the last step.
+- `/api/admin/escanear-combo` builds its item at `bot/casino_api.py:15299`
+  without a start time, while `/api/admin/combos` (`:15173`) stores one from
+  the picks it receives. So a combo published from the admin scanner is saved
+  with no start time to store.
+
+- [ ] 5.6 Test that betting a combo keeps the identity of every pick.
+- [ ] 5.7 Map combo picks through the ticket mapper instead of the inline
+      object literal.
+- [ ] 5.8 Carry the start time in the admin scanner item too.
+
 ## Phase 6: Delivery
 
 - [ ] 6.1 Exercise both channels in staging with the demo player: bet with
