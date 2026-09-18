@@ -19,19 +19,10 @@
 import { useState, useEffect, useRef } from "react";
 import Rueda3D from "./Rueda3D";
 import { getFrontendConfig } from "./config";
+import { oscuro as Q, F_NUM, F_BODY } from "./theme";
 
 const { iaqpUrl: IAQP } = getFrontendConfig();
 const MESA = "ruleta-01";
-
-const Q = {
-  void:"#050914", deep:"#080E1F", surface:"#0D1530", inset:"#0A1128",
-  violet:"#2B6BFF", violet2:"#7B3FE4", cyan:"#5A8CFF",
-  pano:"#0B5137", verde:"#0E7A46", rojo:"#C4162A", negro:"#12182B",
-  gold:"#FFC531", text:"#E9EFFF",
-  muted:"#93A0C8", dim:"#5A6690", border:"#1E2A52",
-};
-const F_NUM  = "'Barlow Condensed','Inter',system-ui,sans-serif";
-const F_BODY = "'Inter',system-ui,sans-serif";
 
 const RUEDA = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,
                16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
