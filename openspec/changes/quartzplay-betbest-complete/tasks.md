@@ -73,7 +73,7 @@ production: `betslipPicks` sends neither `market` nor `commence_time`.
 - [x] 4.3 Tests that `betslipPicks` forwards `market` and `commence_time` when
       the pick carries them, and omits them when it does not.
 - [x] 4.4 Forward both fields in `betslipPicks`.
-- [ ] 4.5 Open PR 2 on top of PR 1.
+- [x] 4.5 Open PR 2 on top of PR 1.
 
 ## Phase 5: Telegram screen (`App.jsx`)
 
