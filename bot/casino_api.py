@@ -15302,6 +15302,13 @@ async def admin_escanear_combo(request: Request, _=Depends(auth.require_admin)):
             "odd_nuestra": None, "odd_ajustada": None,
             "event_id": None, "sport_key": None, "estado": "",
         }
+        if ev is not None:
+            # Hora del evento contra el que se resolvió la cuota. Sin
+            # esto el combo publicado desde acá queda como cada boleto
+            # armado por el escáner antes de este fix: sin inicio
+            # parseable, así que _puede_anular no deja anularlo.
+            item["commence_time"] = ev.get("commence_time")
+
         if ev is None:
             cands = await candidatos_parecidos(home, away)
             item["candidatos"] = cands
@@ -15323,6 +15330,7 @@ async def admin_escanear_combo(request: Request, _=Depends(auth.require_admin)):
                 item["home_real"] = sug.get("home")
                 item["away_real"] = sug.get("away")
                 item["parecido"] = sug.get("parecido")
+                item["commence_time"] = sug.get("commence_time")
                 # Sin aviso por pick: el botón de corregir ya está y
                 # marcar cada uno agrega ruido. El aviso general va
                 # arriba de la lista, una sola vez.
