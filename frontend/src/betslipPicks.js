@@ -28,8 +28,12 @@ export function betslipPicks(picks) {
       };
       const eventId = firstFilled(pick.event_id, pick.id);
       const sportKey = firstFilled(pick.sport_key);
+      const market = firstFilled(pick.market);
+      const commenceTime = firstFilled(pick.commence_time);
       if (eventId) payload.event_id = eventId;
       if (sportKey) payload.sport_key = sportKey;
+      if (market) payload.market = market;
+      if (commenceTime) payload.commence_time = commenceTime;
       return payload;
     });
 }

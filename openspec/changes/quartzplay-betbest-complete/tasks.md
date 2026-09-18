@@ -66,13 +66,13 @@ production: `betslipPicks` sends neither `market` nor `commence_time`.
   Pedile la anulación al administrador." The scanner never returns a start
   time, so every scanned ticket generated today is uncancellable by its agency.
 
-- [ ] 4.1 Test that the improved-bet item carries the start time of the event
+- [x] 4.1 Test that the improved-bet item carries the start time of the event
       it was matched to, including through a corrected candidate.
-- [ ] 4.2 Add the start time to the scanner item in `/api/mejorar-combinada`,
+- [x] 4.2 Add the start time to the scanner item in `/api/mejorar-combinada`,
       from the event the odd was resolved against.
-- [ ] 4.3 Tests that `betslipPicks` forwards `market` and `commence_time` when
+- [x] 4.3 Tests that `betslipPicks` forwards `market` and `commence_time` when
       the pick carries them, and omits them when it does not.
-- [ ] 4.4 Forward both fields in `betslipPicks`.
+- [x] 4.4 Forward both fields in `betslipPicks`.
 - [ ] 4.5 Open PR 2 on top of PR 1.
 
 ## Phase 5: Telegram screen (`App.jsx`)

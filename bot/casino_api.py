@@ -19005,9 +19005,9 @@ async def _armar_all_markets():
             markets = parse_markets(ev)
             if not markets:
                 continue
+            crudo = ev.get("commence_time","")
             try:
-                dt = datetime.fromisoformat(
-                    ev.get("commence_time","").replace("Z","+00:00"))
+                dt = datetime.fromisoformat(crudo.replace("Z","+00:00"))
                 fecha = dt.astimezone(TZ_CASA).strftime("%d/%m %H:%M")
             except Exception:
                 fecha = "--/-- --:--"
@@ -19016,6 +19016,11 @@ async def _armar_all_markets():
                 "sport_key": sport_key,
                 "h": home, "a": away,
                 "time": fecha,
+                # Hora cruda en ISO, bajo la misma clave que arma el
+                # catálogo de Sportradar: la usa _inicio_mas_proximo para
+                # decidir si una agencia puede anular. "time" ya perdió
+                # el año y quedó en huso local, así que no sirve para eso.
+                "commence_time": crudo,
                 "markets": markets,
                 "odds": {
                     "L": markets.get("h2h",{}).get(home),
@@ -21941,6 +21946,7 @@ async def candidatos_parecidos(home, away, limite=4):
         "event_id": ev.get("id"), "sport_key": ev.get("sport_key"),
         "opciones": opciones_de_evento(ev),
         "parecido": round(sc, 2),
+        "commence_time": ev.get("commence_time"),
     } for sc, ev in puntuados[:limite]]
 
 
@@ -22081,6 +22087,11 @@ async def mejorar_combinada(request: Request):
             "ajustada": False,
             "estado": "",
         }
+        if ev is not None:
+            # Hora del evento contra el que se resolvió la cuota. Sin
+            # esto ningún boleto armado por el escáner es anulable por
+            # la agencia: _puede_anular exige un inicio parseable.
+            item["commence_time"] = ev.get("commence_time")
 
         if ev is None:
             cands = await candidatos_parecidos(home, away)
@@ -22102,6 +22113,7 @@ async def mejorar_combinada(request: Request):
                 item["home_real"] = sug.get("home")
                 item["away_real"] = sug.get("away")
                 item["parecido"] = sug.get("parecido")
+                item["commence_time"] = sug.get("commence_time")
                 # Sin aviso por pick: el botón de corregir ya está y
                 # marcar cada uno agrega ruido. El aviso general va
                 # arriba de la lista, una sola vez.
