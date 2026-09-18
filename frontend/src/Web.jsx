@@ -15,44 +15,9 @@ import { betslipPicks } from "./betslipPicks";
 import {
   estadoDeAcciones, stakeValido, mensajeDeDetalle, cuerpoDeApuesta,
 } from "./betBestActions";
+import { THEMES as TEMAS, F_NUM, F_BODY } from "./theme";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
-
-// ── TEMAS ─────────────────────────────────────────────────────
-// Dos paletas con las MISMAS claves, así los ~1000 usos de Q.algo
-// siguen funcionando sin tocarlos. Al cambiar de tema se reasigna Q
-// y la raíz vuelve a renderizar: como ningún componente está
-// memoizado, todo el árbol toma los colores nuevos.
-//
-// Nota de diseño: en claro el dorado de las cuotas se oscurece a
-// ámbar tostado, porque #FFC531 sobre blanco no se lee. El dorado
-// brillante sobrevive solo como FONDO (goldBg), con texto oscuro.
-const TEMAS = {
-  oscuro: {
-    void:"#050914", deep:"#080E1F", dark:"#0D1530",
-    surface:"#0D1530", card:"#111B3B", inset:"#0A1128",
-    glass:"linear-gradient(160deg,rgba(43,107,255,0.06),rgba(123,63,228,0.03))",
-    violet:"#2B6BFF", violet2:"#7B3FE4",
-    cyan:"#5A8CFF", green:"#25D07A",
-    pink:"#FF2D55", amber:"#FFA51F",
-    gold:"#FFC531", goldBg:"#FFC531", red:"#FF3B5C",
-    blue:"#2B6BFF", teal:"#5A8CFF",
-    text:"#E9EFFF", muted:"#93A0C8", dim:"#5A6690",
-    border:"#1E2A52",
-  },
-  claro: {
-    void:"#EEF1F8", deep:"#FFFFFF", dark:"#FFFFFF",
-    surface:"#FFFFFF", card:"#F6F8FD", inset:"#F1F4FB",
-    glass:"linear-gradient(160deg,rgba(31,90,224,0.05),rgba(106,47,208,0.02))",
-    violet:"#1F5AE0", violet2:"#6A2FD0",
-    cyan:"#1B54C8", green:"#0E8F52",
-    pink:"#D81B45", amber:"#B4700A",
-    gold:"#8A5E00", goldBg:"#FFC531", red:"#C81E3C",
-    blue:"#1F5AE0", teal:"#1B54C8",
-    text:"#0E1A33", muted:"#5A6790", dim:"#8894B8",
-    border:"#D7DEEF",
-  },
-};
 
 function temaGuardado(){
   try{ return localStorage.getItem("qp_tema")==="claro" ? "claro" : "oscuro"; }
@@ -97,9 +62,6 @@ function BotonTema({ tema, onCambiar, compacto }){
     </button>
   );
 }
-
-const F_NUM  = "'Barlow Condensed','Inter',system-ui,sans-serif";
-const F_BODY = "'Inter',system-ui,sans-serif";
 
 const fmt  = n => Number(n||0).toFixed(2);
 const ars  = n => "$" + Math.round(n||0).toLocaleString("es-AR");

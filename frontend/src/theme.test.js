@@ -98,6 +98,24 @@ const FOREGROUND_KEYS = [
   "cyan", "teal", "blue", "amber", "red", "pink",
 ];
 
+describe("no screen declares its own palette", () => {
+  const PALETTE_DECLARATION = /\bconst\s+(Q|TEMAS)\s*=\s*\{/;
+
+  const sourceFiles = fs
+    .readdirSync(SRC)
+    .filter((name) => /\.(js|jsx)$/.test(name))
+    .filter((name) => !name.includes(".test."))
+    .filter((name) => name !== "theme.js");
+
+  test("no source file under frontend/src redeclares Q or TEMAS", () => {
+    const offenders = sourceFiles.filter((name) =>
+      PALETTE_DECLARATION.test(fs.readFileSync(path.join(SRC, name), "utf8"))
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
+
 describe("both themes are readable", () => {
   describe.each([
     ["dark", oscuro],
