@@ -11,6 +11,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, Component } from "react";
 import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
+import { betslipPicks } from "./betslipPicks";
 
 const { apiUrl: API } = getFrontendConfig();
 
@@ -2005,11 +2006,7 @@ function BetBestWeb({ onAction, user, refCode, escaneo, setEscaneo }){
     setGenerando(true);
     try{
       const body={
-        picks: validos.map(p=>({
-          home:p.home||p.h||"", away:p.away||p.a||"",
-          sel:p.sel||p.seleccion||p.label||"", odd:p.odd_final,
-          sport:p.sport||"",
-        })),
+        picks: betslipPicks(validos),
       };
       if(refCode){ body.inf_code=refCode; body.codigo_influencer=refCode; }
       const r=await fetch(`${API}/api/betslip`,{
