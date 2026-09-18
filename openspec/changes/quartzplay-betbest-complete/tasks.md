@@ -77,13 +77,21 @@ production: `betslipPicks` sends neither `market` nor `commence_time`.
 
 ## Phase 5: Telegram screen (`App.jsx`)
 
-- [ ] 5.1 Same three behaviours on `ScreenMejorar`, reusing the module: visible
+- [x] 5.1 Same three behaviours on `ScreenMejorar`, reusing the module: visible
       outcome, stake field and confirm, refusal message as text.
-- [ ] 5.2 Bet with the Telegram identity; no account modal is needed inside the
+- [x] 5.2 Bet with the Telegram identity; no account modal is needed inside the
       mini-app.
-- [ ] 5.3 Make the scanner path send picks through the ticket mapper, never
-      through `normalizarPicks`, so the selection survives.
-- [ ] 5.4 Tests for the added decisions.
+- [x] 5.3 Superseded: fixed `normalizarPicks` itself instead of routing the
+      scanner around it. It now reads `home_real`/`away_real` before
+      `h`/`home`/`a`/`away`, and the scanner's `selection` before `label`/`sel`,
+      so every caller benefits, not just this screen. `ScreenMejorar` hands its
+      playable picks to the same confirm flow every other screen uses (`onBet`
+      → `confirmBet` → `HojaConfirmar` → `enviarApuesta`, which calls
+      `normalizarPicks`) instead of a second, divergent bet path. `betslipPicks`
+      stays reserved for the `/api/betslip` payload shape, which differs from
+      what `confirmBet` expects — routing through it here would have been the
+      wrong fix, not the right one.
+- [x] 5.4 Tests for the added decisions.
 - [ ] 5.5 Open PR 3 on top of PR 2.
 
 ### The same loss, two more places
@@ -99,10 +107,16 @@ to the scanner, and both drop what work unit 2 just rescued.
   the picks it receives. So a combo published from the admin scanner is saved
   with no start time to store.
 
-- [ ] 5.6 Test that betting a combo keeps the identity of every pick.
-- [ ] 5.7 Map combo picks through the ticket mapper instead of the inline
-      object literal.
-- [ ] 5.8 Carry the start time in the admin scanner item too.
+- [x] 5.6 Test that betting a combo keeps the identity of every pick.
+- [x] 5.7 Superseded, same reasoning as 5.3: `betslipPicks` builds the
+      `/api/betslip` payload shape, not the `confirmBet` one, so it was never
+      the right mapper here either. Extracted `picksDeCombo`, a small mapper
+      that shapes a combo pick the way `confirmBet` expects (the same shape
+      `GenerarCombo`'s own mapper already used a few lines above), and pointed
+      the "Apostar" button at it instead of the inline object literal that
+      dropped `event_id`/`sport_key`/`market`/`commence_time` and put a team
+      name where the event id belongs.
+- [x] 5.8 Carry the start time in the admin scanner item too.
 
 ## Phase 6: Delivery
 
