@@ -18,6 +18,7 @@ describe("betslip payload from scanned picks", () => {
         sel: "Bayern de Múnich",
         odd: 1.4,
         sport: "",
+        market: "h2h",
       },
     ]);
   });
@@ -53,6 +54,20 @@ describe("betslip payload from scanned picks", () => {
 
   test("drops picks without a final odd", () => {
     expect(betslipPicks([{ ...scannedPick, odd_final: null }])).toEqual([]);
+  });
+
+  test("forwards the market and the event start time when the pick carries them", () => {
+    const withStartTime = { ...scannedPick, commence_time: "2026-09-20T18:00:00+00:00" };
+    const [pick] = betslipPicks([withStartTime]);
+    expect(pick.market).toBe("h2h");
+    expect(pick.commence_time).toBe("2026-09-20T18:00:00+00:00");
+  });
+
+  test("omits market and commence_time when the pick does not carry them", () => {
+    const bare = { home: "Racing", away: "Sarmiento", sel: "Racing", odd_final: 2.1 };
+    const [pick] = betslipPicks([bare]);
+    expect(pick).not.toHaveProperty("market");
+    expect(pick).not.toHaveProperty("commence_time");
   });
 
   test("never produces an empty selection for a pick it keeps", () => {
