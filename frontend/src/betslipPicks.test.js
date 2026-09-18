@@ -26,12 +26,29 @@ describe("betslip payload from scanned picks", () => {
     const corrected = { ...scannedPick, selection: "Empate", home_real: "Bayern", away_real: "Union" };
     const [pick] = betslipPicks([corrected]);
     expect(pick.sel).toBe("Empate");
-    expect(pick.home).toBe("Bayern de Múnich");
+    // The correction carries the event as our feed names it, and that is the
+    // name the ticket must travel with.
+    expect(pick.home).toBe("Bayern");
   });
 
   test("supports the short shapes used elsewhere in the app", () => {
     const [pick] = betslipPicks([{ h: "Racing", a: "Sarmiento", sel: "Racing", odd_final: 2.1, sport: "soccer" }]);
     expect(pick).toEqual({ home: "Racing", away: "Sarmiento", sel: "Racing", odd: 2.1, sport: "soccer" });
+  });
+
+  test("prefers the names and identifiers our feed resolved", () => {
+    const resolved = {
+      ...scannedPick,
+      home_real: "FC Bayern Munich",
+      away_real: "1. FC Union Berlin",
+      event_id: "evt-1",
+      sport_key: "soccer_germany_bundesliga",
+    };
+    const [pick] = betslipPicks([resolved]);
+    expect(pick.home).toBe("FC Bayern Munich");
+    expect(pick.away).toBe("1. FC Union Berlin");
+    expect(pick.event_id).toBe("evt-1");
+    expect(pick.sport_key).toBe("soccer_germany_bundesliga");
   });
 
   test("drops picks without a final odd", () => {
