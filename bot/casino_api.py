@@ -287,6 +287,30 @@ async def sesion_buscar(token: str):
         return None
 
 
+async def jugador_de_sesion(authorization: str | None) -> int | None:
+    """
+    Sesión de cliente web (ver /api/cliente/login). A diferencia de
+    requiere_agencia, nunca lanza: el llamador decide qué hacer si no
+    hay jugador, por ejemplo probando antes la identidad de Telegram.
+
+    Devuelve el id del jugador solo si el token guardado tiene el
+    prefijo 'cliente:' -- una sesión de agencia u otro token no cuentan.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    token = authorization[7:].strip()
+    if not token:
+        return None
+
+    quien = await sesion_buscar(token)
+    if not quien or not str(quien).startswith("cliente:"):
+        return None
+    try:
+        return int(str(quien).split(":", 1)[1])
+    except (TypeError, ValueError):
+        return None
+
+
 async def requiere_agencia(authorization: str = Header(None)) -> str:
     """
     Igual que auth.require_agencia pero mirando también la base,
@@ -15747,8 +15771,17 @@ async def crear_apuesta(request: Request):
     """
     body  = await request.json()
     user  = validar_init_data(body.get("init_data", ""))
+    web_player_id = None
     if not user or not user.get("id"):
-        raise HTTPException(401, "Abri la app desde el bot de Telegram para apostar")
+        # Sin identidad de Telegram: probamos la sesión de cliente web
+        # (POST /api/cliente/login). Ninguna de las dos deja saber si
+        # el jugador existe -- la respuesta es igual en ambos casos.
+        web_player_id = await jugador_de_sesion(request.headers.get("authorization"))
+        if web_player_id is None:
+            raise HTTPException(401, {
+                "reason": "login_required",
+                "message": "Iniciá sesión para apostar",
+            })
 
     modo  = (body.get("modo") or "reservada").lower()
     if modo not in ("saldo", "bono", "reservada"):
@@ -15822,7 +15855,7 @@ async def crear_apuesta(request: Request):
                 "Las cuotas cambiaron o no se pudieron verificar. Volve a armar el boleto.")
         log.warning(f"[ODDS-WARN] apuesta aceptada con observaciones: {problemas}")
 
-    tg_id = str(user["id"])
+    tg_id = str(user["id"]) if user and user.get("id") else str(web_player_id)
     pool  = await get_db()
     async with pool.acquire() as conn:
         u = await conn.fetchrow("""
