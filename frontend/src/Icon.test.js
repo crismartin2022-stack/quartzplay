@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { renderToStaticMarkup } from "react-dom/server";
 import Icon, { ICON_PATHS, DEFAULT_ICON_SIZE, iconAttributes } from "./Icon";
 
 // The prototype's own set, read from disk rather than hand-typed, so the
@@ -68,6 +69,27 @@ describe("an icon is drawn the way the prototype draws it", () => {
     // sat in keeps the height it had.
     expect(Icon({ name: "", label: "Vacío" })).toBeNull();
     expect(Icon({ name: undefined })).toBeNull();
+  });
+});
+
+describe("what the browser is actually given", () => {
+  test("a named icon renders the prototype's own shapes", () => {
+    const markup = renderToStaticMarkup(<Icon name="house" size={18} label="Inicio"/>);
+    expect(markup).toContain(ICON_PATHS.house);
+    expect(markup).toContain('viewBox="0 0 24 24"');
+    expect(markup).toContain('stroke="currentColor"');
+    expect(markup).toContain('role="img"');
+    expect(markup).toContain('aria-label="Inicio"');
+  });
+
+  test("a decorative icon is silent", () => {
+    const markup = renderToStaticMarkup(<Icon name="house"/>);
+    expect(markup).toContain('aria-hidden="true"');
+    expect(markup).not.toContain("aria-label");
+  });
+
+  test("an unknown name renders nothing at all, so no box is reserved", () => {
+    expect(renderToStaticMarkup(<Icon name="no-such-icon"/>)).toBe("");
   });
 });
 
