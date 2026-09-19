@@ -28,6 +28,21 @@
 //   (never as text), so it carries no contrast requirement. It follows the
 //   same hue-tinted-glass pattern the old `TEMAS.oscuro`/`claro` used, but
 //   tinted with the new violet / cyan-teal pair instead of the old blue.
+// - `ink`: the text and icon colour for anything drawn ON an accent. The
+//   prototype already names this idea `--lime-ink` (`#172000`) and pairs
+//   it with `--lime`; it just never generalised it, so violet, cyan and
+//   the rest were left carrying hardcoded white and stopped being
+//   readable once the accents were remapped to the prototype's brighter
+//   tokens (`#c6afff` under white is 1.91:1). One ink serves every
+//   accent, so the value is the prototype's hue relationship (no blue,
+//   green above red — an olive black) taken darker than `--lime-ink`,
+//   because the same ink also has to read on the light theme's deepest
+//   accent, `violet` `#6b3fd4`. At `#050700` the worst pair in either
+//   theme is that violet at 3.17:1, above the 3.0:1 floor the contrast
+//   test holds every other pairing to; on the lime it is 15.0:1. It does
+//   not change between themes for the same reason `goldBg` does not: an
+//   accent used as a background keeps its bright value in both, so what
+//   sits on it does too.
 // - `pano`, `verde`, `rojo`, `negro`: the roulette table's felt and pocket
 //   colours in Casino.jsx. These describe a physical roulette wheel (green
 //   felt, green/red/black pockets), not a brand accent, and are only ever
@@ -43,6 +58,7 @@ export const oscuro = {
   green:"#b9ef32", gold:"#b9ef32", goldBg:"#b9ef32",
   violet:"#9a6cff", violet2:"#c6afff", cyan:"#c6afff", teal:"#c6afff", blue:"#9a6cff",
   amber:"#ffab9d", red:"#ff7c8d", pink:"#ff7c8d",
+  ink:"#050700",
   pano:"#0B5137", verde:"#0E7A46", rojo:"#C4162A", negro:"#12182B",
 };
 
@@ -54,6 +70,7 @@ export const claro = {
   green:"#5b7a0f", gold:"#5b7a0f", goldBg:"#b9ef32",
   violet:"#6b3fd4", violet2:"#8a5ff0", cyan:"#8a5ff0", teal:"#8a5ff0", blue:"#6b3fd4",
   amber:"#a8501f", red:"#c2273f", pink:"#c2273f",
+  ink:"#050700",
   pano:"#0B5137", verde:"#0E7A46", rojo:"#C4162A", negro:"#12182B",
 };
 

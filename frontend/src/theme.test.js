@@ -27,7 +27,7 @@ const MAPPING = {
   amber: ["#ffab9d", "#a8501f"], red: ["#ff7c8d", "#c2273f"],
   pink: ["#ff7c8d", "#c2273f"], pano: ["#0B5137", "#0B5137"],
   verde: ["#0E7A46", "#0E7A46"], rojo: ["#C4162A", "#C4162A"],
-  negro: ["#12182B", "#12182B"],
+  negro: ["#12182B", "#12182B"], ink: ["#050700", "#050700"],
 };
 
 const EXPECTED_DARK = Object.fromEntries(
@@ -98,6 +98,26 @@ const FOREGROUND_KEYS = [
   "cyan", "teal", "blue", "amber", "red", "pink",
 ];
 
+// ── Accents used as backgrounds ───────────────────────────────────────
+// Checking foregrounds against surfaces is only half the question. The
+// brand's accents are themselves the background of chips, pills, badges
+// and filled buttons, with a label and icons drawn on top of them, and
+// the ink is what goes on top.
+//
+// The list is derived rather than written out: an accent is any theme key
+// that is not a surface, not a text tier, not the ink itself, not the
+// glass overlay and not one of Casino's roulette felt/pocket colours
+// (which describe a physical table, not a brand accent). So an accent
+// added to the theme is covered here without this file being edited.
+const NON_ACCENT_KEYS = [
+  ...SURFACE_KEYS,
+  "ink", "glass", "border", "text", "muted", "dim",
+  "pano", "verde", "rojo", "negro",
+];
+const ACCENT_KEYS = Object.keys(oscuro).filter(
+  (key) => !NON_ACCENT_KEYS.includes(key)
+);
+
 describe("no screen declares its own palette", () => {
   const PALETTE_DECLARATION = /\bconst\s+(Q|TEMAS)\s*=\s*\{/;
 
@@ -134,6 +154,29 @@ describe("both themes are readable", () => {
         expect(ratio).toBeGreaterThanOrEqual(DIM_THRESHOLD);
       });
     });
+
+    test.each(ACCENT_KEYS)("the ink reads on %s as a background", (key) => {
+      const ratio = contrastRatio(theme.ink, theme[key]);
+      expect(ratio).toBeGreaterThanOrEqual(CONTRAST_THRESHOLD);
+    });
+  });
+
+  test("the accent list is derived from the theme, not written out", () => {
+    // If this list were literal, a new accent would be added to the theme
+    // and silently skipped by the check above.
+    expect(ACCENT_KEYS.length).toBeGreaterThan(0);
+    expect(ACCENT_KEYS).toEqual(
+      expect.arrayContaining(["violet", "violet2", "cyan", "green", "goldBg"])
+    );
+    SURFACE_KEYS.forEach((key) => expect(ACCENT_KEYS).not.toContain(key));
+    expect(ACCENT_KEYS).not.toContain("ink");
+  });
+
+  test("the ink is one value in both themes", () => {
+    // An accent used as a background keeps its bright value whichever
+    // theme is on (that is what `goldBg` already encodes), so the ink
+    // that pairs with it does not change either.
+    expect(claro.ink).toBe(oscuro.ink);
   });
 
   test("the bright accent (goldBg) never darkens for a theme, unlike gold/green", () => {
@@ -146,11 +189,22 @@ describe("both themes are readable", () => {
   });
 
   test("the brand's dark ink reads clearly against goldBg in both themes", () => {
-    // "--lime-ink" in the prototype (html/styles.css): the dark ink the
+    // The prototype's "--lime-ink" (html/styles.css) is the dark ink the
     // brand pairs with its bright accent when it is used as a background.
-    const brandDarkInk = "#172000";
-    expect(contrastRatio(oscuro.goldBg, brandDarkInk)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(claro.goldBg, brandDarkInk)).toBeGreaterThanOrEqual(4.5);
+    // `Q.ink` is that idea generalised to every accent, so it must still
+    // clear the stricter small-text bar on the accent it came from.
+    expect(contrastRatio(oscuro.goldBg, oscuro.ink)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(claro.goldBg, claro.ink)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe("the accents themselves do not move", () => {
+  // `cyan` alone is read as a foreground 197 times and as a border 73
+  // times. Darkening an accent to make white readable on it would break
+  // far more than it repairs, so the repair is the ink and the accent
+  // values stay exactly where the brand put them.
+  test.each(ACCENT_KEYS)("%s keeps its brand value in both themes", (key) => {
+    expect([oscuro[key], claro[key]]).toEqual(MAPPING[key]);
   });
 });
 
