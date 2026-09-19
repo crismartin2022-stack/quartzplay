@@ -1992,9 +1992,12 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
         throw new Error(mensajeDeDetalle(e.detail).mensaje||`Error ${r.status}`); }
       const d=await r.json();
       setBoleto(d);
-      // Ya se generó el código: se limpia el escaneo para que no
-      // quede colgado si el cliente vuelve a entrar.
-      setEscaneo(e=>({...(e||{}), imagenes:[], res:null}));
+      // Se limpian las fotos, que ya cumplieron, pero NO el resultado:
+      // el panel del código vive dentro del bloque que depende de él, así
+      // que borrarlo acá desmontaba el código en el mismo instante en que
+      // se generaba. Para el cliente, el botón "reseteaba" la pantalla.
+      // Descartar el escaneo sigue disponible en su propio botón.
+      setEscaneo(e=>({...(e||{}), imagenes:[]}));
       // Marcar el escaneo como convertido en jugada
       if(refCode){
         fetch(`${API}/api/escaner/${refCode}/registrar`,{
