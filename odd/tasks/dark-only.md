@@ -80,8 +80,41 @@ half is gone.
       → risk `medium` (executable_change in `App.jsx`), 247 changed lines,
       `review_due: false`, reason `under_budget`. No consent envelope raised;
       boundary advances to `4b4840f`.
-- [ ] **T2** Remove the light palette from `theme.js` and the light half of the
+- [x] **T2** Remove the light palette from `theme.js` and the light half of the
       contrast suite, keeping every assertion that still has a subject.
+      Commit: `465fc7d` — feat(theme): remove the light palette.
+      `theme.js` now exports one palette: `oscuro`. `claro` and the
+      `THEMES = { oscuro, claro }` lookup are deleted; nothing else imported
+      `THEMES` (the three screens already take `oscuro` directly after T1,
+      and `Admin.jsx`/`Agencia.jsx`/`Casino.jsx` already did). The header
+      comment and the `inkOn` comment block are rewritten to stop describing
+      a light column that no longer exists, without touching `inkOn`'s shape
+      or behaviour.
+      `inkOn`: kept working and kept tested, one theme to sweep instead of
+      two. Recomputed against the surviving palette: every current accent
+      resolves to `INK_DARK` (worst pair 5.75:1 on violet/blue, best
+      14.91:1 on lime) — `INK_LIGHT` is unused by today's single theme, not
+      unreachable code; the per-accent "better of the two inks" comparison
+      still runs and is still asserted for every accent, and the constant
+      stays exported and tested for the day a second, differently-toned
+      surface needs it.
+      Vacuous-after-removal tests deleted from `theme.test.js` (had no
+      subject once `claro`/`THEMES` are gone, not just no data):
+        - "light theme carries exactly the mapped value for every key"
+        - "neither theme is missing a key the other has"
+        - "THEMES exposes both themes under their existing names"
+        - "the bright accent (goldBg) never darkens for a theme, unlike
+          gold/green" (a claim about *not moving between two themes*, with
+          only one theme left to not move between)
+      Everything else collapsed from `describe.each(["dark","light"])` /
+      `[oscuro, claro].forEach` to the single `oscuro` case, same
+      assertions, one theme. Added one new test pinning the module's export
+      shape (`oscuro`, `inkOn`, `INK_DARK`, `INK_LIGHT`, `F_NUM`, `F_BODY`
+      only) so a `claro`/`THEMES` reintroduction fails the suite.
+      Review: `gentle-ai review assess --base-ref 8b7a362 --committed-only`
+      → risk `medium` (executable_change in `theme.js`), 270 changed lines,
+      `review_due: false`, reason `under_budget`. No consent envelope
+      raised; boundary advances to `465fc7d`.
 
 ## Delivery
 
@@ -94,9 +127,14 @@ change ended with a failed review at the end.
 
 ## Progress
 
-T1 done and committed (`4b4840f`), reviewed under budget, no consent needed.
-T2 not started.
+Both tasks done and committed. T1: `4b4840f` (code) + `8b7a362` (doc
+update). T2: `465fc7d`. Both reviewed under budget, no consent envelope
+raised on either. Full suite green: 384 passing (392 baseline + 31 new in
+`noThemeSwitch.test.js`, minus 39 light-theme tests `theme.test.js` no
+longer runs). ESLint clean on every touched source file. Production build
+succeeds with staging-shaped `REACT_APP_*` values (bundle 1.66 kB smaller).
+Not pushed; no PR opened.
 
 ## Next step
 
-T2.
+None — both tasks are done. Awaiting human review/merge decision.
