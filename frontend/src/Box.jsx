@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import { THEMES as TEMAS, F_NUM, F_BODY } from "./theme";
 import Icon from "./Icon";
+import BrandMark from "./BrandMark";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -936,9 +937,7 @@ export default function Box(){
         padding:"16px 20px",display:"flex",alignItems:"center",
         justifyContent:"space-between",position:"sticky",top:0,zIndex:50}}>
         <div>
-          <div style={{fontFamily:F_NUM,fontWeight:700,fontSize:26,color:Q.text,
-            letterSpacing:0.5,lineHeight:1}}>
-            IA<span style={{color:Q.gold}}>QP</span></div>
+          <BrandMark size={26}/>
           <div style={{color:Q.muted,fontSize:12,marginTop:3}}>
             {agencia.name} · Terminal</div>
         </div>

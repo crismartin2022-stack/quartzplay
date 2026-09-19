@@ -17,6 +17,8 @@ import {
   hasIdentity,
 } from "./betBestActions";
 import { THEMES as TEMAS, F_NUM, F_BODY, inkOn } from "./theme";
+import BrandMark from "./BrandMark";
+import Mascot from "./Mascot";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 
@@ -1416,8 +1418,7 @@ function PantallaTerminal({ codigo, onSeguir }){
       padding:"40px 22px",maxWidth:440,margin:"0 auto",
       display:"flex",flexDirection:"column",justifyContent:"center"}}>
       <div style={{textAlign:"center"}}>
-        <div style={{color:Q.violet,fontWeight:900,fontSize:15,
-          letterSpacing:2,fontFamily:F_BODY}}>IAQP</div>
+        <BrandMark size={15}/>
 
         <div style={{color:Q.text,fontSize:26,fontWeight:800,
           marginTop:18,lineHeight:1.3,fontFamily:F_BODY}}>
@@ -1744,8 +1745,7 @@ function BotMsgWeb({ children, time="9:41" }){
           por debajo de su contenido y los nombres largos de equipos
           empujan toda la pantalla hacia la derecha. */}
       <div style={{flex:1,minWidth:0}}>
-        <div style={{color:Q.violet2,fontSize:11,fontWeight:700,marginBottom:3,
-          fontFamily:F_BODY,letterSpacing:0.3}}>IAQP</div>
+        <BrandMark size={11} style={{marginBottom:3}}/>
         <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:12,padding:"14px"}}>
           {children}
           <div style={{textAlign:"right",marginTop:6,color:Q.muted,fontSize:9,
@@ -2528,10 +2528,12 @@ function CampanaWeb({ sesion }){
             </div>
 
             {avisos.length===0&&(
-              <div style={{color:Q.muted,fontSize:13,textAlign:"center",
-                padding:"24px 12px",lineHeight:1.6,
-                fontFamily:F_BODY}}>
-                No hay novedades por ahora.</div>
+              <div style={{textAlign:"center",padding:"24px 12px"}}>
+                <Mascot size={56} style={{margin:"0 auto 8px"}}/>
+                <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
+                  fontFamily:F_BODY}}>
+                  No hay novedades por ahora.</div>
+              </div>
             )}
 
             {avisos.map(a=>(
@@ -2739,10 +2741,12 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
                 </div>
 
                 {(hist.movimientos||[]).length===0&&(
-                  <div style={{color:Q.muted,textAlign:"center",
-                    padding:"30px 20px",fontSize:13,lineHeight:1.6,
-                    fontFamily:F_BODY}}>
-                    Todavía no jugaste nada.</div>
+                  <div style={{textAlign:"center",padding:"30px 20px"}}>
+                    <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+                    <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
+                      fontFamily:F_BODY}}>
+                      Todavía no jugaste nada.</div>
+                  </div>
                 )}
 
                 {(hist.movimientos||[]).map((m,i)=>(
@@ -3911,6 +3915,7 @@ function MisDesafiosWeb({ user, onCambio }){
 
   if(!lista.length) return(
     <div style={{textAlign:"center",padding:"36px 20px"}}>
+      <Mascot size={64} style={{margin:"0 auto 8px"}}/>
       <div style={{color:Q.muted,fontSize:13.5,lineHeight:1.6,
         fontFamily:F_BODY}}>
         Todavía no participaste de ningún desafío.</div>
@@ -4046,6 +4051,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
 
   if(!cot) return(
     <div style={{textAlign:"center",padding:"36px 20px"}}>
+      <Mascot size={64} style={{margin:"0 auto 8px"}}/>
       <div style={{color:Q.muted,fontSize:13.5,lineHeight:1.6,
         fontFamily:F_BODY}}>
         Todavía no hay cotización para tu moneda.<br/>
@@ -4637,9 +4643,7 @@ export default function Web(){
         display:"flex",alignItems:"center",gap:ancho?22:12,
         padding:ancho?"0 18px":"0 10px",height:56,
         position:"sticky",top:0,zIndex:100}}>
-        <span style={{fontFamily:F_NUM,fontSize:ancho?23:19,fontWeight:700,
-          letterSpacing:.4,whiteSpace:"nowrap"}}>
-          IA<span style={{color:Q.gold}}>QP</span></span>
+        <BrandMark size={ancho?23:19}/>
 
         {/* El saldo, a la izquierda junto al logo. La navegación
             vive toda en la barra de abajo. */}
@@ -4854,11 +4858,13 @@ export default function Web(){
           {vista==="vivo"&&(
             <div style={{marginBottom:16}}>
               {!vivosFiltrados.length&&(
-                <div style={{..._panel(),padding:"40px 20px",textAlign:"center",
-                  color:Q.muted,fontSize:13}}>
-                  {grupo
-                    ? `No hay ${(GRUPOS[grupo]||grupo).toLowerCase()} en vivo ahora.`
-                    : "No hay partidos en vivo en este momento."}</div>
+                <div style={{..._panel(),padding:"40px 20px",textAlign:"center"}}>
+                  <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+                  <div style={{color:Q.muted,fontSize:13}}>
+                    {grupo
+                      ? `No hay ${(GRUPOS[grupo]||grupo).toLowerCase()} en vivo ahora.`
+                      : "No hay partidos en vivo en este momento."}</div>
+                </div>
               )}
               {vivosFiltrados.length>0&&(
                 <>
@@ -4891,9 +4897,11 @@ export default function Web(){
           )}
 
           {vista==="prematch"&&!cargando&&!listado.length&&(
-            <div style={{..._panel(),padding:"40px 20px",textAlign:"center",
-              color:Q.muted,fontSize:13}}>
-              No hay partidos disponibles en este momento.</div>
+            <div style={{..._panel(),padding:"40px 20px",textAlign:"center"}}>
+              <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+              <div style={{color:Q.muted,fontSize:13}}>
+                No hay partidos disponibles en este momento.</div>
+            </div>
           )}
 
           {vista==="prematch"&&listado.map(grupo=>(

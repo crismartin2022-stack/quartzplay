@@ -4,6 +4,8 @@ import CameraCapture from "./CameraCapture";
 import { betslipPicks } from "./betslipPicks";
 import { estadoDeAcciones, stakeValido, mensajeDeDetalle } from "./betBestActions";
 import { THEMES as TEMAS, F_NUM, F_BODY, inkOn } from "./theme";
+import BrandMark from "./BrandMark";
+import Mascot from "./Mascot";
 
 // ═══════════════════════════════════════════════════════════════
 // IAQP SPORTS — Web App Telegram completa
@@ -211,29 +213,12 @@ function GCard({ children, style={}, glow, onClick }){
 // para no tocar los lugares donde ya estaba puesto.
 function Particles(){ return null; }
 
-function QPLogo({ size=20 }){
-  return(
-    <div style={{display:"flex",alignItems:"center",gap:8}}>
-      <svg width={size} height={size} viewBox="0 0 24 24">
-        <defs>
-          <linearGradient id="qgls" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={Q.violet}/>
-            <stop offset="100%" stopColor={Q.cyan}/>
-          </linearGradient>
-        </defs>
-        <polygon points="12,2 20,8 20,16 12,22 4,16 4,8" fill="none" stroke="url(#qgls)" strokeWidth={1.5}/>
-        <polygon points="12,5 18,9.5 18,15 12,19 6,15 6,9.5" fill="url(#qgls)" opacity={0.3}/>
-        <circle cx={12} cy={12} r={2} fill={Q.cyan} opacity={0.9}/>
-      </svg>
-      <span style={{
-        fontFamily:"'Inter',system-ui", fontWeight:900, fontSize:size,
-        background:`linear-gradient(135deg,${Q.violet2},${Q.cyan})`,
-        WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
-        backgroundClip:"text", letterSpacing:-0.5,
-      }}>IAQP</span>
-    </div>
-  );
-}
+// QPLogo lived here, drawing its own hexagon beside "IAQP". It was never
+// rendered anywhere in this file (confirmed: no `<QPLogo` anywhere in
+// src/, and it was not exported), so the earlier pass that swapped its
+// SVG for BrandMark shipped a second, unused answer to a question this
+// file's real header (BarraSuperior, below) already asks differently.
+// Removed rather than kept updated-but-dead.
 
 function HBadge({ label, color=Q.violet }){
   return(
@@ -298,8 +283,7 @@ function BotMsg({ children, time="9:41" }){
           por debajo de su contenido y los nombres largos de equipos
           empujan toda la pantalla hacia la derecha. */}
       <div style={{flex:1,minWidth:0}}>
-        <div style={{color:Q.violet2,fontSize:11,fontWeight:700,marginBottom:3,
-          fontFamily:"'Inter',system-ui",letterSpacing:0.3}}>IAQP</div>
+        <BrandMark size={11} style={{marginBottom:3}}/>
         <GCard style={{padding:"14px"}}>
           {children}
           <div style={{textAlign:"right",marginTop:6,color:Q.muted,fontSize:9,
@@ -3314,10 +3298,12 @@ function HistorialJuegos({ user, onCerrar }){
               padding:24,fontSize:13}}>Cargando…</div>}
 
             {d&&movs.length===0&&(
-              <div style={{color:Q.muted,textAlign:"center",
-                padding:"30px 20px",fontSize:13,lineHeight:1.6,
-                fontFamily:"'Inter',system-ui"}}>
-                No hay movimientos en este período.</div>
+              <div style={{textAlign:"center",padding:"30px 20px"}}>
+                <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+                <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
+                  fontFamily:"'Inter',system-ui"}}>
+                  No hay movimientos en este período.</div>
+              </div>
             )}
 
             {movs.map((m,i)=>(
@@ -3359,10 +3345,12 @@ function HistorialJuegos({ user, onCerrar }){
               padding:24,fontSize:13}}>Cargando…</div>}
 
             {porJuego&&porJuego.juegos.length===0&&(
-              <div style={{color:Q.muted,textAlign:"center",
-                padding:"30px 20px",fontSize:13,lineHeight:1.6,
-                fontFamily:"'Inter',system-ui"}}>
-                Todavía no jugaste al casino.</div>
+              <div style={{textAlign:"center",padding:"30px 20px"}}>
+                <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+                <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
+                  fontFamily:"'Inter',system-ui"}}>
+                  Todavía no jugaste al casino.</div>
+              </div>
             )}
 
             {(porJuego?.juegos||[]).map(j=>(
@@ -4751,6 +4739,7 @@ function MisDesafios({ user, onCambio }){
 
   if(!lista.length) return(
     <div style={{textAlign:"center",padding:"30px 20px"}}>
+      <Mascot size={64} style={{margin:"0 auto 8px"}}/>
       <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
         fontFamily:"'Inter',system-ui"}}>
         Todavía no participaste de ningún desafío.</div>
@@ -4884,6 +4873,7 @@ function PanelIacoin({ user, saldo, onCambio }){
 
   if(!cot) return(
     <div style={{textAlign:"center",padding:"30px 20px"}}>
+      <Mascot size={64} style={{margin:"0 auto 8px"}}/>
       <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
         fontFamily:"'Inter',system-ui"}}>
         Todavía no hay cotización para tu moneda.<br/>
@@ -5312,8 +5302,7 @@ function BarraSuperior({ user, onNav, tema, onTema }){
       padding:"9px 13px calc(9px)",position:"relative"}}>
       <button onClick={()=>onNav("home")} style={{background:"transparent",border:"none",
         cursor:"pointer",padding:0,display:"flex",alignItems:"center"}}>
-        <span style={{fontFamily:F_NUM,fontSize:20,fontWeight:700,color:Q.text,
-          letterSpacing:0.4}}>IA<span style={{color:Q.gold}}>QP</span></span>
+        <BrandMark size={20}/>
       </button>
       <div style={{flex:1}}/>
       {user?.saldo!=null&&(
@@ -5428,6 +5417,12 @@ function ScreenHome({ user, onNav, onBet, refCode }){
 
   return(
     <div style={{padding:"14px 12px 20px"}}>
+      {/* Mascota de inicio, donde la pone el prototipo (player-home.html:
+          `.mascot-header`, junto al encabezado de la pantalla de inicio).
+          Puramente decorativa, no desplaza nada de lo que ya había abajo. */}
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
+        <Mascot size={56}/>
+      </div>
       {/* Partidos en vivo. Se cargaban pero nunca se mostraban: el
           código quedó a medias y el inicio no los dibujaba. */}
       {live&&live.length>0&&(
@@ -5658,6 +5653,7 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         </GCard>
       )):(
         <GCard style={{padding:20,textAlign:"center"}}>
+          <Mascot size={64} style={{margin:"0 auto 8px"}}/>
           <div style={{color:Q.muted,fontSize:12,fontFamily:"'Inter',system-ui"}}>
             No hay eventos en vivo ahora</div>
         </GCard>

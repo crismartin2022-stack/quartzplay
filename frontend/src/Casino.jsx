@@ -20,6 +20,7 @@ import { useState, useEffect, useRef } from "react";
 import Rueda3D from "./Rueda3D";
 import { getFrontendConfig } from "./config";
 import { oscuro as Q, F_NUM, F_BODY, inkOn } from "./theme";
+import BrandMark from "./BrandMark";
 
 const { iaqpUrl: IAQP } = getFrontendConfig();
 const MESA = "ruleta-01";
@@ -289,8 +290,7 @@ export default function Casino(){
       <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"10px 14px",display:"flex",alignItems:"center",gap:12,
         position:"sticky",top:0,zIndex:20}}>
-        <span style={{fontFamily:F_NUM,fontSize:20,fontWeight:700}}>
-          IA<span style={{color:Q.gold}}>QP</span></span>
+        <BrandMark size={20}/>
         <div style={{marginLeft:"auto",textAlign:"right"}}>
           <div style={{fontSize:8,letterSpacing:1.3,color:Q.dim,
             fontWeight:700}}>SALDO</div>
