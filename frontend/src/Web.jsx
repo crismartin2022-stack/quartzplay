@@ -17,6 +17,8 @@ import {
   hasIdentity,
 } from "./betBestActions";
 import { THEMES as TEMAS, F_NUM, F_BODY, inkOn } from "./theme";
+import BrandMark from "./BrandMark";
+import Mascot from "./Mascot";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 
@@ -1416,8 +1418,7 @@ function PantallaTerminal({ codigo, onSeguir }){
       padding:"40px 22px",maxWidth:440,margin:"0 auto",
       display:"flex",flexDirection:"column",justifyContent:"center"}}>
       <div style={{textAlign:"center"}}>
-        <div style={{color:Q.violet,fontWeight:900,fontSize:15,
-          letterSpacing:2,fontFamily:F_BODY}}>IAQP</div>
+        <BrandMark size={15}/>
 
         <div style={{color:Q.text,fontSize:26,fontWeight:800,
           marginTop:18,lineHeight:1.3,fontFamily:F_BODY}}>
@@ -1744,8 +1745,7 @@ function BotMsgWeb({ children, time="9:41" }){
           por debajo de su contenido y los nombres largos de equipos
           empujan toda la pantalla hacia la derecha. */}
       <div style={{flex:1,minWidth:0}}>
-        <div style={{color:Q.violet2,fontSize:11,fontWeight:700,marginBottom:3,
-          fontFamily:F_BODY,letterSpacing:0.3}}>IAQP</div>
+        <BrandMark size={11} style={{marginBottom:3}}/>
         <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:12,padding:"14px"}}>
           {children}
           <div style={{textAlign:"right",marginTop:6,color:Q.muted,fontSize:9,

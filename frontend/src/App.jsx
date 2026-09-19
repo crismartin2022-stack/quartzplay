@@ -4,6 +4,8 @@ import CameraCapture from "./CameraCapture";
 import { betslipPicks } from "./betslipPicks";
 import { estadoDeAcciones, stakeValido, mensajeDeDetalle } from "./betBestActions";
 import { THEMES as TEMAS, F_NUM, F_BODY, inkOn } from "./theme";
+import BrandMark from "./BrandMark";
+import Mascot from "./Mascot";
 
 // ═══════════════════════════════════════════════════════════════
 // IAQP SPORTS — Web App Telegram completa
@@ -211,28 +213,12 @@ function GCard({ children, style={}, glow, onClick }){
 // para no tocar los lugares donde ya estaba puesto.
 function Particles(){ return null; }
 
+// Antes dibujaba su propio hexágono en SVG junto a "IAQP" en degradé,
+// como placeholder de un logo que todavía no existía. Ahora que el logo
+// real está disponible (BrandMark), el hexágono queda de más: la imagen
+// misma es la marca, tal como la usa el prototipo (sin hexágono al lado).
 function QPLogo({ size=20 }){
-  return(
-    <div style={{display:"flex",alignItems:"center",gap:8}}>
-      <svg width={size} height={size} viewBox="0 0 24 24">
-        <defs>
-          <linearGradient id="qgls" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={Q.violet}/>
-            <stop offset="100%" stopColor={Q.cyan}/>
-          </linearGradient>
-        </defs>
-        <polygon points="12,2 20,8 20,16 12,22 4,16 4,8" fill="none" stroke="url(#qgls)" strokeWidth={1.5}/>
-        <polygon points="12,5 18,9.5 18,15 12,19 6,15 6,9.5" fill="url(#qgls)" opacity={0.3}/>
-        <circle cx={12} cy={12} r={2} fill={Q.cyan} opacity={0.9}/>
-      </svg>
-      <span style={{
-        fontFamily:"'Inter',system-ui", fontWeight:900, fontSize:size,
-        background:`linear-gradient(135deg,${Q.violet2},${Q.cyan})`,
-        WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
-        backgroundClip:"text", letterSpacing:-0.5,
-      }}>IAQP</span>
-    </div>
-  );
+  return <BrandMark size={size}/>;
 }
 
 function HBadge({ label, color=Q.violet }){

@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef, Component } from "react";
 import { getFrontendConfig } from "./config";
+import BrandMark from "./BrandMark";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -253,28 +254,12 @@ function AlertaError({ mensaje, critico=false }){
   );
 }
 
+// Antes dibujaba su propio hexágono en SVG junto a "IAQP" en degradé,
+// como placeholder de un logo que todavía no existía. Ahora que el logo
+// real está disponible (BrandMark), el hexágono queda de más: la imagen
+// misma es la marca, tal como la usa el prototipo (sin hexágono al lado).
 function QPLogo({ size=20 }){
-  return(
-    <div style={{display:"flex",alignItems:"center",gap:8}}>
-      <svg width={size} height={size} viewBox="0 0 24 24">
-        <defs>
-          <linearGradient id="qglag" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={Q.violet}/>
-            <stop offset="100%" stopColor={Q.cyan}/>
-          </linearGradient>
-        </defs>
-        <polygon points="12,2 20,8 20,16 12,22 4,16 4,8" fill="none" stroke="url(#qglag)" strokeWidth={1.5}/>
-        <polygon points="12,5 18,9.5 18,15 12,19 6,15 6,9.5" fill="url(#qglag)" opacity={0.3}/>
-        <circle cx={12} cy={12} r={2} fill={Q.cyan} opacity={0.9}/>
-      </svg>
-      <span style={{
-        fontFamily:"'Space Grotesk',system-ui", fontWeight:900, fontSize:size,
-        background:`linear-gradient(135deg,${Q.violet2},${Q.cyan})`,
-        WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
-        backgroundClip:"text", letterSpacing:-0.5,
-      }}>IAQP</span>
-    </div>
-  );
+  return <BrandMark size={size}/>;
 }
 
 function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=false, disabled=false }){
