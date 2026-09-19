@@ -11,6 +11,21 @@ import { betslipPicks } from "./betslipPicks";
 const MENSAJE_GENERICO = "No pudimos completar la acción. Probá de nuevo en un momento.";
 const MENSAJE_NADA_JUGABLE = "No pudimos igualar ninguna selección de esta captura. Probá escanear de nuevo con una foto más clara.";
 
+// Do we know who this is? An identity is either an open browser session or
+// the identity Telegram hands us — the public site can be opened inside
+// Telegram, and a player identified there has no browser session and never
+// will, so asking only about the session would lock them out.
+//
+// The scanner's three actions (the camera, the file picker and the bet) ask
+// this one function, because a gate written three times is a gate that will
+// disagree with itself.
+export function hasIdentity({ sesion, initData } = {}) {
+  if (sesion && typeof sesion.token === "string" && sesion.token.trim() !== "") {
+    return true;
+  }
+  return typeof initData === "string" && initData.trim() !== "";
+}
+
 // The picks that survived matching. Everything downstream — what the screen
 // offers, and what it sends — is derived from this single filter, so the
 // two paths can never disagree about which picks are playable.
