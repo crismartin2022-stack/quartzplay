@@ -1,6 +1,7 @@
 import os, re, time, hashlib, asyncio, hmac, json, logging, ast, secrets, random
 from decimal import Decimal
 from datetime import datetime, timezone, timedelta
+from typing import NamedTuple
 import asyncpg
 import httpx
 from fastapi import FastAPI, Request, HTTPException, Depends, Header
@@ -15295,7 +15296,8 @@ async def admin_escanear_combo(request: Request, _=Depends(auth.require_admin)):
         selection = p.get("selection") or ""
         odd_orig = p.get("odd")
 
-        nuestra, ev = await buscar_cuota_nuestra(home, away, market, selection)
+        nuestra, ev, linea_otra = await buscar_cuota_nuestra(
+            home, away, market, selection)
         item = {
             "home": home, "away": away, "market": market,
             "selection": selection, "odd_original": odd_orig,
@@ -15336,9 +15338,11 @@ async def admin_escanear_combo(request: Request, _=Depends(auth.require_admin)):
                 # arriba de la lista, una sola vez.
                 # La cuota se busca contra el evento sugerido
                 try:
-                    nueva, ev2 = await buscar_cuota_nuestra(
+                    nueva, ev2, linea_sug = await buscar_cuota_nuestra(
                         sug.get("home"), sug.get("away"), market, selection)
-                    if nueva:
+                    if nueva and linea_sug:
+                        item["odd_final"] = _linea_sustituta(item, linea_sug, nueva)
+                    elif nueva:
                         item["odd_nuestra"] = round(nueva, 2)
                         # Al sugerido se le aplica la misma mejora que
                         # a cualquier otro: si nuestra cuota es más
@@ -15395,12 +15399,15 @@ async def admin_escanear_combo(request: Request, _=Depends(auth.require_admin)):
             item["opciones"] = opciones_de_evento(ev)
             item["home_real"] = ev.get("h")
             item["away_real"] = ev.get("a")
-            if odd_orig and nuestra < odd_orig:
-                tope = round(nuestra * (1 + _pct_mejora/100), 2)
-                item["odd_ajustada"] = min(tope, round(odd_orig, 2))
+            if linea_otra:
+                item["odd_ajustada"] = _linea_sustituta(item, linea_otra, nuestra)
             else:
-                item["odd_ajustada"] = round(nuestra, 2)
-            item["estado"] = "ok"
+                if odd_orig and nuestra < odd_orig:
+                    tope = round(nuestra * (1 + _pct_mejora/100), 2)
+                    item["odd_ajustada"] = min(tope, round(odd_orig, 2))
+                else:
+                    item["odd_ajustada"] = round(nuestra, 2)
+                item["estado"] = "ok"
         picks.append(item)
 
     return {"ok": True, "picks": picks,
@@ -21848,6 +21855,91 @@ async def leer_captura_con_claude(imagen_b64: str, media_type: str):
         raise HTTPException(502, "No se entendió el contenido de la imagen")
 
 
+class CuotaNuestra(NamedTuple):
+    """
+    Lo que devuelve buscar_cuota_nuestra.
+
+    `linea` trae el nombre de la línea que cotizamos SOLO cuando no es la
+    que pedía el boleto. Son tres campos a propósito: quien desempaque
+    dos se rompe en el acto, en vez de perder el aviso en silencio y
+    mejorar una cuota que no corresponde.
+    """
+    cuota: float | None
+    ev: dict | None
+    linea: str | None = None
+
+
+def _umbral_de_seleccion(seleccion):
+    """
+    El umbral (la línea) que nombra una selección de más/menos.
+
+    El texto viene del OCR del boleto ajeno: puede decir "Over 2.5",
+    "Más de 2.5 goles" o "Menos de 1,5", con coma decimal. Se toma el
+    primer número, que es el que nombra la línea. None si no hay ninguno.
+    """
+    m = _re.search(r"(\d+(?:[.,]\d+)?)", seleccion or "")
+    if not m:
+        return None
+    try:
+        return float(m.group(1).replace(",", "."))
+    except ValueError:
+        return None
+
+
+def _elegir_linea_totals(totals, prefijo, umbral):
+    """
+    Elige la clave de `totals` para la dirección pedida ("over"/"under").
+
+    Devuelve (clave, exacta). `exacta` es False cuando lo que devolvemos
+    no es la línea que pedía el boleto: esa cuota se ofrece tal cual,
+    sin mejora, porque no es la misma apuesta.
+    """
+    claves = [k for k in (totals or {}) if k.lower().startswith(prefijo)]
+    if not claves:
+        return None, False
+    if umbral is not None:
+        umbrales = [(k, _umbral_de_seleccion(k)) for k in claves]
+        for k, u in umbrales:
+            if u is not None and abs(u - umbral) < 1e-9:
+                return k, True
+        cercanas = [(abs(u - umbral), k) for k, u in umbrales if u is not None]
+        if cercanas:
+            return min(cercanas)[1], False
+    # Sin umbral legible no hay "más cercana": se cotiza la que haya y se
+    # avisa que es otra línea. Nunca se hace pasar por la pedida.
+    return claves[0], False
+
+
+def _etiqueta_total(clave):
+    """'Over 2.5' → 'Más de 2.5': como nombra la app a esa línea."""
+    m = _re.match(r"Over\s*([\d.]+)", clave, _re.I)
+    if m:
+        return f"Más de {m.group(1)}"
+    m = _re.match(r"Under\s*([\d.]+)", clave, _re.I)
+    if m:
+        return f"Menos de {m.group(1)}"
+    return clave
+
+
+def _linea_sustituta(item, linea, cuota):
+    """
+    El boleto pedía una línea que no tenemos: se cotiza la nuestra y se
+    dice cuál es. Sin mejora — una línea distinta no es la misma apuesta,
+    y mejorarla es regalar plata sobre algo que nadie pidió.
+
+    `selection` pasa a ser la línea que cotizamos, porque de ahí salen el
+    boleto y la apuesta; lo que decía el boleto ajeno queda al lado, para
+    que la pantalla pueda mostrar la diferencia. Devuelve la cuota
+    redondeada, que cada escáner guarda bajo su propia clave.
+    """
+    item["selection_leida"] = item.get("selection")
+    item["selection"] = linea
+    item["odd_nuestra"] = round(cuota, 2)
+    item["ajustada"] = False
+    item["estado"] = "otra_linea"
+    return round(cuota, 2)
+
+
 async def buscar_cuota_nuestra(home, away, market, selection):
     """
     Busca el evento en nuestras cuotas reales (prematch cacheado) y
@@ -21886,33 +21978,37 @@ async def buscar_cuota_nuestra(home, away, market, selection):
                 if selection:
                     for nombre, cuota in h2h.items():
                         if _mismo_club(selection, nombre):
-                            return cuota, ev
+                            return CuotaNuestra(cuota, ev)
                     # El empate viene con varios nombres según la fuente
                     if any(x in sel_low for x in ("empate", "draw", "x")):
                         for k in ("Draw", "Empate", "X"):
                             if k in h2h:
-                                return h2h[k], ev
+                                return CuotaNuestra(h2h[k], ev)
                 # Sin selección clara, se usa la posición como antes
                 if "local" in sel_low:
-                    return h2h.get(h), ev
+                    return CuotaNuestra(h2h.get(h), ev)
                 if "visit" in sel_low:
-                    return h2h.get(a), ev
+                    return CuotaNuestra(h2h.get(a), ev)
                 if "empate" in sel_low or "draw" in sel_low:
-                    return h2h.get("Draw"), ev
-            # Over/Under
+                    return CuotaNuestra(h2h.get("Draw"), ev)
+            # Over/Under: se cotiza la línea que nombra el boleto, no la
+            # primera que devuelva el feed. Con una sola línea por mercado
+            # daba lo mismo; con varias se cobraba o se pagaba de más.
+            direccion = None
             if "over" in sel_low or "más" in sel_low or "mas" in sel_low:
-                tot = markets.get("totals", {})
-                for k, v in tot.items():
-                    if k.lower().startswith("over"):
-                        return v, ev
-            if "under" in sel_low or "menos" in sel_low:
-                tot = markets.get("totals", {})
-                for k, v in tot.items():
-                    if k.lower().startswith("under"):
-                        return v, ev
+                direccion = "over"
+            elif "under" in sel_low or "menos" in sel_low:
+                direccion = "under"
+            if direccion:
+                tot = markets.get("totals", {}) or {}
+                clave, exacta = _elegir_linea_totals(
+                    tot, direccion, _umbral_de_seleccion(selection))
+                if clave:
+                    return CuotaNuestra(tot[clave], ev,
+                                        None if exacta else _etiqueta_total(clave))
             # Encontramos el partido pero no el mercado exacto
-            return None, ev
-    return None, None
+            return CuotaNuestra(None, ev)
+    return CuotaNuestra(None, None)
 
 
 # ── OPCIONES DE UN EVENTO (para corregir picks mal leídos) ────
@@ -21926,12 +22022,7 @@ def opciones_de_evento(ev):
     if h2h.get("Draw"):opciones.append({"sel":"Empate", "odd":h2h["Draw"], "mkt":"1X2"})
     if h2h.get(a):     opciones.append({"sel":f"{a} gana", "odd":h2h[a], "mkt":"1X2"})
     for k, v in (markets.get("totals", {}) or {}).items():
-        etiqueta = k
-        m = _re.match(r"Over\s*([\d.]+)", k, _re.I)
-        if m: etiqueta = f"Más de {m.group(1)}"
-        m = _re.match(r"Under\s*([\d.]+)", k, _re.I)
-        if m: etiqueta = f"Menos de {m.group(1)}"
-        opciones.append({"sel":etiqueta, "odd":v, "mkt":"Más/Menos"})
+        opciones.append({"sel":_etiqueta_total(k), "odd":v, "mkt":"Más/Menos"})
     return opciones
 
 
@@ -22090,7 +22181,8 @@ async def mejorar_combinada(request: Request):
         selection = p.get("selection") or ""
         odd_orig = p.get("odd")
 
-        nuestra, ev = await buscar_cuota_nuestra(home, away, market, selection)
+        nuestra, ev, linea_otra = await buscar_cuota_nuestra(
+            home, away, market, selection)
 
         item = {
             "home": home, "away": away,
@@ -22132,9 +22224,11 @@ async def mejorar_combinada(request: Request):
                 # marcar cada uno agrega ruido. El aviso general va
                 # arriba de la lista, una sola vez.
                 try:
-                    nueva, _ev2 = await buscar_cuota_nuestra(
+                    nueva, _ev2, linea_sug = await buscar_cuota_nuestra(
                         sug.get("home"), sug.get("away"), market, selection)
-                    if nueva:
+                    if nueva and linea_sug:
+                        item["odd_final"] = _linea_sustituta(item, linea_sug, nueva)
+                    elif nueva:
                         item["odd_nuestra"] = round(nueva, 2)
                         # Misma mejora que cualquier otro pick
                         # El estado sale del resultado real, no de la
@@ -22183,8 +22277,12 @@ async def mejorar_combinada(request: Request):
             item["opciones"] = opciones_de_evento(ev)   # para corregir
             item["home_real"] = ev.get("h")
             item["away_real"] = ev.get("a")
+            # Una línea distinta a la del boleto se ofrece tal cual: no
+            # entra a la mejora, y la pantalla avisa cuál cotizamos.
+            if linea_otra:
+                item["odd_final"] = _linea_sustituta(item, linea_otra, nuestra)
             # ¿Nuestra cuota es más baja que la del original?
-            if odd_orig and nuestra < odd_orig:
+            elif odd_orig and nuestra < odd_orig:
                 tope = round(nuestra * (1 + _pct_mejora/100), 2)
                 if tope >= odd_orig:
                     item["odd_final"] = round(odd_orig, 2)   # la igualamos

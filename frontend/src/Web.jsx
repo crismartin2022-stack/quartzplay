@@ -2101,6 +2101,9 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
     ok:{t:"Igual o mejor",c:Q.green},
     igualada:{t:"Igualada",c:Q.green},
     mejorada_parcial:{t:"Máximo posible",c:Q.amber},
+    // Not an error: we do have a price, it is just for another line.
+    // Amber is the colour this screen already uses to say "check this".
+    otra_linea:{t:"Otra línea",c:Q.amber},
     sin_mercado:{t:"Sin ese mercado",c:Q.red},
     sin_partido:{t:"Sin ese partido",c:Q.red},
   };
@@ -2220,6 +2223,15 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
                       fontFamily:F_BODY}}>{p.home} vs {p.away}</div>
                     <div style={{color:Q.muted,fontSize:10}}>{p.selection}</div>
+                    {/* `selection` is the line we quote. Saying which
+                        line the ticket asked for is what keeps the two
+                        numbers below from reading as the same bet. */}
+                    {p.selection_leida&&(
+                      <div style={{color:Q.amber,fontSize:10,lineHeight:1.35,
+                        fontFamily:F_BODY}}>
+                        Cotizamos esta línea · en tu boleto decía {p.selection_leida}
+                      </div>
+                    )}
                   </div>
                   <span style={{background:`${est.c}22`,border:`1px solid ${est.c}`,
                     borderRadius:16,padding:"1px 7px",fontSize:8,fontWeight:700,

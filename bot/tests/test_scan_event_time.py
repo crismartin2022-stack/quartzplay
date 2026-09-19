@@ -118,7 +118,7 @@ def test_scanner_item_carries_the_start_time_of_the_directly_matched_event(api, 
     async def fake_buscar_cuota_nuestra(home, away, market, selection):
         ev = {"id": "ev1", "sport_key": "soccer_epl", "h": "Team A", "a": "Team B",
               "commence_time": "2026-09-20T18:00:00+00:00", "markets": {}}
-        return 2.5, ev
+        return api.CuotaNuestra(2.5, ev)
 
     monkeypatch.setattr(api, "buscar_cuota_nuestra", fake_buscar_cuota_nuestra)
 
@@ -133,7 +133,7 @@ def test_scanner_item_carries_the_start_time_of_a_suggested_candidate(api, monke
     stub_leer_captura(api, monkeypatch, [PICK_LEIDO])
 
     async def fake_buscar_cuota_nuestra(home, away, market, selection):
-        return None, None
+        return api.CuotaNuestra(None, None)
 
     async def fake_candidatos_parecidos(home, away, limite=4):
         return [{
@@ -174,7 +174,7 @@ def test_admin_scanner_item_carries_the_start_time_of_the_directly_matched_event
     async def fake_buscar_cuota_nuestra(home, away, market, selection):
         ev = {"id": "ev1", "sport_key": "soccer_epl", "h": "Team A", "a": "Team B",
               "commence_time": "2026-09-20T18:00:00+00:00", "markets": {}}
-        return 2.5, ev
+        return api.CuotaNuestra(2.5, ev)
 
     monkeypatch.setattr(api, "buscar_cuota_nuestra", fake_buscar_cuota_nuestra)
 
@@ -191,7 +191,7 @@ def test_admin_scanner_item_carries_the_start_time_of_a_suggested_candidate(api,
     stub_leer_captura(api, monkeypatch, [PICK_LEIDO])
 
     async def fake_buscar_cuota_nuestra(home, away, market, selection):
-        return None, None
+        return api.CuotaNuestra(None, None)
 
     async def fake_candidatos_parecidos(home, away, limite=4):
         return [{
