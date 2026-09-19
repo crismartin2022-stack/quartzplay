@@ -4,6 +4,7 @@ import {
   stakeValido,
   mensajeDeDetalle,
   cuerpoDeApuesta,
+  hasIdentity,
 } from "./betBestActions";
 
 const matched = { home: "River", away: "Boca", selection: "River", odd_final: 1.8 };
@@ -152,5 +153,36 @@ describe("cuerpoDeApuesta", () => {
     const body = cuerpoDeApuesta({ picks: [matched], stake: 500, initData: "", refCode: null });
     expect(body).not.toHaveProperty("inf_code");
     expect(body).not.toHaveProperty("codigo_influencer");
+  });
+});
+
+describe("hasIdentity", () => {
+  test("an open browser session counts", () => {
+    expect(hasIdentity({ sesion: { token: "abc123" } })).toBe(true);
+  });
+
+  test("the identity Telegram provides counts, with no browser session", () => {
+    expect(hasIdentity({ sesion: null, initData: "query_id=abc&user=%7B%7D" })).toBe(true);
+  });
+
+  test("neither present is no identity", () => {
+    expect(hasIdentity({ sesion: null, initData: "" })).toBe(false);
+    expect(hasIdentity({})).toBe(false);
+    expect(hasIdentity()).toBe(false);
+  });
+
+  test("a session without a token is no identity", () => {
+    expect(hasIdentity({ sesion: {} })).toBe(false);
+    expect(hasIdentity({ sesion: { token: "" } })).toBe(false);
+    expect(hasIdentity({ sesion: { user: { id: 7 } } })).toBe(false);
+  });
+
+  test("blank Telegram init data is no identity", () => {
+    expect(hasIdentity({ sesion: null, initData: "   " })).toBe(false);
+    expect(hasIdentity({ sesion: null, initData: undefined })).toBe(false);
+  });
+
+  test("a session and Telegram together still count", () => {
+    expect(hasIdentity({ sesion: { token: "abc123" }, initData: "query_id=abc" })).toBe(true);
   });
 });
