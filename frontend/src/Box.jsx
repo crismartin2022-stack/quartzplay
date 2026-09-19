@@ -8,6 +8,7 @@
 import { useState, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import { THEMES as TEMAS, F_NUM, F_BODY } from "./theme";
+import Icon from "./Icon";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -115,7 +116,7 @@ function EstadisticasBoxBoton({ ev }){
       <button onClick={abrir} style={{width:"100%",marginTop:8,
         background:ov(0.04),border:`1px solid ${Q.cyan}44`,borderRadius:10,
         padding:"8px",cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700}}>
-        📊 Estadísticas</button>
+        <Icon name="chart-no-axes-combined" size={14}/> Estadísticas</button>
       {abierto&&(
         <div style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(2,2,8,0.92)",
           display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
@@ -137,7 +138,7 @@ function EstadisticasBoxBoton({ ev }){
             )}
             {stats&&(!stats.disponible||!stats.tiene_stats)&&(
               <div style={{color:Q.muted,fontSize:13,textAlign:"center",padding:28}}>
-                📊 No hay estadísticas detalladas para este partido.</div>
+                <Icon name="chart-no-axes-combined" size={14}/> No hay estadísticas detalladas para este partido.</div>
             )}
             {stats&&stats.tiene_stats&&stats.stats.map((st,i)=>{
               const tot=(st.home||0)+(st.away||0)||1;
@@ -824,7 +825,8 @@ export default function Box(){
 
   if(errAg) return(
     <div style={{...wrap,alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{fontSize:44,marginBottom:16}}>🚫</div>
+      <div style={{fontSize:44,marginBottom:16}}>
+        <Icon name="triangle-alert" size={44} color={Q.red}/></div>
       <div style={{fontSize:18,fontWeight:700,textAlign:"center"}}>{errAg}</div>
       <div style={{color:Q.muted,fontSize:13,marginTop:8,textAlign:"center"}}>
         Verificá la dirección de la terminal
@@ -845,7 +847,8 @@ export default function Box(){
     return(
       <div style={{...wrap,alignItems:"center",justifyContent:"center",padding:24}}>
         <div style={{maxWidth:460,width:"100%",textAlign:"center"}}>
-          <div style={{fontSize:40,marginBottom:10}}>🎟️</div>
+          <div style={{fontSize:40,marginBottom:10}}>
+            <Icon name="ticket" size={40} color={Q.gold}/></div>
           <div style={{fontSize:20,fontWeight:700,marginBottom:4}}>
             ¡Tu apuesta está lista!
           </div>
@@ -893,7 +896,7 @@ export default function Box(){
           </div>
 
           <div style={{color:Q.amber,fontSize:12,marginBottom:20,lineHeight:1.4}}>
-            ⏱ El código vale por 24 horas. El monto final lo confirmás en la caja.
+            <Icon name="clock-3" size={13}/> El código vale por 24 horas. El monto final lo confirmás en la caja.
           </div>
 
           {picks.length>0&&(
@@ -1037,7 +1040,8 @@ export default function Box(){
         {/* ── SECCIÓN CASH OUT ── */}
         {seccion==="cashout"&&(
           <div>
-            <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>💰 Cash out</div>
+            <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>
+              <Icon name="wallet-cards" size={16}/> Cash out</div>
             <div style={{color:Q.muted,fontSize:12,marginBottom:14,lineHeight:1.4}}>
               Ingresá el código de tu apuesta para retirar antes de que termine,
               al valor actual en vivo.
@@ -1087,7 +1091,9 @@ export default function Box(){
             {coHecho&&(
               <div style={{background:`${Q.green}12`,border:`1px solid ${Q.green}`,
                 borderRadius:14,padding:24,textAlign:"center"}}>
-                <div style={{fontSize:48,marginBottom:8}}>{coHecho.destino==="cuenta"?"✅":"🎫"}</div>
+                <div style={{fontSize:48,marginBottom:8}}>
+                  <Icon name={coHecho.destino==="cuenta"?"circle-check":"receipt-text"}
+                    size={48} color={Q.green}/></div>
                 <div style={{color:Q.green,fontWeight:800,fontSize:18,marginBottom:6}}>
                   Cash out confirmado</div>
                 <div style={{color:Q.text,fontWeight:900,fontSize:30,marginBottom:8}}>
@@ -1139,7 +1145,8 @@ export default function Box(){
                 padding:"22px 12px",textAlign:"center",cursor:"pointer"}}>
                 <input type="file" accept="image/*" capture="environment"
                   onChange={elegirImg} style={{display:"none"}}/>
-                <div style={{fontSize:26,marginBottom:5}}>📸</div>
+                <div style={{fontSize:26,marginBottom:5}}>
+                  <Icon name="camera" size={26}/></div>
                 <div style={{fontWeight:700,fontSize:12}}>Sacar foto</div>
               </label>
               <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:14,
@@ -1157,7 +1164,7 @@ export default function Box(){
                 border:"none",borderRadius:12,padding:"14px",marginBottom:4,
                 cursor:analizando?"wait":"pointer",color:analizando?Q.muted:"#fff",
                 fontWeight:700,fontSize:14}}>
-                {analizando?"Leyendo...":`🔍 Analizar ${imgsMejora.length} foto${imgsMejora.length>1?"s":""}`}</button>
+                {analizando?"Leyendo...":<><Icon name="search" size={15}/>{` Analizar ${imgsMejora.length} foto${imgsMejora.length>1?"s":""}`}</>}</button>
             )}
             {errMejora&&<div style={{color:Q.pink,fontSize:13,marginTop:10}}>{errMejora}</div>}
             {analizando&&<div style={{color:Q.violet2,fontSize:13,textAlign:"center",
@@ -1171,7 +1178,7 @@ export default function Box(){
                   <div style={{background:`${Q.pink}12`,border:`1px solid ${Q.pink}66`,
                     borderRadius:9,padding:"9px 11px",marginBottom:10,color:Q.pink,
                     fontSize:11,lineHeight:1.4}}>
-                    ⚠️ El cupón marca cuota {fmt(resMejora.total_odd_cupon)} pero con lo
+                    <Icon name="triangle-alert" size={13}/> El cupón marca cuota {fmt(resMejora.total_odd_cupon)} pero con lo
                     leído no llegamos. Falta algún partido — agregá otra foto.
                   </div>
                 )}
@@ -1242,7 +1249,7 @@ export default function Box(){
           <div style={{display:"flex",alignItems:"center",gap:10,
             background:ov(0.05),border:`1px solid ${Q.border}`,
             borderRadius:12,padding:"12px 16px",marginBottom:10}}>
-            <span style={{fontSize:16}}>🔍</span>
+            <Icon name="search" size={16} color={Q.muted}/>
             <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
               placeholder="Buscar equipo..."
               style={{background:"transparent",border:"none",color:Q.text,
@@ -1263,7 +1270,7 @@ export default function Box(){
               El sistema la arma con partidos de hoy.
               {genCupo&&` Quedan ${genCupo.quedan} de ${genCupo.tope} hoy.`}</div>
             <div style={{display:"flex",gap:7}}>
-              {[["seguro","🛡️ Seguro"],["equilibrado","⚖️ Medio"],
+              {[["seguro",<><Icon name="shield-check" size={13}/> Seguro</>],["equilibrado","⚖️ Medio"],
                 ["arriesgado","🚀 Fuerte"]].map(([k,l])=>(
                 <button key={k} onClick={()=>generarCombo(k)}
                   disabled={genProc||(genCupo&&genCupo.quedan<=0)}
