@@ -16,7 +16,7 @@ import {
   estadoDeAcciones, stakeValido, mensajeDeDetalle, cuerpoDeApuesta,
   hasIdentity,
 } from "./betBestActions";
-import { THEMES as TEMAS, F_NUM, F_BODY } from "./theme";
+import { THEMES as TEMAS, F_NUM, F_BODY, inkOn } from "./theme";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 
@@ -334,9 +334,9 @@ function Reloj(){
   return(
     <div style={{display:"flex",alignItems:"center",gap:12,
       fontFamily:F_NUM,letterSpacing:1}}>
-      <span style={{fontSize:13,color:"#BBD0FF",fontWeight:600}}>
+      <span style={{fontSize:13,color:inkOn(Q.violet,Q.violet2),opacity:.8,fontWeight:600}}>
         {dias[ahora.getDay()]} {dosD(ahora.getDate())}/{dosD(ahora.getMonth()+1)}/{ahora.getFullYear()}</span>
-      <span style={{fontSize:21,fontWeight:700,color:"#fff"}}>
+      <span style={{fontSize:21,fontWeight:700,color:inkOn(Q.violet,Q.violet2)}}>
         {dosD(ahora.getHours())}:{dosD(ahora.getMinutes())}:{dosD(ahora.getSeconds())}</span>
     </div>
   );
@@ -527,10 +527,10 @@ function BotonCuota({ ev, op, deporte, picks, onToggle, market }){
       borderRadius:7,padding:"7px 4px",cursor:"pointer",textAlign:"center",
       fontFamily:F_BODY,transition:"all .13s",minWidth:0}}>
       <div style={{fontSize:9,fontWeight:600,letterSpacing:.8,
-        color:sel?"#fff":Q.dim,whiteSpace:"nowrap",overflow:"hidden",
+        color:sel?inkOn(Q.violet):Q.dim,whiteSpace:"nowrap",overflow:"hidden",
         textOverflow:"ellipsis"}}>{op.k}</div>
       <div style={{fontFamily:F_NUM,fontSize:18,fontWeight:700,lineHeight:1.05,
-        color:sel?"#fff":Q.gold}}>{fmt(op.val)}</div>
+        color:sel?inkOn(Q.violet):Q.gold}}>{fmt(op.val)}</div>
     </button>
   );
 }
@@ -683,7 +683,7 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
     <div style={_panel()}>
       <div style={{..._phead(),color:Q.text,display:"flex",alignItems:"center",gap:9}}>
         <span style={{background:picks.length?Q.goldBg:Q.border,
-          color:picks.length?"#1A1200":Q.muted,fontSize:11,fontWeight:700,
+          color:picks.length?inkOn(Q.goldBg):Q.muted,fontSize:11,fontWeight:700,
           borderRadius:4,padding:"1px 7px",fontFamily:F_BODY}}>{picks.length}</span>
         Tu boleto
       </div>
@@ -703,7 +703,7 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
             background:modo===k?Q.violet:Q.inset,
             border:`1px solid ${modo===k?Q.violet:Q.border}`,borderRadius:7,
             padding:"8px",cursor:"pointer",fontSize:12.5,fontWeight:700,
-            color:modo===k?"#fff":Q.muted,fontFamily:F_BODY}}>{l}</button>
+            color:modo===k?inkOn(Q.violet):Q.muted,fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
 
@@ -834,7 +834,7 @@ function BotonAyuda({ userId, origen, abierto:abiertoFuera, onCerrar }){
             height:42,borderRadius:21,padding:"0 17px",
             background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
             border:"none",boxShadow:"0 4px 16px rgba(0,0,0,.45)",
-            cursor:"pointer",fontSize:13.5,fontWeight:700,color:"#fff",
+            cursor:"pointer",fontSize:13.5,fontWeight:700,color:inkOn(Q.violet, Q.cyan),
             gap:7,
             display:"flex",alignItems:"center",justifyContent:"center"}}>
           💬 Ayuda</button>
@@ -1074,7 +1074,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
           style={{background:texto.trim()?Q.violet:ov(0.05),border:"none",
             borderRadius:10,padding:"0 17px",
             cursor:texto.trim()?"pointer":"default",
-            color:texto.trim()?"#fff":Q.dim,fontSize:14,fontWeight:700,
+            color:texto.trim()?inkOn(Q.violet):Q.dim,fontSize:14,fontWeight:700,
             flexShrink:0}}>↑</button>
       </div>
     </div>
@@ -1430,7 +1430,7 @@ function PantallaTerminal({ codigo, onSeguir }){
 
         <button onClick={empezar} style={{width:"100%",marginTop:28,
           background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-          border:"none",borderRadius:12,padding:"17px",color:"#fff",
+          border:"none",borderRadius:12,padding:"17px",color:inkOn(Q.violet, Q.cyan),
           fontSize:16,fontWeight:800,cursor:"pointer",
           fontFamily:F_BODY}}>
           Empezar</button>
@@ -1715,7 +1715,7 @@ function QKBWeb({ rows, onPress }){
               background:btn.primary?`linear-gradient(135deg,${btn.color||Q.violet},${btn.color2||Q.cyan})`:ov(0.04),
               border:`1px solid ${btn.primary?(btn.color||Q.violet)+"88":Q.border}`,
               borderRadius:10, padding:"11px 6px", cursor:"pointer",
-              color:"#fff", fontSize:12, fontWeight:btn.primary?700:500,
+              color:btn.primary?inkOn(btn.color||Q.violet, btn.color2||Q.cyan):Q.text, fontSize:12, fontWeight:btn.primary?700:500,
               fontFamily:F_BODY,
               textTransform:btn.primary?"uppercase":"none",
               letterSpacing:btn.primary?0.3:0,
@@ -1738,6 +1738,7 @@ function BotMsgWeb({ children, time="9:41" }){
       <div style={{width:36,height:36,borderRadius:"50%",
         background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
         display:"flex",alignItems:"center",justifyContent:"center",
+        color:inkOn(Q.violet, Q.cyan),
         fontSize:18,flexShrink:0,boxShadow:`0 0 12px ${Q.violet}44`}}>⬡</div>
       {/* minWidth:0 es imprescindible: sin esto el ítem flex no se achica
           por debajo de su contenido y los nombres largos de equipos
@@ -2130,7 +2131,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                   objectFit:"cover",borderRadius:7,border:`1px solid ${Q.border}`}}/>
                 <button onClick={()=>quitarImagen(i)} style={{position:"absolute",
                   top:-5,right:-5,width:18,height:18,borderRadius:"50%",
-                  background:Q.pink,border:"none",color:"#fff",fontSize:10,
+                  background:Q.pink,border:"none",color:inkOn(Q.pink),fontSize:10,
                   cursor:"pointer",lineHeight:1}}>✕</button>
               </div>
             ))}
@@ -2170,7 +2171,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
             background:analizando?ov(0.06)
               :`linear-gradient(135deg,${Q.cyan},${Q.violet})`,
             border:"none",borderRadius:10,padding:"12px",marginBottom:4,
-            cursor:analizando?"wait":"pointer",color:analizando?Q.muted:"#fff",
+            cursor:analizando?"wait":"pointer",color:analizando?Q.muted:inkOn(Q.cyan, Q.violet),
             fontWeight:700,fontSize:13,fontFamily:F_BODY}}>
             {analizando?"Leyendo...":`🔍 Analizar ${imagenes.length} foto${imagenes.length>1?"s":""}`}</button>
         )}
@@ -2314,14 +2315,14 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                   background:apostando?ov(0.06)
                     :`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
                   border:"none",borderRadius:10,padding:"13px",
-                  color:apostando?Q.muted:"#fff",fontWeight:800,fontSize:15,
+                  color:apostando?Q.muted:inkOn(Q.violet, Q.violet2),fontWeight:800,fontSize:15,
                   cursor:apostando?"wait":"pointer",marginBottom:8,
                   fontFamily:F_BODY}}>
                   {apostando?"Apostando...":"Apostar con mi saldo"}</button>
 
                 <button onClick={generarBoleto} disabled={generando}
                   style={{width:"100%",background:`linear-gradient(135deg,${Q.green},${Q.cyan})`,
-                    border:"none",borderRadius:10,padding:"13px",color:"#001",
+                    border:"none",borderRadius:10,padding:"13px",color:inkOn(Q.green, Q.cyan),
                     fontWeight:800,fontSize:15,cursor:"pointer",marginBottom:8,
                     fontFamily:F_BODY}}>
                   {generando?"Generando...":"🎟️ Generar mi código para jugar"}</button>
@@ -2415,7 +2416,7 @@ function ModalNoSesion({ onCerrar, onIngresar, refCode }){
 
         <button onClick={onIngresar} style={{width:"100%",
           background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
-          border:"none",borderRadius:10,padding:"13px",color:"#fff",
+          border:"none",borderRadius:10,padding:"13px",color:inkOn(Q.violet, Q.violet2),
           fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10,
           fontFamily:F_BODY}}>
           Iniciar sesión</button>
@@ -2497,7 +2498,7 @@ function CampanaWeb({ sesion }){
         {sinLeer>0&&(
           <span style={{position:"absolute",top:2,right:2,
             minWidth:15,height:15,borderRadius:8,background:Q.red,
-            color:"#fff",fontSize:9,fontWeight:800,
+            color:inkOn(Q.red),fontSize:9,fontWeight:800,
             display:"flex",alignItems:"center",
             justifyContent:"center",padding:"0 3px",
             fontFamily:F_BODY}}>{sinLeer>9?"9+":sinLeer}</span>
@@ -2802,7 +2803,7 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
               style={{width:"100%",marginTop:6,
                 background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
                 border:"none",borderRadius:11,padding:"14px",
-                color:"#fff",fontSize:14,fontWeight:800,
+                color:inkOn(Q.violet, Q.cyan),fontSize:14,fontWeight:800,
                 cursor:"pointer",fontFamily:F_BODY}}>
               {proc?"Cambiando…":"Cambiar clave"}</button>
           </>
@@ -2870,7 +2871,7 @@ function BarraWeb({ vista, onNav, hayBoleto }){
             display:"flex",flexDirection:"column",alignItems:"center",
             justifyContent:"center",gap:1}}>
           <span style={{fontSize:16}}>📸</span>
-          <span style={{color:"#1a1200",fontSize:7,fontWeight:900,
+          <span style={{color:inkOn(Q.gold,"#c9a227","#FFD54F"),fontSize:7,fontWeight:900,
             letterSpacing:0.2,fontFamily:F_BODY}}>BEST</span>
         </button>
 
@@ -3464,7 +3465,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
           <button onClick={publicar} disabled={proc}
             style={{width:"100%",marginTop:7,
               background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-              border:"none",borderRadius:9,padding:"11px",color:"#fff",
+              border:"none",borderRadius:9,padding:"11px",color:inkOn(Q.violet, Q.cyan),
               fontSize:13.5,fontWeight:700,cursor:"pointer",
               fontFamily:F_BODY}}>
             {proc?"Publicando…":"Publicar"}</button>
@@ -3524,7 +3525,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
                 style={{width:"100%",marginTop:11,
                   background:`linear-gradient(135deg,${Q.gold},#c9a227)`,
                   border:"none",borderRadius:10,padding:"12px",
-                  color:"#1a1200",fontSize:14,fontWeight:800,
+                  color:inkOn(Q.gold, "#c9a227"),fontSize:14,fontWeight:800,
                   cursor:"pointer",fontFamily:F_BODY}}>
                 Aceptar el desafío</button>
               )}
@@ -3850,7 +3851,7 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
             ?"rgba(255,255,255,0.06)"
             :`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
           border:"none",borderRadius:11,padding:"15px",
-          color:(!titulo.trim()||!nPongo||!nPido)?Q.dim:"#fff",
+          color:(!titulo.trim()||!nPongo||!nPido)?Q.dim:inkOn(Q.violet, Q.cyan),
           fontSize:15,fontWeight:800,cursor:proc?"default":"pointer",
           fontFamily:F_BODY}}>
         {proc?"Creando…":"Publicar desafío"}</button>
@@ -4142,7 +4143,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
           background:!n?"rgba(255,255,255,0.06)"
             :`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
           border:"none",borderRadius:11,padding:"15px",
-          color:!n?Q.dim:"#fff",fontSize:15,fontWeight:800,
+          color:!n?Q.dim:inkOn(Q.violet, Q.cyan),fontSize:15,fontWeight:800,
           cursor:proc?"default":"pointer",fontFamily:F_BODY}}>
         {proc?"Procesando…":(modo==="comprar"?"Comprar IACOIN":"Vender IACOIN")}
       </button>
@@ -4393,7 +4394,7 @@ const _phead=()=>({padding:"11px 14px",fontFamily:F_NUM,fontSize:15,fontWeight:6
   letterSpacing:".08em",textTransform:"uppercase",color:Q.muted,
   borderBottom:`1px solid ${Q.border}`});
 const _btnPrim=()=>({width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
-  border:"none",borderRadius:8,padding:"13px",color:"#fff",fontSize:14,
+  border:"none",borderRadius:8,padding:"13px",color:inkOn(Q.violet, Q.violet2),fontSize:14,
   fontWeight:700,cursor:"pointer",fontFamily:F_BODY});
 const _btnGhost=()=>({width:"100%",background:"transparent",border:"none",
   color:Q.muted,fontSize:12.5,padding:"8px",cursor:"pointer",fontFamily:F_BODY});
@@ -4704,7 +4705,7 @@ export default function Web(){
       <div style={{background:`linear-gradient(90deg,${Q.violet},${Q.violet2})`,
         padding:"7px 18px",display:"flex",alignItems:"center",
         justifyContent:"space-between",gap:14}}>
-        <span style={{fontSize:11.5,color:"#DCE6FF",fontWeight:600,
+        <span style={{fontSize:11.5,color:inkOn(Q.violet,Q.violet2),opacity:.8,fontWeight:600,
           letterSpacing:.3}}>
           Hora oficial · los mercados cierran al comenzar el partido</span>
         <Reloj/>
@@ -4725,7 +4726,7 @@ export default function Web(){
             <button key={g} onClick={()=>{setGrupo(g);setDeporte(null);}}
               style={chip(grupo===g)}>
               <IconoDeporte nombre={GRUPOS[g]||g}
-                color={grupo===g?"#fff":Q.muted}/>
+                color={grupo===g?inkOn(Q.violet,Q.violet2):Q.muted}/>
               {GRUPOS[g]||g}
               <span style={{fontSize:10.5,opacity:.65,fontFamily:F_NUM,
                 fontWeight:600}}>{n}</span>
@@ -4950,9 +4951,9 @@ export default function Web(){
           padding:"13px 16px",display:"flex",alignItems:"center",gap:12,
           background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
           boxShadow:"0 8px 28px rgba(0,0,0,.55)",fontFamily:F_BODY}}>
-          <span style={{background:Q.goldBg,color:"#1A1200",fontSize:12,
+          <span style={{background:Q.goldBg,color:inkOn(Q.goldBg),fontSize:12,
             fontWeight:700,borderRadius:5,padding:"2px 8px"}}>{picks.length}</span>
-          <span style={{color:"#fff",fontWeight:700,fontSize:13.5,flex:1,
+          <span style={{color:inkOn(Q.violet,Q.violet2),fontWeight:700,fontSize:13.5,flex:1,
             textAlign:"left"}}>Ver mi boleto</span>
           <span style={{fontFamily:F_NUM,fontSize:21,fontWeight:700,
             color:Q.gold}}>{fmt(prod(picks.map(p=>p.odd)))}</span>
@@ -5023,7 +5024,7 @@ function chip(activo){
     background:activo?`linear-gradient(135deg,${Q.violet},${Q.violet2})`:Q.surface,
     border:`1px solid ${activo?"transparent":Q.border}`,borderRadius:999,
     padding:"8px 15px",fontSize:12.5,fontWeight:600,cursor:"pointer",
-    color:activo?"#fff":Q.muted,whiteSpace:"nowrap",fontFamily:F_BODY};
+    color:activo?inkOn(Q.violet, Q.violet2):Q.muted,whiteSpace:"nowrap",fontFamily:F_BODY};
 }
 
 const _spItem=()=>({display:"flex",alignItems:"center",gap:11,padding:"10px 14px",
