@@ -20,16 +20,16 @@ Chain strategy: stacked
 
 - [x] 1.1 Test that the ink reads on every accent used as a background, in both
       themes, at the threshold the suite defines for text.
-- [ ] 1.2 Test that no accent background in the three screens carries white.
+- [x] 1.2 Test that no accent background in the three screens carries white.
 - [x] 1.3 Test that the accent values themselves are unchanged.
 
 ## Phase 2: GREEN
 
 - [x] 2.1 Add the ink token to both themes, with the reason recorded beside it.
-- [ ] 2.2 Replace white with the ink at every accent-background site in
+- [x] 2.2 Replace white with the ink at every accent-background site in
       `Web.jsx`, `App.jsx` and `Casino.jsx`, including the icon colour handed
       to `IconoDeporte` by the active tab.
-- [ ] 2.3 Run the frontend suite green.
+- [x] 2.3 Run the frontend suite green.
 
 ## Phase 3: Delivery
 

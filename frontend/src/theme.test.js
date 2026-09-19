@@ -198,6 +198,113 @@ describe("both themes are readable", () => {
   });
 });
 
+// ── White on an accent, read out of the screens themselves ───────────
+// The contrast check above can only prove that the ink reads on an
+// accent. It cannot prove the screens use it, and what shipped to
+// production was white hardcoded on top of an accent gradient. So this
+// reads the source the way scanGate.test.js does and names the file.
+describe("no accent background carries white", () => {
+  // The screens this change covers. `Admin.jsx`, `Agencia.jsx` and
+  // `Box.jsx` carry the same pattern and follow in their own change.
+  const SCREENS = ["Web.jsx", "App.jsx", "Casino.jsx"];
+
+  // An accent read opaquely — `${Q.violet}` or `Q.violet` — but not
+  // `${Q.violet}22`, which is the accent at low alpha: a tint laid over a
+  // dark surface, not an accent background, and white belongs on it.
+  const OPAQUE_ACCENT = new RegExp(
+    `\\bQ\\.(?:${ACCENT_KEYS.join("|")})\\b(?!\\}?[0-9a-fA-F])`
+  );
+  const WHITE = /["'](?:#fff|#ffffff|white)["']/i;
+  const COLOUR_PROPERTY = /\b(color|stroke|fill)\s*:\s*([^,\n}]*)/g;
+
+  // The value of a style property: everything up to the comma that ends
+  // it, ignoring the commas inside a gradient or a template hole.
+  function propertyValue(source, from) {
+    let depth = 0;
+    let value = "";
+    for (let i = from; i < source.length; i += 1) {
+      const c = source[i];
+      if (c === "{" || c === "(" || c === "[") depth += 1;
+      else if (c === "}" && depth === 0) break;
+      else if (c === "}" || c === ")" || c === "]") {
+        depth -= 1;
+        if (depth < 0) break;
+      } else if (c === "," && depth === 0) break;
+      value += c;
+    }
+    return value;
+  }
+
+  // The style object a property sits in: the innermost braces around it.
+  function enclosingObject(source, index) {
+    let depth = 0;
+    for (let i = index; i >= 0; i -= 1) {
+      const c = source[i];
+      if (c === "}") depth += 1;
+      else if (c === "{") {
+        if (depth === 0) {
+          let open = 0;
+          for (let j = i; j < source.length; j += 1) {
+            if (source[j] === "{") open += 1;
+            else if (source[j] === "}") {
+              open -= 1;
+              if (open === 0) return source.slice(i, j + 1);
+            }
+          }
+          return source.slice(i);
+        }
+        depth -= 1;
+      }
+    }
+    return "";
+  }
+
+  function accentBackgrounds(source) {
+    const blocks = [];
+    const backgrounds = /background(?:Color|Image)?\s*:/g;
+    let match = backgrounds.exec(source);
+    while (match) {
+      const value = propertyValue(source, match.index + match[0].length);
+      if (OPAQUE_ACCENT.test(value)) {
+        blocks.push(enclosingObject(source, match.index));
+      }
+      match = backgrounds.exec(source);
+    }
+    return blocks;
+  }
+
+  const sources = Object.fromEntries(
+    SCREENS.map((name) => [name, fs.readFileSync(path.join(SRC, name), "utf8")])
+  );
+
+  test.each(SCREENS)("%s still has accent backgrounds to check", (name) => {
+    // Without this, a regex that matched nothing would report a clean
+    // screen instead of an unchecked one.
+    expect(accentBackgrounds(sources[name]).length).toBeGreaterThan(0);
+  });
+
+  test.each(SCREENS)("%s draws no white on an accent", (name) => {
+    const offenders = [];
+    accentBackgrounds(sources[name]).forEach((block) => {
+      const colours = new RegExp(COLOUR_PROPERTY.source, "g");
+      let colour = colours.exec(block);
+      while (colour) {
+        if (WHITE.test(colour[2])) offenders.push(colour[0].trim());
+        colour = colours.exec(block);
+      }
+    });
+    expect(offenders).toEqual([]);
+  });
+
+  test("the sport tabs hand their icon the ink, not white", () => {
+    // The reported symptom: the active tab passed "#fff" to IconoDeporte
+    // as a stroke, which no style-object scan would ever see.
+    const calls = sources["Web.jsx"].match(/<IconoDeporte[\s\S]*?\/>/g) || [];
+    expect(calls.length).toBeGreaterThan(0);
+    calls.forEach((call) => expect(call).not.toMatch(/#fff|#ffffff|white/i));
+  });
+});
+
 describe("the accents themselves do not move", () => {
   // `cyan` alone is read as a foreground 197 times and as a border 73
   // times. Darkening an accent to make white readable on it would break

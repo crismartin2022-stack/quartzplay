@@ -236,7 +236,7 @@ export default function Casino(){
 
   const Ficha=({monto})=>(
     <span style={{position:"absolute",top:-6,right:-6,minWidth:19,height:19,
-      padding:"0 3px",borderRadius:10,background:Q.gold,color:"#1A1200",
+      padding:"0 3px",borderRadius:10,background:Q.gold,color:Q.ink,
       fontSize:8.5,fontWeight:700,fontFamily:F_BODY,display:"flex",
       alignItems:"center",justifyContent:"center",border:`2px solid ${Q.pano}`}}>
       {monto>=100000?`${Math.round(monto/100000)}k`:Math.round(monto/100)}
@@ -394,7 +394,7 @@ export default function Casino(){
               padding:"11px 4px",borderRadius:9,cursor:"pointer",
               background:ficha===f?Q.gold:Q.inset,
               border:`1px solid ${ficha===f?Q.gold:Q.border}`,
-              color:ficha===f?"#1A1200":Q.muted,fontWeight:700,
+              color:ficha===f?Q.ink:Q.muted,fontWeight:700,
               fontSize:12.5}}>{plata(f)}</button>
           ))}
         </div>
@@ -403,7 +403,7 @@ export default function Casino(){
           <div style={{marginBottom:12}}>
             <button onClick={confirmar} style={{width:"100%",
               background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
-              border:"none",borderRadius:10,padding:14,color:"#fff",
+              border:"none",borderRadius:10,padding:14,color:Q.ink,
               fontSize:14,fontWeight:700,cursor:"pointer"}}>
               Confirmar {pendientes.length} · {plata(total)}</button>
             <button onClick={()=>setPendientes([])} style={{width:"100%",
@@ -437,7 +437,7 @@ export default function Casino(){
                 borderRadius:8,padding:"10px 12px",color:Q.text,fontSize:13,
                 outline:"none"}}/>
             <button onClick={enviarChat} style={{background:Q.violet,
-              border:"none",borderRadius:8,padding:"0 16px",color:"#fff",
+              border:"none",borderRadius:8,padding:"0 16px",color:Q.ink,
               fontWeight:700,fontSize:13,cursor:"pointer"}}>Enviar</button>
           </div>
         </div>

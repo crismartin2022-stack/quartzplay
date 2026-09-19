@@ -275,7 +275,7 @@ function QBtn({ label, icon, onClick, color=Q.violet, size="md", full=false, out
       padding:`0 ${size==="sm"?"10px":"20px"}`,
       background:outline?"transparent":`linear-gradient(135deg,${color},${color}CC)`,
       border:`1px solid ${color}`, borderRadius:12,
-      color:outline?color:"#fff", fontSize:fs, fontWeight:700, cursor:"pointer",
+      color:outline?color:Q.ink, fontSize:fs, fontWeight:700, cursor:"pointer",
       display:"flex", alignItems:"center", justifyContent:"center", gap:7,
       letterSpacing:0.3, fontFamily:"'Inter',system-ui",
       boxShadow:outline?"none":`0 4px 20px ${color}44`,
@@ -292,6 +292,7 @@ function BotMsg({ children, time="9:41" }){
       <div style={{width:36,height:36,borderRadius:"50%",
         background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
         display:"flex",alignItems:"center",justifyContent:"center",
+        color:Q.ink,
         fontSize:18,flexShrink:0,boxShadow:`0 0 12px ${Q.violet}44`}}>⬡</div>
       {/* minWidth:0 es imprescindible: sin esto el ítem flex no se achica
           por debajo de su contenido y los nombres largos de equipos
@@ -332,7 +333,7 @@ function QKB({ rows, onPress }){
               background:btn.primary?`linear-gradient(135deg,${btn.color||Q.violet},${btn.color2||Q.cyan})`:ov(0.04),
               border:`1px solid ${btn.primary?(btn.color||Q.violet)+"88":Q.border}`,
               borderRadius:10, padding:"11px 6px", cursor:"pointer",
-              color:"#fff", fontSize:12, fontWeight:btn.primary?700:500,
+              color:btn.primary?Q.ink:Q.text, fontSize:12, fontWeight:btn.primary?700:500,
               fontFamily:"'Inter',system-ui",
               textTransform:btn.primary?"uppercase":"none",
               letterSpacing:btn.primary?0.3:0,
@@ -360,6 +361,7 @@ function TgHeader({ title, sub, onBack }){
       <div style={{width:40,height:40,borderRadius:"50%",
         background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
         display:"flex",alignItems:"center",justifyContent:"center",
+        color:Q.ink,
         fontSize:20,flexShrink:0,boxShadow:`0 0 14px ${Q.violet}66`}}>⬡</div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,fontFamily:"'Inter',system-ui"}}>{title}</div>
@@ -478,13 +480,13 @@ function OddsButtons({ ev, market, bets, onToggle, live=false }){
             borderRadius:8,padding:"7px 3px",cursor:"pointer",textAlign:"center",
             transition:"all 0.13s",
           }}>
-            <div style={{color:sel?"#fff":Q.dim,fontSize:8.5,fontFamily:F_BODY,
+            <div style={{color:sel?Q.ink:Q.dim,fontSize:8.5,fontFamily:F_BODY,
               fontWeight:600,letterSpacing:0.6,
               marginBottom:1,lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",
               whiteSpace:"nowrap",maxWidth:"100%"}}>{o.short||o.label}</div>
-            <div style={{color:sel?"#fff":Q.gold,fontWeight:700,fontSize:17,
+            <div style={{color:sel?Q.ink:Q.gold,fontWeight:700,fontSize:17,
               lineHeight:1.05,fontFamily:F_NUM}}>{fmt(o.val)}</div>
-            {live&&<div style={{color:sel?"#fff":Q.pink,fontSize:7,marginTop:1,
+            {live&&<div style={{color:sel?Q.ink:Q.pink,fontSize:7,marginTop:1,
               fontWeight:700}}>● LIVE</div>}
           </button>
         );
@@ -1546,7 +1548,7 @@ function GenerarCombo({ moneda, onUsar, userId }){
           <button onClick={()=>onUsar&&onUsar(combo.picks)} style={{
             width:"100%",marginTop:10,
             background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
-            border:"none",borderRadius:10,padding:"12px",color:"#fff",
+            border:"none",borderRadius:10,padding:"12px",color:Q.ink,
             fontSize:13.5,fontWeight:700,cursor:"pointer",
             fontFamily:"'Inter',system-ui"}}>
             Cargar al boleto</button>
@@ -1655,7 +1657,8 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{width:30,height:30,borderRadius:9,
                 background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-                display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>⚡</div>
+                display:"flex",alignItems:"center",justifyContent:"center",
+                color:Q.ink,fontSize:16}}>⚡</div>
               <div>
                 <div style={{color:Q.text,fontWeight:700,fontSize:14,fontFamily:"'Inter',system-ui"}}>AI Combos del día</div>
                 <div style={{color:Q.muted,fontSize:11}}>{realCombos?"Datos reales":"Generados por IAQP IA"}</div>
@@ -1771,7 +1774,7 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
                 }} style={{
                   width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
                   border:"none",borderRadius:12,padding:"16px",
-                  color:"#fff",fontWeight:700,fontSize:15,cursor:"pointer",
+                  color:Q.ink,fontWeight:700,fontSize:15,cursor:"pointer",
                   fontFamily:"'Inter',system-ui",textTransform:"uppercase",
                   boxShadow:`0 6px 24px ${Q.violet}66`,
                   display:"flex",alignItems:"center",justifyContent:"center",gap:8,
@@ -1882,7 +1885,7 @@ function ScreenBetConfirmed({ bets, stake, odd, code, onAction, onRepetir, userI
           {onRepetir&&(bets||[]).length>0&&(
             <button onClick={onRepetir} style={{width:"100%",marginBottom:10,
               background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
-              border:"none",borderRadius:10,padding:"13px",color:"#fff",
+              border:"none",borderRadius:10,padding:"13px",color:Q.ink,
               fontSize:14,fontWeight:700,cursor:"pointer",
               fontFamily:"'Inter',system-ui"}}>
               🔁 Mantener selecciones ({bets.length})</button>
@@ -1946,7 +1949,7 @@ function CashOutBtn({ code, moneda, onHecho }){
       <div style={{display:"flex",gap:6}}>
         <button onClick={ejecutar} disabled={estado==="ejecutando"} style={{flex:1,
           background:`linear-gradient(135deg,${Q.gold},${Q.amber||Q.gold})`,border:"none",
-          borderRadius:9,padding:"10px",color:"#000",fontWeight:800,fontSize:12,cursor:"pointer",
+          borderRadius:9,padding:"10px",color:Q.ink,fontWeight:800,fontSize:12,cursor:"pointer",
           fontFamily:"'Inter',system-ui"}}>
           {estado==="ejecutando"?"...":"Confirmar cash out"}</button>
         <button onClick={()=>setEstado("idle")} style={{
@@ -2414,7 +2417,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
                   objectFit:"cover",borderRadius:7,border:`1px solid ${Q.border}`}}/>
                 <button onClick={()=>quitarImagen(i)} style={{position:"absolute",
                   top:-5,right:-5,width:18,height:18,borderRadius:"50%",
-                  background:Q.pink,border:"none",color:"#fff",fontSize:10,
+                  background:Q.pink,border:"none",color:Q.ink,fontSize:10,
                   cursor:"pointer",lineHeight:1}}>✕</button>
               </div>
             ))}
@@ -2452,7 +2455,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
             background:analizando?ov(0.06)
               :`linear-gradient(135deg,${Q.cyan},${Q.violet})`,
             border:"none",borderRadius:10,padding:"12px",marginBottom:4,
-            cursor:analizando?"wait":"pointer",color:analizando?Q.muted:"#fff",
+            cursor:analizando?"wait":"pointer",color:analizando?Q.muted:Q.ink,
             fontWeight:700,fontSize:13,fontFamily:"'Inter',system-ui"}}>
             {analizando?"Leyendo...":`🔍 Analizar ${imagenes.length} foto${imagenes.length>1?"s":""}`}</button>
         )}
@@ -2596,13 +2599,13 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
                 <button onClick={apostar} style={{width:"100%",
                   background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
                   border:"none",borderRadius:10,padding:"13px",
-                  color:"#fff",fontWeight:800,fontSize:15,cursor:"pointer",
+                  color:Q.ink,fontWeight:800,fontSize:15,cursor:"pointer",
                   marginBottom:8,fontFamily:"'Inter',system-ui"}}>
                   Apostar con mi saldo</button>
 
                 <button onClick={generarBoleto} disabled={generando}
                   style={{width:"100%",background:`linear-gradient(135deg,${Q.green},${Q.cyan})`,
-                    border:"none",borderRadius:10,padding:"13px",color:"#001",
+                    border:"none",borderRadius:10,padding:"13px",color:Q.ink,
                     fontWeight:800,fontSize:15,cursor:"pointer",marginBottom:8,
                     fontFamily:"'Inter',system-ui"}}>
                   {generando?"Generando...":"🎟️ Generar mi código para jugar"}</button>
@@ -2686,7 +2689,7 @@ class CazaError extends Component {
             {String(this.state.err&&this.state.err.stack||"").slice(0,500)}</div>
           <button onClick={()=>this.setState({err:null})}
             style={{background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,border:"none",
-              borderRadius:10,padding:"12px 20px",color:"#fff",fontWeight:700,fontSize:14,
+              borderRadius:10,padding:"12px 20px",color:Q.ink,fontWeight:700,fontSize:14,
               cursor:"pointer"}}>Reintentar</button>
         </div>
       );
@@ -2899,7 +2902,7 @@ function BotonAyuda({ userId, origen }){
             height:40, borderRadius:20, padding:"0 15px",
             background:`linear-gradient(135deg,${Q.violet},${Q.violet2||Q.cyan})`,
             border:"none", boxShadow:"0 4px 16px rgba(0,0,0,.45)",
-            cursor:"pointer", fontSize:13, fontWeight:700, color:"#fff",
+            cursor:"pointer", fontSize:13, fontWeight:700, color:Q.ink,
             display:"flex", alignItems:"center", gap:6,
             fontFamily:"'Inter',system-ui"}}>
           💬 Ayuda</button>
@@ -3137,7 +3140,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
           style={{background:texto.trim()?Q.violet:ov(0.05),border:"none",
             borderRadius:10,padding:"0 17px",
             cursor:texto.trim()?"pointer":"default",
-            color:texto.trim()?"#fff":Q.dim,fontSize:14,fontWeight:700,
+            color:texto.trim()?Q.ink:Q.dim,fontSize:14,fontWeight:700,
             flexShrink:0}}>↑</button>
       </div>
     </div>
@@ -3787,7 +3790,7 @@ function ScreenCasino({ user, vivo }){
                 :"rgba(255,255,255,0.05)",
               border:`1px solid ${!marca?Q.violet:Q.border}`,
               borderRadius:9,padding:"9px 15px",cursor:"pointer",
-              color:!marca?"#fff":Q.muted,fontSize:12,
+              color:!marca?Q.ink:Q.muted,fontSize:12,
               fontWeight:!marca?700:500,
               whiteSpace:"nowrap",flexShrink:0,
               fontFamily:"'Inter',system-ui"}}>Todos</button>
@@ -4282,7 +4285,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
           <button onClick={publicar} disabled={proc}
             style={{width:"100%",marginTop:6,
               background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-              border:"none",borderRadius:9,padding:"10px",color:"#fff",
+              border:"none",borderRadius:9,padding:"10px",color:Q.ink,
               fontSize:13,fontWeight:700,cursor:"pointer",
               fontFamily:"'Inter',system-ui"}}>
             {proc?"Publicando…":"Publicar"}</button>
@@ -4338,7 +4341,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
                 style={{width:"100%",marginTop:9,
                   background:`linear-gradient(135deg,${Q.gold},#c9a227)`,
                   border:"none",borderRadius:9,padding:"11px",
-                  color:"#1a1200",fontSize:13.5,fontWeight:800,
+                  color:Q.ink,fontSize:13.5,fontWeight:800,
                   cursor:"pointer",fontFamily:"'Inter',system-ui"}}>
                 Aceptar el desafío</button>
               )}
@@ -4686,7 +4689,7 @@ function CrearDesafio({ user, cfg, saldo, onListo }){
             ?"rgba(255,255,255,0.06)"
             :`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
           border:"none",borderRadius:11,padding:"14px",
-          color:(!titulo.trim()||!nPongo||!nPido)?Q.dim:"#fff",
+          color:(!titulo.trim()||!nPongo||!nPido)?Q.dim:Q.ink,
           fontSize:14.5,fontWeight:800,
           cursor:proc?"default":"pointer",
           fontFamily:"'Inter',system-ui"}}>
@@ -4974,7 +4977,7 @@ function PanelIacoin({ user, saldo, onCambio }){
           background:!n?"rgba(255,255,255,0.06)"
             :`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
           border:"none",borderRadius:11,padding:"14px",
-          color:!n?Q.dim:"#fff",fontSize:14.5,fontWeight:800,
+          color:!n?Q.dim:Q.ink,fontSize:14.5,fontWeight:800,
           cursor:proc?"default":"pointer",
           fontFamily:"'Inter',system-ui"}}>
         {proc?"Procesando…":(modo==="comprar"?"Comprar IACOIN":"Vender IACOIN")}
@@ -5326,7 +5329,7 @@ function BarraSuperior({ user, onNav, tema, onTema }){
         border:"none",cursor:"pointer",flexShrink:0,
         background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
         display:"flex",alignItems:"center",justifyContent:"center"}}>
-        <span style={{fontFamily:F_NUM,fontSize:13,fontWeight:700,color:"#fff"}}>
+        <span style={{fontFamily:F_NUM,fontSize:13,fontWeight:700,color:Q.ink}}>
           {ini||"·"}</span>
       </button>
       <div style={{position:"absolute",bottom:-1,left:0,right:0,height:1,
@@ -5378,7 +5381,7 @@ function BarraInferior({ actual, onNav }){
           boxShadow:`0 6px 18px ${Q.goldBg}55`,
           display:"flex",flexDirection:"column",alignItems:"center",
           justifyContent:"center",gap:1}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1200"
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={Q.ink}
             strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
             {ICONOS.camara}
           </svg>
@@ -5504,18 +5507,18 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         <div style={{position:"relative"}}>
           <div style={{fontSize:9,letterSpacing:2,fontWeight:800,color:Q.gold,
             fontFamily:F_BODY}}>BET BEST</div>
-          <div style={{fontFamily:F_NUM,fontSize:27,fontWeight:700,color:"#fff",
+          <div style={{fontFamily:F_NUM,fontSize:27,fontWeight:700,color:Q.ink,
             lineHeight:1.02,marginTop:5}}>Sacale una foto<br/>a tu boleto</div>
-          <div style={{fontSize:11.5,color:"#D8E2FF",marginTop:7,lineHeight:1.4,
+          <div style={{fontSize:11.5,color:Q.ink,opacity:.8,marginTop:7,lineHeight:1.4,
             maxWidth:230,fontFamily:F_BODY}}>
             Leemos las selecciones y te decimos si podemos pagarte una cuota mejor.</div>
           <div style={{marginTop:12,display:"inline-flex",alignItems:"center",gap:7,
             background:Q.goldBg,borderRadius:7,padding:"9px 16px"}}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1200"
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={Q.ink}
               strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
               {ICONOS.camara}
             </svg>
-            <span style={{color:"#1A1200",fontWeight:700,fontSize:12.5,
+            <span style={{color:Q.ink,fontWeight:700,fontSize:12.5,
               fontFamily:F_BODY}}>Escanear boleto</span>
           </div>
         </div>
@@ -5588,9 +5591,9 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{fontSize:22}}>🤝</div>
             <div style={{minWidth:0}}>
-              <div style={{color:"#fff",fontWeight:800,fontSize:14,
+              <div style={{color:Q.ink,fontWeight:800,fontSize:14,
                 fontFamily:"'Inter',system-ui"}}>Desafíos</div>
-              <div style={{color:"rgba(255,255,255,.72)",fontSize:10.5,
+              <div style={{color:Q.ink,opacity:.75,fontSize:10.5,
                 marginTop:1,lineHeight:1.35,
                 fontFamily:"'Inter',system-ui"}}>
                 Apostá contra otros jugadores</div>
@@ -5749,7 +5752,7 @@ function CargaDigitalBox({ user, moneda }){
           cursor:"pointer",fontFamily:"'Inter',system-ui"}}>Cancelar</button>
         <button onClick={pedir} disabled={estado==="proc"} style={{flex:1,
           background:`linear-gradient(135deg,${Q.green},${Q.cyan})`,border:"none",borderRadius:10,
-          padding:"11px",color:"#000",fontWeight:800,fontSize:13,cursor:"pointer",
+          padding:"11px",color:Q.ink,fontWeight:800,fontSize:13,cursor:"pointer",
           fontFamily:"'Inter',system-ui"}}>{estado==="proc"?"...":"Obtener CVU"}</button>
       </div>
     </GCard>
@@ -5824,7 +5827,7 @@ function RetiroDigitalBox({ user, moneda, saldo }){
           cursor:"pointer",fontFamily:"'Inter',system-ui"}}>Cancelar</button>
         <button onClick={pedir} disabled={estado==="proc"} style={{flex:1,
           background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,border:"none",borderRadius:10,
-          padding:"11px",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",
+          padding:"11px",color:Q.ink,fontWeight:700,fontSize:13,cursor:"pointer",
           fontFamily:"'Inter',system-ui"}}>{estado==="proc"?"...":"Solicitar"}</button>
       </div>
     </GCard>
@@ -5903,7 +5906,7 @@ function RetiroBox({ moneda, saldo, onHecho }){
             fontFamily:"'Inter',system-ui"}}>Cancelar</button>
         <button onClick={pedir} disabled={estado==="proc"}
           style={{flex:1,background:`linear-gradient(135deg,${Q.gold},${Q.amber||Q.gold})`,
-            border:"none",borderRadius:10,padding:"11px",color:"#000",fontWeight:800,
+            border:"none",borderRadius:10,padding:"11px",color:Q.ink,fontWeight:800,
             fontSize:13,cursor:"pointer",fontFamily:"'Inter',system-ui"}}>
           {estado==="proc"?"...":"Solicitar retiro"}</button>
       </div>
@@ -5972,7 +5975,7 @@ function VincularBox({ moneda, onHecho }){
             fontFamily:"'Inter',system-ui"}}>No</button>
         <button onClick={confirmar}
           style={{flex:1,background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-            border:"none",borderRadius:10,padding:"11px",color:"#fff",fontWeight:700,
+            border:"none",borderRadius:10,padding:"11px",color:Q.ink,fontWeight:700,
             fontSize:13,cursor:"pointer",fontFamily:"'Inter',system-ui"}}>
           Sí, vincular</button>
       </div>
@@ -6008,7 +6011,7 @@ function VincularBox({ moneda, onHecho }){
             fontFamily:"'Inter',system-ui"}}>Cancelar</button>
         <button onClick={buscar} disabled={estado==="proc"}
           style={{flex:1,background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-            border:"none",borderRadius:10,padding:"11px",color:"#fff",fontWeight:700,
+            border:"none",borderRadius:10,padding:"11px",color:Q.ink,fontWeight:700,
             fontSize:13,cursor:"pointer",fontFamily:"'Inter',system-ui"}}>
           {estado==="proc"?"...":"Buscar"}</button>
       </div>
@@ -6196,7 +6199,7 @@ function ScreenRegistro({ user, onListo }){
         </GCard>
         <button onClick={()=>confirmarMatch(true)} disabled={proc} style={{
           width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-          border:"none",borderRadius:12,padding:"15px",color:"#fff",fontWeight:700,fontSize:15,
+          border:"none",borderRadius:12,padding:"15px",color:Q.ink,fontWeight:700,fontSize:15,
           cursor:"pointer",marginBottom:8,fontFamily:"'Inter',system-ui"}}>
           {proc?"Conectando...":"Sí, soy yo · Conectar"}</button>
         <button onClick={()=>confirmarMatch(false)} disabled={proc} style={{
@@ -6214,7 +6217,8 @@ function ScreenRegistro({ user, onListo }){
       <div style={{textAlign:"center",marginBottom:20}}>
         <div style={{width:56,height:56,borderRadius:16,margin:"0 auto 12px",
           background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-          display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,
+          display:"flex",alignItems:"center",justifyContent:"center",
+          color:Q.ink,fontSize:28,
           boxShadow:`0 8px 30px ${Q.violet}55`}}>⬡</div>
         <div style={{color:Q.text,fontWeight:800,fontSize:20,
           fontFamily:"'Inter',system-ui"}}>Creá tu cuenta</div>
@@ -6250,7 +6254,7 @@ function ScreenRegistro({ user, onListo }){
 
       <button onClick={enviar} disabled={proc} style={{
         width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-        border:"none",borderRadius:12,padding:"15px",color:"#fff",fontWeight:700,fontSize:15,
+        border:"none",borderRadius:12,padding:"15px",color:Q.ink,fontWeight:700,fontSize:15,
         cursor:"pointer",marginTop:6,fontFamily:"'Inter',system-ui",
         boxShadow:`0 6px 24px ${Q.violet}55`}}>
         {proc?"Creando...":"Crear cuenta"}</button>
@@ -6469,7 +6473,7 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
                 {genLocal?"...":"🏪 Local"}</button>
               <button onClick={()=>onBet(picks,montoNum||0,tot)} disabled={montoNum<=0}
                 style={{flex:1,background:montoNum>0?`linear-gradient(135deg,${Q.violet},${Q.cyan})`:ov(0.06),
-                  border:"none",borderRadius:11,padding:"13px",color:"#fff",fontWeight:800,fontSize:14,
+                  border:"none",borderRadius:11,padding:"13px",color:montoNum>0?Q.ink:Q.text,fontWeight:800,fontSize:14,
                   cursor:montoNum>0?"pointer":"default",fontFamily:"'Inter',system-ui"}}>
                 {montoNum>0?`Apostar ${money(montoNum,"ARS")}`:"Ingresá un monto"}</button>
             </div>
