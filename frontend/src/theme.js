@@ -8,17 +8,21 @@
 // with one, under the exact key names the screens already read, so no
 // call site (`Q.<key>`, ~5,400 of them) has to change.
 //
-// The dark column below is the prototype's own tokens, copied verbatim
-// from `html/styles.css` (`--ink-950`, `--ink-900`, `--ink-800`, `--line`,
-// `--text`, `--muted`, `--subtle`, `--lime`, `--violet`, `--odds-medium`,
-// `--odds-high`, `--danger`). The prototype has no amber and no gold, so
-// money, codes and odds take lime — in this brand the positive colour is
-// the colour of money — and the warm ramp keeps the caution meaning.
+// The product has one theme: dark. The brand mark is drawn in near-white
+// with a faint outline, made for a dark surface — on a light background
+// no CSS repairs it without inverting its green accents too, so a light
+// theme is not offered. `oscuro` below is the prototype's own tokens,
+// copied verbatim from `html/styles.css` (`--ink-950`, `--ink-900`,
+// `--ink-800`, `--line`, `--text`, `--muted`, `--subtle`, `--lime`,
+// `--violet`, `--odds-medium`, `--odds-high`, `--danger`). The prototype
+// has no amber and no gold, so money, codes and odds take lime — in this
+// brand the positive colour is the colour of money — and the warm ramp
+// keeps the caution meaning.
 //
-// The light column is derived, not invented: same hues, luminosity
-// inverted, every foreground value darkened until it reads on white. The
-// bright accents (`gold`, `goldBg`) never appear as light-mode text; they
-// only ever pair with dark ink as a background, in both themes.
+// A light `claro` palette existed here once, derived from `oscuro` by
+// inverting luminosity, and a `THEMES = { oscuro, claro }` lookup the
+// screens switched between. Both are gone: this module exports the one
+// palette it has.
 //
 // Two key groups have no counterpart in the prototype and are not in the
 // proposal's mapping table, so their values were derived here rather than
@@ -26,15 +30,12 @@
 //
 // - `glass`: a translucent gradient overlay, used only as a background
 //   (never as text), so it carries no contrast requirement. It follows the
-//   same hue-tinted-glass pattern the old `TEMAS.oscuro`/`claro` used, but
-//   tinted with the new violet / cyan-teal pair instead of the old blue.
+//   prototype's hue-tinted-glass pattern, tinted with the violet /
+//   cyan-teal pair.
 // - `pano`, `verde`, `rojo`, `negro`: the roulette table's felt and pocket
 //   colours in Casino.jsx. These describe a physical roulette wheel (green
 //   felt, green/red/black pockets), not a brand accent, and are only ever
-//   used as backgrounds paired with hardcoded white text. They are kept
-//   identical to the values Casino.jsx already had, in both themes: Casino
-//   never switches theme today, and a roulette pocket does not change
-//   colour with a light switch.
+//   used as backgrounds paired with hardcoded white text.
 export const oscuro = {
   void:"#060a14", deep:"#0b1120", dark:"#111a2e",
   surface:"#111a2e", card:"#111a2e", inset:"#060a14",
@@ -46,19 +47,6 @@ export const oscuro = {
   pano:"#0B5137", verde:"#0E7A46", rojo:"#C4162A", negro:"#12182B",
 };
 
-export const claro = {
-  void:"#eef1f7", deep:"#ffffff", dark:"#ffffff",
-  surface:"#ffffff", card:"#f6f8fc", inset:"#f1f4fa",
-  glass:"linear-gradient(160deg,rgba(107,63,212,0.05),rgba(138,95,240,0.02))",
-  border:"#d9e0ee", text:"#0b1120", muted:"#5b6780", dim:"#7c879e",
-  green:"#5b7a0f", gold:"#5b7a0f", goldBg:"#b9ef32",
-  violet:"#6b3fd4", violet2:"#8a5ff0", cyan:"#8a5ff0", teal:"#8a5ff0", blue:"#6b3fd4",
-  amber:"#a8501f", red:"#c2273f", pink:"#c2273f",
-  pano:"#0B5137", verde:"#0E7A46", rojo:"#C4162A", negro:"#12182B",
-};
-
-export const THEMES = { oscuro, claro };
-
 // ═══════════════════════════════════════════════════════════════
 // INK ON AN ACCENT
 //
@@ -66,12 +54,8 @@ export const THEMES = { oscuro, claro };
 // by the accent, not by the theme. The prototype already says so: it
 // pairs `--lime` with `--lime-ink` specifically, not with a global text
 // colour. Generalising that pairing to a single constant was the wrong
-// shape, because the two themes derive their accents differently — the
-// light theme's were made by darkening, so most of them are dark
-// backgrounds wanting light text, while `goldBg` stays bright in both
-// themes and wants dark text in both. One constant cannot answer for
-// both, and the one that shipped white was the same mistake wearing the
-// opposite colour.
+// shape: an accent this bright wants dark text, and the one that shipped
+// white was exactly that mistake.
 //
 // So there are two inks and nobody picks between them by hand:
 //
@@ -85,15 +69,18 @@ export const THEMES = { oscuro, claro };
 // `inkOn` takes the colours a background is actually built from and
 // returns whichever ink reads better on the worst of them. It is given
 // every stop of a gradient, not just one, because a gradient has more
-// than one background and its ends can disagree: `${Q.gold}` into
-// `#c9a227` runs from a dark olive to a bright gold in the light theme,
-// where the light ink reads 4.82 on the first stop and 1.37 on the
-// second. Answering from one end would have shipped that.
+// than one background and its ends can disagree — answering from one end
+// only would risk shipping a stop the chosen ink cannot read.
 //
-// Measured across every accent in both themes and every gradient the
-// screens actually build, the worst pair is 4.09:1, on that gold
-// gradient in the light theme — above the 3.0:1 floor the contrast test
-// holds text to. The best is 14.91:1 on the lime.
+// Every accent this brand currently ships is bright enough that
+// `INK_DARK` wins: measured across every accent and every gradient the
+// screens actually build, the worst pair is 5.75:1, on the violet/blue
+// accent, and the best is 14.91:1 on the lime — both comfortably above
+// the 3.0:1 floor the contrast test holds text to. `INK_LIGHT` is
+// unused by today's single theme, not unreachable: the comparison it
+// exists for is still made and still tested for every accent, and it
+// earns its keep the day a second, differently-toned surface exists to
+// need it.
 export const INK_DARK = "#050700";
 export const INK_LIGHT = "#fbfdf2";
 
