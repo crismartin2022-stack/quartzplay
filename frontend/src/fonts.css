@@ -1,0 +1,34 @@
+/* Poppins — the brand typeface, shipped with the app's own files (no
+   third-party runtime fetch). Weights match the ones theme.js references:
+   400 (body), 500 (medium emphasis), 600 (headings), 700 (display).
+   font-display: swap keeps text visible in the system fallback while a
+   weight is still loading, and reflows once it lands, instead of leaving
+   text invisible. Licence: ./fonts/OFL.txt (SIL Open Font License). */
+@font-face {
+  font-family: "Poppins";
+  src: url("./fonts/poppins-400.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Poppins";
+  src: url("./fonts/poppins-500.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Poppins";
+  src: url("./fonts/poppins-600.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Poppins";
+  src: url("./fonts/poppins-700.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

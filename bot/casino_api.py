@@ -287,6 +287,30 @@ async def sesion_buscar(token: str):
         return None
 
 
+async def jugador_de_sesion(authorization: str | None) -> int | None:
+    """
+    Sesión de cliente web (ver /api/cliente/login). A diferencia de
+    requiere_agencia, nunca lanza: el llamador decide qué hacer si no
+    hay jugador, por ejemplo probando antes la identidad de Telegram.
+
+    Devuelve el id del jugador solo si el token guardado tiene el
+    prefijo 'cliente:' -- una sesión de agencia u otro token no cuentan.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    token = authorization[7:].strip()
+    if not token:
+        return None
+
+    quien = await sesion_buscar(token)
+    if not quien or not str(quien).startswith("cliente:"):
+        return None
+    try:
+        return int(str(quien).split(":", 1)[1])
+    except (TypeError, ValueError):
+        return None
+
+
 async def requiere_agencia(authorization: str = Header(None)) -> str:
     """
     Igual que auth.require_agencia pero mirando también la base,
@@ -15278,6 +15302,13 @@ async def admin_escanear_combo(request: Request, _=Depends(auth.require_admin)):
             "odd_nuestra": None, "odd_ajustada": None,
             "event_id": None, "sport_key": None, "estado": "",
         }
+        if ev is not None:
+            # Hora del evento contra el que se resolvió la cuota. Sin
+            # esto el combo publicado desde acá queda como cada boleto
+            # armado por el escáner antes de este fix: sin inicio
+            # parseable, así que _puede_anular no deja anularlo.
+            item["commence_time"] = ev.get("commence_time")
+
         if ev is None:
             cands = await candidatos_parecidos(home, away)
             item["candidatos"] = cands
@@ -15299,6 +15330,7 @@ async def admin_escanear_combo(request: Request, _=Depends(auth.require_admin)):
                 item["home_real"] = sug.get("home")
                 item["away_real"] = sug.get("away")
                 item["parecido"] = sug.get("parecido")
+                item["commence_time"] = sug.get("commence_time")
                 # Sin aviso por pick: el botón de corregir ya está y
                 # marcar cada uno agrega ruido. El aviso general va
                 # arriba de la lista, una sola vez.
@@ -15647,6 +15679,10 @@ async def create_betslip(request: Request):
         # resultado final para la auto-liquidación.
         event_id  = str(p.get("event_id") or p.get("id") or "")[:64] or None
         sport_key = str(p.get("sport_key") or "")[:60] or None
+        # Se guarda también el mercado: sin esto, todo lo que lee el
+        # pick ya guardado (bloqueos, ajustes de cuota, exposición)
+        # cae siempre al valor por defecto "h2h".
+        market    = str(p.get("market") or "")[:40] or None
         try:
             odd = float(p.get("odd"))
         except (TypeError, ValueError):
@@ -15658,6 +15694,7 @@ async def create_betslip(request: Request):
         limpios.append({"home":home,"away":away,"sel":sel,
                         "odd":round(odd,2),"sport":sport,
                         "event_id":event_id,"sport_key":sport_key,
+                        "market":market,
                         "commence_time":(str(p.get("commence_time")
                                          or p.get("start_time") or "")[:40]
                                          or None)})
@@ -15747,8 +15784,17 @@ async def crear_apuesta(request: Request):
     """
     body  = await request.json()
     user  = validar_init_data(body.get("init_data", ""))
+    web_player_id = None
     if not user or not user.get("id"):
-        raise HTTPException(401, "Abri la app desde el bot de Telegram para apostar")
+        # Sin identidad de Telegram: probamos la sesión de cliente web
+        # (POST /api/cliente/login). Ninguna de las dos deja saber si
+        # el jugador existe -- la respuesta es igual en ambos casos.
+        web_player_id = await jugador_de_sesion(request.headers.get("authorization"))
+        if web_player_id is None:
+            raise HTTPException(401, {
+                "reason": "login_required",
+                "message": "Iniciá sesión para apostar",
+            })
 
     modo  = (body.get("modo") or "reservada").lower()
     if modo not in ("saldo", "bono", "reservada"):
@@ -15787,6 +15833,7 @@ async def crear_apuesta(request: Request):
         limpios.append({"home":home,"away":away,"sel":sel,
                         "odd":round(odd,2),"sport":sport,
                         "event_id":event_id,"sport_key":sport_key,
+                        "market":market,
                         "commence_time":(str(p.get("commence_time")
                                          or p.get("start_time") or "")[:40]
                                          or None)})
@@ -15822,7 +15869,7 @@ async def crear_apuesta(request: Request):
                 "Las cuotas cambiaron o no se pudieron verificar. Volve a armar el boleto.")
         log.warning(f"[ODDS-WARN] apuesta aceptada con observaciones: {problemas}")
 
-    tg_id = str(user["id"])
+    tg_id = str(user["id"]) if user and user.get("id") else str(web_player_id)
     pool  = await get_db()
     async with pool.acquire() as conn:
         u = await conn.fetchrow("""
@@ -18972,9 +19019,9 @@ async def _armar_all_markets():
             markets = parse_markets(ev)
             if not markets:
                 continue
+            crudo = ev.get("commence_time","")
             try:
-                dt = datetime.fromisoformat(
-                    ev.get("commence_time","").replace("Z","+00:00"))
+                dt = datetime.fromisoformat(crudo.replace("Z","+00:00"))
                 fecha = dt.astimezone(TZ_CASA).strftime("%d/%m %H:%M")
             except Exception:
                 fecha = "--/-- --:--"
@@ -18983,6 +19030,11 @@ async def _armar_all_markets():
                 "sport_key": sport_key,
                 "h": home, "a": away,
                 "time": fecha,
+                # Hora cruda en ISO, bajo la misma clave que arma el
+                # catálogo de Sportradar: la usa _inicio_mas_proximo para
+                # decidir si una agencia puede anular. "time" ya perdió
+                # el año y quedó en huso local, así que no sirve para eso.
+                "commence_time": crudo,
                 "markets": markets,
                 "odds": {
                     "L": markets.get("h2h",{}).get(home),
@@ -21908,6 +21960,7 @@ async def candidatos_parecidos(home, away, limite=4):
         "event_id": ev.get("id"), "sport_key": ev.get("sport_key"),
         "opciones": opciones_de_evento(ev),
         "parecido": round(sc, 2),
+        "commence_time": ev.get("commence_time"),
     } for sc, ev in puntuados[:limite]]
 
 
@@ -22048,6 +22101,11 @@ async def mejorar_combinada(request: Request):
             "ajustada": False,
             "estado": "",
         }
+        if ev is not None:
+            # Hora del evento contra el que se resolvió la cuota. Sin
+            # esto ningún boleto armado por el escáner es anulable por
+            # la agencia: _puede_anular exige un inicio parseable.
+            item["commence_time"] = ev.get("commence_time")
 
         if ev is None:
             cands = await candidatos_parecidos(home, away)
@@ -22069,6 +22127,7 @@ async def mejorar_combinada(request: Request):
                 item["home_real"] = sug.get("home")
                 item["away_real"] = sug.get("away")
                 item["parecido"] = sug.get("parecido")
+                item["commence_time"] = sug.get("commence_time")
                 # Sin aviso por pick: el botón de corregir ya está y
                 # marcar cada uno agrega ruido. El aviso general va
                 # arriba de la lista, una sola vez.

@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback, useRef, Component } from "re
 import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
 import { betslipPicks } from "./betslipPicks";
+import { estadoDeAcciones, stakeValido, mensajeDeDetalle } from "./betBestActions";
+import { THEMES as TEMAS, F_NUM, F_BODY } from "./theme";
 
 // ═══════════════════════════════════════════════════════════════
 // IAQP SPORTS — Web App Telegram completa
@@ -18,33 +20,6 @@ import { betslipPicks } from "./betslipPicks";
 // Nota de diseño: en claro el dorado de las cuotas se oscurece a
 // ámbar tostado, porque #FFC531 sobre blanco no se lee. El dorado
 // brillante sobrevive solo como FONDO (goldBg), con texto oscuro.
-const TEMAS = {
-  oscuro: {
-    void:"#050914", deep:"#080E1F", dark:"#0D1530",
-    surface:"#0D1530", card:"#111B3B", inset:"#0A1128",
-    glass:"linear-gradient(160deg,rgba(43,107,255,0.06),rgba(123,63,228,0.03))",
-    violet:"#2B6BFF", violet2:"#7B3FE4",
-    cyan:"#5A8CFF", green:"#25D07A",
-    pink:"#FF2D55", amber:"#FFA51F",
-    gold:"#FFC531", goldBg:"#FFC531", red:"#FF3B5C",
-    blue:"#2B6BFF", teal:"#5A8CFF",
-    text:"#E9EFFF", muted:"#93A0C8", dim:"#5A6690",
-    border:"#1E2A52",
-  },
-  claro: {
-    void:"#EEF1F8", deep:"#FFFFFF", dark:"#FFFFFF",
-    surface:"#FFFFFF", card:"#F6F8FD", inset:"#F1F4FB",
-    glass:"linear-gradient(160deg,rgba(31,90,224,0.05),rgba(106,47,208,0.02))",
-    violet:"#1F5AE0", violet2:"#6A2FD0",
-    cyan:"#1B54C8", green:"#0E8F52",
-    pink:"#D81B45", amber:"#B4700A",
-    gold:"#8A5E00", goldBg:"#FFC531", red:"#C81E3C",
-    blue:"#1F5AE0", teal:"#1B54C8",
-    text:"#0E1A33", muted:"#5A6790", dim:"#8894B8",
-    border:"#D7DEEF",
-  },
-};
-
 function temaGuardado(){
   try{ return localStorage.getItem("qp_tema")==="claro" ? "claro" : "oscuro"; }
   catch(e){ return "oscuro"; }
@@ -89,10 +64,6 @@ function BotonTema({ tema, onCambiar, compacto }){
   );
 }
 
-// Tipografia: condensada para numeros y titulos, Inter para el resto.
-const F_NUM  = "'Barlow Condensed','Inter',system-ui,sans-serif";
-const F_BODY = "'Inter',system-ui,sans-serif";
-
 const { apiUrl: API } = getFrontendConfig();
 
 const fmt = n => Number(n||0).toFixed(2);
@@ -134,11 +105,22 @@ const prod = a => a.reduce((x,y)=>x*y,1);
 // el cajero lo buscaba y siempre daba "no encontrado".
 // event_id y sport_key son los que permiten liquidar por ID contra
 // Sportradar en vez de emparejar por nombre. Antes se perdian en este map.
-function normalizarPicks(picks){
+//
+// home/away: se prefiere home_real/away_real — el nombre que nuestro
+// feed le puso al evento después de emparejarlo (lo que devuelve el
+// escáner de Mejorar mi apuesta) — antes que el texto leído o tecleado
+// en el origen, que rara vez coincide con la ortografía del feed.
+//
+// sel: el escáner llama a la selección "selection"; el resto de la app
+// arma los picks con "label" o "sel". Se prueba selection primero
+// porque ya viene emparejada contra nuestro catálogo, no tecleada.
+//
+// Se exporta para poder testearla sin levantar la pantalla completa.
+export function normalizarPicks(picks){
   return picks.map(p=>({
-    home: p.h || p.home || "",
-    away: p.a || p.away || "",
-    sel:  p.label || p.sel || "",
+    home: p.home_real || p.h || p.home || "",
+    away: p.away_real || p.a || p.away || "",
+    sel:  p.selection || p.label || p.sel || "",
     odd:  p.odd,
     sport: p.sport || "",
     event_id:  p.event_id || p.id || "",
@@ -172,7 +154,10 @@ async function enviarApuesta({ picks, stake, modo, infCode, mismoPartido }){
   }catch(e){ throw new Error("Sin conexión con el servidor"); }
   if(!r.ok){
     const e = await r.json().catch(()=>({}));
-    throw new Error(e.detail || `Error ${r.status}`);
+    // e.detail puede ser un texto plano o un dict {reason,message}
+    // (login_required y afines). Leerlo directo renderiza
+    // "[object Object]" para el segundo caso.
+    throw new Error(mensajeDeDetalle(e.detail).mensaje || `Error ${r.status}`);
   }
   return r.json();
 }
@@ -1571,6 +1556,27 @@ function GenerarCombo({ moneda, onUsar, userId }){
   );
 }
 
+// Un pick de un combo (de la casa o IA), en la forma que confirmBet
+// espera: la misma que arma GenerarCombo un poco más arriba. Antes esto
+// se armaba en el propio onClick de "Apostar" y perdía event_id,
+// sport_key, market y commence_time; peor, ponía el nombre del equipo
+// local como id. La liquidación automática matchea por ese id, así que
+// una combinada apostada así terminaba con un nombre de equipo donde
+// va un event_id.
+export function picksDeCombo(picks){
+  return (picks||[]).map(p=>({
+    id: p.event_id || "",
+    label: p.sel || p.label || "",
+    odd: p.odd,
+    h: p.h || p.home || "",
+    a: p.a || p.away || "",
+    event_id: p.event_id || "",
+    sport_key: p.sport_key || "",
+    market: p.market || "",
+    commence_time: p.commence_time || "",
+  }));
+}
+
 function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
   const [sel,setSel]=useState("c1");
   const [voted,setVoted]=useState({});
@@ -1761,7 +1767,7 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
                       body:JSON.stringify({code:refCode,event:"apuesta_web",amount:stake}),
                     }).catch(()=>{});
                   }
-                  onBet((combo.picks||[]).map(p=>({id:p.h||p.home,label:p.sel,odd:p.odd,h:p.h||p.home,a:p.a||p.away})),stake,tot);
+                  onBet(picksDeCombo(combo.picks),stake,tot);
                 }} style={{
                   width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
                   border:"none",borderRadius:12,padding:"16px",
@@ -2230,12 +2236,16 @@ function CorregirPickApp({ pick, onAplicar, onQuitar }){
 // ═══════════════════════════════════════════════════════════════
 // PANTALLA — MEJORAR MI APUESTA (sube captura de otro sitio)
 // ═══════════════════════════════════════════════════════════════
-function ScreenMejorar({ onAction, user, refCode, escaneo, setEscaneo }){
+function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
   // El escaneo vive en la raíz: si el cliente sale a mirar otra cosa
   // y vuelve, lo que escaneó sigue ahí. Antes se perdía y había que
   // sacar la foto de nuevo.
   const imagenes = escaneo?.imagenes || [];
   const res = escaneo?.res || null;
+  // Una sola derivación decide qué ofrece la pantalla y qué envía: así
+  // el botón de código y el de apostar nunca pueden discrepar sobre
+  // qué picks son jugables. Misma regla que en la versión de navegador.
+  const estado = estadoDeAcciones(res);
   const setImagenes = (v)=>setEscaneo(e=>({...(e||{}),
     imagenes: typeof v==="function" ? v(e?.imagenes||[]) : v}));
   const setRes = (v)=>setEscaneo(e=>({...(e||{}),
@@ -2268,6 +2278,7 @@ function ScreenMejorar({ onAction, user, refCode, escaneo, setEscaneo }){
     const files=Array.from(e.target.files||[]);
     if(!files.length) return;
     setErr(""); setRes(null);
+    setApuestaErr(""); setStakeTexto("");
     files.forEach(file=>{
       if(file.size>8*1024*1024){ setErr("Una imagen supera 8MB"); return; }
       const rd=new FileReader();
@@ -2281,19 +2292,23 @@ function ScreenMejorar({ onAction, user, refCode, escaneo, setEscaneo }){
   const [boleto,setBoleto]=useState(null);
   const [generando,setGenerando]=useState(false);
   const [camaraAbierta,setCamaraAbierta]=useState(false);
+  // Monto para apostar con saldo, aparte del error de la lectura de
+  // imagen: uno es del escaneo, el otro es de la apuesta en sí.
+  const [stakeTexto,setStakeTexto]=useState("");
+  const [apuestaErr,setApuestaErr]=useState("");
   const agregarCapturada=(frame)=>{
     setErr(""); setRes(null);
+    setApuestaErr(""); setStakeTexto("");
     setImagenes(prev=>[...prev,frame]);
   };
 
   const generarBoleto=async()=>{
     if(!res||generando) return;
-    const validos=(res.picks||[]).filter(p=>p.odd_final);
-    if(!validos.length) return;
+    if(!estado.puedeJugar){ setErr(estado.mensaje); return; }
     setGenerando(true);
     try{
       const body={
-        picks: betslipPicks(validos),
+        picks: betslipPicks(estado.jugables),
       };
       if(refCode){ body.inf_code=refCode; body.codigo_influencer=refCode; }
       const r=await fetch(`${API}/api/betslip`,{
@@ -2301,7 +2316,7 @@ function ScreenMejorar({ onAction, user, refCode, escaneo, setEscaneo }){
         body:JSON.stringify(body),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({}));
-        throw new Error(e.detail||`Error ${r.status}`); }
+        throw new Error(mensajeDeDetalle(e.detail).mensaje||`Error ${r.status}`); }
       const d=await r.json();
       setBoleto(d);
       // Ya se generó el código: se limpia el escaneo para que no
@@ -2332,7 +2347,7 @@ function ScreenMejorar({ onAction, user, refCode, escaneo, setEscaneo }){
           init_data:initData}),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({}));
-        throw new Error(e.detail||`Error ${r.status}`); }
+        throw new Error(mensajeDeDetalle(e.detail).mensaje||`Error ${r.status}`); }
       const d=await r.json();
       if(!d.ok) setErr(d.mensaje||"No se pudo leer la imagen");
       else {
@@ -2350,6 +2365,20 @@ function ScreenMejorar({ onAction, user, refCode, escaneo, setEscaneo }){
       }
     }catch(e){ setErr(e.message==="Failed to fetch"?"Sin conexión":e.message); }
     setAnalizando(false);
+  };
+
+  // Reusa la hoja de confirmación que usan Prematch, Live y Combos: ahí
+  // el jugador elige saldo, bono o reservada, y esa hoja es la que
+  // manda a enviarApuesta. Adentro del mini-app el jugador ya está
+  // identificado por init_data, así que no hace falta pedir sesión.
+  const apostar=()=>{
+    if(!estado.puedeJugar){ setErr(estado.mensaje); return; }
+    const stake=stakeValido(stakeTexto);
+    if(stake===null){ setApuestaErr("Ingresá un monto válido para apostar."); return; }
+    setApuestaErr("");
+    // normalizarPicks lee "odd", el escáner devuelve "odd_final".
+    const picks=estado.jugables.map(p=>({...p, odd:p.odd_final}));
+    onBet(picks, stake, res.cuota_total);
   };
 
   const estados={
@@ -2507,7 +2536,16 @@ function ScreenMejorar({ onAction, user, refCode, escaneo, setEscaneo }){
               </div>
             )}
 
-            {res.picks_ok>0&&!boleto&&(
+            {/* Sin nada jugable: se dice por qué en lugar de no ofrecer
+                ningún botón en silencio. */}
+            {!estado.puedeJugar&&!boleto&&(
+              <GCard glow={Q.red} style={{padding:14,marginTop:6,textAlign:"center"}}>
+                <div style={{color:Q.red,fontSize:12,lineHeight:1.5,
+                  fontFamily:"'Inter',system-ui"}}>{estado.mensaje}</div>
+              </GCard>
+            )}
+
+            {estado.puedeJugar&&!boleto&&(
               <GCard glow={Q.green} style={{padding:14,marginTop:6}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
                   <span style={{color:Q.muted,fontSize:12,
@@ -2515,6 +2553,38 @@ function ScreenMejorar({ onAction, user, refCode, escaneo, setEscaneo }){
                   <span style={{color:Q.gold,fontWeight:900,fontSize:20,
                     fontFamily:"'Inter',system-ui"}}>{fmt(res.cuota_total)}x</span>
                 </div>
+
+                {/* Monto y confirmación: reusa la misma hoja que el
+                    resto de la app, así se puede pagar con saldo, bono
+                    o reservar, en vez de un camino aparte. */}
+                <div style={{marginBottom:10}}>
+                  <label htmlFor="qp-stake-mejorar" style={{display:"block",
+                    color:Q.muted,fontSize:11,marginBottom:5,
+                    fontFamily:"'Inter',system-ui"}}>
+                    Monto a apostar
+                    {user?.saldo!=null&&(
+                      <span style={{color:Q.dim}}> · Saldo {ars(user.saldo)}</span>
+                    )}
+                  </label>
+                  <input id="qp-stake-mejorar" type="number" inputMode="numeric"
+                    min="1" value={stakeTexto}
+                    onChange={e=>setStakeTexto(e.target.value)}
+                    placeholder="Ej: 2000" style={{width:"100%",background:Q.inset,
+                      border:`1px solid ${Q.border}`,borderRadius:9,
+                      padding:"11px 13px",color:Q.text,fontSize:15,
+                      fontFamily:F_NUM}}/>
+                </div>
+
+                {apuestaErr&&<div style={{color:Q.red,fontSize:12,
+                  marginBottom:8,fontFamily:"'Inter',system-ui"}}>{apuestaErr}</div>}
+
+                <button onClick={apostar} style={{width:"100%",
+                  background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
+                  border:"none",borderRadius:10,padding:"13px",
+                  color:"#fff",fontWeight:800,fontSize:15,cursor:"pointer",
+                  marginBottom:8,fontFamily:"'Inter',system-ui"}}>
+                  Apostar con mi saldo</button>
+
                 <button onClick={generarBoleto} disabled={generando}
                   style={{width:"100%",background:`linear-gradient(135deg,${Q.green},${Q.cyan})`,
                     border:"none",borderRadius:10,padding:"13px",color:"#001",
@@ -6424,10 +6494,10 @@ export default function QuartzSports(){
   const quitarPick=(id,label)=>setBuilderPicks(ps=>ps.filter(p=>!(p.id===id&&p.label===label)));
   const limpiarPicks=()=>setBuilderPicks([]);
   const cargarComboAlBuilder=(picks)=>{
-    // Cargar los picks de un combo IA al builder para editarlos
-    setBuilderPicks(picks.map(p=>({
-      id:p.h||p.home||p.id, label:p.sel||p.label, odd:p.odd,
-      h:p.h||p.home, a:p.a||p.away})));
+    // Cargar los picks de un combo IA al builder para editarlos.
+    // Mismo mapeo que al apostar el combo directo: editarlo no puede
+    // costarle al boleto el evento, el mercado ni la hora de inicio.
+    setBuilderPicks(picksDeCombo(picks));
     setScreen("builder");
   };
   // La barra de pasos es un atajo de desarrollo: se ve con ?dev=1
@@ -6658,7 +6728,7 @@ export default function QuartzSports(){
         {screen==="combo"     &&<ScreenCombo        onAction={handle} onBet={confirmBet} refCode={refCode} onEditar={cargarComboAlBuilder} moneda={user?.moneda} userId={user?.id}/>}
         {screen==="confirmed" &&<ScreenBetConfirmed bets={betData.bets} stake={betData.stake} odd={betData.odd} code={betData.code} onAction={handle} onRepetir={repetirApuesta} userId={user?.id}/>}
         {screen==="mybets"    &&<ScreenMyBets       onAction={handle} user={user}/>}
-        {screen==="mejorar"   &&<ScreenMejorar escaneo={escaneo} setEscaneo={setEscaneo}      onAction={handle} user={user} refCode={refCode}/>}
+        {screen==="mejorar"   &&<ScreenMejorar escaneo={escaneo} setEscaneo={setEscaneo}      onAction={handle} onBet={confirmBet} user={user} refCode={refCode}/>}
         {screen==="desafios"  &&<ScreenDesafios user={user} onAction={handle}/>}
         {screen==="casino"    &&<ScreenCasino user={user}/>}
         {screen==="casinovivo"&&<ScreenCasino user={user} vivo/>}

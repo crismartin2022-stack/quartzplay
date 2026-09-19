@@ -45,16 +45,7 @@ class CazaError extends Component {
   }
 }
 
-const Q = {
-  void:"#020208", deep:"#060612", dark:"#0A0A1E",
-  glass:"linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))",
-  violet:"#7C3AED", violet2:"#9F5FFF",
-  cyan:"#00F0FF", green:"#00FF88",
-  pink:"#FF0080", amber:"#FFB800",
-  gold:"#E8C547", red:"#FF1744",
-  text:"#F0F0FF", muted:"#6B7090", dim:"#2A2A4A",
-  border:"rgba(124,58,237,0.25)",
-};
+import { oscuro as Q } from "./theme";
 
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 
