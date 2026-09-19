@@ -1435,8 +1435,12 @@ function PantallaTerminal({ codigo, onSeguir }){
           fontFamily:F_BODY}}>
           Empezar</button>
 
+        {/* Sigue siendo cierto en esta pantalla: elegir partidos y
+            generar el código no pide cuenta. La cuenta la pide el
+            escáner, que no es este camino. */}
         <div style={{color:Q.dim,fontSize:11.5,marginTop:16,
           lineHeight:1.55,fontFamily:F_BODY}}>
+          No hace falta cuenta ni registrarse.<br/>
           El boleto se paga en este mostrador.</div>
 
         <div style={{color:Q.dim,fontSize:11,marginTop:26,

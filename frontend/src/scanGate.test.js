@@ -88,8 +88,12 @@ describe("the missing account is the first thing said", () => {
 });
 
 describe("the screen does not promise otherwise", () => {
-  test("nothing on the site tells a visitor an account is unnecessary", () => {
-    expect(web).not.toContain("No hace falta cuenta");
-    expect(web).not.toMatch(/sin registrarse/i);
+  // Scoped to the scanner on purpose. The terminal landing still says an
+  // account is unnecessary, and it is still right: choosing matches and
+  // generating a code to pay at the counter never asks for one. Only
+  // scanning does.
+  test("the scanner does not tell a visitor an account is unnecessary", () => {
+    expect(scanner).not.toContain("No hace falta cuenta");
+    expect(scanner).not.toMatch(/sin registrarse/i);
   });
 });
