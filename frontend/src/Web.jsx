@@ -4643,9 +4643,7 @@ export default function Web(){
         display:"flex",alignItems:"center",gap:ancho?22:12,
         padding:ancho?"0 18px":"0 10px",height:56,
         position:"sticky",top:0,zIndex:100}}>
-        <span style={{fontFamily:F_NUM,fontSize:ancho?23:19,fontWeight:700,
-          letterSpacing:.4,whiteSpace:"nowrap"}}>
-          IA<span style={{color:Q.gold}}>QP</span></span>
+        <BrandMark size={ancho?23:19}/>
 
         {/* El saldo, a la izquierda junto al logo. La navegación
             vive toda en la barra de abajo. */}

@@ -213,13 +213,12 @@ function GCard({ children, style={}, glow, onClick }){
 // para no tocar los lugares donde ya estaba puesto.
 function Particles(){ return null; }
 
-// Antes dibujaba su propio hexágono en SVG junto a "IAQP" en degradé,
-// como placeholder de un logo que todavía no existía. Ahora que el logo
-// real está disponible (BrandMark), el hexágono queda de más: la imagen
-// misma es la marca, tal como la usa el prototipo (sin hexágono al lado).
-function QPLogo({ size=20 }){
-  return <BrandMark size={size}/>;
-}
+// QPLogo lived here, drawing its own hexagon beside "IAQP". It was never
+// rendered anywhere in this file (confirmed: no `<QPLogo` anywhere in
+// src/, and it was not exported), so the earlier pass that swapped its
+// SVG for BrandMark shipped a second, unused answer to a question this
+// file's real header (BarraSuperior, below) already asks differently.
+// Removed rather than kept updated-but-dead.
 
 function HBadge({ label, color=Q.violet }){
   return(
@@ -284,8 +283,7 @@ function BotMsg({ children, time="9:41" }){
           por debajo de su contenido y los nombres largos de equipos
           empujan toda la pantalla hacia la derecha. */}
       <div style={{flex:1,minWidth:0}}>
-        <div style={{color:Q.violet2,fontSize:11,fontWeight:700,marginBottom:3,
-          fontFamily:"'Inter',system-ui",letterSpacing:0.3}}>IAQP</div>
+        <BrandMark size={11} style={{marginBottom:3}}/>
         <GCard style={{padding:"14px"}}>
           {children}
           <div style={{textAlign:"right",marginTop:6,color:Q.muted,fontSize:9,
@@ -5304,8 +5302,7 @@ function BarraSuperior({ user, onNav, tema, onTema }){
       padding:"9px 13px calc(9px)",position:"relative"}}>
       <button onClick={()=>onNav("home")} style={{background:"transparent",border:"none",
         cursor:"pointer",padding:0,display:"flex",alignItems:"center"}}>
-        <span style={{fontFamily:F_NUM,fontSize:20,fontWeight:700,color:Q.text,
-          letterSpacing:0.4}}>IA<span style={{color:Q.gold}}>QP</span></span>
+        <BrandMark size={20}/>
       </button>
       <div style={{flex:1}}/>
       {user?.saldo!=null&&(
