@@ -2528,10 +2528,12 @@ function CampanaWeb({ sesion }){
             </div>
 
             {avisos.length===0&&(
-              <div style={{color:Q.muted,fontSize:13,textAlign:"center",
-                padding:"24px 12px",lineHeight:1.6,
-                fontFamily:F_BODY}}>
-                No hay novedades por ahora.</div>
+              <div style={{textAlign:"center",padding:"24px 12px"}}>
+                <Mascot size={56} style={{margin:"0 auto 8px"}}/>
+                <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
+                  fontFamily:F_BODY}}>
+                  No hay novedades por ahora.</div>
+              </div>
             )}
 
             {avisos.map(a=>(
@@ -2739,10 +2741,12 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
                 </div>
 
                 {(hist.movimientos||[]).length===0&&(
-                  <div style={{color:Q.muted,textAlign:"center",
-                    padding:"30px 20px",fontSize:13,lineHeight:1.6,
-                    fontFamily:F_BODY}}>
-                    Todavía no jugaste nada.</div>
+                  <div style={{textAlign:"center",padding:"30px 20px"}}>
+                    <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+                    <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
+                      fontFamily:F_BODY}}>
+                      Todavía no jugaste nada.</div>
+                  </div>
                 )}
 
                 {(hist.movimientos||[]).map((m,i)=>(
@@ -3911,6 +3915,7 @@ function MisDesafiosWeb({ user, onCambio }){
 
   if(!lista.length) return(
     <div style={{textAlign:"center",padding:"36px 20px"}}>
+      <Mascot size={64} style={{margin:"0 auto 8px"}}/>
       <div style={{color:Q.muted,fontSize:13.5,lineHeight:1.6,
         fontFamily:F_BODY}}>
         Todavía no participaste de ningún desafío.</div>
@@ -4046,6 +4051,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
 
   if(!cot) return(
     <div style={{textAlign:"center",padding:"36px 20px"}}>
+      <Mascot size={64} style={{margin:"0 auto 8px"}}/>
       <div style={{color:Q.muted,fontSize:13.5,lineHeight:1.6,
         fontFamily:F_BODY}}>
         Todavía no hay cotización para tu moneda.<br/>
@@ -4854,11 +4860,13 @@ export default function Web(){
           {vista==="vivo"&&(
             <div style={{marginBottom:16}}>
               {!vivosFiltrados.length&&(
-                <div style={{..._panel(),padding:"40px 20px",textAlign:"center",
-                  color:Q.muted,fontSize:13}}>
-                  {grupo
-                    ? `No hay ${(GRUPOS[grupo]||grupo).toLowerCase()} en vivo ahora.`
-                    : "No hay partidos en vivo en este momento."}</div>
+                <div style={{..._panel(),padding:"40px 20px",textAlign:"center"}}>
+                  <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+                  <div style={{color:Q.muted,fontSize:13}}>
+                    {grupo
+                      ? `No hay ${(GRUPOS[grupo]||grupo).toLowerCase()} en vivo ahora.`
+                      : "No hay partidos en vivo en este momento."}</div>
+                </div>
               )}
               {vivosFiltrados.length>0&&(
                 <>
@@ -4891,9 +4899,11 @@ export default function Web(){
           )}
 
           {vista==="prematch"&&!cargando&&!listado.length&&(
-            <div style={{..._panel(),padding:"40px 20px",textAlign:"center",
-              color:Q.muted,fontSize:13}}>
-              No hay partidos disponibles en este momento.</div>
+            <div style={{..._panel(),padding:"40px 20px",textAlign:"center"}}>
+              <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+              <div style={{color:Q.muted,fontSize:13}}>
+                No hay partidos disponibles en este momento.</div>
+            </div>
           )}
 
           {vista==="prematch"&&listado.map(grupo=>(

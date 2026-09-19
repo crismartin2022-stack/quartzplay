@@ -3300,10 +3300,12 @@ function HistorialJuegos({ user, onCerrar }){
               padding:24,fontSize:13}}>Cargando…</div>}
 
             {d&&movs.length===0&&(
-              <div style={{color:Q.muted,textAlign:"center",
-                padding:"30px 20px",fontSize:13,lineHeight:1.6,
-                fontFamily:"'Inter',system-ui"}}>
-                No hay movimientos en este período.</div>
+              <div style={{textAlign:"center",padding:"30px 20px"}}>
+                <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+                <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
+                  fontFamily:"'Inter',system-ui"}}>
+                  No hay movimientos en este período.</div>
+              </div>
             )}
 
             {movs.map((m,i)=>(
@@ -3345,10 +3347,12 @@ function HistorialJuegos({ user, onCerrar }){
               padding:24,fontSize:13}}>Cargando…</div>}
 
             {porJuego&&porJuego.juegos.length===0&&(
-              <div style={{color:Q.muted,textAlign:"center",
-                padding:"30px 20px",fontSize:13,lineHeight:1.6,
-                fontFamily:"'Inter',system-ui"}}>
-                Todavía no jugaste al casino.</div>
+              <div style={{textAlign:"center",padding:"30px 20px"}}>
+                <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+                <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
+                  fontFamily:"'Inter',system-ui"}}>
+                  Todavía no jugaste al casino.</div>
+              </div>
             )}
 
             {(porJuego?.juegos||[]).map(j=>(
@@ -4737,6 +4741,7 @@ function MisDesafios({ user, onCambio }){
 
   if(!lista.length) return(
     <div style={{textAlign:"center",padding:"30px 20px"}}>
+      <Mascot size={64} style={{margin:"0 auto 8px"}}/>
       <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
         fontFamily:"'Inter',system-ui"}}>
         Todavía no participaste de ningún desafío.</div>
@@ -4870,6 +4875,7 @@ function PanelIacoin({ user, saldo, onCambio }){
 
   if(!cot) return(
     <div style={{textAlign:"center",padding:"30px 20px"}}>
+      <Mascot size={64} style={{margin:"0 auto 8px"}}/>
       <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
         fontFamily:"'Inter',system-ui"}}>
         Todavía no hay cotización para tu moneda.<br/>
@@ -5414,6 +5420,12 @@ function ScreenHome({ user, onNav, onBet, refCode }){
 
   return(
     <div style={{padding:"14px 12px 20px"}}>
+      {/* Mascota de inicio, donde la pone el prototipo (player-home.html:
+          `.mascot-header`, junto al encabezado de la pantalla de inicio).
+          Puramente decorativa, no desplaza nada de lo que ya había abajo. */}
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
+        <Mascot size={56}/>
+      </div>
       {/* Partidos en vivo. Se cargaban pero nunca se mostraban: el
           código quedó a medias y el inicio no los dibujaba. */}
       {live&&live.length>0&&(
@@ -5644,6 +5656,7 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         </GCard>
       )):(
         <GCard style={{padding:20,textAlign:"center"}}>
+          <Mascot size={64} style={{margin:"0 auto 8px"}}/>
           <div style={{color:Q.muted,fontSize:12,fontFamily:"'Inter',system-ui"}}>
             No hay eventos en vivo ahora</div>
         </GCard>
