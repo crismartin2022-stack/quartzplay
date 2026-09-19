@@ -16,54 +16,21 @@ import {
   estadoDeAcciones, stakeValido, mensajeDeDetalle, cuerpoDeApuesta,
   hasIdentity,
 } from "./betBestActions";
-import { THEMES as TEMAS, F_NUM, F_BODY, inkOn } from "./theme";
+import { oscuro as Q, F_NUM, F_BODY, inkOn } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot from "./Mascot";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 
-function temaGuardado(){
-  try{ return localStorage.getItem("qp_tema")==="claro" ? "claro" : "oscuro"; }
-  catch(e){ return "oscuro"; }
-}
-
-let TEMA = temaGuardado();
-let Q = TEMAS[TEMA];
-
-function aplicarTema(nombre){
-  TEMA = nombre==="claro" ? "claro" : "oscuro";
-  Q = TEMAS[TEMA];
-  try{ localStorage.setItem("qp_tema", TEMA); }catch(e){}
+// Un único tema. Los ~1000 usos de Q.algo siguen funcionando sin
+// tocarlos porque Q es la paleta oscura importada directamente.
+function aplicarTema(){
   try{ document.body.style.background = Q.void; }catch(e){}
 }
 
-// Superposiciones (hover, vidrio). En claro tienen que oscurecer,
-// no aclarar: blanco sobre blanco no se ve.
+// Superposiciones (hover, vidrio).
 function ov(a){
-  return TEMA==="claro" ? `rgba(15,26,51,${a})` : `rgba(255,255,255,${a})`;
-}
-
-// Botón para alternar. Se usa en las tres superficies.
-function BotonTema({ tema, onCambiar, compacto }){
-  const claro = tema==="claro";
-  return(
-    <button onClick={()=>onCambiar(claro?"oscuro":"claro")}
-      aria-label={claro?"Cambiar a modo noche":"Cambiar a modo día"}
-      title={claro?"Modo noche":"Modo día"}
-      style={{width:compacto?30:34,height:compacto?30:34,borderRadius:"50%",
-        flexShrink:0,background:"transparent",border:`1px solid ${Q.border}`,
-        cursor:"pointer",display:"flex",alignItems:"center",
-        justifyContent:"center",padding:0}}>
-      <svg width={compacto?15:17} height={compacto?15:17} viewBox="0 0 24 24"
-        fill="none" stroke={Q.muted} strokeWidth="1.8"
-        strokeLinecap="round" strokeLinejoin="round">
-        {claro
-          ? <path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>
-          : <><circle cx="12" cy="12" r="4"/>
-              <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></>}
-      </svg>
-    </button>
-  );
+  return `rgba(255,255,255,${a})`;
 }
 
 const fmt  = n => Number(n||0).toFixed(2);
@@ -4509,9 +4476,7 @@ export default function Web(){
   // ligas. Va DESPUÉS de declarar vista: antes reventaba al abrir.
   const esDeportes = vista==="prematch" || vista==="vivo";   // prematch | vivo
   const [boletoAbierto,setBoletoAbierto]=useState(false);
-  const [tema,setTema]=useState(temaGuardado());
-  const cambiarTema=(t)=>{ aplicarTema(t); setTema(t); };
-  aplicarTema(tema);
+  aplicarTema();
   const [ancho,setAncho]=useState(typeof window!=="undefined"?window.innerWidth>=1000:true);
 
   // Código de referido del enlace (?ref=CODIGO o ?scan=CODIGO). Sin esto,
@@ -4690,8 +4655,6 @@ export default function Web(){
             color:Q.cyan,fontSize:12.5,fontWeight:700,cursor:"pointer",
             whiteSpace:"nowrap"}}>Ingresar</button>
         )}
-
-        <BotonTema tema={tema} onCambiar={cambiarTema} compacto/>
 
         {ancho&&(
           <button onClick={()=>setConsultar(true)} style={{background:"transparent",

@@ -3,7 +3,7 @@ import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
 import { betslipPicks } from "./betslipPicks";
 import { estadoDeAcciones, stakeValido, mensajeDeDetalle } from "./betBestActions";
-import { THEMES as TEMAS, F_NUM, F_BODY, inkOn } from "./theme";
+import { oscuro as Q, F_NUM, F_BODY, inkOn } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot from "./Mascot";
 
@@ -13,57 +13,16 @@ import Mascot from "./Mascot";
 // Mercados expandidos: 1X2, O/U, BTTS, Handicap
 // Códigos QP desde la web
 // ═══════════════════════════════════════════════════════════════
-// ── TEMAS ─────────────────────────────────────────────────────
-// Dos paletas con las MISMAS claves, así los ~1000 usos de Q.algo
-// siguen funcionando sin tocarlos. Al cambiar de tema se reasigna Q
-// y la raíz vuelve a renderizar: como ningún componente está
-// memoizado, todo el árbol toma los colores nuevos.
-//
-// Nota de diseño: en claro el dorado de las cuotas se oscurece a
-// ámbar tostado, porque #FFC531 sobre blanco no se lee. El dorado
-// brillante sobrevive solo como FONDO (goldBg), con texto oscuro.
-function temaGuardado(){
-  try{ return localStorage.getItem("qp_tema")==="claro" ? "claro" : "oscuro"; }
-  catch(e){ return "oscuro"; }
-}
-
-let TEMA = temaGuardado();
-let Q = TEMAS[TEMA];
-
-function aplicarTema(nombre){
-  TEMA = nombre==="claro" ? "claro" : "oscuro";
-  Q = TEMAS[TEMA];
-  try{ localStorage.setItem("qp_tema", TEMA); }catch(e){}
+// ── Tema ──────────────────────────────────────────────────────
+// Un único tema. Los ~1000 usos de Q.algo siguen funcionando sin
+// tocarlos porque Q es la paleta oscura importada directamente.
+function aplicarTema(){
   try{ document.body.style.background = Q.void; }catch(e){}
 }
 
-// Superposiciones (hover, vidrio). En claro tienen que oscurecer,
-// no aclarar: blanco sobre blanco no se ve.
+// Superposiciones (hover, vidrio).
 function ov(a){
-  return TEMA==="claro" ? `rgba(15,26,51,${a})` : `rgba(255,255,255,${a})`;
-}
-
-// Botón para alternar. Se usa en las tres superficies.
-function BotonTema({ tema, onCambiar, compacto }){
-  const claro = tema==="claro";
-  return(
-    <button onClick={()=>onCambiar(claro?"oscuro":"claro")}
-      aria-label={claro?"Cambiar a modo noche":"Cambiar a modo día"}
-      title={claro?"Modo noche":"Modo día"}
-      style={{width:compacto?30:34,height:compacto?30:34,borderRadius:"50%",
-        flexShrink:0,background:"transparent",border:`1px solid ${Q.border}`,
-        cursor:"pointer",display:"flex",alignItems:"center",
-        justifyContent:"center",padding:0}}>
-      <svg width={compacto?15:17} height={compacto?15:17} viewBox="0 0 24 24"
-        fill="none" stroke={Q.muted} strokeWidth="1.8"
-        strokeLinecap="round" strokeLinejoin="round">
-        {claro
-          ? <path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>
-          : <><circle cx="12" cy="12" r="4"/>
-              <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></>}
-      </svg>
-    </button>
-  );
+  return `rgba(255,255,255,${a})`;
 }
 
 const { apiUrl: API } = getFrontendConfig();
@@ -5292,7 +5251,7 @@ function AvisosBanner({ destino, agenciaCode }){
 }
 
 // ── Barra superior: logo (vuelve al inicio), saldo y cuenta ────
-function BarraSuperior({ user, onNav, tema, onTema }){
+function BarraSuperior({ user, onNav }){
   const mon = user?.moneda || "ARS";
   const ini = (user?.nombre_completo || user?.first_name || "").trim()
     .split(" ").filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("");
@@ -5313,7 +5272,6 @@ function BarraSuperior({ user, onNav, tema, onTema }){
             marginTop:2}}>{money(user.saldo,mon)}</div>
         </div>
       )}
-      <BotonTema tema={tema} onCambiar={onTema} compacto/>
       <button onClick={()=>onNav("cuenta")} style={{width:32,height:32,borderRadius:"50%",
         border:"none",cursor:"pointer",flexShrink:0,
         background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
@@ -6609,9 +6567,7 @@ export default function QuartzSports(){
     setBetsARestaurar(previas);
     setScreen("prematch");
   };
-  const [tema,setTema]=useState(temaGuardado());
-  const cambiarTema=(t)=>{ aplicarTema(t); setTema(t); };
-  aplicarTema(tema);   // se aplica en cada render, antes de pintar los hijos
+  aplicarTema();   // se aplica en cada render, antes de pintar los hijos
   const confirmBet=(bets,stake,odd)=>{
     setErrorGlobal("");
     setConfirmando({bets,stake,odd});
@@ -6674,7 +6630,7 @@ export default function QuartzSports(){
       `}</style>
 
 
-      <BarraSuperior user={user} onNav={setScreen} tema={tema} onTema={cambiarTema}/>
+      <BarraSuperior user={user} onNav={setScreen}/>
 
       {/* Barra de pasos — atajo de desarrollo, oculta por defecto */}
       {verPasos&&<div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,

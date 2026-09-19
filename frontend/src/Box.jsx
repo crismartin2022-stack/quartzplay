@@ -7,7 +7,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { useState, useEffect } from "react";
 import { getFrontendConfig } from "./config";
-import { THEMES as TEMAS, F_NUM, F_BODY } from "./theme";
+import { oscuro as Q, F_NUM, F_BODY } from "./theme";
 import Icon from "./Icon";
 import BrandMark from "./BrandMark";
 
@@ -29,48 +29,15 @@ function horaLocal(ev){
 
 const { apiUrl: API } = getFrontendConfig();
 
-function temaGuardado(){
-  try{ return localStorage.getItem("qp_tema")==="claro" ? "claro" : "oscuro"; }
-  catch(e){ return "oscuro"; }
-}
-
-let TEMA = temaGuardado();
-let Q = TEMAS[TEMA];
-
-function aplicarTema(nombre){
-  TEMA = nombre==="claro" ? "claro" : "oscuro";
-  Q = TEMAS[TEMA];
-  try{ localStorage.setItem("qp_tema", TEMA); }catch(e){}
+// Un único tema. Los ~1000 usos de Q.algo siguen funcionando sin
+// tocarlos porque Q es la paleta oscura importada directamente.
+function aplicarTema(){
   try{ document.body.style.background = Q.void; }catch(e){}
 }
 
-// Superposiciones (hover, vidrio). En claro tienen que oscurecer,
-// no aclarar: blanco sobre blanco no se ve.
+// Superposiciones (hover, vidrio).
 function ov(a){
-  return TEMA==="claro" ? `rgba(15,26,51,${a})` : `rgba(255,255,255,${a})`;
-}
-
-// Botón para alternar. Se usa en las tres superficies.
-function BotonTema({ tema, onCambiar, compacto }){
-  const claro = tema==="claro";
-  return(
-    <button onClick={()=>onCambiar(claro?"oscuro":"claro")}
-      aria-label={claro?"Cambiar a modo noche":"Cambiar a modo día"}
-      title={claro?"Modo noche":"Modo día"}
-      style={{width:compacto?30:34,height:compacto?30:34,borderRadius:"50%",
-        flexShrink:0,background:"transparent",border:`1px solid ${Q.border}`,
-        cursor:"pointer",display:"flex",alignItems:"center",
-        justifyContent:"center",padding:0}}>
-      <svg width={compacto?15:17} height={compacto?15:17} viewBox="0 0 24 24"
-        fill="none" stroke={Q.muted} strokeWidth="1.8"
-        strokeLinecap="round" strokeLinejoin="round">
-        {claro
-          ? <path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>
-          : <><circle cx="12" cy="12" r="4"/>
-              <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></>}
-      </svg>
-    </button>
-  );
+  return `rgba(255,255,255,${a})`;
 }
 
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
@@ -804,9 +771,7 @@ export default function Box(){
   };
 
   // ── Estilos base full-screen ──
-  const [tema,setTema]=useState(temaGuardado());
-  const cambiarTema=(t)=>{ aplicarTema(t); setTema(t); };
-  aplicarTema(tema);
+  aplicarTema();
 
   const wrap={minHeight:"100dvh",background:Q.void,color:Q.text,
     fontFamily:F_BODY,
@@ -940,9 +905,6 @@ export default function Box(){
           <BrandMark size={26}/>
           <div style={{color:Q.muted,fontSize:12,marginTop:3}}>
             {agencia.name} · Terminal</div>
-        </div>
-        <div style={{marginLeft:"auto"}}>
-          <BotonTema tema={tema} onCambiar={cambiarTema}/>
         </div>
         {picks.length>0&&(
           <div style={{textAlign:"right"}}>
