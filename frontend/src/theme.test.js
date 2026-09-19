@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { oscuro, claro, THEMES, F_NUM, F_BODY } from "./theme";
+import {
+  oscuro, claro, THEMES, F_NUM, F_BODY, inkOn, INK_DARK, INK_LIGHT,
+} from "./theme";
 
 const SRC = path.resolve(__dirname);
 
@@ -27,7 +29,7 @@ const MAPPING = {
   amber: ["#ffab9d", "#a8501f"], red: ["#ff7c8d", "#c2273f"],
   pink: ["#ff7c8d", "#c2273f"], pano: ["#0B5137", "#0B5137"],
   verde: ["#0E7A46", "#0E7A46"], rojo: ["#C4162A", "#C4162A"],
-  negro: ["#12182B", "#12182B"], ink: ["#050700", "#050700"],
+  negro: ["#12182B", "#12182B"],
 };
 
 const EXPECTED_DARK = Object.fromEntries(
@@ -105,13 +107,13 @@ const FOREGROUND_KEYS = [
 // the ink is what goes on top.
 //
 // The list is derived rather than written out: an accent is any theme key
-// that is not a surface, not a text tier, not the ink itself, not the
-// glass overlay and not one of Casino's roulette felt/pocket colours
-// (which describe a physical table, not a brand accent). So an accent
-// added to the theme is covered here without this file being edited.
+// that is not a surface, not a text tier, not the glass overlay and not
+// one of Casino's roulette felt/pocket colours (which describe a physical
+// table, not a brand accent). So an accent added to the theme is covered
+// here without this file being edited.
 const NON_ACCENT_KEYS = [
   ...SURFACE_KEYS,
-  "ink", "glass", "border", "text", "muted", "dim",
+  "glass", "border", "text", "muted", "dim",
   "pano", "verde", "rojo", "negro",
 ];
 const ACCENT_KEYS = Object.keys(oscuro).filter(
@@ -155,9 +157,35 @@ describe("both themes are readable", () => {
       });
     });
 
-    test.each(ACCENT_KEYS)("the ink reads on %s as a background", (key) => {
-      const ratio = contrastRatio(theme.ink, theme[key]);
+    test.each(ACCENT_KEYS)("inkOn reads on %s as a background", (key) => {
+      const ratio = contrastRatio(inkOn(theme[key]), theme[key]);
       expect(ratio).toBeGreaterThanOrEqual(CONTRAST_THRESHOLD);
+    });
+
+    test.each(ACCENT_KEYS)("inkOn takes the better of the two inks on %s", (key) => {
+      // The ink belongs to the accent, not to the theme. The light
+      // theme's accents were derived by darkening, so most of them are
+      // dark backgrounds wanting light text, while `goldBg` stays bright
+      // in both themes and wants dark text in both. Nobody chooses: the
+      // helper measures.
+      const chosen = inkOn(theme[key]);
+      const other = chosen === INK_DARK ? INK_LIGHT : INK_DARK;
+      expect(contrastRatio(chosen, theme[key]))
+        .toBeGreaterThanOrEqual(contrastRatio(other, theme[key]));
+    });
+
+    test("inkOn answers for a gradient, on its worst end", () => {
+      // A gradient has more than one background. The ink has to read on
+      // all of them, so the helper takes every stop and the answer does
+      // not depend on which end is named first.
+      ACCENT_KEYS.forEach((start) => {
+        ACCENT_KEYS.forEach((end) => {
+          const ink = inkOn(theme[start], theme[end]);
+          expect(ink).toBe(inkOn(theme[end], theme[start]));
+          expect(contrastRatio(ink, theme[start])).toBeGreaterThanOrEqual(CONTRAST_THRESHOLD);
+          expect(contrastRatio(ink, theme[end])).toBeGreaterThanOrEqual(CONTRAST_THRESHOLD);
+        });
+      });
     });
   });
 
@@ -169,14 +197,26 @@ describe("both themes are readable", () => {
       expect.arrayContaining(["violet", "violet2", "cyan", "green", "goldBg"])
     );
     SURFACE_KEYS.forEach((key) => expect(ACCENT_KEYS).not.toContain(key));
-    expect(ACCENT_KEYS).not.toContain("ink");
   });
 
-  test("the ink is one value in both themes", () => {
-    // An accent used as a background keeps its bright value whichever
-    // theme is on (that is what `goldBg` already encodes), so the ink
-    // that pairs with it does not change either.
-    expect(claro.ink).toBe(oscuro.ink);
+  test("the two inks are a dark/light pair, and neither is a theme key", () => {
+    expect(contrastRatio(INK_DARK, INK_LIGHT)).toBeGreaterThanOrEqual(CONTRAST_THRESHOLD);
+    // They are not part of either theme: which ink applies is decided by
+    // the accent underneath, not by the theme that is on.
+    expect(Object.keys(oscuro)).not.toContain("ink");
+    expect(Object.keys(claro)).not.toContain("ink");
+  });
+
+  test("inkOn falls back to the dark ink when it is handed nothing it can read", () => {
+    // A render must not throw over a colour it cannot parse.
+    expect(inkOn(undefined)).toBe(INK_DARK);
+    expect(inkOn("transparent")).toBe(INK_DARK);
+    expect(inkOn()).toBe(INK_DARK);
+  });
+
+  test("inkOn reads three-digit hex the same as six", () => {
+    expect(inkOn("#fff")).toBe(inkOn("#ffffff"));
+    expect(inkOn("#000")).toBe(inkOn("#000000"));
   });
 
   test("the bright accent (goldBg) never darkens for a theme, unlike gold/green", () => {
@@ -188,13 +228,16 @@ describe("both themes are readable", () => {
     expect(claro.goldBg).toBe(oscuro.goldBg);
   });
 
-  test("the brand's dark ink reads clearly against goldBg in both themes", () => {
+  test("the brand's dark ink is what inkOn picks for goldBg, in both themes", () => {
     // The prototype's "--lime-ink" (html/styles.css) is the dark ink the
     // brand pairs with its bright accent when it is used as a background.
-    // `Q.ink` is that idea generalised to every accent, so it must still
-    // clear the stricter small-text bar on the accent it came from.
-    expect(contrastRatio(oscuro.goldBg, oscuro.ink)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(claro.goldBg, claro.ink)).toBeGreaterThanOrEqual(4.5);
+    // That pairing is the one case the brand already decided, so it is
+    // the one the helper must reproduce — and it must still clear the
+    // stricter small-text bar on the accent it came from.
+    [oscuro, claro].forEach((theme) => {
+      expect(inkOn(theme.goldBg)).toBe(INK_DARK);
+      expect(contrastRatio(theme.goldBg, INK_DARK)).toBeGreaterThanOrEqual(4.5);
+    });
   });
 });
 
@@ -203,7 +246,7 @@ describe("both themes are readable", () => {
 // accent. It cannot prove the screens use it, and what shipped to
 // production was white hardcoded on top of an accent gradient. So this
 // reads the source the way scanGate.test.js does and names the file.
-describe("no accent background carries white", () => {
+describe("no accent background picks its own ink", () => {
   // The screens this change covers. `Admin.jsx`, `Agencia.jsx` and
   // `Box.jsx` carry the same pattern and follow in their own change.
   const SCREENS = ["Web.jsx", "App.jsx", "Casino.jsx"];
@@ -214,7 +257,11 @@ describe("no accent background carries white", () => {
   const OPAQUE_ACCENT = new RegExp(
     `\\bQ\\.(?:${ACCENT_KEYS.join("|")})\\b(?!\\}?[0-9a-fA-F])`
   );
-  const WHITE = /["'](?:#fff|#ffffff|white)["']/i;
+  // Two ways of choosing by hand, both of them wrong. White is the
+  // regression that shipped. A bare `Q.ink` is the fix that was only
+  // half a fix: one ink written out is still somebody deciding, and the
+  // light theme's accents want the other one.
+  const CHOSEN_BY_HAND = /["'](?:#fff|#ffffff|white)["']|\bQ\.ink\b/i;
   const COLOUR_PROPERTY = /\b(color|stroke|fill)\s*:\s*([^,\n}]*)/g;
 
   // The value of a style property: everything up to the comma that ends
@@ -260,17 +307,40 @@ describe("no accent background carries white", () => {
   }
 
   function accentBackgrounds(source) {
-    const blocks = [];
+    const found = [];
     const backgrounds = /background(?:Color|Image)?\s*:/g;
     let match = backgrounds.exec(source);
     while (match) {
       const value = propertyValue(source, match.index + match[0].length);
       if (OPAQUE_ACCENT.test(value)) {
-        blocks.push(enclosingObject(source, match.index));
+        found.push({ value, block: enclosingObject(source, match.index) });
       }
       match = backgrounds.exec(source);
     }
-    return blocks;
+    return found;
+  }
+
+  // Every colour stop an accent background is actually built from: the
+  // accent tokens it names, and the hardcoded partners some gradients
+  // run into (`${Q.gold}` into `#c9a227`). An alpha suffix is skipped —
+  // `${Q.violet}22` is a tint, not a stop.
+  function colourStops(value, theme) {
+    const stops = [];
+    const token = new RegExp(
+      `\\bQ\\.(${ACCENT_KEYS.join("|")})\\b(?!\\}?[0-9a-fA-F])`, "g"
+    );
+    let match = token.exec(value);
+    while (match) {
+      stops.push(theme[match[1]]);
+      match = token.exec(value);
+    }
+    const literal = /(^|[\s,(])(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\b/g;
+    match = literal.exec(value);
+    while (match) {
+      stops.push(match[2]);
+      match = literal.exec(value);
+    }
+    return stops;
   }
 
   const sources = Object.fromEntries(
@@ -283,25 +353,56 @@ describe("no accent background carries white", () => {
     expect(accentBackgrounds(sources[name]).length).toBeGreaterThan(0);
   });
 
-  test.each(SCREENS)("%s draws no white on an accent", (name) => {
+  test.each(SCREENS)("%s never writes the ink on an accent by hand", (name) => {
     const offenders = [];
-    accentBackgrounds(sources[name]).forEach((block) => {
+    accentBackgrounds(sources[name]).forEach(({ block }) => {
       const colours = new RegExp(COLOUR_PROPERTY.source, "g");
       let colour = colours.exec(block);
       while (colour) {
-        if (WHITE.test(colour[2])) offenders.push(colour[0].trim());
+        if (CHOSEN_BY_HAND.test(colour[2])) offenders.push(colour[0].trim());
         colour = colours.exec(block);
       }
     });
     expect(offenders).toEqual([]);
   });
 
-  test("the sport tabs hand their icon the ink, not white", () => {
+  test.each(SCREENS)("%s leaves no bare Q.ink anywhere", (name) => {
+    // Not only at an accent background: the label inside the button and
+    // the icon handed down as a prop are the sites a style scan cannot
+    // see, and they are exactly where the first pass went wrong.
+    expect(sources[name]).not.toMatch(/\bQ\.ink\b/);
+  });
+
+  test.each(SCREENS)("every accent background in %s has an ink that reads", (name) => {
+    // This is the check that catches a gradient running from a dark
+    // accent into a bright hardcoded partner, where one ink reads and
+    // the other one does not.
+    const failures = [];
+    accentBackgrounds(sources[name]).forEach(({ value }) => {
+      [["dark", oscuro], ["light", claro]].forEach(([label, theme]) => {
+        const stops = colourStops(value, theme);
+        if (!stops.length) return;
+        const ink = inkOn(...stops);
+        stops.forEach((stop) => {
+          const ratio = contrastRatio(ink, stop);
+          if (ratio < CONTRAST_THRESHOLD) {
+            failures.push(`${label}: ${ratio.toFixed(2)} on ${stop} — ${value.trim()}`);
+          }
+        });
+      });
+    });
+    expect(failures).toEqual([]);
+  });
+
+  test("the sport tabs let the accent choose their icon's colour", () => {
     // The reported symptom: the active tab passed "#fff" to IconoDeporte
     // as a stroke, which no style-object scan would ever see.
     const calls = sources["Web.jsx"].match(/<IconoDeporte[\s\S]*?\/>/g) || [];
     expect(calls.length).toBeGreaterThan(0);
-    calls.forEach((call) => expect(call).not.toMatch(/#fff|#ffffff|white/i));
+    calls.forEach((call) => {
+      expect(call).not.toMatch(CHOSEN_BY_HAND);
+    });
+    expect(calls.join("")).toMatch(/inkOn\(/);
   });
 });
 

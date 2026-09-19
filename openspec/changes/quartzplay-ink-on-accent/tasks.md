@@ -25,7 +25,8 @@ Chain strategy: stacked
 
 ## Phase 2: GREEN
 
-- [x] 2.1 Add the ink token to both themes, with the reason recorded beside it.
+- [x] 2.1 Add the two inks and the `inkOn` helper, with the reason recorded
+      beside them. The ink belongs to the accent, not to the theme.
 - [x] 2.2 Replace white with the ink at every accent-background site in
       `Web.jsx`, `App.jsx` and `Casino.jsx`, including the icon colour handed
       to `IconoDeporte` by the active tab.

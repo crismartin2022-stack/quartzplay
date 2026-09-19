@@ -50,8 +50,29 @@ Follow the prototype rather than invent. A bright accent as a background pairs
 with dark ink — that is precisely what `--lime-ink` (`#172000`) encodes, and it
 was applied to lime and not to violet.
 
-So: an ink token for text and icons sitting on an accent, used at every such
+So: an ink for text and icons sitting on an accent, used at every such
 site, and a test that fails when white is placed on an accent again.
+
+A single ink token was the first attempt and it was the wrong shape. The
+two themes derive their accents differently: the light theme's were made
+by darkening, so four of its five accents are dark backgrounds that want
+light text, while `goldBg` stays bright in both themes and wants dark
+text in both. One constant cannot answer for both — pinned to the dark
+ink, light `violet` read 3.17:1 where white read 6.39:1.
+
+The ink belongs to the accent, not to the theme. That is what
+`--lime-ink` already encodes: an ink paired with one specific accent.
+So it is a helper, `inkOn(...)` in `theme.js`, which takes the colours a
+background is built from and returns whichever of two inks reads better
+on the worst of them, computed from relative luminance rather than a
+lookup table. Call sites read `color: inkOn(Q.violet, Q.violet2)`. Nobody
+picks, so nobody can pick wrong, and a changed accent is handled without
+anyone remembering to update a map.
+
+It is given every stop of a gradient, not one, because the ends can
+disagree: `${Q.gold}` into `#c9a227` runs from a dark olive to a bright
+gold in the light theme, where the light ink reads 4.82 on the first stop
+and 1.37 on the second.
 
 Do not darken the accents. They are correct as the prototype defines them, and
 `cyan` alone is read as a foreground 197 times and as a border 73 times;
@@ -59,7 +80,7 @@ changing its value to fix a background would break far more than it repairs.
 
 ## Scope
 
-- An ink token in the theme, for both themes, with the reason recorded.
+- Two inks and an `inkOn` helper in `theme.js`, with the reason recorded.
 - Every accent-background site in `Web.jsx`, `App.jsx` and `Casino.jsx` takes
   it instead of white.
 - The contrast test grows a second half: for every accent used as a background,

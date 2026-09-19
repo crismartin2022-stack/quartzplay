@@ -19,7 +19,7 @@
 import { useState, useEffect, useRef } from "react";
 import Rueda3D from "./Rueda3D";
 import { getFrontendConfig } from "./config";
-import { oscuro as Q, F_NUM, F_BODY } from "./theme";
+import { oscuro as Q, F_NUM, F_BODY, inkOn } from "./theme";
 
 const { iaqpUrl: IAQP } = getFrontendConfig();
 const MESA = "ruleta-01";
@@ -236,7 +236,7 @@ export default function Casino(){
 
   const Ficha=({monto})=>(
     <span style={{position:"absolute",top:-6,right:-6,minWidth:19,height:19,
-      padding:"0 3px",borderRadius:10,background:Q.gold,color:Q.ink,
+      padding:"0 3px",borderRadius:10,background:Q.gold,color:inkOn(Q.gold),
       fontSize:8.5,fontWeight:700,fontFamily:F_BODY,display:"flex",
       alignItems:"center",justifyContent:"center",border:`2px solid ${Q.pano}`}}>
       {monto>=100000?`${Math.round(monto/100000)}k`:Math.round(monto/100)}
@@ -394,7 +394,7 @@ export default function Casino(){
               padding:"11px 4px",borderRadius:9,cursor:"pointer",
               background:ficha===f?Q.gold:Q.inset,
               border:`1px solid ${ficha===f?Q.gold:Q.border}`,
-              color:ficha===f?Q.ink:Q.muted,fontWeight:700,
+              color:ficha===f?inkOn(Q.gold):Q.muted,fontWeight:700,
               fontSize:12.5}}>{plata(f)}</button>
           ))}
         </div>
@@ -403,7 +403,7 @@ export default function Casino(){
           <div style={{marginBottom:12}}>
             <button onClick={confirmar} style={{width:"100%",
               background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
-              border:"none",borderRadius:10,padding:14,color:Q.ink,
+              border:"none",borderRadius:10,padding:14,color:inkOn(Q.violet, Q.violet2),
               fontSize:14,fontWeight:700,cursor:"pointer"}}>
               Confirmar {pendientes.length} · {plata(total)}</button>
             <button onClick={()=>setPendientes([])} style={{width:"100%",
@@ -437,7 +437,7 @@ export default function Casino(){
                 borderRadius:8,padding:"10px 12px",color:Q.text,fontSize:13,
                 outline:"none"}}/>
             <button onClick={enviarChat} style={{background:Q.violet,
-              border:"none",borderRadius:8,padding:"0 16px",color:Q.ink,
+              border:"none",borderRadius:8,padding:"0 16px",color:inkOn(Q.violet),
               fontWeight:700,fontSize:13,cursor:"pointer"}}>Enviar</button>
           </div>
         </div>
