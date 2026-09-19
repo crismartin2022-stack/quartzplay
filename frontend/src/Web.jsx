@@ -14,6 +14,7 @@ import CameraCapture from "./CameraCapture";
 import { betslipPicks } from "./betslipPicks";
 import {
   estadoDeAcciones, stakeValido, mensajeDeDetalle, cuerpoDeApuesta,
+  hasIdentity,
 } from "./betBestActions";
 import { THEMES as TEMAS, F_NUM, F_BODY } from "./theme";
 
@@ -1436,7 +1437,6 @@ function PantallaTerminal({ codigo, onSeguir }){
 
         <div style={{color:Q.dim,fontSize:11.5,marginTop:16,
           lineHeight:1.55,fontFamily:F_BODY}}>
-          No hace falta cuenta ni registrarse.<br/>
           El boleto se paga en este mostrador.</div>
 
         <div style={{color:Q.dim,fontSize:11,marginTop:26,
@@ -1946,7 +1946,22 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
   };
   const [err,setErr]=useState("");
 
+  // Scanning is for people we know. One answer to "do we know who this is?"
+  // for the camera, the file picker and the bet: the browser session, or the
+  // identity Telegram provides when the public site is opened inside
+  // Telegram, where the player has no browser session and never will.
+  const identified=()=>hasIdentity({sesion,
+    initData:window.Telegram?.WebApp?.initData});
+  // With no identity the modal opens and nothing else happens: no image is
+  // read and no request is sent.
+  const requireIdentity=()=>{
+    if(identified()) return true;
+    setPideSesion(true);
+    return false;
+  };
+
   const elegir=(e)=>{
+    if(!requireIdentity()){ e.target.value=""; return; }
     const files=Array.from(e.target.files||[]);
     if(!files.length) return;
     setErr(""); setRes(null);
@@ -2012,8 +2027,14 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
   const apostar=async()=>{
     if(!res||apostando) return;
     if(!estado.puedeJugar){ setErr(estado.mensaje); return; }
+    // The missing account is the first thing said: asking for an amount and
+    // only then for an account made the person type before finding out.
+    if(!requireIdentity()) return;
     const stake=stakeValido(stakeTexto);
     if(stake===null){ setApuestaErr("Ingresá un monto válido para apostar."); return; }
+    // Identified by Telegram but with no browser session: this path sends a
+    // bearer token it does not have, so the modal offers the sign-in that
+    // makes the bet possible. Not the identity gate — the credential.
     if(!sesion?.token){ setPideSesion(true); return; }
     setApostando(true); setApuestaErr("");
     try{
@@ -2107,7 +2128,8 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
         )}
 
         <div style={{display:"flex",gap:8,marginBottom:8}}>
-          <button onClick={()=>setCamaraAbierta(true)} style={{flex:1,
+          <button onClick={()=>{ if(!requireIdentity()) return;
+            setCamaraAbierta(true); }} style={{flex:1,
             background:"transparent",border:`2px dashed ${Q.border}`,
             borderRadius:12,padding:"18px 10px",textAlign:"center",
             cursor:"pointer"}}>
@@ -2115,7 +2137,8 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
             <div style={{color:Q.text,fontWeight:700,fontSize:12,
               fontFamily:F_BODY}}>Cámara</div>
           </button>
-          <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:12,
+          <label onClick={e=>{ if(!requireIdentity()) e.preventDefault(); }}
+            style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:12,
             padding:"18px 10px",textAlign:"center",cursor:"pointer"}}>
             <input type="file" accept="image/*" multiple onChange={elegir}
               style={{display:"none"}}/>
