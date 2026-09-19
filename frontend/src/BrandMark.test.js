@@ -21,11 +21,12 @@ const LOGO_FILE = path.resolve(__dirname, "assets", "logo.png");
 const { width: LOGO_W, height: LOGO_H } = pngDimensions(LOGO_FILE);
 
 describe("the brand mark is the product's own logo, not a typeface", () => {
-  test("the logo file shipped with the app is the prototype's own", () => {
-    const prototype = path.resolve(__dirname, "..", "..", "..", "html", "assets", "logo.png");
-    expect(fs.readFileSync(LOGO_FILE).equals(fs.readFileSync(prototype))).toBe(true);
-  });
-
+  // The assets were copied from the prototype, which lives beside this
+  // repository and not inside it. A byte-equality check against that tree
+  // passed here and threw ENOENT on any clean checkout, so the suite's
+  // result depended on the developer's filesystem rather than on the code.
+  // Whoever copies the file owns that guarantee; the tests below assert
+  // only what the repository actually ships.
   test("it draws the logo asset, not text", () => {
     const markup = renderToStaticMarkup(<BrandMark />);
     expect(markup).toContain("<img");

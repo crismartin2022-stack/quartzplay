@@ -15,11 +15,12 @@ const MASCOT_FILE = path.resolve(__dirname, "assets", "bot-mascota-001.png");
 const { width: MASCOT_W, height: MASCOT_H } = pngDimensions(MASCOT_FILE);
 
 describe("the mascot is the prototype's own character image", () => {
-  test("the shipped file is the prototype's own", () => {
-    const prototype = path.resolve(__dirname, "..", "..", "..", "html", "assets", "bot-mascota-001.png");
-    expect(fs.readFileSync(MASCOT_FILE).equals(fs.readFileSync(prototype))).toBe(true);
-  });
-
+  // The assets were copied from the prototype, which lives beside this
+  // repository and not inside it. A byte-equality check against that tree
+  // passed here and threw ENOENT on any clean checkout, so the suite's
+  // result depended on the developer's filesystem rather than on the code.
+  // Whoever copies the file owns that guarantee; the tests below assert
+  // only what the repository actually ships.
   test("it draws the mascot asset", () => {
     const markup = renderToStaticMarkup(<Mascot />);
     expect(markup).toContain("<img");
