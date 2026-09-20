@@ -173,6 +173,19 @@ character. The player sees exactly what they saw before.
   `review_due_reason: "under_budget"`. No `next_transition` returned;
   nothing further run.
 
+- [x] **T2** The same fix on `/sitio`. Commit pending in this branch.
+      `PerfilWeb`, `CrearDesafioWeb` and `PanelIacoinWeb` in `Web.jsx`, 25
+      lines across 15 `setMsg` sites and 3 renders. Two of them —
+      `PerfilWeb`'s "La clave nueva tiene que tener al menos 6 caracteres"
+      and "Las dos claves nuevas no coinciden" — carried no prefix and so
+      rendered red by falling through; they now say `ok:false` explicitly,
+      which is the colour they already had. The other three components in
+      `Web.jsx` that hold a `msg` (lines 1442, 3355, 3840) never sniffed and
+      were left untouched. Guard extended to run over `App.jsx` and
+      `Web.jsx`; proven to bite by restoring the pre-fix `Web.jsx` and
+      observing `3 failed, 6 passed`. Suite 442 -> **447 passed**. ESLint
+      clean. Build `Compiled successfully`, 283.09 kB.
+
 ## Delivery
 
 One work-unit commit on `fix/quartzplay-message-status`, off `staging`. After
