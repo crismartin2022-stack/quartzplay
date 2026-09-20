@@ -1,25 +1,25 @@
 // The screens used to write their font-family inline, naming typefaces the
 // app never serves: App.jsx and Box.jsx asked for `'Inter',system-ui`, and
-// fonts.css declares @font-face only for Poppins. Every one of those sites
-// rendered in system-ui — the viewer's operating-system default — instead of
-// the brand typeface. The fix is mechanical: the family comes from the theme
-// module's F_BODY/F_NUM constants, never from a literal.
+// Admin.jsx and Agencia.jsx asked for `'Space Grotesk',system-ui`. fonts.css
+// declares @font-face only for Poppins. Every one of those sites rendered in
+// system-ui — the viewer's operating-system default — instead of the brand
+// typeface. The fix is mechanical: the family comes from the theme module's
+// F_BODY/F_NUM constants, never from a literal.
 //
 // Read from source, the way theme.test.js and noThemeSwitch.test.js do:
 // this project has no testing-library, so the screens are checked as text.
 //
-// Admin.jsx and Agencia.jsx are deliberately absent from this list. They name
-// `'Space Grotesk'` in ~1600 places, a typeface that is likewise never served,
-// so they have the same defect — but whether the internal panels should adopt
-// Poppins or actually ship Space Grotesk is an open product decision, not a
-// mechanical fix. Add them here once that is settled.
+// Admin.jsx and Agencia.jsx were the internal panels, still on their own
+// unserved typeface. The owner decided on 2026-09-20 that they adopt Poppins
+// like the player-facing screens, rather than actually shipping Space
+// Grotesk: one visual system, and no extra font download on every load.
 import fs from "fs";
 import path from "path";
 
 const SRC = path.resolve(__dirname);
 
 // Every screen whose font-family is expected to come from the theme module.
-const CLEAN_SCREENS = ["App.jsx", "Web.jsx", "Casino.jsx", "Box.jsx"];
+const CLEAN_SCREENS = ["App.jsx", "Web.jsx", "Casino.jsx", "Box.jsx", "Admin.jsx", "Agencia.jsx"];
 
 const sourceOf = (file) => fs.readFileSync(path.join(SRC, file), "utf8");
 

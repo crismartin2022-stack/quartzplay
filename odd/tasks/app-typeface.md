@@ -87,6 +87,77 @@ baseline plus the new test. The build succeeds.
       Full suite 416 -> **429 passed**. ESLint clean on `Box.jsx`.
       Production build `Compiled successfully`, 284.5 kB gzip.
 
+- [x] **T3** The admin and agency panels adopt Poppins. The owner decided
+      this on 2026-09-20, choosing it over shipping Space Grotesk: one visual
+      system, and no extra font file on every load. `Admin.jsx` (966 sites)
+      and `Agencia.jsx` (620 sites) named `'Space Grotesk',system-ui`, a
+      typeface served nowhere, so both panels rendered in `system-ui`.
+      Both files already imported `oscuro as Q` from `./theme`, so they were
+      on the current palette; they simply never imported the font constants.
+      Commit: `6979a7b` — `fix(frontend): render admin and agency panels in
+      the brand typeface`.
+
+      Replaced 966 occurrences of `fontFamily:"'Space Grotesk',system-ui"`
+      in `Admin.jsx` and 620 in `Agencia.jsx` with `fontFamily:F_BODY`,
+      mechanically (no `F_NUM` hand-picking; the two constants are identical
+      strings today). `F_BODY` was added to each file's existing `./theme`
+      import rather than a second import statement. One extra site was
+      found and fixed beyond the literal `fontFamily:` pattern:
+      `Admin.jsx:1967` passed `F_BODY={"'Space Grotesk',system-ui"}` as a
+      prop into `<CameraCapture>`, which itself uses `fontFamily: F_BODY`
+      internally — the same defect one level of indirection deep. Changed
+      to `F_BODY={F_BODY}`, matching how `App.jsx` and `Web.jsx` already
+      call the same component. After the fix, `rg "Space Grotesk"` over
+      both files returns zero matches (verified by exit code, not silence).
+
+      Baseline: `CI=true npx react-scripts test --watchAll=false` —
+      29 suites, 429 tests, all passed.
+
+      Guard test extended first: added `Admin.jsx`/`Agencia.jsx` to
+      `CLEAN_SCREENS` and rewrote the header comment (it previously said
+      the two files were deliberately excluded pending a product decision;
+      that decision is now made, so the comment now states it and the date).
+      Observed RED before the fix: `Test Suites: 1 failed, 1 total`,
+      `Tests: 2 failed, 22 passed, 24 total` — both failures on
+      `"still uses the theme's font constants"` for `Admin.jsx` and
+      `Agencia.jsx` (neither imported `F_BODY`/`F_NUM` yet). After the fix:
+      GREEN, `24/24` passed.
+
+      Full suite after the fix: 29 suites, **437 passed** (429 baseline +
+      8 new tests, 4 per newly-covered file).
+
+      `git diff --stat`: `Admin.jsx` 968 insertions / 968 deletions (966
+      `fontFamily` sites + 1 import line + 1 `CameraCapture` prop line);
+      `Agencia.jsx` 621 insertions / 621 deletions (620 `fontFamily` sites +
+      1 import line). Programmatically verified every changed line differs
+      from its removed counterpart solely by the expected substitution
+      (`fontFamily:"'Space Grotesk',system-ui"` → `fontFamily:F_BODY`, the
+      import addition, or the `CameraCapture` prop fix) — **0 mismatches**.
+
+      `npx eslint Admin.jsx --no-eslintrc --env browser,es2021
+      --parser-options ecmaVersion:2021,sourceType:module,ecmaFeatures:{jsx:true}
+      --rule '{"no-undef":"error"}'` — exit 0, no output. Same command on
+      `Agencia.jsx` — exit 0, no output.
+
+      Production build with staging-shaped `REACT_APP_*` placeholder
+      values: succeeded both before and after the fix (`git stash` on the
+      three changed files for the "before" build, matching the T1/T2
+      method). Bundle size (gzip, `main.*.js`): **284.5 kB before →
+      283.01 kB after** (−1.49 kB; `F_BODY` is a shorter token than the
+      repeated literal).
+
+      `gentle-ai review assess --cwd . --agent claude-code --base-ref
+      staging --committed-only --json` on commit `6979a7b`: `risk:
+      "medium"`, `review_due: true`, `review_due_reason:
+      "slice_budget_reached"`. Returned `next_transition.command` (not run —
+      consent belongs to the repository owner):
+      `gentle-ai review status '--cwd=/Users/usuario/Documents/Trabajo 2026/iaqp/app' --contract=gentle-ai.review-integration/v2 --agent=claude-code --next-transition=true --base-ref=staging --committed-only=true`
+
+      Deliberately left alone: the unrelated `fontFamily:"system-ui,-apple-system,sans-serif"`
+      literal in both files, and `fontFamily:"monospace"` in `Agencia.jsx`
+      — they name a different typeface on purpose. No size, weight,
+      spacing, colour or layout changed.
+
 ## Delivery
 
 One work-unit commit. Branch `fix/quartzplay-app-typeface` off `staging`.
@@ -96,6 +167,13 @@ and report `review_due`/`review_due_reason`/`risk`. If review is due, hand the
 returned `next_transition.command` back verbatim — do not run it.
 
 ## Progress
+
+All three tasks are done: T1 (`031a692`), T2 (`8f3000d`), T3 (`6979a7b`,
+on this branch `fix/quartzplay-panel-typeface`). Every clean screen —
+`App.jsx`, `Web.jsx`, `Casino.jsx`, `Box.jsx`, `Admin.jsx`, `Agencia.jsx` —
+now renders in Poppins via the theme's `F_BODY`/`F_NUM` constants, and the
+guard test covers all six. T3's full check output is recorded under its
+task entry above. The detail below is T1's original record, kept as-is.
 
 T1 done, committed as `031a692` on `fix/quartzplay-app-typeface`
 (branched off `staging`). Checks run and observed:
@@ -146,21 +224,21 @@ the first pass through this made that mistake. The corrected map:
 | `/sitio` | `Web.jsx` | Player | already correct, 227 `F_BODY` + 41 `F_NUM` |
 | `/casino` | `Casino.jsx` | Player | already correct |
 | `/box` | `Box.jsx` | Cashier | fixed, T2 |
-| `/agencia` | `Agencia.jsx` | Agency | 620 `'Space Grotesk'` |
-| `/admin` | `Admin.jsx` | Admin | 967 `'Space Grotesk'` |
+| `/agencia` | `Agencia.jsx` | Agency | fixed, T3 |
+| `/admin` | `Admin.jsx` | Admin | fixed, T3 |
 
-`'Space Grotesk'` is served nowhere: it appears only as a literal inside those
-two files, in no `@font-face` rule and no font file in the repository. The
-admin and agency panels have therefore never rendered in it — they fall back
+`'Space Grotesk'` was served nowhere: it appeared only as a literal inside
+those two files, in no `@font-face` rule and no font file in the repository.
+The admin and agency panels therefore never rendered in it — they fell back
 to `system-ui` exactly as the player screens did.
 
-That is not a mechanical fix, so it is deliberately not part of this change.
-It is a product decision: either the internal panels adopt Poppins like the
-player-facing screens, or Space Grotesk is actually shipped and the panels
-carry their own identity. Today neither is true. The guard test rejects the
-literal on the clean screens so the ambiguity cannot spread while it is open.
+The product decision — admin and agency adopt Poppins, rather than actually
+shipping Space Grotesk as a font file — was made by the owner on 2026-09-20
+and executed as T3. The guard test now covers both files and rejects the
+`'Space Grotesk'` and `'Inter'` literals on all six clean screens, so the
+defect cannot reappear.
 
 ## Next step
 
 Nothing pending on this branch. Open for the owner: the review consent for
-this branch, and the Space Grotesk decision above.
+this branch (see T3's `gentle-ai review assess` outcome above).
