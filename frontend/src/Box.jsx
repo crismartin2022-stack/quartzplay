@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import { oscuro as Q, F_NUM, F_BODY } from "./theme";
 import Icon from "./Icon";
+import { Handshake } from "lucide-react";
 import BrandMark from "./BrandMark";
 
 // La hora del partido, en la zona horaria del dispositivo.
@@ -206,7 +207,7 @@ function DesafiosBox({ agenciaCode }){
       <div style={{display:"flex",justifyContent:"space-between",
         alignItems:"center",marginBottom:7}}>
         <span style={{color:Q.gold,fontSize:11,fontWeight:800,
-          letterSpacing:0.8}}>🤝 DESAFÍOS ABIERTOS</span>
+          letterSpacing:0.8}}><Handshake size={11} aria-hidden="true"/> DESAFÍOS ABIERTOS</span>
         {lista.length>1&&(
           <span style={{color:Q.dim,fontSize:10}}>
             {i+1} de {lista.length}</span>

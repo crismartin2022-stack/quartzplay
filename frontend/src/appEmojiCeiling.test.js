@@ -24,6 +24,7 @@ import path from "path";
 
 const APP = fs.readFileSync(path.resolve(__dirname, "App.jsx"), "utf8");
 const WEB = fs.readFileSync(path.resolve(__dirname, "Web.jsx"), "utf8");
+const BOX = fs.readFileSync(path.resolve(__dirname, "Box.jsx"), "utf8");
 
 // Same rule as screenHomeIconsAndAccents.test.js: an Extended_Pictographic
 // character with its optional variation selector, skin tone or
@@ -81,5 +82,23 @@ describe("Web.jsx does not gain emoji back", () => {
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
     expect(counts.size).toBeLessThanOrEqual(26);
+  });
+});
+
+describe("Box.jsx does not gain emoji back", () => {
+  const counts = emojiCounts(BOX);
+  const total = [...counts.values()].reduce((a, b) => a + b, 0);
+
+  // The exact count the site slice leaves behind, measured directly from
+  // source after T2 (docs/icon-inventory.md's 23/21 for this screen was
+  // taken at an earlier revision, before an earlier PR's partial
+  // migration, and no longer matches; this guard trusts a fresh scan over
+  // that document's summary numbers).
+  test("total emoji uses do not rise above what this migration leaves behind", () => {
+    expect(total).toBeLessThanOrEqual(9);
+  });
+
+  test("distinct emoji do not rise above what this migration leaves behind", () => {
+    expect(counts.size).toBeLessThanOrEqual(9);
   });
 });
