@@ -1,10 +1,58 @@
+# Pinned, complete dependency set for the QuartzPlay bot/API (direct and
+# transitive). Resolved against the real deploy target, not this laptop:
+# Railway's railpack runtime image (ghcr.io/railwayapp/railpack-runtime,
+# mise-2026.8.16) runs Debian 13 "trixie" / glibc 2.41 / amd64, matched here
+# by python:<version>-slim-trixie. Verified to agree across CPython 3.11,
+# 3.12 and 3.13 (Railway's own interpreter selection is not pinned by this
+# change; see odd/tasks/reproducible-installs.md).
+#
+# The seven direct dependencies: python-telegram-bot, httpx, asyncpg,
+# python-dotenv, fastapi, uvicorn[standard], bcrypt. Everything else below
+# is a transitive dependency of one of those seven — do not assume a
+# transitive line belongs to the package whose name it resembles; e.g.
+# annotated-doc is pulled in by fastapi, not by anything anthropic-shaped.
+#
+# This file is generated, never hand-edited line by line: a pinned
+# transitive package can belong to a different direct dependency than its
+# name suggests, so deleting a line by inspection can silently remove a
+# package a *different* direct dependency still needs. Regenerate the
+# whole file from the direct-dependency list above instead.
+#
+# Regenerate with (repeat for 3.11, 3.12, 3.13 and diff the results; pin
+# only if all three agree):
+#   docker run --rm --platform linux/amd64 \
+#     -v "$(pwd)/bot/requirements.txt:/req.txt:ro" \
+#     python:3.12-slim-trixie \
+#     sh -c 'pip install --quiet --no-cache-dir -r /req.txt && \
+#            pip freeze --all --exclude-editable'
+# Drop pip/setuptools/wheel/packaging from the output: they are the
+# interpreter's own pre-installed toolchain (present by default on some
+# base images, e.g. python:3.11-slim-trixie ships setuptools+wheel+packaging
+# out of the box, python:3.12/3.13-slim-trixie do not), never something
+# bot/requirements.txt pulls in.
 
-python-telegram-bot
-httpx
-asyncpg
-apscheduler
-anthropic
-python-dotenv
-fastapi
-uvicorn[standard]
-bcrypt
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+asyncpg==0.31.0
+bcrypt==5.0.0
+certifi==2026.7.22
+click==8.5.0
+fastapi==0.141.1
+h11==0.16.0
+httpcore==1.0.9
+httptools==0.8.0
+httpx==0.28.1
+idna==3.20
+pydantic==2.13.5
+pydantic_core==2.46.5
+python-dotenv==1.2.3
+python-telegram-bot==22.8
+PyYAML==6.0.3
+starlette==1.6.0
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+uvicorn[standard]==0.53.0
+uvloop==0.22.1
+watchfiles==1.2.0
+websockets==17.1
