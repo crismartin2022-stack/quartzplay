@@ -158,9 +158,50 @@ green at their baseline counts. No dependency moved.
       anticipated). Per instructions, the returned `next_transition.command`
       was **not** run; it is handed back verbatim in the writer's final
       report for the owner to act on.
-- [ ] **T2** Pin `bot/requirements.txt` to the complete set that the
+- [ ] **T2 — STOPPED, divergence found, decision handed back.**
+      Pin `bot/requirements.txt` to the complete set that the
       three-interpreter cross-resolution agrees on, direct and transitive,
       with the regeneration header. Prove the bot suite still passes.
+
+      Baseline (unpinned `requirements-dev.txt`, fresh venv, local Python
+      3.14.7): `python -m pytest` from `app/bot` →
+      `212 passed, 304 warnings`. This document's own stated baseline is
+      "193 passed" — that number is stale relative to the current repo
+      (the bot test suite has grown since it was recorded); 212 is what
+      was actually observed against current `HEAD`/`staging` and is the
+      number this task compares against, honestly reported as a
+      discrepancy from the doc rather than silently substituted.
+
+      Cross-target resolution (pip dry-run, `--only-binary=:all:
+      --platform manylinux2014_x86_64`, run from `app`) for `3.11`, `3.12`,
+      `3.13` against `bot/requirements.txt`:
+      ```
+      python3 -m pip install --dry-run --report <scratch>/report-<v>.json \
+        --only-binary=:all: --python-version <v> \
+        --platform manylinux2014_x86_64 --target <scratch>/t<v> \
+        -r bot/requirements.txt
+      ```
+      No `--implementation`/`--abi` overrides were needed; the plain
+      `--python-version` form resolved for all three. 34 packages resolved
+      per interpreter. 33 of 34 agree exactly across 3.11/3.12/3.13.
+      **One package diverges: `asyncpg`.** 3.11 → `0.31.0`, 3.12 →
+      `0.30.0`, 3.13 → `0.31.0`. Confirmed twice for 3.12 (not resolver
+      noise) and root-caused: `pip download --only-binary=:all:
+      --python-version 3.12 --platform manylinux2014_x86_64 asyncpg==0.31.0`
+      fails with "Could not find a version that satisfies the requirement
+      ... (from versions: 0.29.0, 0.30.0)" — `asyncpg` 0.31.0 ships no
+      `cp312`-tagged wheel for `manylinux2014_x86_64` (as of 2026-09-19),
+      so pip falls back to `0.30.0` on that interpreter only.
+
+      Per the feature document's own instruction ("If they diverge, STOP
+      T2: do not guess and do not pin"), **T2 is stopped here.**
+      `bot/requirements.txt` was NOT written or touched.
+      `bot/requirements-dev.txt` was NOT touched. No commit was made for
+      T2. The decision — which interpreter Railway actually runs, which
+      determines whether `asyncpg==0.30.0` or `0.31.0` is correct — is
+      handed back to the owner; it's the same class of decision this
+      document already deferred for the interpreter version itself.
+      T1 was finished regardless, as instructed.
 
 ## Delivery
 
@@ -188,9 +229,21 @@ No push, no PR.
 T1 done (commit `047598f`). Frontend lockfile tracked, `npm ci` verified
 green at baseline, build verified with staging-shaped placeholders. Review
 came due on T1 (`slice_budget_reached`); the consent command was handed back
-to the owner rather than run. T2 not started.
+to the owner rather than run.
+
+T2 stopped by design: the three-interpreter cross-resolution for
+`bot/requirements.txt` diverges on `asyncpg` (`0.31.0` for 3.11/3.13,
+`0.30.0` for 3.12, because `asyncpg` 0.31.0 has no `cp312` manylinux2014
+wheel). Per this document's own instruction, no guess was made and nothing
+was pinned or committed for T2. Bot suite baseline observed:
+`212 passed` (this document's stated "193 passed" baseline is stale).
 
 ## Next step
 
-T2: baseline the bot suite, run the three-interpreter cross-resolution, and
-pin `bot/requirements.txt` if all three agree.
+Owner decides which Python minor version Railway actually runs `app/bot`
+on (this is the same open question this document already named for the
+interpreter pin itself — see "Out of scope, deliberately"). Once that's
+known: re-run the single-interpreter resolution for that version, pin
+`bot/requirements.txt` to it (direct + transitive, with the regeneration
+header), verify the bot suite against a fresh venv, and commit. Nothing
+else on this branch is pending.
