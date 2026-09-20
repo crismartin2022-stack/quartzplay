@@ -6,6 +6,11 @@ import { estadoDeAcciones, stakeValido, mensajeDeDetalle } from "./betBestAction
 import { oscuro as Q, F_NUM, F_BODY, inkOn } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot from "./Mascot";
+import Icon from "./Icon";
+// lucide-react carries the icons this screen's emoji have no match for
+// among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
+// no live-feed mark, no handshake, no bolt, no gift.
+import { Video, Handshake, Zap, Gift } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
 // IAQP SPORTS — Web App Telegram completa
@@ -5500,8 +5505,10 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           background:`linear-gradient(135deg,${Q.gold}14,${Q.violet}08)`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
-              <div style={{color:Q.gold,fontSize:10,textTransform:"uppercase",letterSpacing:1.5,
-                fontWeight:700,fontFamily:"'Inter',system-ui"}}>🎁 Saldo bono</div>
+              <div style={{display:"flex",alignItems:"center",gap:4,color:Q.gold,fontSize:10,
+                textTransform:"uppercase",letterSpacing:1.5,
+                fontWeight:700,fontFamily:"'Inter',system-ui"}}>
+                <Gift size={12} color={Q.gold} aria-hidden="true"/>Saldo bono</div>
               <div style={{color:Q.text,fontWeight:900,fontSize:22,marginTop:2,
                 fontFamily:"'Inter',system-ui"}}>{money(user.saldo_bono,mon)}</div>
             </div>
@@ -5522,26 +5529,34 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         </GCard>
       )}
 
-      {/* Casino: no entra en la barra de abajo, así que va acá */}
+      {/* Casino: no entra en la barra de abajo, así que va acá.
+          Los dos degradés eran hex escritos a mano (#7B1FA2/#4A148C y
+          #B71C1C/#7F0000); ahora salen de los acentos de marca, y el ink
+          lo decide inkOn en vez de un "#fff" fijo. Violeta para Casino
+          (el mismo par que usa el avatar de la barra superior); rosa/rojo
+          hacia dorado para En vivo — el mismo acento que ya usa "EN VIVO"
+          en este archivo, hacia el color de atención de la marca, para que
+          las dos tarjetas sean distinguibles entre sí y no un violeta
+          repetido dos veces. */}
       <div style={{display:"flex",gap:8,marginBottom:16}}>
         <div onClick={()=>onNav("casino")} style={{flex:1,
           cursor:"pointer",borderRadius:12,padding:"15px 13px",
-          background:`linear-gradient(135deg,#7B1FA2,#4A148C)`}}>
-          <div style={{fontSize:22,marginBottom:3}}>🎰</div>
-          <div style={{color:"#fff",fontWeight:800,fontSize:14,
+          background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`}}>
+          <Icon name="spade" size={24} color={inkOn(Q.violet,Q.violet2)} style={{marginBottom:3}}/>
+          <div style={{color:inkOn(Q.violet,Q.violet2),fontWeight:800,fontSize:14,
             fontFamily:"'Inter',system-ui"}}>Casino</div>
-          <div style={{color:"rgba(255,255,255,.72)",fontSize:10.5,
+          <div style={{color:inkOn(Q.violet,Q.violet2),opacity:.72,fontSize:10.5,
             marginTop:2,lineHeight:1.35,
             fontFamily:"'Inter',system-ui"}}>
             Tragamonedas y mesas</div>
         </div>
         <div onClick={()=>onNav("casinovivo")} style={{flex:1,
           cursor:"pointer",borderRadius:12,padding:"15px 13px",
-          background:`linear-gradient(135deg,#B71C1C,#7F0000)`}}>
-          <div style={{fontSize:22,marginBottom:3}}>🎥</div>
-          <div style={{color:"#fff",fontWeight:800,fontSize:14,
+          background:`linear-gradient(135deg,${Q.pink},${Q.gold})`}}>
+          <Video size={24} color={inkOn(Q.pink,Q.gold)} style={{marginBottom:3}} aria-hidden="true"/>
+          <div style={{color:inkOn(Q.pink,Q.gold),fontWeight:800,fontSize:14,
             fontFamily:"'Inter',system-ui"}}>En vivo</div>
-          <div style={{color:"rgba(255,255,255,.72)",fontSize:10.5,
+          <div style={{color:inkOn(Q.pink,Q.gold),opacity:.72,fontSize:10.5,
             marginTop:2,lineHeight:1.35,
             fontFamily:"'Inter',system-ui"}}>
             Mesas con crupier</div>
@@ -5553,7 +5568,7 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           cursor:"pointer",borderRadius:12,padding:"15px 13px",
           background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{fontSize:22}}>🤝</div>
+            <Handshake size={22} color={inkOn(Q.violet,Q.cyan)} aria-hidden="true"/>
             <div style={{minWidth:0}}>
               <div style={{color:inkOn(Q.violet,Q.cyan),fontWeight:800,fontSize:14,
                 fontFamily:"'Inter',system-ui"}}>Desafíos</div>
@@ -5567,8 +5582,9 @@ function ScreenHome({ user, onNav, onBet, refCode }){
       </div>
 
       {/* Combo del día destacado */}
-      <div style={{color:Q.text,fontWeight:800,fontSize:15,marginBottom:8,
-        fontFamily:"'Inter',system-ui"}}>⚡ Combo del día</div>
+      <div style={{display:"flex",alignItems:"center",gap:6,color:Q.text,fontWeight:800,fontSize:15,
+        marginBottom:8,fontFamily:"'Inter',system-ui"}}>
+        <Zap size={16} color={Q.gold} aria-hidden="true"/>Combo del día</div>
       {combo?(
         <GCard glow={Q.gold} onClick={()=>onNav("combo")}
           style={{padding:16,marginBottom:16,cursor:"pointer",
@@ -5599,8 +5615,9 @@ function ScreenHome({ user, onNav, onBet, refCode }){
 
       {/* En vivo */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-        <div style={{color:Q.text,fontWeight:800,fontSize:15,
-          fontFamily:"'Inter',system-ui"}}>🔴 En vivo ahora</div>
+        <div style={{display:"flex",alignItems:"center",gap:6,color:Q.text,fontWeight:800,fontSize:15,
+          fontFamily:"'Inter',system-ui"}}>
+          <Icon name="circle-dot" size={16} color={Q.red}/>En vivo ahora</div>
         <button onClick={()=>onNav("live")} style={{background:"transparent",border:"none",
           color:Q.cyan,fontSize:12,fontWeight:700,cursor:"pointer",
           fontFamily:"'Inter',system-ui"}}>Ver todo →</button>
