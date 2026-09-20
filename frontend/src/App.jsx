@@ -4501,10 +4501,10 @@ function CrearDesafio({ user, cfg, saldo, onListo }){
           monto_aceptador:parseFloat(pido)||0})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo crear");
-      setMsg({text:"✅ "+(d.aviso||"Listo"), ok:true});
+      setMsg({text:d.aviso||"Listo", ok:true});
       setTitulo(""); setDesc(""); setPongo(""); setPido("");
       setTimeout(()=>onListo&&onListo(),1200);
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -4516,9 +4516,9 @@ function CrearDesafio({ user, cfg, saldo, onListo }){
         body:JSON.stringify({user_id:user.id})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo");
-      setMsg({text:"✅ "+(d.aviso||"Aceptado"), ok:true});
+      setMsg({text:d.aviso||"Aceptado", ok:true});
       setTimeout(()=>onListo&&onListo(),1200);
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -4537,7 +4537,8 @@ function CrearDesafio({ user, cfg, saldo, onListo }){
     <div>
       {msg&&<div style={{color:msg.ok?Q.green:Q.red,
         fontSize:12.5,marginBottom:10,textAlign:"center",
-        lineHeight:1.45}}>{msg.text}</div>}
+        lineHeight:1.45}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
@@ -4828,10 +4829,10 @@ function PanelIacoin({ user, saldo, onCambio }){
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo");
       setMsg({text:modo==="comprar"
-        ?`✅ Compraste ${n} IACOIN por ${d.pagaste.toLocaleString("es-AR")}`
-        :`✅ Vendiste ${n} IACOIN por ${d.recibiste.toLocaleString("es-AR")}`, ok:true});
+        ?`Compraste ${n} IACOIN por ${d.pagaste.toLocaleString("es-AR")}`
+        :`Vendiste ${n} IACOIN por ${d.recibiste.toLocaleString("es-AR")}`, ok:true});
       setCantidad(""); onCambio&&onCambio();
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -4883,7 +4884,8 @@ function PanelIacoin({ user, saldo, onCambio }){
 
       {msg&&<div style={{color:msg.ok?Q.green:Q.red,
         fontSize:12.5,marginBottom:10,textAlign:"center",
-        lineHeight:1.45}}>{msg.text}</div>}
+        lineHeight:1.45}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>
         Cuántos IACOIN</div>
