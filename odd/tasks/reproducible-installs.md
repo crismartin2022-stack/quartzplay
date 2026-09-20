@@ -57,7 +57,11 @@ after this one stops being able to differ silently.
 ## Scope
 
 Authorized: `frontend/package-lock.json`, `bot/requirements.txt` in the `app`
-repository, and this document.
+repository, and this document. Removing dependencies from
+`bot/requirements.txt` that are declared but never imported anywhere in
+`bot/` is also authorized (owner-approved scope addition, T3) — this is
+still "record what's true," not "upgrade or add," so it fits the same
+authorization as pinning.
 
 Out of scope, deliberately:
 
@@ -117,8 +121,21 @@ Out of scope, deliberately:
 - The pinned set must include transitive dependencies. A top-level-only pin
   leaves `starlette`, `pydantic`, `httpcore`, `h11` and the rest floating,
   which is the same defect one layer down. Write the complete set, with a
-  header comment naming which nine are the direct dependencies and how to
-  regenerate the file.
+  header comment naming which direct dependencies (seven, as of T3) it was
+  regenerated from and how to regenerate the file.
+- **`bot/requirements.txt` is generated, never hand-edited line by line.**
+  The file pins direct and transitive packages together, and which
+  transitive package belongs to which direct dependency is not obvious
+  from reading the file — a name that looks like it belongs to one direct
+  dependency can actually be pulled in by a completely different one. T3
+  hit this directly: `annotated-doc` sits right next to `anthropic` in the
+  old sorted list and reads like it could be `anthropic`'s dependency, but
+  it is a hard dependency of `fastapi`. Hand-deleting the "anthropic-only"
+  lines by inspection would have deleted `annotated-doc` along with
+  `anthropic`, and then `import fastapi` raises `ModuleNotFoundError`,
+  which kills `bot/casino_api.py:7` and therefore `uvicorn casino_api:app`
+  never boots. The only safe procedure is to regenerate the whole file
+  from the direct-dependency list, never to edit pin lines by hand.
 - Do not delete `bot/requirements-dev.txt`'s `-r requirements.txt` line.
 - The lockfile is generated. Commit it verbatim as `npm install` produced it;
   do not hand-edit it, reformat it, or prune it.
@@ -256,6 +273,81 @@ green at their baseline counts. No dependency moved.
       `asyncpg==0.31.0`, has a `cp314` wheel). `python -m pytest` →
       `212 passed, 304 warnings` — matches the measured baseline exactly.
       No check was weakened.
+- [x] **T3** Remove the two dependencies in `bot/requirements.txt` that are
+      declared but never used anywhere in `bot/`: `anthropic` and
+      `APScheduler`. Established by two independent blind code reviews plus
+      an empirical run (no static, function-local, conditional or dynamic
+      import of either name anywhere in `bot/`; the Claude integration is
+      raw `httpx`, not the SDK; recurring work is hand-rolled `asyncio`
+      loops, not APScheduler; `python-telegram-bot==22.8` is declared
+      without the `[job-queue]` extra so it never pulls APScheduler in, and
+      PTB degrades gracefully even if `job_queue` were touched; a venv from
+      only the seven remaining direct dependencies ran the full bot suite
+      green with zero `ModuleNotFoundError`).
+      Commit: `4416a8a66e924716f18f397e925aac9ad4a56d86` —
+      `chore(bot): remove unused anthropic and apscheduler dependencies`.
+
+      **Regenerated the whole file, never hand-edited pin lines.** Wrote the
+      seven remaining direct dependencies (`python-telegram-bot==22.8`,
+      `httpx==0.28.1`, `asyncpg==0.31.0`, `python-dotenv==1.2.3`,
+      `fastapi==0.141.1`, `uvicorn[standard]==0.53.0`, `bcrypt==5.0.0`) to a
+      scratchpad file and re-ran the same three-interpreter docker
+      cross-resolution T2 established (`python:3.11/3.12/3.13-slim-trixie`,
+      `--platform linux/amd64`, against the same Railway deploy target),
+      dropping `pip`/`setuptools`/`wheel`/`packaging` from each output as
+      before. **All three interpreters agreed exactly: 25 packages,
+      byte-identical versions** — no divergence to report this time.
+
+      Diffed the new 25-package set against the previous 34-package set.
+      Exactly nine packages disappeared: `anthropic`, `APScheduler`,
+      `docstring_parser`, `httpcore2`, `httpx2`, `jiter`, `sniffio`,
+      `truststore`, `tzlocal` — this matches the predicted list exactly.
+      `annotated-doc==0.0.5` is still present, confirming it is `fastapi`'s
+      dependency, not `anthropic`'s, as the header comment now states
+      explicitly (see the corrected `## Constraints` entry above).
+      `bot/requirements-dev.txt` left untouched (`-r requirements.txt` line
+      intact).
+
+      Verify: fresh scratchpad venv, local Python 3.14.7,
+      `pip install -r requirements-dev.txt` from the regenerated file →
+      succeeded, no errors. `python -m pytest` from `app/bot` →
+      `212 passed, 304 warnings` — matches the 212 baseline exactly. All 11
+      bot modules imported with zero `ModuleNotFoundError`
+      (`config`, `db`, `auth`, `log_hygiene`, `odds_api`,
+      `psp_webhook_auth`, `casino_api`, `casino_twa`, `bot_handlers`,
+      `admin_handlers`, `server`); `casino_api` raised
+      `ConfigError: app_env.invalid` on bare import, which is expected
+      env-var validation, not a missing-module failure.
+- [x] **T4** Add a characterization test for `bot/auth.py`'s password path
+      (`hash_password`/`verify_password`), which had zero coverage before
+      this — the reason a major `bcrypt` bump could have shipped unnoticed.
+      Commit: `6956bc528be8b9d20224b0b7c4c8ec5d23e1ea19` —
+      `test(bot): characterize the auth.py password round trip`.
+
+      Added `bot/tests/test_auth_password_roundtrip.py` (6 tests, using
+      only `auth`'s public functions plus `hashlib.sha256` to construct the
+      legacy stored form, which by definition can't be produced any other
+      way): a password verifies against its own hash; a wrong password does
+      not verify; the produced hash carries the bcrypt `$2` prefix (cost
+      factor not pinned, since the code doesn't set one explicitly); a
+      73-byte password still round-trips through the `_bytes72` truncation;
+      a legacy SHA256 stored value (the form real production rows still
+      carry, migrated on first login by `bot/casino_api.py:409`) still
+      verifies; and a stored value in neither form does not verify. Used
+      module-scoped fixtures so the slow bcrypt hash is computed once per
+      password rather than once per assertion (2 `hashpw` calls total for
+      the whole file).
+
+      No meaningful RED phase exists for a characterization test of working
+      code, so none was faked. Instead, proved the test has teeth: flipped
+      `test_wrong_password_does_not_verify`'s assertion from
+      `is False` to `is True`, re-ran that one test, and observed it fail
+      (`AssertionError: assert False is True`, with `verify_password`
+      correctly returning `False` for the wrong password) — then reverted
+      the change.
+
+      Full suite: `python -m pytest` from `app/bot` → **218 passed**,
+      304 warnings (212 baseline + 6 new tests, all green).
 
 ## Delivery
 
@@ -280,7 +372,7 @@ No push, no PR.
 
 ## Progress
 
-Both tasks done.
+All four tasks done.
 
 T1 (commit `047598f`): frontend lockfile tracked, `npm ci` verified green at
 baseline, build verified with staging-shaped placeholders. Review came due
@@ -318,11 +410,63 @@ command run:
 Both are informational for the owner to choose between; the writer ran
 neither.
 
+T3 (commit `4416a8a`): removed `anthropic` and `APScheduler` from
+`bot/requirements.txt`, regenerating the whole file (never hand-editing pin
+lines) from the seven remaining direct dependencies, re-resolved across
+Python 3.11/3.12/3.13 inside the real Railway deploy target — all three
+agreed exactly on 25 packages, no divergence this time. Exactly the
+predicted nine packages disappeared (`anthropic`, `APScheduler`,
+`docstring_parser`, `httpcore2`, `httpx2`, `jiter`, `sniffio`, `truststore`,
+`tzlocal`); `annotated-doc` survived, confirmed as `fastapi`'s dependency,
+not `anthropic`'s. Bot suite still `212 passed` after the pin change, and
+all 11 bot modules import with zero `ModuleNotFoundError`.
+
+Assess run twice after the T3 commit, both reported, neither's lifecycle
+command run:
+- From the last reviewed boundary (`staging`, `8be18a0`): `risk: medium`,
+  `review_due: true`, `review_due_reason: slice_budget_reached` (same class
+  as T1/T2 — the accumulated branch, including the 373K lockfile, is still
+  in scope for that boundary). Returned `next_transition.command`:
+  ```
+  gentle-ai review status '--cwd=/Users/usuario/Documents/Trabajo 2026/iaqp/app' --contract=gentle-ai.review-integration/v2 --agent=claude-code --next-transition=true --base-ref=8be18a00224ef8c88d1c21d5f16f90cdd834f254 --committed-only=true
+  ```
+- Scoped to the T3 commit alone (`--base-ref 4a2ea81`, T2's docs commit):
+  `risk: medium`, `review_due: false`, `review_due_reason: under_budget` —
+  no `next_transition` returned.
+
+T4 (commit `6956bc5`): added `bot/tests/test_auth_password_roundtrip.py`
+(6 tests) covering the previously-untested `auth.py` password path.
+Deliberately broke one assertion to prove the test has teeth, observed it
+fail, reverted. Full suite went from 212 to **218 passed**.
+
+Assess run twice after the T4 commit, both reported, neither's lifecycle
+command run:
+- From the last reviewed boundary (`staging`, `8be18a0`): `risk: high`
+  (`hot_path`, signal: `auth`), `review_due: true`,
+  `review_due_reason: high_risk`. Returned `next_transition.command`:
+  ```
+  gentle-ai review status '--cwd=/Users/usuario/Documents/Trabajo 2026/iaqp/app' --contract=gentle-ai.review-integration/v2 --agent=claude-code --next-transition=true --base-ref=8be18a00224ef8c88d1c21d5f16f90cdd834f254 --committed-only=true
+  ```
+- Scoped to the T4 commit alone (`--base-ref 4416a8a`, T3's commit):
+  `risk: high` (same `hot_path`/`auth` signal), `review_due: true`,
+  `review_due_reason: high_risk`. Returned `next_transition.command`:
+  ```
+  gentle-ai review status '--cwd=/Users/usuario/Documents/Trabajo 2026/iaqp/app' --contract=gentle-ai.review-integration/v2 --agent=claude-code --next-transition=true --base-ref=4416a8a66e924716f18f397e925aac9ad4a56d86 --committed-only=true
+  ```
+  Unlike T1–T3, the T4-scoped assessment is *also* review-due (a new test
+  file touching the `auth` hot path is high risk on its own, independent of
+  branch size), so both commands are live options for the owner, not just
+  the full-branch one.
+
+All four are informational for the owner to choose between; the writer ran
+none of them.
+
 ## Next step
 
-Nothing pending on this branch. Both tasks are complete, verified and
-committed. Outstanding for the owner: answer (or ignore) the T1/full-branch
-review consent envelope above, and separately decide the Python interpreter
+Nothing pending on this branch. All four tasks are complete, verified and
+committed. Outstanding for the owner: answer (or ignore) the review consent
+envelopes above (T1's full-branch one, and T4's two — full-branch and
+T4-scoped, both high risk), and separately decide the Python interpreter
 pin for `app/bot` (still out of scope here, per "Out of scope,
 deliberately" — now more actionable since this change establishes the
 image is Debian 13 trixie / glibc 2.41, whichever minor version is chosen).
