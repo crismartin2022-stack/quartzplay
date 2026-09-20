@@ -186,6 +186,12 @@ character. The player sees exactly what they saw before.
       observing `3 failed, 6 passed`. Suite 442 -> **447 passed**. ESLint
       clean. Build `Compiled successfully`, 283.09 kB.
 
+- [ ] **T3** The same fix on `/agencia` — 13 sniffing sites, the first of the
+      two money screens. Higher stakes than T1/T2: this is where an agency is
+      told whether a payment, a bonus or a password change succeeded. The
+      fallback-to-red is correct today only because every success message
+      carries the prefix; nothing enforces it.
+
 ## Delivery
 
 One work-unit commit on `fix/quartzplay-message-status`, off `staging`. After
