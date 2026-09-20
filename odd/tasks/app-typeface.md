@@ -87,6 +87,14 @@ baseline plus the new test. The build succeeds.
       Full suite 416 -> **429 passed**. ESLint clean on `Box.jsx`.
       Production build `Compiled successfully`, 284.5 kB gzip.
 
+- [ ] **T3** The admin and agency panels adopt Poppins. The owner decided
+      this on 2026-09-20, choosing it over shipping Space Grotesk: one visual
+      system, and no extra font file on every load. `Admin.jsx` (966 sites)
+      and `Agencia.jsx` (620 sites) name `'Space Grotesk',system-ui`, a
+      typeface served nowhere, so both panels render in `system-ui` today.
+      Both files already import `oscuro as Q` from `./theme`, so they are on
+      the current palette; they simply never imported the font constants.
+
 ## Delivery
 
 One work-unit commit. Branch `fix/quartzplay-app-typeface` off `staging`.
