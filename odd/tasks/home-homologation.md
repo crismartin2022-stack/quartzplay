@@ -82,7 +82,11 @@ Out of scope: every other screen, the 378 hardcoded `'Inter'` declarations in
       by `npm install` but left untracked — scope names only `frontend/src`
       and `frontend/package.json`, and the repo carried no lockfile before
       this change.
-- [ ] **T2** The mark at the prototype's size, in the top bar.
+- [x] **T2** The mark at the prototype's size, in the top bar.
+      Commit `de597ff`. `BrandMark size={40}` (82px prototype width /
+      503:244 ratio ≈ 39.77 → 40). Top bar padding cut 9px→5px top/bottom
+      to absorb the growth; headless Chromium measured 51px before and
+      after at 360px width (59px if padding were left alone).
 - [ ] **T3** The mascot inside the hero, placed as the prototype places it,
       with the panel making room for it.
 - [ ] **T4** Icons instead of emoji on this screen, and the two hand-written
@@ -99,9 +103,12 @@ the owner's to answer.
 
 ## Progress
 
-T1 done (`a019d18`). Baseline on `staging`: 24 suites / 384 tests, all
-green; main.js gzip 282.94 kB. Rollback boundary for review is `staging`.
+T1 done (`a019d18`). T2 done (`de597ff`). Baseline on `staging`: 24 suites
+/ 384 tests, all green; main.js gzip 282.94 kB. Both T1 and T2 assessed
+`review_due: false` (`under_budget`, medium risk from the `package.json`
+config change) against `--base-ref staging`, so the reviewed boundary has
+not moved and stays `staging`.
 
 ## Next step
 
-T2.
+T3.
