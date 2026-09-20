@@ -5381,12 +5381,6 @@ function ScreenHome({ user, onNav, onBet, refCode }){
 
   return(
     <div style={{padding:"14px 12px 20px"}}>
-      {/* Mascota de inicio, donde la pone el prototipo (player-home.html:
-          `.mascot-header`, junto al encabezado de la pantalla de inicio).
-          Puramente decorativa, no desplaza nada de lo que ya había abajo. */}
-      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-        <Mascot size={56}/>
-      </div>
       {/* Partidos en vivo. Se cargaban pero nunca se mostraban: el
           código quedó a medias y el inicio no los dibujaba. */}
       {live&&live.length>0&&(
@@ -5451,10 +5445,16 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         </div>
       )}
 
-      {/* Bet Best — la funcion insignia va primero y ocupa el ancho */}
+      {/* Bet Best — la funcion insignia va primero y ocupa el ancho.
+          La mascota vive acá adentro, como en el prototipo
+          (player-home.html: `.hero-balance` > `.mascot-header`), no en una
+          franja aparte arriba: pegada a las esquinas inferior y derecha,
+          recortada, y el panel le reserva el lugar (min-height/padding-right,
+          los mismos números que .hero-balance:has(.mascot-header) en
+          html/styles.css:876-891) para que nunca tape el título ni el botón. */}
       <div onClick={()=>onNav("mejorar")} style={{
         position:"relative",overflow:"hidden",borderRadius:14,marginBottom:14,
-        padding:"18px 16px",cursor:"pointer",
+        padding:"18px 16px",paddingRight:166,minHeight:244,cursor:"pointer",
         background:`linear-gradient(115deg,${Q.violet2} 0%,${Q.violet} 70%)`}}>
         <svg viewBox="0 0 320 120" preserveAspectRatio="none" style={{position:"absolute",
           inset:0,width:"100%",height:"100%",opacity:0.22,pointerEvents:"none"}}>
@@ -5463,6 +5463,11 @@ function ScreenHome({ user, onNav, onBet, refCode }){
             <rect x="0" y="30" width="40" height="60"/><rect x="280" y="30" width="40" height="60"/>
           </g>
         </svg>
+        {/* size=275 is the mascot's height; at the file's own 540:802
+            ratio that rounds to a 185px width, the prototype's own
+            .mascot-header width. */}
+        <Mascot size={275} style={{position:"absolute",right:-33,bottom:-56,
+          opacity:0.96,zIndex:2,clipPath:"inset(0 0 13% 0)"}}/>
         <div style={{position:"relative"}}>
           <div style={{fontSize:9,letterSpacing:2,fontWeight:800,color:Q.gold,
             fontFamily:F_BODY}}>BET BEST</div>
