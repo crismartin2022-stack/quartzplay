@@ -349,6 +349,24 @@ green at their baseline counts. No dependency moved.
       Full suite: `python -m pytest` from `app/bot` → **218 passed**,
       304 warnings (212 baseline + 6 new tests, all green).
 
+- [x] **T5** Close the two review findings that left the T4 test unable to
+      fail. Commit `6993aba`. The legacy sha256 branch was asserted only in
+      the positive direction, so an implementation returning True for any
+      password against a hexdigest-shaped stored value passed all six tests;
+      and the over-length case only round-tripped against itself, which holds
+      whether `_bytes72` truncates or not, while the comment above it claimed
+      the opposite. Added `test_wrong_password_does_not_verify_against_the_legacy_form`
+      and `test_only_the_first_72_bytes_decide_the_match` /
+      `test_a_difference_inside_the_first_72_bytes_still_fails`, and rewrote
+      the misleading comment. Suite 218 -> **221 passed**.
+      Teeth proven against the real failure modes, not by flipping an
+      assertion: with `auth._bytes72` monkeypatched to the identity function,
+      `hash_password` raises `ValueError: password cannot be longer than 72
+      bytes` and the fixture explodes, so the test detects a broken
+      truncation helper; and a stubbed legacy branch returning
+      `len(stored) == 64` makes the new negative assertion fail while the old
+      positive-only test still passed green.
+
 ## Delivery
 
 One work-unit commit per task, on a branch off `staging`. Branch name:
@@ -470,3 +488,36 @@ T4-scoped, both high risk), and separately decide the Python interpreter
 pin for `app/bot` (still out of scope here, per "Out of scope,
 deliberately" — now more actionable since this change establishes the
 image is Debian 13 trixie / glibc 2.41, whichever minor version is chosen).
+
+## Review outcome (T4 candidate)
+
+Lineage `review-29c1bce095bd4c41`, candidate scoped to T4 alone
+(`--base-ref 4416a8a --committed-only`): 2 files, 208 changed lines, risk
+`high` (`hot_path`, signal `auth`). Four lenses ran; result **approved**,
+acknowledged, `authority: burned`. Eleven findings, all advisory
+(`disposition: informational`) — none opened a correction.
+
+Closed by T5: `R3-legacy-branch-lacks-negative-assertion`,
+`R3-truncation-path-not-actually-characterized`,
+`R2-truncation-comment-overclaims`.
+
+Left open, deliberately, each its own piece of work:
+
+- `R1-legacy-sha256-accepted` (marked `pre-existing`): `auth.py` accepts a
+  bare, unsalted, single-round sha256 digest as a valid stored password.
+  This change did not introduce it; T4 pinned it as expected behaviour.
+  Deciding between forcing a rehash and waiting for each player's next login
+  is a product decision, not a test fix.
+- `R3-malformed-stored-value-boundaries`: empty string, `None` and a
+  64-character non-hex value are untested and may raise rather than return
+  False.
+- `R2-removed-package-list-contradicts-retained-pins` and
+  `R3-removal-record-internally-surprising`: this document does not make
+  clear that `httpx`/`httpcore` stayed while `httpx2`/`httpcore2` went.
+- `R3-import-depends-on-invocation-mode`: `import auth` resolves only with
+  the bot directory on `sys.path`, which `python -m pytest` from `app/bot`
+  provides and a bare `pytest` from the repository root does not. Shared
+  with the pre-existing 212 tests, not introduced here.
+- `R1-bcrypt-72-byte-truncation-uncovered` and
+  `R2-legacy-sha256-context-missing`: addressed in passing by T5's new
+  assertions and comments.
