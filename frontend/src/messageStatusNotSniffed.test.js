@@ -11,16 +11,16 @@
 // Read from source, the way theme.test.js and noThemeSwitch.test.js do:
 // this project has no testing-library, so the screens are checked as text.
 //
-// Admin.jsx (17 sites) still carries the pattern and is deliberately absent:
-// it is its own slice, and no emoji may move on that screen until it is
-// done. Add it here as it lands.
+// Admin.jsx (17 sites) was the last screen still carrying the pattern; with
+// it fixed, nothing in the product decides a message's colour by reading
+// its own text anymore, and the emoji-to-icon migration is safe to start.
 import fs from "fs";
 import path from "path";
 
 const SRC = path.resolve(__dirname);
 
 // The screens whose messages already carry their own status.
-const FIXED_SCREENS = ["App.jsx", "Web.jsx", "Agencia.jsx"];
+const FIXED_SCREENS = ["App.jsx", "Web.jsx", "Agencia.jsx", "Admin.jsx"];
 
 const sourceOf = (file) => fs.readFileSync(path.join(SRC, file), "utf8");
 

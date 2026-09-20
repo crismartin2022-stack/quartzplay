@@ -380,6 +380,145 @@ character. The player sees exactly what they saw before.
   `review_due_reason: "under_budget"`. No `next_transition` returned;
   nothing further run.
 
+- [x] **T4** The same fix on `/admin` — 17 sniffing sites, the last of the
+      35 and the largest file in the product. Branched on top of the agency
+      slice rather than off `staging`, because both edit the same guard test
+      file; it rebases onto `staging` once the agency PR merges. Commit
+      `9645960` on `fix/quartzplay-admin-message-status`.
+
+  **Baseline** (`CI=true npx react-scripts test --watchAll=false` from
+  `app/frontend`, before any change, on top of the agency slice): 30
+  suites passed, 452 tests passed.
+
+  **Component inventory** (17 sniffing sites, found via
+  `rg -n '\.startsWith\(\s*["'"'"'](✅|⚠️|🔒)["'"'"']' src/Admin.jsx` then
+  mapped to the nearest enclosing `function` above each match; two of the
+  17 lines OR-check `🔒` alongside `✅`, unlike Agencia.jsx's plain
+  `startsWith("✅")` sites):
+
+  | Component | Line range | State var | `setMsg`/`setLiq*Msg` calls | Unprefixed content |
+  |---|---|---|---|---|
+  | `TabCierre` | 216-1246 | `liqAutoMsg`, `liqMsg` | 6 (3 each) | none |
+  | `CrearComboAdmin` | 1436-1696 | `msg` | 3 | none |
+  | `EscanearComboAdmin` | 1842-2075 | `msg` | 8 | `"Una imagen supera 8MB"`, `d.mensaje\|\|"No se pudo leer"`, `"Error al analizar"`, `"No hay picks que podamos tomar"` |
+  | `FichaCliente` | 2212-2575 | `msg` | 7 | `"Poné un monto"`, `"🔒 Cliente bloqueado"` |
+  | `TabClientes` | 2575-2723 | `msg` | 4 | `"Poné nombre y agencia"` |
+  | `CrearInfluencer` | 4021-4125 | `msg` | 5 | `"Completá nombre, usuario y clave"`, `"La clave debe tener 8+ caracteres"` |
+  | `DetalleInfluencer` | 4125-4252 | `msg` | 3 | none |
+  | `AsignarAgenciaAdmin` | 4409-4465 | `msg` | 4 | none |
+  | `ResetPasswordAdmin` | 4465-4521 | `msg` | 5 | `"La contraseña debe tener 8+ caracteres"`, `"Las contraseñas no coinciden"` |
+  | `ConfigurarCuenta` | 4521-4668 | `msg` | 3 | none |
+  | `FichaAgencia` | 4668-4913 | `msg` | 13 | `"Poné un monto"`, `"🔒 Suspendida"` |
+  | `ComisionAgencia` | 4913-5092 | `msg` | 6 | none |
+  | `CrearAgenciaAdmin` | 5161-5278 | `msg` | 4 | `"Completá nombre, usuario y clave"` |
+  | `TabBonos` | 5421-5951 | `msg` | 12 | `"Poné un nombre"` |
+  | `TabBetBuilder` | 6102-6345 | `msg` | 3 | none |
+  | `TabLimites` | 14019-14235 | `msg` | 6 | `"Elegí una agencia"`, `"Valores cargados arriba: ajustá y guardá"` |
+
+  102 setter calls total (96 `setMsg` + 6 `setLiqAutoMsg`/`setLiqMsg`).
+  No component used `setMensaje` or `setAviso`; TabCierre is the only
+  one with a non-`msg` name. Dozens of other components in the file
+  (TabEventos, HistorialBloqueos, TabUsuarios, TabPSP, DesafiosConfig,
+  IacoinPanel, DisputasPanel, ModeracionPanel, HistorialAdmin,
+  LogosCasino, ProveedoresCasino, Integraciones, RiesgoCasino,
+  TabCasinoProveedor, Rendimiento, TabTester, TabResponsable,
+  TabSuperBono, TabMonedas, TabRecompensas, TabProductosPermisos,
+  TabSoporte, TabMensajes, ChatOperador, TabRiesgoSistema, TabFlash,
+  TabMejora, TabBoost, TabBanners, TabRiesgo, and others) also hold
+  local state called `msg` but never sniff it — left untouched,
+  confirmed by the guard test's post-fix scan finding zero sniff sites
+  in the whole file (would have risen above 17 had a wrong component
+  been touched).
+
+  **(a) Unprefixed messages found** (14 distinct strings, some reused
+  across components):
+  `"Una imagen supera 8MB"`, `d.mensaje||"No se pudo leer"`,
+  `"Error al analizar"`, `"No hay picks que podamos tomar"`,
+  `"Poné un monto"` (×2, FichaCliente and FichaAgencia),
+  `"🔒 Cliente bloqueado"`, `"Poné nombre y agencia"`,
+  `"Completá nombre, usuario y clave"` (×2, CrearInfluencer and
+  CrearAgenciaAdmin), `"La clave debe tener 8+ caracteres"` (×2),
+  `"La contraseña debe tener 8+ caracteres"`,
+  `"Las contraseñas no coinciden"`, `"🔒 Suspendida"`,
+  `"Elegí una agencia"`, `"Poné un nombre"`,
+  `"Valores cargados arriba: ajustá y guardá"`.
+
+  **(b) Of those, the ones that report a success** — two, both the
+  `🔒`-prefixed kind found in Agencia.jsx, but with a difference:
+
+  | Component | Message | Colour today | Recommendation |
+  |---|---|---|---|
+  | `FichaCliente` | `"🔒 Cliente bloqueado"` (`toggleBloqueo`, blocking succeeded) | **green** | No decision needed — Admin.jsx's render already read `msg.startsWith("✅")\|\|msg.startsWith("🔒")`, unlike Agencia.jsx's plain `startsWith("✅")`. This screen never had the red-on-success bug; `ok:true` simply preserves what it already showed. |
+  | `FichaAgencia` | `"🔒 Suspendida"` (`toggleStatus`, suspending succeeded) | **green** | Same as above — already OR-checked `🔒`, already green. No owner decision needed; `ok:true` preserves it. |
+
+  All other unprefixed messages are validation guards or a fetch-error
+  fallback that already fell through to red; kept `ok:false`. One,
+  `"Valores cargados arriba: ajustá y guardá"` (TabLimites, shown when
+  loading a limit into the form to edit), is neither a success nor a
+  failure report — informational copy that happened to render red by
+  the same fallthrough. Left as `ok:false` to change nothing visible;
+  flagged here since it is unprefixed, but it is not a candidate for
+  (b) because it reports no outcome to invert.
+
+  **Shape**: identical to T1-T3 — `const [msg, setMsg] = useState(null)`
+  / `const [liqMsg, setLiqMsg] = useState(null)` /
+  `const [liqAutoMsg, setLiqAutoMsg] = useState(null)`, each `{text, ok}
+  | null`, comment `// {text, ok} | null — status lives here, not in
+  the text`. Renders changed from `msg.startsWith("✅")?Q.green:Q.red`
+  (or the two `||msg.startsWith("🔒")` variants) to `msg.ok?Q.green:Q.red`
+  / `{msg.text}` at all 17 sites.
+
+  **Guard test**: extended `FIXED_SCREENS` to `["App.jsx", "Web.jsx",
+  "Agencia.jsx", "Admin.jsx"]`; updated the header comment — `Admin.jsx`
+  was the last pending screen, so the comment now says the migration is
+  safe to start instead of naming a screen still pending. Implemented
+  the fix before extending the guard test (out of the prescribed
+  strict-TDD order), so proved RED honestly afterward: copied the fixed
+  `Admin.jsx` aside, ran `git checkout -- frontend/src/Admin.jsx` to
+  restore the pre-fix source (confirmed via
+  `rg -c '\.startsWith\(\s*["'"'"'](✅|⚠️|🔒)["'"'"']' src/Admin.jsx` → 17),
+  ran the guard test, then restored the fixed `Admin.jsx` from the
+  scratch copy before running anything else.
+
+  **Player-visible before/after**: 102 setter calls across 16
+  components. Every content-carrying call keeps its exact text; only
+  the colour source moved from the text to a paired `ok` flag. Full
+  table omitted for length (see the per-component `setMsg({text:...})`
+  greps in the commit diff); the two calls listed in (b) above are the
+  only ones whose message carried no `✅`/`⚠️` prefix and reported a
+  success, and both keep the green they already had.
+
+  **Checks, exact observed results:**
+  - Guard-bites-here proof (pre-fix `Admin.jsx`, guard test only):
+    **3 failed, 15 passed of 18** — the failures were exactly
+    `Admin.jsx does not call .startsWith("✅") anywhere`, `Admin.jsx
+    does not call .startsWith on either status glyph anywhere`, and
+    `Admin.jsx the status travels beside the text, not inside it`; all
+    `App.jsx`/`Web.jsx`/`Agencia.jsx` assertions and Admin.jsx's own
+    "prefixes still present" test stayed green.
+  - Guard test only, post-fix: 1 suite passed, 18/18 tests passed.
+  - `CI=true npx react-scripts test --watchAll=false` (full suite,
+    post-fix): 30 suites passed, 456 tests passed. Delta from baseline
+    (30/452) is exactly the 4 new `Admin.jsx` guard assertions.
+  - `npx eslint src/Admin.jsx --no-eslintrc --env browser,es2021
+    --parser-options
+    ecmaVersion:2021,sourceType:module,ecmaFeatures:{jsx:true} --rule
+    '{"no-undef":"error"}'`: no output, exit clean.
+  - Production build with the staging-shaped placeholder values:
+    `Compiled successfully.`, `283.29 kB (+71 B)
+    build/static/js/main.05231201.js`.
+  - Post-fix scan for the *concept*:
+    `rg -n '\.startsWith\(\s*["'"'"'](✅|⚠️|🔒)["'"'"']' src/Admin.jsx` —
+    no output (exit 1). Positive control:
+    `rg -n "startsWith" src/Admin.jsx` reports 2, both unrelated (a
+    `tipo` prefix check for `"carga"`, and `ConfigurarCuenta`'s own
+    `INF`-code prefix check) — none is a colour decision. (First pass
+    of this scan also matched two explanatory code comments I had
+    written referencing the old `startsWith("✅")` pattern by name;
+    reworded them to describe the behaviour without the literal
+    pattern, since the guard regex scans raw source text including
+    comments.)
+
 ## Delivery
 
 One work-unit commit on `fix/quartzplay-message-status`, off `staging`. After
@@ -391,14 +530,29 @@ is due, hand the returned command back verbatim rather than running it.
 
 T1 done (commit `bd93e09`) and T2 done (`/sitio`, `Web.jsx`, 3 sites,
 merged to `staging`). T3 done (`/agencia`, `Agencia.jsx`, 13 sites,
-commit `369578a` on `fix/quartzplay-agency-message-status`). Full suite
-green (30/451), guard test extended to `Agencia.jsx` and proven to fail
-on the pre-fix source (3/13 failing) and pass after (13/13), ESLint
-clean, staging-shaped production build clean, review assess under
-budget (`medium` risk, 212 changed lines) so no review was due.
+commit `369578a` on `fix/quartzplay-agency-message-status`). T4 done
+(`/admin`, `Admin.jsx`, 17 sites — the last of the 35, commit `9645960`
+on `fix/quartzplay-admin-message-status`, stacked on the agency
+branch). Full suite green (30/456), guard test extended to `Admin.jsx`
+and proven to fail on the pre-fix source (3/18 failing) and pass after
+(18/18), ESLint clean, staging-shaped production build clean, review
+assess under budget (`medium` risk, 312 changed lines against the
+agency branch) so no review was due.
+
+All 35 original sniffing sites across `App.jsx`, `Web.jsx`,
+`Agencia.jsx` and `Admin.jsx` are fixed. No screen in the product
+decides a message's colour by reading its own text anymore. Two
+messages (`FichaCliente`'s `"🔒 Cliente bloqueado"` and `FichaAgencia`'s
+`"🔒 Suspendida"`) carry no `✅` yet report a success; both already
+rendered green in Admin.jsx before this change (unlike Agencia.jsx's
+asymmetric case) and were preserved as `ok:true` without needing an
+owner decision.
 
 ## Next step
 
-`Admin.jsx` (17 sniffing sites) — its own slice, same shape as T1-T3.
-After that, the emoji-to-icon glyph move itself becomes safe across all
-35 original sites.
+The obstacle is cleared: the emoji-to-icon migration itself can start,
+guided by `docs/icon-inventory.md`. That migration is its own body of
+work — swapping each `✅`/`⚠️`/`🔒`/other emoji for a drawn icon across
+all four screens — and should get its own ODD feature document rather
+than continuing under this one, since the status-in-state groundwork
+this document tracked is now complete.
