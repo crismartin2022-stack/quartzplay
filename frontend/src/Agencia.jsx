@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef, Component } from "react";
 import { getFrontendConfig } from "./config";
+import BrandMark from "./BrandMark";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -45,7 +46,7 @@ class CazaError extends Component {
   }
 }
 
-import { oscuro as Q } from "./theme";
+import { oscuro as Q, F_BODY } from "./theme";
 
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 
@@ -243,38 +244,22 @@ function AlertaError({ mensaje, critico=false }){
       <span style={{fontSize:critico?24:18,lineHeight:1}}>⚠️</span>
       <div>
         {critico&&<div style={{color:Q.red,fontWeight:900,fontSize:16,
-          fontFamily:"'Space Grotesk',system-ui",marginBottom:4,letterSpacing:0.5}}>
+          fontFamily:F_BODY,marginBottom:4,letterSpacing:0.5}}>
           NO COBRAR
         </div>}
         <div style={{color:critico?Q.text:Q.red,fontSize:critico?13:12,
-          fontFamily:"'Space Grotesk',system-ui",lineHeight:1.4}}>{mensaje}</div>
+          fontFamily:F_BODY,lineHeight:1.4}}>{mensaje}</div>
       </div>
     </div>
   );
 }
 
+// Antes dibujaba su propio hexágono en SVG junto a "IAQP" en degradé,
+// como placeholder de un logo que todavía no existía. Ahora que el logo
+// real está disponible (BrandMark), el hexágono queda de más: la imagen
+// misma es la marca, tal como la usa el prototipo (sin hexágono al lado).
 function QPLogo({ size=20 }){
-  return(
-    <div style={{display:"flex",alignItems:"center",gap:8}}>
-      <svg width={size} height={size} viewBox="0 0 24 24">
-        <defs>
-          <linearGradient id="qglag" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={Q.violet}/>
-            <stop offset="100%" stopColor={Q.cyan}/>
-          </linearGradient>
-        </defs>
-        <polygon points="12,2 20,8 20,16 12,22 4,16 4,8" fill="none" stroke="url(#qglag)" strokeWidth={1.5}/>
-        <polygon points="12,5 18,9.5 18,15 12,19 6,15 6,9.5" fill="url(#qglag)" opacity={0.3}/>
-        <circle cx={12} cy={12} r={2} fill={Q.cyan} opacity={0.9}/>
-      </svg>
-      <span style={{
-        fontFamily:"'Space Grotesk',system-ui", fontWeight:900, fontSize:size,
-        background:`linear-gradient(135deg,${Q.violet2},${Q.cyan})`,
-        WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
-        backgroundClip:"text", letterSpacing:-0.5,
-      }}>IAQP</span>
-    </div>
-  );
+  return <BrandMark size={size}/>;
 }
 
 function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=false, disabled=false }){
@@ -289,7 +274,7 @@ function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=fa
       color:disabled?Q.muted:outline?color:"#fff",
       fontSize:fs,fontWeight:700,cursor:disabled?"not-allowed":"pointer",
       display:"flex",alignItems:"center",justifyContent:"center",gap:7,
-      fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+      fontFamily:F_BODY,textTransform:"uppercase",
       boxShadow:(!outline&&!disabled)?`0 4px 16px ${color}33`:"none",
     }}>{label}</button>
   );
@@ -487,7 +472,7 @@ function TeamLogo({ name, size=28 }){
       border:`1.5px solid ${color}`,display:"flex",
       alignItems:"center",justifyContent:"center"}}>
       <span style={{color:"#fff",fontWeight:900,fontSize:size*0.36,
-        fontFamily:"'Space Grotesk',system-ui",lineHeight:1}}>
+        fontFamily:F_BODY,lineHeight:1}}>
         {iniciales||"?"}
       </span>
     </div>
@@ -584,7 +569,7 @@ function EstadisticasPartidoBoton({ ev }){
       <button onClick={abrir} style={{width:"100%",marginTop:6,
         background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.cyan}44`,borderRadius:8,
         padding:"6px",cursor:"pointer",color:Q.cyan,fontSize:10,fontWeight:700,
-        fontFamily:"'Space Grotesk',system-ui"}}>📊 Estadísticas</button>
+        fontFamily:F_BODY}}>📊 Estadísticas</button>
       {abierto&&(
         <div style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(2,2,8,0.92)",
           display:"flex",alignItems:"flex-end"}} onClick={()=>setAbierto(false)}>
@@ -594,22 +579,22 @@ function EstadisticasPartidoBoton({ ev }){
             padding:"18px 16px 30px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
               <span style={{color:Q.text,fontWeight:700,fontSize:14,
-                fontFamily:"'Space Grotesk',system-ui"}}>{home} vs {away}</span>
+                fontFamily:F_BODY}}>{home} vs {away}</span>
               <button onClick={()=>setAbierto(false)} style={{background:"transparent",border:"none",
                 color:Q.muted,fontSize:26,cursor:"pointer"}}>×</button>
             </div>
             {!stats&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-              fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+              fontFamily:F_BODY}}>Cargando...</div>}
             {stats&&stats.marcador&&stats.marcador.home!=null&&(
               <div style={{textAlign:"center",marginBottom:14}}>
                 <div style={{color:Q.gold,fontWeight:900,fontSize:30,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {stats.marcador.home} - {stats.marcador.away}</div>
               </div>
             )}
             {stats&&(!stats.disponible||!stats.tiene_stats)&&(
               <div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:24,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 📊 No hay estadísticas detalladas para este partido.</div>
             )}
             {stats&&stats.tiene_stats&&stats.stats.map((st,i)=>{
@@ -619,11 +604,11 @@ function EstadisticasPartidoBoton({ ev }){
                 <div key={i} style={{marginBottom:12}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                     <span style={{color:Q.text,fontSize:13,fontWeight:700,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{st.home}{st.unidad}</span>
+                      fontFamily:F_BODY}}>{st.home}{st.unidad}</span>
                     <span style={{color:Q.muted,fontSize:11,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{st.label}</span>
+                      fontFamily:F_BODY}}>{st.label}</span>
                     <span style={{color:Q.text,fontSize:13,fontWeight:700,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{st.away}{st.unidad}</span>
+                      fontFamily:F_BODY}}>{st.away}{st.unidad}</span>
                   </div>
                   <div style={{display:"flex",height:6,borderRadius:3,overflow:"hidden",
                     background:"rgba(255,255,255,0.08)"}}>
@@ -673,7 +658,7 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
   if(!claves.length && !cargando)
     return (
       <div style={{color:Q.dim,fontSize:11,padding:"10px 0",textAlign:"center",
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         {aviso||"Sin mercados disponibles"}
       </div>
     );
@@ -687,7 +672,7 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
         return(
           <div key={k} style={{marginBottom:10}}>
             <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",
-              letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",
+              letterSpacing:1,fontFamily:F_BODY,
               marginBottom:5,display:"flex",justifyContent:"space-between"}}>
               <span>{tituloMercado(k)}</span>
               {muchos&&<span style={{color:Q.dim}}>{resultados.length} opciones</span>}
@@ -714,11 +699,11 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
                       justifyContent:"space-between",gap:6,minWidth:0,
                     }}>
                     <span style={{color:Q.muted,fontSize:10,
-                      fontFamily:"'Space Grotesk',system-ui",
+                      fontFamily:F_BODY,
                       overflow:"hidden",textOverflow:"ellipsis",
                       whiteSpace:"nowrap",flex:1,textAlign:"left"}}>{etiqueta}</span>
                     <span style={{color:sel?color:Q.text,fontWeight:700,fontSize:12,
-                      fontFamily:"'Space Grotesk',system-ui",flexShrink:0}}>
+                      fontFamily:F_BODY,flexShrink:0}}>
                       {fmt(cuota)}
                     </span>
                   </button>
@@ -730,7 +715,7 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
       })}
       {cargando&&(
         <div style={{color:Q.dim,fontSize:10,textAlign:"center",padding:"6px 0",
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           Buscando córners, tarjetas y goleadores...
         </div>
       )}
@@ -752,7 +737,7 @@ function FiltroEventos({ ligas, liga, setLiga, busqueda, setBusqueda, total }){
           placeholder="Buscar equipo..."
           style={{background:"transparent",border:"none",color:Q.text,
             fontSize:14,flex:1,minWidth:0,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
         {busqueda&&(
           <button onClick={()=>setBusqueda("")} style={{background:"transparent",
             border:"none",color:Q.muted,fontSize:16,cursor:"pointer",
@@ -768,7 +753,7 @@ function FiltroEventos({ ligas, liga, setLiga, busqueda, setBusqueda, total }){
           border:`1px solid ${!liga?Q.cyan:Q.border}`,borderRadius:20,
           padding:"6px 14px",cursor:"pointer",color:!liga?Q.cyan:Q.muted,
           fontSize:11,fontWeight:!liga?700:400,whiteSpace:"nowrap",
-          flexShrink:0,fontFamily:"'Space Grotesk',system-ui",
+          flexShrink:0,fontFamily:F_BODY,
         }}>Todas ({total})</button>
         {ligas.map(l=>(
           <button key={l.name} onClick={()=>setLiga(l.name)} style={{
@@ -778,7 +763,7 @@ function FiltroEventos({ ligas, liga, setLiga, busqueda, setBusqueda, total }){
             padding:"6px 14px",cursor:"pointer",
             color:liga===l.name?Q.cyan:Q.muted,
             fontSize:11,fontWeight:liga===l.name?700:400,whiteSpace:"nowrap",
-            flexShrink:0,fontFamily:"'Space Grotesk',system-ui",
+            flexShrink:0,fontFamily:F_BODY,
           }}>{l.icon} {l.name} ({(l.events||[]).length})</button>
         ))}
       </div>
@@ -845,19 +830,19 @@ function LoginScreen({ onLogin }){
         <div style={{textAlign:"center",marginBottom:32}}>
           <QPLogo size={28}/>
           <div style={{color:Q.muted,fontSize:12,marginTop:8,
-            fontFamily:"'Space Grotesk',system-ui"}}>Panel de Agencia Oficial</div>
+            fontFamily:F_BODY}}>Panel de Agencia Oficial</div>
         </div>
         <GCard glow={Q.violet} style={{padding:28}}>
           {[["Usuario","text",user,setUser,"usuario"],
             ["Contraseña","password",pass,setPass,"••••••••"]].map(([l,t,v,sv,ph])=>(
             <div key={l} style={{marginBottom:16}}>
               <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
-                letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",marginBottom:6}}>{l}</div>
+                letterSpacing:1,fontFamily:F_BODY,marginBottom:6}}>{l}</div>
               <input type={t} value={v} onChange={e=>sv(e.target.value)} placeholder={ph}
                 onKeyDown={e=>e.key==="Enter"&&login()}
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
                   border:`1px solid ${Q.border}`,borderRadius:10,padding:"11px 14px",
-                  color:Q.text,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}/>
+                  color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
             </div>
           ))}
           <AlertaError mensaje={err}/>
@@ -1013,7 +998,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
     <div>
       <GCard glow={Q.violet} style={{padding:20,marginBottom:16}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
-          fontFamily:"'Space Grotesk',system-ui"}}>Buscar código de apuesta</div>
+          fontFamily:F_BODY}}>Buscar código de apuesta</div>
         <div style={{color:Q.muted,fontSize:12,marginBottom:14}}>
           El cliente muestra el código QP-XXXXX desde su celular o ticket
         </div>
@@ -1024,7 +1009,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
             style={{flex:1,background:"rgba(255,255,255,0.06)",
               border:`1.5px solid ${Q.border}`,borderRadius:10,
               padding:"12px 16px",color:Q.text,fontSize:20,
-              fontFamily:"'Space Grotesk',system-ui",fontWeight:700,letterSpacing:2}}/>
+              fontFamily:F_BODY,fontWeight:700,letterSpacing:2}}/>
           <Btn label={loading?"...":"BUSCAR"} onClick={buscar}
             disabled={!code||loading} color={Q.violet}/>
         </div>
@@ -1039,7 +1024,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
           <div style={{display:"flex",justifyContent:"space-between",
             alignItems:"center",marginBottom:10}}>
             <div style={{color:Q.text,fontWeight:700,fontSize:14,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               🎟️ Esperando pago <span style={{color:Q.amber}}>
                 ({reservas.length})</span></div>
             <button onClick={cargarReservas} style={{background:"transparent",
@@ -1054,7 +1039,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
                 borderBottom:`1px solid ${Q.border}`}}>
               <div style={{minWidth:0,flex:1}}>
                 <span style={{color:Q.gold,fontWeight:800,fontSize:14,
-                  fontFamily:"'Space Grotesk',system-ui",
+                  fontFamily:F_BODY,
                   letterSpacing:0.5}}>{r.code}</span>
                 <div style={{color:Q.muted,fontSize:10.5,marginTop:2,
                   overflow:"hidden",textOverflow:"ellipsis",
@@ -1070,13 +1055,13 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
               </div>
               <div style={{textAlign:"right",flexShrink:0}}>
                 <div style={{color:Q.cyan,fontSize:11,fontWeight:700,
-                  fontFamily:"'Space Grotesk',system-ui"}}>Cobrar ›</div>
+                  fontFamily:F_BODY}}>Cobrar ›</div>
               </div>
             </div>
           ))}
 
           <div style={{color:Q.dim,fontSize:10,marginTop:8,lineHeight:1.5,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             Tocá una para cargarla en el buscador. Solo se ven las
             reservas de clientes de tu red.</div>
         </GCard>
@@ -1085,15 +1070,15 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
       {slip&&step==="confirmar"&&slip.status==="cashout_pending"&&(
         <GCard glow={Q.gold} style={{padding:20,marginBottom:12}}>
           <div style={{color:Q.gold,fontWeight:800,fontSize:16,marginBottom:6,
-            fontFamily:"'Space Grotesk',system-ui"}}>🎫 Cash out para cobrar</div>
+            fontFamily:F_BODY}}>🎫 Cash out para cobrar</div>
           <div style={{color:Q.muted,fontSize:13,marginBottom:16}}>
             El cliente hizo cash out y viene a cobrar en efectivo.
           </div>
           <div style={{textAlign:"center",marginBottom:16}}>
             <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-              fontFamily:"'Space Grotesk',system-ui"}}>A pagar</div>
+              fontFamily:F_BODY}}>A pagar</div>
             <div style={{color:Q.gold,fontWeight:900,fontSize:34,
-              fontFamily:"'Space Grotesk',system-ui"}}>{ars(slip.potential_win)}</div>
+              fontFamily:F_BODY}}>{ars(slip.potential_win)}</div>
           </div>
           <AlertaError mensaje={coMsg} critico/>
           <div style={{display:"flex",gap:8}}>
@@ -1110,14 +1095,14 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
               alignItems:"center",marginBottom:14}}>
               <div>
                 <div style={{color:Q.green,fontWeight:900,fontSize:18,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{slip.code}</div>
+                  fontFamily:F_BODY}}>{slip.code}</div>
                 <div style={{color:Q.muted,fontSize:12}}>
                   {slip.user} · {slip.created_at}
                 </div>
               </div>
               <div style={{background:`${Q.green}22`,border:`1px solid ${Q.green}`,
                 borderRadius:20,padding:"4px 12px",color:Q.green,
-                fontSize:11,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>
+                fontSize:11,fontWeight:700,fontFamily:F_BODY}}>
                 VÁLIDO
               </div>
             </div>
@@ -1127,28 +1112,28 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
                 borderBottom:i<slip.picks.length-1?`1px solid ${Q.dim}`:"none"}}>
                 <div>
                   <div style={{color:Q.text,fontWeight:600,fontSize:13,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{p.home} vs {p.away}</div>
+                    fontFamily:F_BODY}}>{p.home} vs {p.away}</div>
                   <div style={{color:Q.muted,fontSize:11}}>{p.sport} · {p.sel}</div>
                 </div>
                 <div style={{color:Q.cyan,fontWeight:700,fontSize:16,
-                  fontFamily:"'Space Grotesk',system-ui"}}>@{p.odd}</div>
+                  fontFamily:F_BODY}}>@{p.odd}</div>
               </div>
             ))}
             <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${Q.violet}44`}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
                 <span style={{color:Q.muted,fontSize:13}}>Cuota total</span>
                 <span style={{color:Q.gold,fontWeight:700,fontSize:16,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{fmt(slip.odd_total)}x</span>
+                  fontFamily:F_BODY}}>{fmt(slip.odd_total)}x</span>
               </div>
               {slip.stake>0&&<div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
                 <span style={{color:Q.muted,fontSize:13}}>Apostado (online)</span>
                 <span style={{color:Q.text,fontWeight:700,fontSize:15,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{ars(slip.stake)}</span>
+                  fontFamily:F_BODY}}>{ars(slip.stake)}</span>
               </div>}
               {slip.potential_win>0&&<div style={{display:"flex",justifyContent:"space-between"}}>
                 <span style={{color:Q.muted,fontSize:14,fontWeight:700}}>RETORNO POT.</span>
                 <span style={{color:Q.green,fontWeight:900,fontSize:22,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{ars(slip.potential_win)}</span>
+                  fontFamily:F_BODY}}>{ars(slip.potential_win)}</span>
               </div>}
             </div>
           </GCard>
@@ -1157,13 +1142,13 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
 
           <GCard style={{padding:16,marginBottom:12}}>
             <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:12,
-              fontFamily:"'Space Grotesk',system-ui"}}>¿Qué quiere hacer el cliente?</div>
+              fontFamily:F_BODY}}>¿Qué quiere hacer el cliente?</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               <button onClick={confirmarApuesta} style={{
                 background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.green}`,
                 borderRadius:12,padding:14,cursor:"pointer",textAlign:"left"}}>
                 <div style={{color:Q.green,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui",marginBottom:3}}>
+                  fontFamily:F_BODY,marginBottom:3}}>
                   Confirmar apuesta y entregar ticket
                 </div>
                 <div style={{color:Q.muted,fontSize:12}}>
@@ -1174,7 +1159,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
                 background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.amber}`,
                 borderRadius:12,padding:14,cursor:"pointer",textAlign:"left"}}>
                 <div style={{color:Q.amber,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui",marginBottom:3}}>
+                  fontFamily:F_BODY,marginBottom:3}}>
                   Pagar en efectivo en el local
                 </div>
                 <div style={{color:Q.muted,fontSize:12}}>
@@ -1186,7 +1171,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
                   background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.gold}`,
                   borderRadius:12,padding:14,cursor:"pointer",textAlign:"left"}}>
                   <div style={{color:Q.gold,fontWeight:700,fontSize:13,
-                    fontFamily:"'Space Grotesk',system-ui",marginBottom:3}}>
+                    fontFamily:F_BODY,marginBottom:3}}>
                     {coProc?"Calculando...":"💰 Cash out (retirar ahora)"}
                   </div>
                   <div style={{color:Q.muted,fontSize:12}}>
@@ -1196,7 +1181,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
               )}
             </div>
             {coMsg&&<div style={{color:Q.red,fontSize:12,marginTop:10,textAlign:"center",
-              fontFamily:"'Space Grotesk',system-ui"}}>{coMsg}</div>}
+              fontFamily:F_BODY}}>{coMsg}</div>}
           </GCard>
           <Btn label="Cancelar" onClick={reset} outline color={Q.muted} full/>
         </div>
@@ -1205,20 +1190,20 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
       {step==="retiro"&&retiro&&(
         <GCard glow={Q.gold} style={{padding:20,marginBottom:12}}>
           <div style={{color:Q.gold,fontWeight:800,fontSize:16,marginBottom:6,
-            fontFamily:"'Space Grotesk',system-ui"}}>💸 Retiro para pagar</div>
+            fontFamily:F_BODY}}>💸 Retiro para pagar</div>
           <div style={{color:Q.muted,fontSize:13,marginBottom:16}}>
             El cliente solicitó un retiro y viene a cobrar en efectivo.
           </div>
           <div style={{textAlign:"center",marginBottom:16}}>
             <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-              fontFamily:"'Space Grotesk',system-ui"}}>A pagar a {retiro.cliente}</div>
+              fontFamily:F_BODY}}>A pagar a {retiro.cliente}</div>
             <div style={{color:Q.gold,fontWeight:900,fontSize:34,
-              fontFamily:"'Space Grotesk',system-ui"}}>{ars(retiro.monto)} {retiro.moneda}</div>
+              fontFamily:F_BODY}}>{ars(retiro.monto)} {retiro.moneda}</div>
           </div>
           <AlertaError mensaje={err} critico/>
           {retiro.estado!=="pendiente"?(
             <div style={{color:Q.amber,fontSize:13,textAlign:"center",
-              fontFamily:"'Space Grotesk',system-ui"}}>Este retiro ya está {retiro.estado}</div>
+              fontFamily:F_BODY}}>Este retiro ya está {retiro.estado}</div>
           ):(
             <div style={{display:"flex",gap:8}}>
               <Btn label="Cancelar" onClick={reset} outline color={Q.muted} full disabled={retProc}/>
@@ -1232,9 +1217,9 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
         <GCard glow={Q.green} style={{padding:24,textAlign:"center",marginBottom:12}}>
           <div style={{fontSize:48,marginBottom:8}}>💵</div>
           <div style={{color:Q.green,fontWeight:800,fontSize:18,marginBottom:6,
-            fontFamily:"'Space Grotesk',system-ui"}}>Retiro pagado</div>
+            fontFamily:F_BODY}}>Retiro pagado</div>
           <div style={{color:Q.text,fontWeight:900,fontSize:26,
-            fontFamily:"'Space Grotesk',system-ui"}}>{ars(retiro.monto)} {retiro.moneda}</div>
+            fontFamily:F_BODY}}>{ars(retiro.monto)} {retiro.moneda}</div>
           <Btn label="Listo" onClick={reset} color={Q.violet} full/>
         </GCard>
       )}
@@ -1245,16 +1230,16 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
       {step==="cashout"&&slip&&(
         <GCard glow={Q.gold} style={{padding:20,marginBottom:12}}>
           <div style={{color:Q.gold,fontWeight:700,fontSize:15,marginBottom:4,
-            fontFamily:"'Space Grotesk',system-ui"}}>💰 Cash out</div>
+            fontFamily:F_BODY}}>💰 Cash out</div>
           <div style={{color:Q.muted,fontSize:12,marginBottom:16}}>
             Valor actual calculado con las cuotas en vivo. Si el cliente acepta,
             se cierra la apuesta y se le paga este monto.
           </div>
           <div style={{textAlign:"center",marginBottom:16}}>
             <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-              fontFamily:"'Space Grotesk',system-ui"}}>Se paga ahora</div>
+              fontFamily:F_BODY}}>Se paga ahora</div>
             <div style={{color:Q.gold,fontWeight:900,fontSize:34,
-              fontFamily:"'Space Grotesk',system-ui"}}>{ars(coValor)}</div>
+              fontFamily:F_BODY}}>{ars(coValor)}</div>
             <div style={{color:Q.muted,fontSize:11}}>vs retorno potencial {ars(slip.potential_win)}</div>
           </div>
           <AlertaError mensaje={coMsg} critico/>
@@ -1281,9 +1266,9 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
             <GCard glow={Q.amber} style={{padding:14,marginBottom:10,
               background:`${Q.amber}12`}}>
               <div style={{color:Q.amber,fontWeight:700,fontSize:13,textAlign:"center",
-                fontFamily:"'Space Grotesk',system-ui"}}>⚠️ {slip.aviso_tope}</div>
+                fontFamily:F_BODY}}>⚠️ {slip.aviso_tope}</div>
               <div style={{color:Q.muted,fontSize:11,textAlign:"center",marginTop:4,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 El premio se topeó al máximo permitido.</div>
             </GCard>
           )}
@@ -1448,22 +1433,22 @@ function FlujoManual({ agencia }){
     <div>
       <GCard style={{padding:16,marginBottom:14}}>
         <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
-          letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",marginBottom:6}}>
+          letterSpacing:1,fontFamily:F_BODY,marginBottom:6}}>
           Nombre del cliente (opcional)
         </div>
         <input value={cliente} onChange={e=>setCliente(e.target.value)}
           placeholder="Ej: Juan Pérez"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
             border:`1px solid ${Q.border}`,borderRadius:10,padding:"10px 14px",
-            color:Q.text,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}/>
+            color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
         <div style={{color:Q.muted,fontSize:12,margin:"10px 0 6px",
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           Código de influencer (opcional)</div>
         <input value={codigoInf} onChange={e=>setCodigoInf(e.target.value.toUpperCase())}
           placeholder="Ej: JUANTIPS o REF1A2B"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
             border:`1px solid ${codigoInf?Q.cyan:Q.border}`,borderRadius:10,padding:"10px 14px",
-            color:Q.text,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}/>
+            color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
       </GCard>
 
       {bbFeature.bet_builder&&(
@@ -1472,8 +1457,8 @@ function FlujoManual({ agencia }){
           <span style={{fontSize:16}}>🛠️</span>
           <div>
             <div style={{color:Q.violet2||Q.violet,fontWeight:700,fontSize:12,
-              fontFamily:"'Space Grotesk',system-ui"}}>Bet Builder activo</div>
-            <div style={{color:Q.muted,fontSize:10,fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>Bet Builder activo</div>
+            <div style={{color:Q.muted,fontSize:10,fontFamily:F_BODY}}>
               Podés combinar hasta {bbFeature.bb_max_picks} mercados del mismo partido</div>
           </div>
         </div>
@@ -1487,7 +1472,7 @@ function FlujoManual({ agencia }){
             border:`1px solid ${tabOferta===t.k?Q.cyan:Q.border}`,
             borderRadius:10,padding:"8px",cursor:"pointer",
             color:tabOferta===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tabOferta===t.k?700:400,
-            fontFamily:"'Space Grotesk',system-ui",
+            fontFamily:F_BODY,
           }}>{t.l}</button>
         ))}
       </div>
@@ -1496,7 +1481,7 @@ function FlujoManual({ agencia }){
         <>
           {!liveDeportes&&(
             <GCard style={{padding:20,textAlign:"center"}}>
-              <div style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>Cargando partidos en vivo...</div>
+              <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>Cargando partidos en vivo...</div>
             </GCard>
           )}
           {liveDeportes&&liveDeportes.length>0&&(()=>{
@@ -1519,13 +1504,13 @@ function FlujoManual({ agencia }){
             .map(m=>(
             <GCard key={m.id} glow={Q.pink} style={{padding:14,marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <div style={{color:Q.text,fontWeight:600,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
+                <div style={{color:Q.text,fontWeight:600,fontSize:13,fontFamily:F_BODY}}>
                   {m.home} vs {m.away}
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:4}}>
                   <div style={{width:5,height:5,borderRadius:"50%",background:Q.pink}}/>
                   <span style={{color:Q.pink,fontSize:10,fontWeight:700}}>{m.minute||"LIVE"}</span>
-                  <span style={{color:Q.gold,fontWeight:900,fontSize:14,fontFamily:"'Space Grotesk',system-ui",marginLeft:4}}>
+                  <span style={{color:Q.gold,fontWeight:900,fontSize:14,fontFamily:F_BODY,marginLeft:4}}>
                     {m.homeScore} - {m.awayScore}
                   </span>
                 </div>
@@ -1541,9 +1526,9 @@ function FlujoManual({ agencia }){
                     border:`1.5px solid ${hasPick({home:m.home,away:m.away},opt.label)?Q.pink:Q.border}`,
                     borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
                   }}>
-                    <div style={{color:Q.muted,fontSize:9,fontFamily:"'Space Grotesk',system-ui"}}>{opt.label}</div>
+                    <div style={{color:Q.muted,fontSize:9,fontFamily:F_BODY}}>{opt.label}</div>
                     <div style={{color:hasPick({home:m.home,away:m.away},opt.label)?Q.pink:Q.cyan,
-                      fontWeight:700,fontSize:15,fontFamily:"'Space Grotesk',system-ui"}}>{opt.odd}</div>
+                      fontWeight:700,fontSize:15,fontFamily:F_BODY}}>{opt.odd}</div>
                     <div style={{color:Q.pink,fontSize:8}}>◉ LIVE</div>
                   </button>
                 ))}
@@ -1552,7 +1537,7 @@ function FlujoManual({ agencia }){
               <button onClick={()=>toggleMercados(m.id)} style={{
                 width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
                 borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,
-                fontSize:10,marginTop:6,fontFamily:"'Space Grotesk',system-ui",
+                fontSize:10,marginTop:6,fontFamily:F_BODY,
               }}>
                 {abiertos[m.id]?"▲ Menos mercados":"▼ Todos los mercados"}
               </button>
@@ -1578,7 +1563,7 @@ function FlujoManual({ agencia }){
           {!prematchDeportes&&(
             <GCard style={{padding:24,textAlign:"center"}}>
               <div style={{color:Q.muted,fontSize:12,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 Cargando cuotas...
               </div>
               <div style={{color:Q.dim,fontSize:11,marginTop:6}}>
@@ -1597,7 +1582,7 @@ function FlujoManual({ agencia }){
             <GCard style={{padding:24,textAlign:"center"}}>
               <div style={{fontSize:28,marginBottom:8}}>📭</div>
               <div style={{color:Q.muted,fontSize:12,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 No hay eventos con cuotas en este momento
               </div>
             </GCard>
@@ -1607,7 +1592,7 @@ function FlujoManual({ agencia }){
             && prematchDeportes && prematchDeportes.length>0 && (
             <GCard style={{padding:22,textAlign:"center"}}>
               <div style={{color:Q.muted,fontSize:12,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 Ningún partido coincide con el filtro
               </div>
             </GCard>
@@ -1616,7 +1601,7 @@ function FlujoManual({ agencia }){
           {filtrarDeportes(prematchDeportes, liga, busqueda).map(d=>(
             <GCard key={d.name} style={{padding:16,marginBottom:12}}>
               <div style={{color:Q.violet2,fontWeight:700,fontSize:13,marginBottom:10,
-                fontFamily:"'Space Grotesk',system-ui"}}>{d.icon} {d.name}</div>
+                fontFamily:F_BODY}}>{d.icon} {d.name}</div>
               {(d.events||[]).map(ev=>(
                 <div key={ev.id||(ev.h+ev.a)} style={{marginBottom:12,
                   borderBottom:`1px solid ${Q.dim}`,paddingBottom:10}}>
@@ -1625,7 +1610,7 @@ function FlujoManual({ agencia }){
                     <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0}}>
                       <TeamLogo name={ev.h} size={22}/>
                       <span style={{color:Q.text,fontWeight:600,fontSize:13,
-                        fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                        fontFamily:F_BODY,overflow:"hidden",
                         textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                         {ev.h} vs {ev.a}
                       </span>
@@ -1653,7 +1638,7 @@ function FlujoManual({ agencia }){
                           textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt.label}</div>
                         <div style={{color:hasPick({home:ev.h,away:ev.a},opt.label)?Q.cyan:Q.text,
                           fontWeight:700,fontSize:15,
-                          fontFamily:"'Space Grotesk',system-ui"}}>{opt.odd}</div>
+                          fontFamily:F_BODY}}>{opt.odd}</div>
                       </button>
                     ))}
                   </div>
@@ -1661,7 +1646,7 @@ function FlujoManual({ agencia }){
                   <button onClick={()=>toggleMercados(ev.id)} style={{
                     width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
                     borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,
-                    fontSize:10,marginTop:6,fontFamily:"'Space Grotesk',system-ui",
+                    fontSize:10,marginTop:6,fontFamily:F_BODY,
                   }}>
                     {abiertos[ev.id]?"▲ Menos mercados":"▼ Todos los mercados"}
                   </button>
@@ -1720,7 +1705,7 @@ function FlujoManual({ agencia }){
                   background:"transparent",border:`1px solid ${Q.border}`,
                   borderRadius:7,padding:"7px",cursor:"pointer",
                   color:Q.muted,fontSize:11,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   Borrar todo</button>
               </div>
             )}
@@ -1729,7 +1714,7 @@ function FlujoManual({ agencia }){
               alignItems:"center",marginBottom:10}}>
               <div onClick={()=>setVerPicks(v=>!v)} style={{cursor:"pointer"}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {picks.length} picks · <span style={{color:Q.cyan}}>{fmt(totOdd)}x</span>
                   <span style={{color:Q.dim,fontSize:10,marginLeft:5}}>
                     {verPicks?"▲":"▼"}</span>
@@ -1744,21 +1729,21 @@ function FlujoManual({ agencia }){
                     border:`1px solid ${monto===v?Q.violet:Q.border}`,
                     borderRadius:8,padding:"5px 8px",cursor:"pointer",
                     color:monto===v?Q.cyan:Q.muted,fontSize:10,fontWeight:monto===v?700:400,
-                    fontFamily:"'Space Grotesk',system-ui",
+                    fontFamily:F_BODY,
                   }}>{v>=1000?`$${v/1000}K`:v}</button>
                 ))}
               </div>
         {/* Campo libre: las fichas son atajos, no un límite */}
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
           <span style={{color:Q.muted,fontSize:10,flexShrink:0,
-            fontFamily:"'Space Grotesk',system-ui"}}>Otro:</span>
+            fontFamily:F_BODY}}>Otro:</span>
           <input type="number" inputMode="numeric" min="0" value={monto}
             onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
             aria-label="Monto a apostar"
             style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
               border:`1px solid ${Q.border}`,borderRadius:8,padding:"6px 9px",
               color:Q.text,fontSize:13,fontWeight:700,
-              fontFamily:"'Space Grotesk',system-ui"}}/>
+              fontFamily:F_BODY}}/>
         </div>
             </div>
             <AlertaError mensaje={errGuardar} critico/>
@@ -1779,7 +1764,7 @@ function PagoLocalForm({ slip, onConfirm, onCancel, error, paying }){
   return(
     <GCard glow={error?Q.red:Q.amber} style={{padding:20,marginBottom:12}}>
       <div style={{color:Q.amber,fontWeight:700,fontSize:15,marginBottom:4,
-        fontFamily:"'Space Grotesk',system-ui"}}>Cobrar apuesta en efectivo</div>
+        fontFamily:F_BODY}}>Cobrar apuesta en efectivo</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:16}}>
         Cuota: {fmt(slip.odd_total)}x · Ingresá el monto que cobra el cliente
       </div>
@@ -1787,11 +1772,11 @@ function PagoLocalForm({ slip, onConfirm, onCancel, error, paying }){
       <AlertaError mensaje={error} critico/>
 
       <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
-        letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",marginBottom:6}}>Monto en efectivo</div>
+        letterSpacing:1,fontFamily:F_BODY,marginBottom:6}}>Monto en efectivo</div>
       <input type="number" value={monto} onChange={e=>setMonto(Number(e.target.value))}
         style={{width:"100%",background:"rgba(255,255,255,0.06)",
           border:`1.5px solid ${Q.amber}`,borderRadius:10,padding:"12px 16px",
-          color:Q.amber,fontSize:22,fontFamily:"'Space Grotesk',system-ui",
+          color:Q.amber,fontSize:22,fontFamily:F_BODY,
           fontWeight:700,marginBottom:10}}/>
       <div style={{color:Q.muted,fontSize:12,marginBottom:16}}>
         Retorno potencial: <strong style={{color:Q.green,fontSize:16}}>{ars(Math.round(monto*slip.odd_total))}</strong>
@@ -1816,7 +1801,7 @@ function DoneScreen({ slip, titulo, color, tipo, onReset }){
         {color===Q.green?"✅":color===Q.amber?"💵":"🎉"}
       </div>
       <div style={{color,fontWeight:900,fontSize:20,
-        fontFamily:"'Space Grotesk',system-ui",marginBottom:6}}>{titulo}</div>
+        fontFamily:F_BODY,marginBottom:6}}>{titulo}</div>
       <div style={{background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.border}`,
         borderRadius:12,padding:16,marginBottom:16,textAlign:"left"}}>
         {[
@@ -1830,7 +1815,7 @@ function DoneScreen({ slip, titulo, color, tipo, onReset }){
             padding:"5px 0",borderBottom:`1px solid ${Q.dim}`}}>
             <span style={{color:Q.muted,fontSize:12}}>{l}</span>
             <span style={{color:c,fontWeight:700,fontSize:12,
-              fontFamily:"'Space Grotesk',system-ui"}}>{v}</span>
+              fontFamily:F_BODY}}>{v}</span>
           </div>
         ))}
       </div>
@@ -1839,7 +1824,7 @@ function DoneScreen({ slip, titulo, color, tipo, onReset }){
           flex:1,background:printed?"rgba(255,255,255,0.04)":`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
           border:`1px solid ${printed?Q.border:Q.violet}`,borderRadius:12,padding:14,
           color:printed?Q.muted:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",
-          fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+          fontFamily:F_BODY,textTransform:"uppercase",
         }}>🖨️ {printed?"Reimprimir":"Imprimir ticket"}</button>
       </div>
       <Btn label="NUEVA OPERACIÓN" onClick={onReset} color={color} full size="lg"/>
@@ -1905,7 +1890,7 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
       {/* Nombres reales, para comparar con lo leído */}
       {(pick.home_real||pick.away_real)&&(
         <div style={{color:Q.muted,fontSize:10,marginBottom:8,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           En nuestro sistema: <span style={{color:Q.cyan}}>{pick.home_real} vs {pick.away_real}</span>
         </div>
       )}
@@ -1914,7 +1899,7 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
       {(pick.candidatos&&pick.candidatos.length>0)&&(
         <div style={{marginBottom:10}}>
           <div style={{color:Q.amber,fontSize:10,marginBottom:6,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             ¿Quisiste decir alguno de estos?
           </div>
           {pick.candidatos.map((ev,ci)=>(
@@ -1922,14 +1907,14 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
               border:`1px solid ${Q.amber}44`,borderRadius:8,
               padding:"8px 10px",marginBottom:6}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:5,
-                fontFamily:"'Space Grotesk',system-ui"}}>{ev.home} vs {ev.away}</div>
+                fontFamily:F_BODY}}>{ev.home} vs {ev.away}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevoPartido(ev,op)} style={{
                     background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
                     borderRadius:7,padding:"5px 9px",cursor:"pointer",
                     color:Q.cyan,fontSize:11,fontWeight:600,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
                 ))}
               </div>
@@ -1944,13 +1929,13 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
           background:modo==="seleccion"?`${Q.violet}33`:"rgba(255,255,255,0.04)",
           border:`1px solid ${modo==="seleccion"?Q.violet:Q.border}`,borderRadius:8,
           padding:"7px",cursor:"pointer",color:modo==="seleccion"?Q.cyan:Q.muted,
-          fontSize:11,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>
+          fontSize:11,fontWeight:700,fontFamily:F_BODY}}>
           Cambiar selección</button>
         <button onClick={()=>setModo("partido")} style={{flex:1,
           background:modo==="partido"?`${Q.violet}33`:"rgba(255,255,255,0.04)",
           border:`1px solid ${modo==="partido"?Q.violet:Q.border}`,borderRadius:8,
           padding:"7px",cursor:"pointer",color:modo==="partido"?Q.cyan:Q.muted,
-          fontSize:11,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>
+          fontSize:11,fontWeight:700,fontFamily:F_BODY}}>
           Otro partido</button>
       </div>
 
@@ -1958,7 +1943,7 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
         <div>
           {opciones.length===0&&(
             <div style={{color:Q.muted,fontSize:11,marginBottom:8,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               No tenemos opciones de este partido. Probá "Otro partido".
             </div>
           )}
@@ -1968,9 +1953,9 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
               background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.border}`,
               borderRadius:8,padding:"9px 12px",marginBottom:5,cursor:"pointer"}}>
               <span style={{color:Q.text,fontSize:12,
-                fontFamily:"'Space Grotesk',system-ui"}}>{op.sel}</span>
+                fontFamily:F_BODY}}>{op.sel}</span>
               <span style={{color:Q.cyan,fontWeight:700,fontSize:13,
-                fontFamily:"'Space Grotesk',system-ui"}}>{fmt(op.odd)}</span>
+                fontFamily:F_BODY}}>{fmt(op.odd)}</span>
             </button>
           ))}
         </div>
@@ -1984,24 +1969,24 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
               placeholder="Nombre del equipo..."
               style={{flex:1,background:"rgba(255,255,255,0.05)",
                 border:`1px solid ${Q.border}`,borderRadius:8,padding:"9px 12px",
-                color:Q.text,fontSize:14,fontFamily:"'Space Grotesk',system-ui"}}/>
+                color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
             <button onClick={buscarEventos} style={{background:`${Q.violet}33`,
               border:`1px solid ${Q.violet}`,borderRadius:8,padding:"0 14px",
               cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
-              fontFamily:"'Space Grotesk',system-ui"}}>{buscando?"...":"Buscar"}</button>
+              fontFamily:F_BODY}}>{buscando?"...":"Buscar"}</button>
           </div>
           {encontrados.map((ev,k)=>(
             <div key={k} style={{background:"rgba(255,255,255,0.03)",
               border:`1px solid ${Q.dim}`,borderRadius:8,padding:"8px 10px",marginBottom:6}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:6,
-                fontFamily:"'Space Grotesk',system-ui"}}>{ev.home} vs {ev.away}</div>
+                fontFamily:F_BODY}}>{ev.home} vs {ev.away}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevoPartido(ev,op)} style={{
                     background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
                     borderRadius:7,padding:"5px 9px",cursor:"pointer",
                     color:Q.cyan,fontSize:11,fontWeight:600,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
                 ))}
               </div>
@@ -2016,15 +2001,15 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
           placeholder="Cuota a mano (opcional)" inputMode="decimal"
           style={{flex:1,background:"rgba(255,255,255,0.05)",
             border:`1px solid ${Q.border}`,borderRadius:8,padding:"8px 10px",
-            color:Q.text,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}/>
+            color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
         <button onClick={onQuitar} style={{background:`${Q.red}18`,
           border:`1px solid ${Q.red}`,borderRadius:8,padding:"8px 12px",
           cursor:"pointer",color:Q.red,fontSize:11,fontWeight:700,
-          fontFamily:"'Space Grotesk',system-ui"}}>Quitar</button>
+          fontFamily:F_BODY}}>Quitar</button>
       </div>
       {ajuste.trim()&&(
         <div style={{color:Q.amber,fontSize:10,marginTop:5,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           La cuota a mano se aplica al elegir una opción de arriba.
         </div>
       )}
@@ -2157,15 +2142,15 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
-        fontFamily:"'Space Grotesk',system-ui"}}>📸 Mejorar combinada</div>
+        fontFamily:F_BODY}}>📸 Mejorar combinada</div>
       <div style={{color:Q.muted,fontSize:11,marginBottom:14,lineHeight:1.4,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         Subí la captura de una apuesta de otro sitio. La leemos y la
         replicamos con nuestras cuotas, mejorándola hasta {res?.tope_ajuste_pct||6}%.
       </div>
 
       <div style={{color:Q.muted,fontSize:11,marginBottom:8,lineHeight:1.4,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         Si la combinada es larga y no entra en una foto, agregá varias
         (scrolleá el cupón entre cada captura).
       </div>
@@ -2194,7 +2179,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
             onChange={elegirArchivo} style={{display:"none"}}/>
           <div style={{fontSize:26,marginBottom:4}}>📸</div>
           <div style={{color:Q.text,fontWeight:700,fontSize:12,
-            fontFamily:"'Space Grotesk',system-ui"}}>Sacar foto</div>
+            fontFamily:F_BODY}}>Sacar foto</div>
         </label>
         <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:14,
           padding:"20px 12px",textAlign:"center",cursor:"pointer",
@@ -2203,7 +2188,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
             style={{display:"none"}}/>
           <div style={{fontSize:26,marginBottom:4}}>🖼️</div>
           <div style={{color:Q.text,fontWeight:700,fontSize:12,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             {imagenes.length>0?"Agregar más":"Desde galería"}</div>
         </label>
       </div>
@@ -2216,12 +2201,12 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
 
       <AlertaError mensaje={err}/>
       {okMsg&&<div style={{color:Q.green,fontSize:12,marginBottom:10,
-        fontFamily:"'Space Grotesk',system-ui"}}>{okMsg}</div>}
+        fontFamily:F_BODY}}>{okMsg}</div>}
 
       {analizando&&(
         <GCard style={{padding:20,textAlign:"center"}}>
           <div style={{color:Q.violet2,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             La IA está leyendo la apuesta...
           </div>
         </GCard>
@@ -2230,14 +2215,14 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
       {res&&(
         <div>
           <div style={{color:Q.muted,fontSize:11,margin:"4px 0 10px",
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             Leímos {res.picks_total} selecciones · podemos tomar {res.picks_ok}
           </div>
 
           {res.faltan_picks&&(
             <div style={{background:`${Q.red}12`,border:`1px solid ${Q.red}66`,
               borderRadius:10,padding:"10px 12px",marginBottom:12,color:Q.red,
-              fontSize:11,lineHeight:1.4,fontFamily:"'Space Grotesk',system-ui"}}>
+              fontSize:11,lineHeight:1.4,fontFamily:F_BODY}}>
               ⚠️ El cupón marca cuota total {fmt(res.total_odd_cupon)} pero con lo
               leído no llegamos. Probablemente falta algún partido — agregá otra
               foto scrolleando el cupón.
@@ -2250,7 +2235,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
             border:`1px solid ${Q.amber}44`,borderRadius:9,
             padding:"10px 12px",marginBottom:10,color:Q.amber,
             fontSize:11.5,lineHeight:1.5,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             Revisá que los partidos y las selecciones sean los
             correctos antes de confirmar. Si alguno no coincide, tocá
             "corregir" en ese pick.</div>
@@ -2265,17 +2250,17 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontWeight:600,fontSize:13,
                     overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
-                    fontFamily:"'Space Grotesk',system-ui"}}>{p.home} vs {p.away}</div>
+                    fontFamily:F_BODY}}>{p.home} vs {p.away}</div>
                   <div style={{color:Q.muted,fontSize:11}}>{p.selection}</div>
                 </div>
                 <span style={{background:`${est.c}22`,border:`1px solid ${est.c}`,
                   borderRadius:20,padding:"2px 8px",fontSize:9,fontWeight:700,
                   color:est.c,flexShrink:0,whiteSpace:"nowrap",
-                  fontFamily:"'Space Grotesk',system-ui"}}>{est.t}</span>
+                  fontFamily:F_BODY}}>{est.t}</span>
               </div>
 
               <div style={{display:"flex",gap:12,fontSize:12,marginBottom:8,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 {p.odd_original&&<span style={{color:Q.dim}}>
                   Origen: <span style={{color:Q.muted}}>{fmt(p.odd_original)}</span></span>}
                 {p.odd_nuestra&&<span style={{color:Q.dim}}>
@@ -2288,7 +2273,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
                 background:corrigiendo===i?`${Q.cyan}22`:"transparent",
                 border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:8,
                 padding:"6px 12px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
-                fontSize:11,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>
+                fontSize:11,fontWeight:700,fontFamily:F_BODY}}>
                 {corrigiendo===i?"✕ Cerrar":"✏️ Está mal / Corregir"}
               </button>
               {corrigiendo===i&&(
@@ -2304,7 +2289,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
           {res.picks_ok<res.picks_total&&(
             <div style={{background:`${Q.amber}12`,border:`1px solid ${Q.amber}55`,
               borderRadius:10,padding:"10px 12px",marginBottom:12,color:Q.amber,
-              fontSize:11,lineHeight:1.4,fontFamily:"'Space Grotesk',system-ui"}}>
+              fontSize:11,lineHeight:1.4,fontFamily:F_BODY}}>
               ⚠️ {res.picks_total-res.picks_ok} selección(es) no las podemos tomar
               (partido o mercado que no tenemos). Se cobra solo con las
               {" "}{res.picks_ok} que sí, si estás de acuerdo.
@@ -2316,16 +2301,16 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
               <div style={{display:"flex",justifyContent:"space-between",
                 marginBottom:12}}>
                 <span style={{color:Q.muted,fontSize:12,
-                  fontFamily:"'Space Grotesk',system-ui"}}>Cuota total nuestra</span>
+                  fontFamily:F_BODY}}>Cuota total nuestra</span>
                 <span style={{color:Q.gold,fontWeight:900,fontSize:20,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{fmt(res.cuota_total)}x</span>
+                  fontFamily:F_BODY}}>{fmt(res.cuota_total)}x</span>
               </div>
               <input value={cliente} onChange={e=>setCliente(e.target.value)}
                 placeholder="Cliente (opcional)"
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
                   border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
                   color:Q.text,fontSize:16,marginBottom:8,
-                  fontFamily:"'Space Grotesk',system-ui"}}/>
+                  fontFamily:F_BODY}}/>
               <div style={{display:"flex",gap:5,marginBottom:10}}>
                 {montosDe(agencia?.moneda).map(v=>(
                   <button key={v} onClick={()=>setMonto(v)} style={{
@@ -2333,27 +2318,27 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
                     border:`1px solid ${monto===v?Q.violet:Q.border}`,borderRadius:8,
                     padding:"7px 2px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
                     fontSize:11,fontWeight:monto===v?700:400,
-                    fontFamily:"'Space Grotesk',system-ui",
+                    fontFamily:F_BODY,
                   }}>{v>=1000?`$${v/1000}K`:v}</button>
                 ))}
               </div>
         {/* Campo libre: las fichas son atajos, no un límite */}
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
           <span style={{color:Q.muted,fontSize:10,flexShrink:0,
-            fontFamily:"'Space Grotesk',system-ui"}}>Otro:</span>
+            fontFamily:F_BODY}}>Otro:</span>
           <input type="number" inputMode="numeric" min="0" value={monto}
             onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
             aria-label="Monto a apostar"
             style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
               border:`1px solid ${Q.border}`,borderRadius:8,padding:"6px 9px",
               color:Q.text,fontSize:13,fontWeight:700,
-              fontFamily:"'Space Grotesk',system-ui"}}/>
+              fontFamily:F_BODY}}/>
         </div>
               <div style={{display:"flex",justifyContent:"space-between",
                 marginBottom:10,padding:"6px 0",borderTop:`1px solid ${Q.dim}`}}>
                 <span style={{color:Q.muted,fontSize:12}}>Retorno {ars(monto)}</span>
                 <span style={{color:Q.green,fontWeight:700,fontSize:15,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {ars(Math.round(monto*res.cuota_total))}</span>
               </div>
               <button onClick={cobrar} disabled={cobrando} style={{
@@ -2363,7 +2348,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
                 border:"none",borderRadius:10,padding:"12px",
                 cursor:cobrando?"wait":"pointer",
                 color:cobrando?Q.muted:"#04120a",fontWeight:900,fontSize:14,
-                fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+                fontFamily:F_BODY,textTransform:"uppercase",
               }}>{cobrando?"Cobrando...":`Cobrar e imprimir ${ars(monto)}`}</button>
             </GCard>
           )}
@@ -2383,7 +2368,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
   const [busqueda,setBusqueda]=useState("");
   const [liga,setLiga]=useState(null);
   const [guardando,setGuardando]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [infList,setInfList]=useState([]);
   const [infCode,setInfCode]=useState("");
   const [codigoSalida,setCodigoSalida]=useState("");
@@ -2427,7 +2412,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
 
   const guardar=async()=>{
     if(!picks.length||guardando) return;
-    setGuardando(true); setMsg("");
+    setGuardando(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/combos`,{
         method:"POST",
@@ -2444,10 +2429,10 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
         throw new Error(e.detail||`Error ${r.status}`); }
       const nComp=(todosSubs?destinatarios.subs.length:destSubs.length)
                  +(todosInfs?destinatarios.influencers.length:destInfs.length);
-      setMsg(`✅ Combo creado.${nComp>0?` Compartido con ${nComp} cuenta(s).`:" Ya aparece en tus terminales."}`);
+      setMsg({text:`✅ Combo creado.${nComp>0?` Compartido con ${nComp} cuenta(s).`:" Ya aparece en tus terminales."}`, ok:true});
       setPicks([]); setNombre("");
       setDestSubs([]); setDestInfs([]); setTodosSubs(false); setTodosInfs(false);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setGuardando(false);
   };
 
@@ -2464,20 +2449,20 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
       <button onClick={onVolver} style={{background:"transparent",border:"none",
         color:Q.muted,fontSize:22,cursor:"pointer",marginBottom:6,padding:0}}>‹ Volver</button>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:10,
-        fontFamily:"'Space Grotesk',system-ui"}}>Crear combo</div>
+        fontFamily:F_BODY}}>Crear combo</div>
 
       <input value={nombre} onChange={e=>setNombre(e.target.value)}
         placeholder="Nombre del combo (opcional)"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
           border:`1px solid ${Q.border}`,borderRadius:10,padding:"11px 14px",
           color:Q.text,fontSize:16,marginBottom:10,
-          fontFamily:"'Space Grotesk',system-ui"}}/>
+          fontFamily:F_BODY}}/>
 
       {infList.length>0&&<select value={infCode} onChange={e=>setInfCode(e.target.value)}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
           border:`1px solid ${infCode?Q.violet:Q.border}`,borderRadius:10,padding:"11px 14px",
           color:infCode?Q.text:Q.muted,fontSize:15,marginBottom:10,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
         <option value="">🌟 Asignar a influencer (opcional)</option>
         {infList.map(inf=>(
           <option key={inf.code} value={inf.code}>{inf.name} · {inf.codigo_ref}</option>
@@ -2488,24 +2473,24 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
           border:`1px solid ${Q.border}`,borderRadius:10,padding:"11px 14px",
           color:Q.text,fontSize:15,marginBottom:10,
-          fontFamily:"'Space Grotesk',system-ui"}}/>}
+          fontFamily:F_BODY}}/>}
 
       {/* Compartir con subs e influencers */}
       {(destinatarios.subs.length>0||destinatarios.influencers.length>0)&&(
         <GCard style={{padding:12,marginBottom:10}}>
           <div style={{color:Q.violet2,fontWeight:700,fontSize:12,marginBottom:8,
-            fontFamily:"'Space Grotesk',system-ui"}}>📤 Compartir este combo</div>
+            fontFamily:F_BODY}}>📤 Compartir este combo</div>
 
           {destinatarios.subs.length>0&&(
             <div style={{marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                 <span style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-                  fontFamily:"'Space Grotesk',system-ui"}}>🏢 Sub-agencias</span>
+                  fontFamily:F_BODY}}>🏢 Sub-agencias</span>
                 <button onClick={()=>{setTodosSubs(v=>!v); if(!todosSubs)setDestSubs([]);}}
                   style={{background:todosSubs?`${Q.green}22`:"rgba(255,255,255,0.05)",
                     border:`1px solid ${todosSubs?Q.green:Q.border}`,borderRadius:8,
                     padding:"4px 10px",cursor:"pointer",color:todosSubs?Q.green:Q.muted,
-                    fontSize:10,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontSize:10,fontWeight:700,fontFamily:F_BODY}}>
                   {todosSubs?"✓ Todas":"Todas"}</button>
               </div>
               {!todosSubs&&<div style={{display:"flex",flexWrap:"wrap",gap:6}}>
@@ -2514,7 +2499,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
                     style={{background:destSubs.includes(x.code)?`${Q.violet}33`:"rgba(255,255,255,0.04)",
                       border:`1px solid ${destSubs.includes(x.code)?Q.violet:Q.border}`,borderRadius:8,
                       padding:"6px 10px",cursor:"pointer",color:destSubs.includes(x.code)?Q.text:Q.muted,
-                      fontSize:11,fontFamily:"'Space Grotesk',system-ui"}}>
+                      fontSize:11,fontFamily:F_BODY}}>
                     {destSubs.includes(x.code)?"✓ ":""}{x.name}</button>
                 ))}
               </div>}
@@ -2525,12 +2510,12 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                 <span style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-                  fontFamily:"'Space Grotesk',system-ui"}}>🌟 Influencers</span>
+                  fontFamily:F_BODY}}>🌟 Influencers</span>
                 <button onClick={()=>{setTodosInfs(v=>!v); if(!todosInfs)setDestInfs([]);}}
                   style={{background:todosInfs?`${Q.green}22`:"rgba(255,255,255,0.05)",
                     border:`1px solid ${todosInfs?Q.green:Q.border}`,borderRadius:8,
                     padding:"4px 10px",cursor:"pointer",color:todosInfs?Q.green:Q.muted,
-                    fontSize:10,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontSize:10,fontWeight:700,fontFamily:F_BODY}}>
                   {todosInfs?"✓ Todos":"Todos"}</button>
               </div>
               {!todosInfs&&<div style={{display:"flex",flexWrap:"wrap",gap:6}}>
@@ -2539,7 +2524,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
                     style={{background:destInfs.includes(x.code)?`${Q.violet}33`:"rgba(255,255,255,0.04)",
                       border:`1px solid ${destInfs.includes(x.code)?Q.violet:Q.border}`,borderRadius:8,
                       padding:"6px 10px",cursor:"pointer",color:destInfs.includes(x.code)?Q.text:Q.muted,
-                      fontSize:11,fontFamily:"'Space Grotesk',system-ui"}}>
+                      fontSize:11,fontFamily:F_BODY}}>
                     {destInfs.includes(x.code)?"✓ ":""}{x.name}</button>
                 ))}
               </div>}
@@ -2555,7 +2540,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
         <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
           placeholder="Buscar equipo..."
           style={{background:"transparent",border:"none",color:Q.text,fontSize:14,
-            flex:1,minWidth:0,fontFamily:"'Space Grotesk',system-ui"}}/>
+            flex:1,minWidth:0,fontFamily:F_BODY}}/>
       </div>
 
       {deportes&&deportes.length>0&&(
@@ -2565,31 +2550,31 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
             border:`1px solid ${!liga?Q.cyan:Q.border}`,borderRadius:20,
             padding:"6px 14px",cursor:"pointer",color:!liga?Q.cyan:Q.muted,
             fontSize:11,whiteSpace:"nowrap",flexShrink:0,
-            fontFamily:"'Space Grotesk',system-ui"}}>Todas</button>
+            fontFamily:F_BODY}}>Todas</button>
           {deportes.map(d=>(
             <button key={d.name} onClick={()=>setLiga(d.name)} style={{
               background:liga===d.name?`${Q.cyan}22`:"rgba(255,255,255,0.04)",
               border:`1px solid ${liga===d.name?Q.cyan:Q.border}`,borderRadius:20,
               padding:"6px 14px",cursor:"pointer",color:liga===d.name?Q.cyan:Q.muted,
               fontSize:11,whiteSpace:"nowrap",flexShrink:0,
-              fontFamily:"'Space Grotesk',system-ui"}}>{d.icon} {d.name}</button>
+              fontFamily:F_BODY}}>{d.icon} {d.name}</button>
           ))}
         </div>
       )}
 
       {!deportes&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-        fontFamily:"'Space Grotesk',system-ui"}}>Cargando partidos...</div>}
+        fontFamily:F_BODY}}>Cargando partidos...</div>}
 
       <div style={{maxHeight:"40vh",overflowY:"auto",marginBottom:12}}>
         {filtrados.map(d=>(
           <div key={d.name} style={{marginBottom:12}}>
             <div style={{color:Q.violet2,fontSize:12,fontWeight:700,marginBottom:6,
-              fontFamily:"'Space Grotesk',system-ui"}}>{d.icon} {d.name}</div>
+              fontFamily:F_BODY}}>{d.icon} {d.name}</div>
             {d.events.map(ev=>(
               <div key={ev.id||(ev.h+ev.a)} style={{marginBottom:8,paddingBottom:8,
                 borderBottom:`1px solid ${Q.dim}`}}>
                 <div style={{color:Q.text,fontSize:12,marginBottom:5,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{ev.h} vs {ev.a}</div>
+                  fontFamily:F_BODY}}>{ev.h} vs {ev.a}</div>
                 <div style={{display:"flex",gap:5}}>
                   {[{l:ev.h+" gana",o:ev.odds?.L},
                     ev.odds?.E?{l:"Empate",o:ev.odds.E}:null,
@@ -2602,7 +2587,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
                       <div style={{color:Q.muted,fontSize:8,overflow:"hidden",
                         textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt.l}</div>
                       <div style={{color:tiene(ev,opt.l)?Q.cyan:Q.text,fontWeight:700,
-                        fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>{opt.o}</div>
+                        fontSize:13,fontFamily:F_BODY}}>{opt.o}</div>
                     </button>
                   ))}
                 </div>
@@ -2613,16 +2598,16 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
       </div>
 
       {msg&&<div style={{fontSize:12,marginBottom:10,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       {picks.length>0&&(
         <GCard glow={Q.violet} style={{padding:14,marginBottom:10}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
             <span style={{color:Q.muted,fontSize:12,
-              fontFamily:"'Space Grotesk',system-ui"}}>{picks.length} picks</span>
+              fontFamily:F_BODY}}>{picks.length} picks</span>
             <span style={{color:Q.gold,fontWeight:900,fontSize:18,
-              fontFamily:"'Space Grotesk',system-ui"}}>{fmt(totOdd)}x</span>
+              fontFamily:F_BODY}}>{fmt(totOdd)}x</span>
           </div>
           <Btn label={guardando?"GUARDANDO...":"Guardar combo"} onClick={guardar}
             color={Q.violet} full size="lg" disabled={guardando}/>
@@ -2700,18 +2685,18 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
       <button onClick={onVolver} style={{background:"transparent",border:"none",
         color:Q.muted,fontSize:22,cursor:"pointer",marginBottom:6,padding:0}}>‹ Volver</button>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:12,
-        fontFamily:"'Space Grotesk',system-ui"}}>Mis combos</div>
+        fontFamily:F_BODY}}>Mis combos</div>
 
       <AlertaError mensaje={err}/>
       {okMsg&&<div style={{fontSize:12,marginBottom:10,color:Q.green,
-        fontFamily:"'Space Grotesk',system-ui"}}>{okMsg}</div>}
+        fontFamily:F_BODY}}>{okMsg}</div>}
       {combos===null&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-        fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+        fontFamily:F_BODY}}>Cargando...</div>}
       {combos&&combos.length===0&&(
         <GCard style={{padding:24,textAlign:"center"}}>
           <div style={{fontSize:26,marginBottom:8}}>📋</div>
           <div style={{color:Q.muted,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             Todavía no hay combos</div>
         </GCard>
       )}
@@ -2727,7 +2712,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                 alignItems:"center",gap:8,cursor:"pointer"}}>
               <div style={{minWidth:0,flex:1}}>
                 <div style={{color:Q.text,fontWeight:600,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{c.nombre}
+                  fontFamily:F_BODY}}>{c.nombre}
                   {esCasa&&<span style={{background:`${Q.gold}22`,border:`1px solid ${Q.gold}`,
                     borderRadius:10,padding:"1px 7px",fontSize:9,color:Q.gold,marginLeft:6}}>🏛️ De la casa</span>}</div>
                 <div style={{color:Q.muted,fontSize:11}}>
@@ -2743,22 +2728,22 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                     padding:"4px 0",borderBottom:j<picks.length-1?`1px solid ${Q.dim}`:"none"}}>
                     <div style={{minWidth:0,flex:1}}>
                       <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                        fontFamily:"'Space Grotesk',system-ui"}}>{p.sel}</div>
+                        fontFamily:F_BODY}}>{p.sel}</div>
                       <div style={{color:Q.muted,fontSize:9}}>{p.home} vs {p.away}</div>
                     </div>
                     <span style={{color:Q.cyan,fontWeight:700,fontSize:13,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{fmt(p.odd)}</span>
+                      fontFamily:F_BODY}}>{fmt(p.odd)}</span>
                   </div>
                 ))}
                 {/* Ganancias */}
                 <div style={{marginTop:8}}>
                   <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1,
-                    marginBottom:4,fontFamily:"'Space Grotesk',system-ui"}}>Ganancias</div>
+                    marginBottom:4,fontFamily:F_BODY}}>Ganancias</div>
                   {montosDe(agencia?.moneda).slice(0,3).map(m=>(
                     <div key={m} style={{display:"flex",justifyContent:"space-between",padding:"1px 0"}}>
-                      <span style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>Apostás {ars(m)}</span>
+                      <span style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>Apostás {ars(m)}</span>
                       <span style={{color:Q.green,fontWeight:700,fontSize:12,
-                        fontFamily:"'Space Grotesk',system-ui"}}>→ {ars(Math.round(m*(c.odd_total||1)))}</span>
+                        fontFamily:F_BODY}}>→ {ars(Math.round(m*(c.odd_total||1)))}</span>
                     </div>
                   ))}
                 </div>
@@ -2770,7 +2755,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                     style={{width:"100%",background:"rgba(255,255,255,0.05)",
                       border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
                       color:Q.text,fontSize:16,marginBottom:8,
-                      fontFamily:"'Space Grotesk',system-ui"}}/>
+                      fontFamily:F_BODY}}/>
                   <div style={{display:"flex",gap:6,marginBottom:8}}>
                     {montosDe(agencia.moneda).map(m=>(
                       <button key={m} onClick={()=>setMonto(m)} style={{flex:1,
@@ -2778,20 +2763,20 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                         border:`1px solid ${monto===m?Q.gold:Q.border}`,borderRadius:8,
                         padding:"7px 4px",cursor:"pointer",color:monto===m?Q.gold:Q.muted,
                         fontSize:10,fontWeight:monto===m?700:400,
-                        fontFamily:"'Space Grotesk',system-ui"}}>{ars(m)}</button>
+                        fontFamily:F_BODY}}>{ars(m)}</button>
                     ))}
                   </div>
                   {/* Campo libre: los montos fijos son atajos, no un límite */}
                   <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
                     <span style={{color:Q.muted,fontSize:10,flexShrink:0,
-                      fontFamily:"'Space Grotesk',system-ui"}}>Otro:</span>
+                      fontFamily:F_BODY}}>Otro:</span>
                     <input type="number" inputMode="numeric" min="0" value={monto}
                       onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
                       aria-label="Monto a apostar"
                       style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
                         border:`1px solid ${Q.border}`,borderRadius:8,padding:"6px 9px",
                         color:Q.text,fontSize:13,fontWeight:700,
-                        fontFamily:"'Space Grotesk',system-ui"}}/>
+                        fontFamily:F_BODY}}/>
                   </div>
                   <Btn label={cobrando===c.id?"COBRANDO...":`💵 Cobrar ${ars(monto)}`}
                     onClick={()=>cobrarCombo(c)} color={Q.green} full disabled={cobrando===c.id}/>
@@ -2799,7 +2784,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                     <button onClick={()=>borrar(c.id)} style={{width:"100%",marginTop:8,
                       background:`${Q.red}18`,border:`1px solid ${Q.red}`,borderRadius:8,
                       padding:"8px",cursor:"pointer",color:Q.red,fontSize:12,fontWeight:700,
-                      fontFamily:"'Space Grotesk',system-ui"}}>Borrar combo</button>
+                      fontFamily:F_BODY}}>Borrar combo</button>
                   )}
                 </div>
               </div>
@@ -2899,7 +2884,7 @@ function CombosIA({ agencia, onSesionExpirada }){
         alignItems:"center",marginBottom:12}}>
         <div>
           <div style={{color:Q.text,fontWeight:700,fontSize:15,
-            fontFamily:"'Space Grotesk',system-ui"}}>⚡ Combos IA</div>
+            fontFamily:F_BODY}}>⚡ Combos IA</div>
           {gen&&<div style={{color:Q.muted,fontSize:10}}>Generados {gen}</div>}
         </div>
         <Btn label={cargando?"...":"↻ Actualizar"} onClick={cargar}
@@ -2920,19 +2905,19 @@ function CombosIA({ agencia, onSesionExpirada }){
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
             border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
             color:Q.text,fontSize:16,marginBottom:8,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
 
         {/* Monto: va ARRIBA de las fichas, no debajo. Abajo quedaba
             fuera de la tarjeta y no se veía. */}
         <div style={{color:Q.muted,fontSize:10,marginBottom:4,
-          fontFamily:"'Space Grotesk',system-ui"}}>MONTO A APOSTAR</div>
+          fontFamily:F_BODY}}>MONTO A APOSTAR</div>
         <input type="number" inputMode="numeric" min="0" value={monto}
           onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
           aria-label="Monto a apostar"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
             border:`1px solid ${Q.violet}`,borderRadius:9,padding:"9px 12px",
             color:Q.text,fontSize:18,fontWeight:700,marginBottom:8,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
 
         <div style={{display:"flex",gap:5}}>
           {montosDe(agencia?.moneda).map(v=>(
@@ -2941,7 +2926,7 @@ function CombosIA({ agencia, onSesionExpirada }){
               border:`1px solid ${monto===v?Q.violet:Q.border}`,borderRadius:8,
               padding:"7px 2px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
               fontSize:11,fontWeight:monto===v?700:400,
-              fontFamily:"'Space Grotesk',system-ui",
+              fontFamily:F_BODY,
             }}>{v>=1000?`$${v/1000}K`:v}</button>
           ))}
         </div>
@@ -2949,16 +2934,16 @@ function CombosIA({ agencia, onSesionExpirada }){
 
       <AlertaError mensaje={err}/>
       {okMsg&&<div style={{color:Q.green,fontSize:12,marginBottom:10,
-        fontFamily:"'Space Grotesk',system-ui"}}>{okMsg}</div>}
+        fontFamily:F_BODY}}>{okMsg}</div>}
 
       {cargando&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-        fontFamily:"'Space Grotesk',system-ui"}}>Generando combos...</div>}
+        fontFamily:F_BODY}}>Generando combos...</div>}
 
       {combos&&combos.length===0&&!cargando&&(
         <GCard style={{padding:24,textAlign:"center"}}>
           <div style={{fontSize:26,marginBottom:8}}>🌙</div>
           <div style={{color:Q.muted,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             No hay combos disponibles ahora
           </div>
         </GCard>
@@ -2974,12 +2959,12 @@ function CombosIA({ agencia, onSesionExpirada }){
             alignItems:"flex-start",marginBottom:8,gap:8}}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:14,
-                fontFamily:"'Space Grotesk',system-ui"}}>{combo.name}</div>
+                fontFamily:F_BODY}}>{combo.name}</div>
               <div style={{color:combo.tagColor,fontSize:10,marginTop:2}}>{combo.tag}</div>
             </div>
             <div style={{textAlign:"right",flexShrink:0}}>
               <div style={{color:Q.gold,fontWeight:900,fontSize:18,
-                fontFamily:"'Space Grotesk',system-ui"}}>{fmt(combo.odd_total)}x</div>
+                fontFamily:F_BODY}}>{fmt(combo.odd_total)}x</div>
               <div style={{color:Q.muted,fontSize:9}}>{combo.picks.length} picks</div>
             </div>
           </div>
@@ -2987,7 +2972,7 @@ function CombosIA({ agencia, onSesionExpirada }){
           <button onClick={()=>setAbierto(abiertoEste?null:combo.id)} style={{
             width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
             borderRadius:8,padding:"6px",cursor:"pointer",color:Q.dim,fontSize:11,
-            marginBottom:8,fontFamily:"'Space Grotesk',system-ui",
+            marginBottom:8,fontFamily:F_BODY,
           }}>{abiertoEste?"▲ Ocultar picks":"▼ Ver picks"}</button>
 
           {abiertoEste&&(
@@ -2999,11 +2984,11 @@ function CombosIA({ agencia, onSesionExpirada }){
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{color:Q.text,fontSize:11,fontWeight:600,
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
-                      fontFamily:"'Space Grotesk',system-ui"}}>{p.h} vs {p.a}</div>
+                      fontFamily:F_BODY}}>{p.h} vs {p.a}</div>
                     <div style={{color:Q.muted,fontSize:10}}>{p.sel}</div>
                   </div>
                   <span style={{color:Q.cyan,fontWeight:700,fontSize:12,flexShrink:0,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{fmt(p.odd)}</span>
+                    fontFamily:F_BODY}}>{fmt(p.odd)}</span>
                 </div>
               ))}
             </div>
@@ -3014,7 +2999,7 @@ function CombosIA({ agencia, onSesionExpirada }){
             borderTop:`1px solid ${Q.dim}`}}>
             <span style={{color:Q.muted,fontSize:11}}>Retorno {ars(monto)}</span>
             <span style={{color:Q.green,fontWeight:700,fontSize:15,
-              fontFamily:"'Space Grotesk',system-ui"}}>{ars(ret)}</span>
+              fontFamily:F_BODY}}>{ars(ret)}</span>
           </div>
 
           <button onClick={()=>cobrarCombo(combo)} disabled={cobrando===combo.id}
@@ -3025,7 +3010,7 @@ function CombosIA({ agencia, onSesionExpirada }){
               border:"none",borderRadius:10,padding:"11px",
               cursor:cobrando===combo.id?"wait":"pointer",
               color:cobrando===combo.id?Q.muted:"#fff",fontWeight:700,fontSize:13,
-              fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+              fontFamily:F_BODY,textTransform:"uppercase",
             }}>
             {cobrando===combo.id?"Cobrando...":`Cobrar e imprimir ${ars(monto)}`}
           </button>
@@ -3082,7 +3067,7 @@ function Clientes({ agencia, onSesionExpirada }){
             placeholder="Buscar por nombre o documento..."
             style={{background:"transparent",border:"none",color:Q.text,
               fontSize:14,flex:1,minWidth:0,
-              fontFamily:"'Space Grotesk',system-ui"}}/>
+              fontFamily:F_BODY}}/>
         </div>
         <Btn label="🔒" onClick={()=>setVerBloqueos(true)} color={Q.red} size="sm"/>
         <Btn label="+ Nuevo" onClick={()=>setAlta(true)} color={Q.violet} size="sm"/>
@@ -3091,13 +3076,13 @@ function Clientes({ agencia, onSesionExpirada }){
       <AlertaError mensaje={msg}/>
 
       {cargando&&<div style={{color:Q.muted,textAlign:"center",padding:16,
-        fontFamily:"'Space Grotesk',system-ui"}}>Buscando...</div>}
+        fontFamily:F_BODY}}>Buscando...</div>}
 
       {!cargando&&lista.length===0&&(
         <GCard style={{padding:26,textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:8}}>👤</div>
           <div style={{color:Q.muted,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             {q?"No se encontró ningún cliente":"Todavía no cargaste clientes"}
           </div>
         </GCard>
@@ -3111,7 +3096,7 @@ function Clientes({ agencia, onSesionExpirada }){
             <div style={{minWidth:0,flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                 <span style={{color:Q.text,fontWeight:600,fontSize:14,
-                  fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                  fontFamily:F_BODY,overflow:"hidden",
                   textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.nombre}</span>
                 {u.tiene_telegram&&<span style={{color:Q.cyan,fontSize:11}}>✈️</span>}
               </div>
@@ -3119,7 +3104,7 @@ function Clientes({ agencia, onSesionExpirada }){
                   necesita a mano cuando el cliente lo olvida. */}
               {u.username&&!u.username.startsWith("loc_")&&(
                 <div style={{color:Q.cyan,fontSize:11,marginTop:1,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   @{u.username}</div>
               )}
               <div style={{color:Q.muted,fontSize:11}}>
@@ -3129,7 +3114,7 @@ function Clientes({ agencia, onSesionExpirada }){
             </div>
             <div style={{textAlign:"right",flexShrink:0}}>
               <div style={{color:u.saldo>0?Q.green:Q.muted,fontWeight:700,fontSize:15,
-                fontFamily:"'Space Grotesk',system-ui"}}>{ars(u.saldo)}</div>
+                fontFamily:F_BODY}}>{ars(u.saldo)}</div>
               <span style={{color:Q.muted,fontSize:16}}>›</span>
             </div>
           </div>
@@ -3164,20 +3149,20 @@ function ImpresionesRama({ agencia, onCerrar, onSesionExpirada }){
         <div style={{display:"flex",justifyContent:"space-between",
           alignItems:"center",marginBottom:16}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:16,
-            fontFamily:"'Space Grotesk',system-ui"}}>🖨️ Impresiones de mi rama</div>
+            fontFamily:F_BODY}}>🖨️ Impresiones de mi rama</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:26,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
         {!data&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+          fontFamily:F_BODY}}>Cargando...</div>}
         {data&&data.length===0&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Todavía no hubo impresiones</div>}
+          fontFamily:F_BODY}}>Todavía no hubo impresiones</div>}
         {(data||[]).map((im,i)=>(
           <GCard key={i} style={{padding:"10px 13px",marginBottom:6}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{minWidth:0,flex:1}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{tipoTxt[im.tipo]||im.tipo}
+                  fontFamily:F_BODY}}>{tipoTxt[im.tipo]||im.tipo}
                   {im.referencia?<span style={{color:Q.cyan,fontWeight:400}}> · {im.referencia}</span>:null}</div>
                 <div style={{color:Q.muted,fontSize:10}}>{im.agencia} · por {im.quien} · {im.fecha}</div>
               </div>
@@ -3209,26 +3194,26 @@ function BloqueosRama({ agencia, onCerrar, onSesionExpirada }){
         <div style={{display:"flex",justifyContent:"space-between",
           alignItems:"center",marginBottom:16}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:16,
-            fontFamily:"'Space Grotesk',system-ui"}}>🔒 Bloqueos de mi rama</div>
+            fontFamily:F_BODY}}>🔒 Bloqueos de mi rama</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:26,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
         {!data&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+          fontFamily:F_BODY}}>Cargando...</div>}
         {data&&data.length===0&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Todavía no hubo bloqueos</div>}
+          fontFamily:F_BODY}}>Todavía no hubo bloqueos</div>}
         {(data||[]).map((b,i)=>{
           const esBloqueo=b.accion==="bloqueo";
           return(
             <GCard key={i} glow={esBloqueo?Q.red:Q.green} style={{padding:"11px 13px",marginBottom:6}}>
               <div style={{color:esBloqueo?Q.red:Q.green,fontWeight:700,fontSize:12,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 {esBloqueo?"🔒 Bloqueó":"✅ Desbloqueó"}{" "}
                 <span style={{color:Q.text}}>{b.nombre}</span>
                 <span style={{color:Q.muted,fontWeight:400}}> ({b.tipo})</span></div>
               <div style={{color:Q.muted,fontSize:10,marginTop:2}}>por {b.quien} · {b.fecha}</div>
               {b.motivo&&<div style={{color:Q.dim,fontSize:11,marginTop:4,fontStyle:"italic",
-                fontFamily:"'Space Grotesk',system-ui"}}>"{b.motivo}"</div>}
+                fontFamily:F_BODY}}>"{b.motivo}"</div>}
             </GCard>
           );
         })}
@@ -3280,7 +3265,7 @@ function AltaCliente({ agencia, onListo, onCancel, onSesionExpirada }){
         color:Q.muted,fontSize:22,cursor:"pointer",marginBottom:10,padding:0}}>‹ Volver</button>
       <GCard glow={Q.violet} style={{padding:18}}>
         <div style={{color:Q.violet2,fontWeight:700,fontSize:15,marginBottom:14,
-          fontFamily:"'Space Grotesk',system-ui"}}>Nuevo cliente</div>
+          fontFamily:F_BODY}}>Nuevo cliente</div>
         {[["Nombre y apellido",nombre,setNombre,"Juan Pérez","text"],
           ["Usuario para el sitio web",usuario,setUsuario,"juanperez","text"],
           ["Clave (mínimo 6)",clave,setClave,"••••••","text"],
@@ -3289,12 +3274,12 @@ function AltaCliente({ agencia, onListo, onCancel, onSesionExpirada }){
         ].map(([l,v,sv,ph,t])=>(
           <div key={l} style={{marginBottom:12}}>
             <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
-              letterSpacing:1,fontFamily:"'Space Grotesk',system-ui",
+              letterSpacing:1,fontFamily:F_BODY,
               marginBottom:5}}>{l}</div>
             <input type={t} value={v} onChange={e=>sv(e.target.value)} placeholder={ph}
               style={{width:"100%",background:"rgba(255,255,255,0.05)",
                 border:`1px solid ${Q.border}`,borderRadius:10,padding:"11px 14px",
-                color:Q.text,fontSize:16,fontFamily:"'Space Grotesk',system-ui"}}/>
+                color:Q.text,fontSize:16,fontFamily:F_BODY}}/>
           </div>
         ))}
         <AlertaError mensaje={msg}/>
@@ -3303,7 +3288,7 @@ function AltaCliente({ agencia, onListo, onCancel, onSesionExpirada }){
           <Btn label={guardando?"CREANDO...":"CREAR"} onClick={crear} color={Q.violet} full disabled={guardando}/>
         </div>
         <div style={{color:Q.muted,fontSize:10.5,marginTop:10,lineHeight:1.5,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           Con ese usuario y clave el cliente entra al sitio web a consultar
           su cuenta y apostar. La carga y el retiro de saldo siguen siendo
           en la agencia. Anotale los datos antes de cerrar.
@@ -3317,7 +3302,7 @@ function OtorgarBonoCliente({ agencia, userId }){
   const [bonos,setBonos]=useState([]);
   const [sel,setSel]=useState("");
   const [montoCarga,setMontoCarga]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [abierto,setAbierto]=useState(false);
 
@@ -3329,8 +3314,8 @@ function OtorgarBonoCliente({ agencia, userId }){
 
   const bonoSel = bonos.find(b=>String(b.id)===String(sel));
   const otorgar=async()=>{
-    if(!sel){ setMsg("Elegí un bono"); return; }
-    setProc(true); setMsg("");
+    if(!sel){ setMsg({text:"Elegí un bono", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const body={user_id:userId,bono_id:parseInt(sel,10)};
       if(bonoSel&&bonoSel.tipo==="carga") body.monto_carga=parseInt(montoCarga||"0",10);
@@ -3339,9 +3324,9 @@ function OtorgarBonoCliente({ agencia, userId }){
         body:JSON.stringify(body),
       });
       const d=await r.json();
-      if(r.ok&&d.ok){ setMsg(`✅ Bono otorgado · ${ars(d.monto)}`); setSel(""); setMontoCarga(""); }
-      else setMsg("⚠️ "+(d.detail||"No se pudo"));
-    }catch(e){ setMsg("⚠️ Error"); }
+      if(r.ok&&d.ok){ setMsg({text:`✅ Bono otorgado · ${ars(d.monto)}`, ok:true}); setSel(""); setMontoCarga(""); }
+      else setMsg({text:"⚠️ "+(d.detail||"No se pudo"), ok:false});
+    }catch(e){ setMsg({text:"⚠️ Error", ok:false}); }
     setProc(false);
   };
 
@@ -3356,16 +3341,16 @@ function OtorgarBonoCliente({ agencia, userId }){
     <div style={{marginTop:10,padding:12,background:`${Q.gold}0C`,
       border:`1px solid ${Q.gold}55`,borderRadius:10}}>
       <div style={{color:Q.gold,fontWeight:700,fontSize:13,marginBottom:8,
-        fontFamily:"'Space Grotesk',system-ui"}}>🎁 Otorgar bono</div>
+        fontFamily:F_BODY}}>🎁 Otorgar bono</div>
       {bonos.length===0?(
-        <div style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>
+        <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
           No hay bonos habilitados para tu agencia.</div>
       ):(
         <>
           <select value={sel} onChange={e=>setSel(e.target.value)}
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
               border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px",color:Q.text,
-              fontSize:13,marginBottom:8,fontFamily:"'Space Grotesk',system-ui"}}>
+              fontSize:13,marginBottom:8,fontFamily:F_BODY}}>
             <option value="">Elegí un bono</option>
             {bonos.map(b=>(<option key={b.id} value={b.id}>
               {b.nombre} ({b.tipo==="bienvenida"?ars(b.monto_fijo||0):`${b.porcentaje}%`})</option>))}
@@ -3375,17 +3360,17 @@ function OtorgarBonoCliente({ agencia, userId }){
               placeholder="Monto de la carga" inputMode="numeric"
               style={{width:"100%",background:"rgba(255,255,255,0.05)",
                 border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px",color:Q.text,
-                fontSize:13,marginBottom:8,fontFamily:"'Space Grotesk',system-ui"}}/>
+                fontSize:13,marginBottom:8,fontFamily:F_BODY}}/>
           )}
           <div style={{display:"flex",gap:6}}>
-            <Btn label="Cerrar" onClick={()=>{setAbierto(false);setMsg("");}} outline color={Q.muted} full/>
+            <Btn label="Cerrar" onClick={()=>{setAbierto(false);setMsg(null);}} outline color={Q.muted} full/>
             <Btn label={proc?"...":"Otorgar"} onClick={otorgar} color={Q.gold} full disabled={proc}/>
           </div>
         </>
       )}
       {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </div>
   );
 }
@@ -3410,7 +3395,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
   const [movs,setMovs]=useState(null);
   const [monto,setMonto]=useState(montoInicial(agencia?.moneda));
   const [modo,setModo]=useState("carga");   // carga | retiro
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [ficha,setFicha]=useState(null);     // rendimiento + apuestas + bloqueo
   const [motivo,setMotivo]=useState("");
@@ -3428,7 +3413,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
   const toggleBloqueo=async()=>{
     const bloquear=!ficha?.bloqueado;
     if(bloquear && !confirmBloq){ setConfirmBloq(true); return; }
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/bloquear`,{
         method:"POST",
@@ -3439,9 +3424,13 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
       setConfirmBloq(false); setMotivo("");
-      setMsg(bloquear?"🔒 Cliente bloqueado":"✅ Cliente desbloqueado");
+      // Blocking and unblocking are the same operation with opposite sign,
+      // and both report success. Under the old sniffing render the block
+      // confirmation showed red only because its text carried no ✅ prefix,
+      // which told the agency an action that worked had failed.
+      setMsg({text: bloquear?"🔒 Cliente bloqueado":"✅ Cliente desbloqueado", ok: true});
       cargarFicha();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -3458,7 +3447,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
 
   const aplicar=async()=>{
     if(proc||!monto) return;
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/cargar`,{
         method:"POST",
@@ -3471,9 +3460,9 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
       setSaldo(d.saldo);
-      setMsg(`✅ ${modo==="carga"?"Cargado":"Retirado"} ${ars(monto)}`);
+      setMsg({text:`✅ ${modo==="carga"?"Cargado":"Retirado"} ${ars(monto)}`, ok:true});
       cargarMovs();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -3489,7 +3478,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{minWidth:0,flex:1}}>
             <div style={{color:Q.text,fontWeight:700,fontSize:17,
-              fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+              fontFamily:F_BODY,overflow:"hidden",
               textOverflow:"ellipsis"}}>{user.nombre}</div>
             <div style={{color:Q.muted,fontSize:11,marginTop:2}}>
               {user.documento?`Doc ${user.documento}`:"Sin documento"}
@@ -3500,12 +3489,12 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
             <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",
               letterSpacing:1}}>Saldo</div>
             <div style={{color:saldo>0?Q.green:Q.text,fontWeight:900,fontSize:22,
-              fontFamily:"'Space Grotesk',system-ui"}}>{ars(saldo)}</div>
+              fontFamily:F_BODY}}>{ars(saldo)}</div>
           </div>
         </div>
         {ficha?.bloqueado&&(
           <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${Q.dim}`,
-            color:Q.red,fontSize:11,fontFamily:"'Space Grotesk',system-ui"}}>
+            color:Q.red,fontSize:11,fontFamily:F_BODY}}>
             🔒 Bloqueado por {ficha.bloqueado_por||"—"}
             {ficha.bloqueado_motivo?` · ${ficha.bloqueado_motivo}`:""}
           </div>
@@ -3517,17 +3506,17 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
           <GCard style={{padding:"9px",textAlign:"center"}}>
             <div style={{color:Q.cyan,fontWeight:700,fontSize:13,
-              fontFamily:"'Space Grotesk',system-ui"}}>{ars(ficha.rendimiento.apostado)}</div>
+              fontFamily:F_BODY}}>{ars(ficha.rendimiento.apostado)}</div>
             <div style={{color:Q.muted,fontSize:8}}>Apostado</div>
           </GCard>
           <GCard style={{padding:"9px",textAlign:"center"}}>
             <div style={{color:Q.violet2,fontWeight:700,fontSize:13,
-              fontFamily:"'Space Grotesk',system-ui"}}>{ars(ficha.rendimiento.ganado)}</div>
+              fontFamily:F_BODY}}>{ars(ficha.rendimiento.ganado)}</div>
             <div style={{color:Q.muted,fontSize:8}}>Ganado</div>
           </GCard>
           <GCard style={{padding:"9px",textAlign:"center"}}>
             <div style={{color:ficha.rendimiento.neto_cliente>=0?Q.green:Q.red,
-              fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
+              fontWeight:700,fontSize:13,fontFamily:F_BODY}}>
               {ars(ficha.rendimiento.neto_cliente)}</div>
             <div style={{color:Q.muted,fontSize:8}}>Neto</div>
           </GCard>
@@ -3535,7 +3524,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
       )}
       {ficha&&(
         <div style={{display:"flex",gap:8,marginBottom:12,fontSize:11,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           <span style={{color:Q.green}}>{ficha.rendimiento.ganadas} ganadas</span>
           <span style={{color:Q.red}}>{ficha.rendimiento.perdidas} perdidas</span>
           <span style={{color:Q.amber}}>{ficha.rendimiento.pendientes} pendientes</span>
@@ -3549,7 +3538,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
               flex:1,background:modo===k?`${c}22`:"rgba(255,255,255,0.04)",
               border:`1.5px solid ${modo===k?c:Q.border}`,borderRadius:10,
               padding:"9px",cursor:"pointer",color:modo===k?c:Q.muted,
-              fontSize:13,fontWeight:700,fontFamily:"'Space Grotesk',system-ui",
+              fontSize:13,fontWeight:700,fontFamily:F_BODY,
             }}>{l}</button>
           ))}
         </div>
@@ -3558,7 +3547,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
           style={{width:"100%",background:"rgba(255,255,255,0.06)",
             border:`1.5px solid ${modo==="carga"?Q.green:Q.amber}`,borderRadius:10,
             padding:"12px 16px",color:Q.text,fontSize:22,fontWeight:700,
-            fontFamily:"'Space Grotesk',system-ui",marginBottom:10}}/>
+            fontFamily:F_BODY,marginBottom:10}}/>
 
         <div style={{display:"flex",gap:5,marginBottom:12}}>
           {montosDe(agencia?.moneda).map(v=>(
@@ -3566,26 +3555,26 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
               flex:1,background:monto===v?`${Q.violet}33`:"rgba(255,255,255,0.04)",
               border:`1px solid ${monto===v?Q.violet:Q.border}`,borderRadius:8,
               padding:"6px 2px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
-              fontSize:10,fontFamily:"'Space Grotesk',system-ui",
+              fontSize:10,fontFamily:F_BODY,
             }}>{v>=1000?`${v/1000}K`:v}</button>
           ))}
         </div>
         {/* Campo libre: las fichas son atajos, no un límite */}
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
           <span style={{color:Q.muted,fontSize:10,flexShrink:0,
-            fontFamily:"'Space Grotesk',system-ui"}}>Otro:</span>
+            fontFamily:F_BODY}}>Otro:</span>
           <input type="number" inputMode="numeric" min="0" value={monto}
             onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
             aria-label="Monto a apostar"
             style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
               border:`1px solid ${Q.border}`,borderRadius:8,padding:"6px 9px",
               color:Q.text,fontSize:13,fontWeight:700,
-              fontFamily:"'Space Grotesk',system-ui"}}/>
+              fontFamily:F_BODY}}/>
         </div>
 
         {msg&&<div style={{fontSize:12,marginBottom:10,
-          color:msg.startsWith("✅")?Q.green:Q.red,
-          fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}>{msg.text}</div>}
 
         <Btn label={proc?"PROCESANDO...":
           `${modo==="carga"?"CARGAR":"RETIRAR"} ${ars(monto)}`}
@@ -3602,16 +3591,16 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
           ):confirmBloq?(
             <div>
               <div style={{color:Q.red,fontWeight:700,fontSize:13,marginBottom:6,
-                fontFamily:"'Space Grotesk',system-ui"}}>¿Bloquear a {user.nombre}?</div>
+                fontFamily:F_BODY}}>¿Bloquear a {user.nombre}?</div>
               <div style={{color:Q.muted,fontSize:11,marginBottom:8,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 No va a poder apostar hasta que lo desbloquees.</div>
               <input value={motivo} onChange={e=>setMotivo(e.target.value)}
                 placeholder="Motivo del bloqueo"
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
                   border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
                   color:Q.text,fontSize:14,marginBottom:10,
-                  fontFamily:"'Space Grotesk',system-ui"}}/>
+                  fontFamily:F_BODY}}/>
               <div style={{display:"flex",gap:8}}>
                 <Btn label="Cancelar" onClick={()=>{setConfirmBloq(false);setMotivo("");}}
                   outline color={Q.muted} full/>
@@ -3633,19 +3622,19 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
             <div style={{marginTop:10,padding:12,background:`${Q.cyan}11`,
               border:`1px solid ${Q.cyan}`,borderRadius:10}}>
               <div style={{color:Q.text,fontSize:12,marginBottom:8,lineHeight:1.5,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 Mandale este link al cliente. Cuando lo abra en Telegram, su cuenta
                 de mostrador y su Telegram quedan unificadas (saldo sumado). Vence en 24hs.</div>
               <div style={{display:"flex",gap:6}}>
                 <input readOnly value={tgLink.link} style={{flex:1,minWidth:0,
                   background:"rgba(0,0,0,0.3)",border:`1px solid ${Q.border}`,borderRadius:8,
                   padding:"8px 10px",color:Q.cyan,fontSize:11,
-                  fontFamily:"'Space Grotesk',system-ui"}}/>
+                  fontFamily:F_BODY}}/>
                 <button onClick={()=>{try{navigator.clipboard.writeText(tgLink.link);
                   setTgCopiado(true);setTimeout(()=>setTgCopiado(false),1500);}catch(e){}}}
                   style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,borderRadius:8,
                   padding:"8px 12px",cursor:"pointer",color:Q.cyan,fontSize:11,fontWeight:700,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{tgCopiado?"✓":"Copiar"}</button>
+                  fontFamily:F_BODY}}>{tgCopiado?"✓":"Copiar"}</button>
               </div>
             </div>
           )}
@@ -3660,7 +3649,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
       {ficha&&ficha.apuestas.length>0&&(
         <div style={{marginBottom:12}}>
           <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-            fontFamily:"'Space Grotesk',system-ui",marginBottom:8,marginLeft:4}}>
+            fontFamily:F_BODY,marginBottom:8,marginLeft:4}}>
             Últimas apuestas</div>
           {ficha.apuestas.slice(0,10).map((b,i)=>{
             const est={won:Q.green,ganada:Q.green,lost:Q.red,perdida:Q.red,
@@ -3670,12 +3659,12 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
                     <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{b.code}</div>
+                      fontFamily:F_BODY}}>{b.code}</div>
                     <div style={{color:Q.muted,fontSize:10}}>
                       {ars(b.stake)} · {fmt(b.odd)}x · {b.fecha}</div>
                   </div>
                   <span style={{color:est,fontSize:11,fontWeight:700,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{b.status}</span>
+                    fontFamily:F_BODY}}>{b.status}</span>
                 </div>
               </GCard>
             );
@@ -3684,15 +3673,15 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
       )}
 
       <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-        fontFamily:"'Space Grotesk',system-ui",marginBottom:8,marginLeft:4}}>
+        fontFamily:F_BODY,marginBottom:8,marginLeft:4}}>
         Movimientos
       </div>
       {movs===null&&<div style={{color:Q.muted,textAlign:"center",padding:12,
-        fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+        fontFamily:F_BODY}}>Cargando...</div>}
       {movs&&movs.length===0&&(
         <GCard style={{padding:20,textAlign:"center"}}>
           <div style={{color:Q.muted,fontSize:12,
-            fontFamily:"'Space Grotesk',system-ui"}}>Sin movimientos</div>
+            fontFamily:F_BODY}}>Sin movimientos</div>
         </GCard>
       )}
       {(movs||[]).map((m,i)=>(
@@ -3700,11 +3689,11 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
               <span style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
-                fontFamily:"'Space Grotesk',system-ui"}}>{tipoTxt[m.tipo]||m.tipo}</span>
+                fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</span>
               <div style={{color:Q.muted,fontSize:10}}>{m.fecha}{m.betslip?` · ${m.betslip}`:""}</div>
             </div>
             <div style={{color:m.tipo==="retiro"?Q.amber:Q.green,fontWeight:700,fontSize:14,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               {m.tipo==="retiro"?"-":"+"}{ars(m.monto)}
             </div>
           </div>
@@ -3745,7 +3734,7 @@ function AutoLiquidar({ agencia, onListo, onSesionExpirada }){
         justifyContent:"space-between"}}>
         <div style={{minWidth:0,flex:1}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}>⚡ Liquidar automático</div>
+            fontFamily:F_BODY}}>⚡ Liquidar automático</div>
           <div style={{color:Q.muted,fontSize:10,marginTop:2}}>
             Resuelve 1X2, goles y ambos anotan con el resultado real
           </div>
@@ -3756,12 +3745,12 @@ function AutoLiquidar({ agencia, onListo, onSesionExpirada }){
           border:"none",borderRadius:9,padding:"9px 14px",
           cursor:proc?"wait":"pointer",color:proc?Q.muted:"#fff",
           fontWeight:700,fontSize:12,flexShrink:0,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           {proc?"Buscando...":"Ejecutar"}
         </button>
       </div>
       {res&&<div style={{color:Q.cyan,fontSize:11,marginTop:8,
-        fontFamily:"'Space Grotesk',system-ui"}}>{res}</div>}
+        fontFamily:F_BODY}}>{res}</div>}
     </GCard>
   );
 }
@@ -3796,7 +3785,7 @@ function DetalleTicket({ code, onCerrar }){
         <div style={{display:"flex",justifyContent:"space-between",
           alignItems:"center",marginBottom:12}}>
           <div style={{color:Q.text,fontWeight:800,fontSize:16,
-            fontFamily:"'Space Grotesk',system-ui"}}>{code}</div>
+            fontFamily:F_BODY}}>{code}</div>
           <button onClick={onCerrar} style={{background:"transparent",
             border:"none",color:Q.muted,fontSize:22,cursor:"pointer",
             padding:0}}>×</button>
@@ -3816,7 +3805,7 @@ function DetalleTicket({ code, onCerrar }){
             <span style={{color:Q.muted}}>
               {ESTADOS[(d.status||"").toLowerCase()]||d.status}</span>
             <span style={{color:Q.gold,fontWeight:800,fontSize:18,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               {Number(d.odd_total||0).toFixed(2)}</span>
           </div>
 
@@ -3830,7 +3819,7 @@ function DetalleTicket({ code, onCerrar }){
                 <span style={{color:Q.text,fontSize:12.5,fontWeight:600}}>
                   {p.sel}</span>
                 <span style={{color:Q.gold,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {Number(p.odd||0).toFixed(2)}</span>
               </div>
             </div>
@@ -3878,7 +3867,7 @@ function CodigoReserva({ code, compacto=false, vence=null }){
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontSize:9,letterSpacing:1.4,color:Q.dim,
           fontWeight:700}}>CÓDIGO DE RESERVA</div>
-        <div onClick={copiar} style={{fontFamily:"'Space Grotesk',system-ui",
+        <div onClick={copiar} style={{fontFamily:F_BODY,
           fontSize:compacto?26:32,fontWeight:700,color:Q.gold,
           letterSpacing:1.5,lineHeight:1.1,cursor:"pointer"}}>
           {code}</div>
@@ -3898,7 +3887,7 @@ function CodigoReserva({ code, compacto=false, vence=null }){
 function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
   const [verDetalle,setVerDetalle]=useState(false);
   const [proc,setProc]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [res,setRes]=useState(t.resultado||null);
   const [pagado,setPagado]=useState(!!t.pagado);
   const [anulado,setAnulado]=useState(false);
@@ -3921,7 +3910,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
 
   const accion=async(ruta,body,okMsg)=>{
     if(proc) return null;
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/${ruta}`,{
         method:"POST",
@@ -3932,9 +3921,9 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      if(okMsg) setMsg("✅ "+okMsg);
+      if(okMsg) setMsg({text:"✅ "+okMsg, ok:true});
       return d;
-    }catch(e){ setMsg("⚠️ "+e.message); return null; }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); return null; }
     finally{ setProc(false); }
   };
 
@@ -3950,7 +3939,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
 
   const confirmarAnular=async()=>{
     if(proc) return;
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/betslip/${t.code}/anular`,{
         method:"POST",
@@ -3961,11 +3950,11 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
       const d=await r.json().catch(()=>({}));
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
       setAnulado(true); setConfirmando(false);
-      setMsg(d.efectivo_a_devolver
+      setMsg({text: d.efectivo_a_devolver
         ? `✅ Anulada. Devolvé ${ars(d.efectivo_a_devolver)} al cliente.`
-        : "✅ Anulada. El saldo volvió a la cuenta del cliente.");
+        : "✅ Anulada. El saldo volvió a la cuenta del cliente.", ok:true});
       onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     finally{ setProc(false); }
   };
 
@@ -3986,12 +3975,12 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
           style={{minWidth:0,flex:1,cursor:"pointer"}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
             <span style={{color:Q.cyan,fontWeight:700,fontSize:13,
-              fontFamily:"'Space Grotesk',system-ui"}}>{t.code}</span>
+              fontFamily:F_BODY}}>{t.code}</span>
             <span style={{color:Q.dim,fontSize:11}}>ver ›</span>
             <span style={{background:`${colorEstado}22`,
               border:`1px solid ${colorEstado}`,borderRadius:20,padding:"1px 8px",
               fontSize:9,fontWeight:700,color:colorEstado,
-              fontFamily:"'Space Grotesk',system-ui"}}>{textoEstado}</span>
+              fontFamily:F_BODY}}>{textoEstado}</span>
           </div>
           <div style={{color:Q.muted,fontSize:11,overflow:"hidden",
             textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
@@ -4000,7 +3989,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}>{ars(t.stake)}</div>
+            fontFamily:F_BODY}}>{ars(t.stake)}</div>
           <div style={{color:Q.green,fontSize:11}}>ret: {ars(t.potential_win)}</div>
         </div>
       </div>
@@ -4013,12 +4002,12 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
                 flex:1,background:`${Q.green}18`,border:`1px solid ${Q.green}`,
                 borderRadius:9,padding:"8px",cursor:"pointer",color:Q.green,
                 fontSize:12,fontWeight:700,
-                fontFamily:"'Space Grotesk',system-ui"}}>✓ Ganó</button>
+                fontFamily:F_BODY}}>✓ Ganó</button>
               <button disabled={proc} onClick={()=>liquidar("perdida")} style={{
                 flex:1,background:`${Q.red}18`,border:`1px solid ${Q.red}`,
                 borderRadius:9,padding:"8px",cursor:"pointer",color:Q.red,
                 fontSize:12,fontWeight:700,
-                fontFamily:"'Space Grotesk',system-ui"}}>✗ Perdió</button>
+                fontFamily:F_BODY}}>✗ Perdió</button>
             </div>
           )}
           {res==="ganada"&&(
@@ -4026,7 +4015,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
               width:"100%",background:`linear-gradient(135deg,${Q.green},#00a854)`,
               border:"none",borderRadius:10,padding:"11px",cursor:"pointer",
               color:"#04120a",fontWeight:900,fontSize:14,
-              fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+              fontFamily:F_BODY,textTransform:"uppercase",
             }}>💵 Pagar premio {ars(t.potential_win)}</button>
           )}
           {sePuedeAnular&&!confirmando&&(
@@ -4034,7 +4023,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
               width:"100%",marginTop:6,background:"transparent",
               border:`1px solid ${Q.dim}`,borderRadius:9,padding:"8px",
               cursor:"pointer",color:Q.muted,fontSize:11.5,fontWeight:700,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               Anular apuesta</button>
           )}
 
@@ -4043,7 +4032,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
               background:`${Q.red}12`,border:`1px solid ${Q.red}`,
               borderRadius:10}}>
               <div style={{color:Q.text,fontSize:11.5,marginBottom:8,
-                lineHeight:1.5,fontFamily:"'Space Grotesk',system-ui"}}>
+                lineHeight:1.5,fontFamily:F_BODY}}>
                 Anular {t.code} por {ars(t.stake)}. Si se cobró en efectivo,
                 hay que devolvérselo al cliente. No se puede deshacer.</div>
               <input value={motivo} onChange={e=>setMotivo(e.target.value)}
@@ -4051,7 +4040,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
                   border:`1px solid ${Q.dim}`,borderRadius:8,padding:"8px 10px",
                   color:Q.text,fontSize:12,marginBottom:8,
-                  fontFamily:"'Space Grotesk',system-ui"}}/>
+                  fontFamily:F_BODY}}/>
               <div style={{display:"flex",gap:6}}>
                 <button disabled={proc||!motivo.trim()}
                   onClick={confirmarAnular} style={{flex:1,
@@ -4059,34 +4048,34 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
                   border:"none",borderRadius:8,padding:"9px",
                   cursor:motivo.trim()?"pointer":"default",
                   color:motivo.trim()?"#fff":Q.dim,fontSize:12,fontWeight:700,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {proc?"Anulando…":"Sí, anular"}</button>
                 <button disabled={proc} onClick={()=>setConfirmando(false)}
                   style={{flex:1,background:"transparent",
                   border:`1px solid ${Q.dim}`,borderRadius:8,padding:"9px",
                   cursor:"pointer",color:Q.muted,fontSize:12,
-                  fontFamily:"'Space Grotesk',system-ui"}}>Volver</button>
+                  fontFamily:F_BODY}}>Volver</button>
               </div>
             </div>
           )}
 
           {anular?.puede_anular&&!sePuedeAnular&&!res&&!pagado&&!anulado&&(
             <div style={{marginTop:6,textAlign:"center",color:Q.dim,
-              fontSize:10,fontFamily:"'Space Grotesk',system-ui"}}>
+              fontSize:10,fontFamily:F_BODY}}>
               Venció el plazo para anular
               ({anular.minutos_tras_pago ?? 5} min desde el cobro)</div>
           )}
 
           {res==="perdida"&&(
             <div style={{textAlign:"center",color:Q.muted,fontSize:11,
-              fontFamily:"'Space Grotesk',system-ui"}}>Sin premio a pagar</div>
+              fontFamily:F_BODY}}>Sin premio a pagar</div>
           )}
         </div>
       )}
 
       {msg&&<div style={{fontSize:11,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       {verDetalle&&<DetalleTicket code={t.code}
         onCerrar={()=>setVerDetalle(false)}/>}
@@ -4149,7 +4138,7 @@ function SelectorSonido(){
   return(
     <div>
       <div style={{color:Q.muted,fontSize:11,marginBottom:5,
-        fontFamily:"'Space Grotesk',system-ui"}}>Sonido de alertas</div>
+        fontFamily:F_BODY}}>Sonido de alertas</div>
       <div style={{display:"flex",gap:6}}>
         {[["off","🔇 Sin sonido"],["urgente","🔔 Solo urgentes"],
           ["suave","🔊 Todas"]].map(([k,l])=>(
@@ -4159,7 +4148,7 @@ function SelectorSonido(){
             borderRadius:8,padding:"9px 4px",cursor:"pointer",
             color:nivel===k?Q.cyan:Q.muted,fontSize:11,
             fontWeight:nivel===k?700:400,
-            fontFamily:"'Space Grotesk',system-ui"}}>{l}</button>
+            fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
       <div style={{color:Q.dim,fontSize:10,marginTop:5,lineHeight:1.4}}>
@@ -4230,7 +4219,7 @@ function CarruselAvisos({ agencia, onSesionExpirada }){
         alignItems:"flex-start",gap:8}}>
         <div style={{minWidth:0,flex:1}}>
           <div style={{color:c,fontWeight:700,fontSize:12.5,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             {a.nivel==="urgente"?"🔴":a.nivel==="aviso"?"🟡":"🔵"} {a.titulo}
             {!a.visto&&(
               <span style={{background:c,color:"#000",borderRadius:6,
@@ -4357,7 +4346,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
               fontSize:20,cursor:"pointer",padding:0}}>‹</button>
           <div style={{minWidth:0,flex:1}}>
             <div style={{color:Q.text,fontWeight:700,fontSize:14,
-              fontFamily:"'Space Grotesk',system-ui"}}>{det.cliente}</div>
+              fontFamily:F_BODY}}>{det.cliente}</div>
             <div style={{color:Q.muted,fontSize:10}}>
               Saldo {ars(det.saldo)} · {det.estado}</div>
           </div>
@@ -4375,7 +4364,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
                 border:`1px solid ${m.autor==="agencia"?Q.violet:Q.border}`,
                 borderRadius:12,padding:"9px 12px",color:Q.text,
                 fontSize:12.5,lineHeight:1.55,whiteSpace:"pre-wrap",
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 <div style={{color:m.autor==="ia"?Q.dim:Q.cyan,fontSize:9,
                   fontWeight:700,marginBottom:3}}>{AUTOR[m.autor]}</div>
                 {m.texto}
@@ -4394,7 +4383,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
             style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
               border:`1px solid ${Q.border}`,borderRadius:10,
               padding:"11px 13px",color:Q.text,fontSize:14,
-              fontFamily:"'Space Grotesk',system-ui"}}/>
+              fontFamily:F_BODY}}/>
           <button onClick={()=>responder(false)}
             disabled={proc||!texto.trim()}
             style={{background:texto.trim()?Q.violet:"rgba(255,255,255,0.05)",
@@ -4406,7 +4395,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
         <button onClick={()=>responder(true)} style={{width:"100%",
           background:"transparent",border:`1px solid ${Q.green}55`,
           borderRadius:9,padding:"9px",cursor:"pointer",color:Q.green,
-          fontSize:11.5,fontFamily:"'Space Grotesk',system-ui"}}>
+          fontSize:11.5,fontFamily:F_BODY}}>
           Marcar como resuelto</button>
       </div>
     );
@@ -4420,7 +4409,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
         alignItems:"center",marginBottom:10}}>
         <div>
           <div style={{color:Q.text,fontWeight:700,fontSize:15,
-            fontFamily:"'Space Grotesk',system-ui"}}>🎧 Soporte</div>
+            fontFamily:F_BODY}}>🎧 Soporte</div>
           <div style={{color:Q.muted,fontSize:11}}>
             Consultas de tus clientes</div>
         </div>
@@ -4438,7 +4427,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
         <div style={{background:`${Q.gold}12`,border:`1px solid ${Q.gold}55`,
           borderRadius:10,padding:"9px 12px",marginBottom:10,
           color:Q.gold,fontSize:11.5,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           ⚠️ {derivados} {derivados===1?"consulta necesita":"consultas necesitan"}
           {" "}que las veas vos</div>
       )}
@@ -4452,7 +4441,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
             borderRadius:8,padding:"8px 4px",cursor:"pointer",
             color:filtro===k?Q.cyan:Q.muted,fontSize:11.5,
             fontWeight:filtro===k?700:400,
-            fontFamily:"'Space Grotesk',system-ui"}}>{l}</button>
+            fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
 
@@ -4461,7 +4450,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
       {tickets&&tickets.length===0&&(
         <GCard style={{padding:20,textAlign:"center"}}>
           <div style={{color:Q.muted,fontSize:12.5,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             No hay consultas en este filtro</div>
         </GCard>
       )}
@@ -4474,7 +4463,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
             alignItems:"flex-start",gap:8}}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:12.5,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 {t.derivado&&<span style={{color:Q.gold}}>⚠️ </span>}
                 {t.cliente}
                 {t.sin_leer>0&&(
@@ -4555,10 +4544,10 @@ function ProveedoresAgencia({ agencia, onSesionExpirada }){
     <div style={{marginTop:16,paddingTop:14,
       borderTop:`1px solid ${Q.border}`}}>
       <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:3,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         Proveedores de casino</div>
       <div style={{color:Q.dim,fontSize:10.5,marginBottom:10,
-        lineHeight:1.5,fontFamily:"'Space Grotesk',system-ui"}}>
+        lineHeight:1.5,fontFamily:F_BODY}}>
         Podés quitárselos a tus subagencias. Los que vos no tengas
         aparecen como no disponibles.</div>
 
@@ -4567,7 +4556,7 @@ function ProveedoresAgencia({ agencia, onSesionExpirada }){
 
       {(d.mis_apagados||[]).length>0&&(
         <div style={{color:Q.amber,fontSize:10.5,marginBottom:10,
-          lineHeight:1.5,fontFamily:"'Space Grotesk',system-ui"}}>
+          lineHeight:1.5,fontFamily:F_BODY}}>
           Tu agencia no tiene: {d.mis_apagados.join(", ")}</div>
       )}
 
@@ -4578,7 +4567,7 @@ function ProveedoresAgencia({ agencia, onSesionExpirada }){
               alignItems:"center",cursor:"pointer",padding:"8px 0"}}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:Q.text,fontSize:12.5,fontWeight:600,
-                fontFamily:"'Space Grotesk',system-ui"}}>{h.nombre}</div>
+                fontFamily:F_BODY}}>{h.nombre}</div>
               <div style={{color:Q.dim,fontSize:9.5}}>
                 {h.apagados.length===0
                   ? "todos los proveedores"
@@ -4603,7 +4592,7 @@ function ProveedoresAgencia({ agencia, onSesionExpirada }){
                       border:`1px solid ${filtro===k?Q.violet:Q.border}`,
                       borderRadius:7,padding:"5px 11px",cursor:"pointer",
                       color:filtro===k?Q.cyan:Q.muted,fontSize:10.5,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{l}</button>
+                      fontFamily:F_BODY}}>{l}</button>
                 ))}
               </div>
 
@@ -4623,7 +4612,7 @@ function ProveedoresAgencia({ agencia, onSesionExpirada }){
                         :(tiene?`${Q.green}33`:`${Q.red}33`)}`,
                       borderRadius:8,padding:"9px 11px",marginBottom:5,
                       cursor:puedoTocar?"pointer":"not-allowed",
-                      fontFamily:"'Space Grotesk',system-ui"}}>
+                      fontFamily:F_BODY}}>
                     <span style={{color:p.lo_tengo?Q.text:Q.dim,
                       fontSize:11.5,minWidth:0,overflow:"hidden",
                       textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
@@ -4689,7 +4678,7 @@ function ProductosRed({ agencia, onSesionExpirada }){
     <div style={{marginBottom:12,paddingBottom:12,
       borderBottom:`1px solid ${Q.border}`}}>
       <div style={{color:Q.muted,fontSize:11,marginBottom:6,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         Productos de tu red</div>
 
       <div style={{color:Q.dim,fontSize:10.5,marginBottom:9,
@@ -4709,7 +4698,7 @@ function ProductosRed({ agencia, onSesionExpirada }){
               alignItems:"center",cursor:"pointer",padding:"7px 0"}}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:Q.text,fontSize:12.5,fontWeight:600,
-                fontFamily:"'Space Grotesk',system-ui"}}>{h.nombre}</div>
+                fontFamily:F_BODY}}>{h.nombre}</div>
               <div style={{color:Q.dim,fontSize:9.5}}>
                 {h.productos.length} de {datos.catalogo.length} productos
                 {h.apagados_aca?.length>0&&(
@@ -4741,7 +4730,7 @@ function ProductosRed({ agencia, onSesionExpirada }){
                         :(loTiene?`${Q.green}44`:`${Q.red}44`)}`,
                       borderRadius:8,padding:"9px 11px",marginBottom:5,
                       cursor:loTengo?"pointer":"not-allowed",
-                      fontFamily:"'Space Grotesk',system-ui"}}>
+                      fontFamily:F_BODY}}>
                     <span style={{color:loTengo?Q.text:Q.dim,fontSize:12}}>
                       {c.icono} {c.nombre}</span>
                     <span style={{fontSize:10.5,fontWeight:700,
@@ -4815,14 +4804,14 @@ function Terminales({ agencia, onSesionExpirada }){
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
     border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
     color:Q.text,fontSize:14,marginBottom:8,
-    fontFamily:"'Space Grotesk',system-ui"};
+    fontFamily:F_BODY};
 
   return(
     <div>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:3,
-        fontFamily:"'Space Grotesk',system-ui"}}>🖥️ Terminales</div>
+        fontFamily:F_BODY}}>🖥️ Terminales</div>
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
-        lineHeight:1.55,fontFamily:"'Space Grotesk',system-ui"}}>
+        lineHeight:1.55,fontFamily:F_BODY}}>
         Cada pantalla del local con su QR. El cliente lo escanea, arma
         el boleto en su teléfono mientras espera, y llega al mostrador
         con el código listo.</div>
@@ -4832,7 +4821,7 @@ function Terminales({ agencia, onSesionExpirada }){
 
       <GCard style={{padding:14,marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:12.5,
-          marginBottom:8,fontFamily:"'Space Grotesk',system-ui"}}>
+          marginBottom:8,fontFamily:F_BODY}}>
           Nueva terminal</div>
         <input value={nombre} onChange={e=>setNombre(e.target.value)}
           placeholder="Nombre: Terminal 1, Barra, Entrada…" style={inp}/>
@@ -4848,7 +4837,7 @@ function Terminales({ agencia, onSesionExpirada }){
       {lista&&lista.length===0&&(
         <GCard style={{padding:22,textAlign:"center"}}>
           <div style={{color:Q.muted,fontSize:13,lineHeight:1.55,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             Todavía no tenés terminales.<br/>
             Creá una por cada pantalla del local.</div>
         </GCard>
@@ -4861,7 +4850,7 @@ function Terminales({ agencia, onSesionExpirada }){
             alignItems:"flex-start",gap:8}}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 {t.nombre}
                 {!t.activa&&<span style={{color:Q.red,fontSize:9,
                   marginLeft:6}}>apagada</span>}</div>
@@ -4877,7 +4866,7 @@ function Terminales({ agencia, onSesionExpirada }){
                 border:`1px solid ${Q.cyan}66`,borderRadius:8,
                 padding:"7px 12px",cursor:"pointer",color:Q.cyan,
                 fontSize:11,flexShrink:0,fontWeight:700,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
               {verQR===t.codigo?"Ocultar":"Ver QR"}</button>
           </div>
 
@@ -4892,7 +4881,7 @@ function Terminales({ agencia, onSesionExpirada }){
                   background:"#fff",padding:8}}/>
               <div style={{color:Q.gold,fontSize:14,fontWeight:800,
                 marginTop:8,letterSpacing:1,
-                fontFamily:"'Space Grotesk',system-ui"}}>{t.codigo}</div>
+                fontFamily:F_BODY}}>{t.codigo}</div>
               <div style={{color:Q.dim,fontSize:10,marginTop:4,
                 wordBreak:"break-all"}}>{t.url}</div>
               <div style={{color:Q.muted,fontSize:10.5,marginTop:8,
@@ -4906,7 +4895,7 @@ function Terminales({ agencia, onSesionExpirada }){
                     border:`1px solid ${t.activa?Q.red:Q.green}66`,
                     borderRadius:8,padding:"9px",cursor:"pointer",
                     color:t.activa?Q.red:Q.green,fontSize:11,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                   {t.activa?"Apagar":"Encender"}</button>
               </div>
             </div>
@@ -4969,9 +4958,9 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:3,
-        fontFamily:"'Space Grotesk',system-ui"}}>🤖 Tu asesor</div>
+        fontFamily:F_BODY}}>🤖 Tu asesor</div>
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
-        lineHeight:1.55,fontFamily:"'Space Grotesk',system-ui"}}>
+        lineHeight:1.55,fontFamily:F_BODY}}>
         Lee tus números y te dice qué mirar. Solo ve lo de tu red.</div>
 
       <Btn label={cargando?"Analizando…":"🔄 Analizar mi negocio"}
@@ -4986,20 +4975,20 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
               <div style={{flex:1}}>
                 <div style={{color:Q.muted,fontSize:10}}>Apostado</div>
                 <div style={{color:Q.text,fontWeight:800,fontSize:16,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {ars(d.datos.apostado)}</div>
               </div>
               <div style={{flex:1}}>
                 <div style={{color:Q.muted,fontSize:10}}>GGR</div>
                 <div style={{color:d.datos.ggr>=0?Q.green:Q.red,
                   fontWeight:800,fontSize:16,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {ars(d.datos.ggr)}</div>
               </div>
               <div style={{flex:1}}>
                 <div style={{color:Q.muted,fontSize:10}}>Margen</div>
                 <div style={{color:Q.text,fontWeight:800,fontSize:16,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {d.datos.margen!=null?`${d.datos.margen}%`:"—"}</div>
               </div>
             </div>
@@ -5008,7 +4997,7 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
               <div style={{flex:1}}>
                 <div style={{color:Q.muted,fontSize:10}}>Clientes</div>
                 <div style={{color:Q.text,fontSize:14,fontWeight:700,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {d.datos.clientes}
                   <span style={{color:Q.green,fontSize:10,marginLeft:5,
                     fontWeight:400}}>{d.datos.activos} activos</span></div>
@@ -5017,7 +5006,7 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
                 <div style={{flex:1}}>
                   <div style={{color:Q.muted,fontSize:10}}>Dormidos</div>
                   <div style={{color:Q.amber,fontSize:14,fontWeight:700,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {d.datos.dormidos}</div>
                 </div>
               )}
@@ -5028,7 +5017,7 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
             <GCard style={{padding:15,marginBottom:12}}>
               <div style={{color:Q.text,fontSize:13,lineHeight:1.65,
                 whiteSpace:"pre-wrap",
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 {d.analisis}</div>
             </GCard>
           )}
@@ -5036,14 +5025,14 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
       )}
 
       <div style={{color:Q.muted,fontSize:11,marginBottom:5,
-        fontFamily:"'Space Grotesk',system-ui"}}>Preguntale algo</div>
+        fontFamily:F_BODY}}>Preguntale algo</div>
       <input value={pregunta} onChange={e=>setPregunta(e.target.value)}
         onKeyDown={e=>{ if(e.key==="Enter") preguntar(); }}
         placeholder="¿Qué me conviene hacer esta semana?"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
           border:`1px solid ${Q.border}`,borderRadius:9,
           padding:"11px 13px",color:Q.text,fontSize:13.5,marginBottom:8,
-          fontFamily:"'Space Grotesk',system-ui"}}/>
+          fontFamily:F_BODY}}/>
 
       <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
         {SUGERIDAS.map(q=>(
@@ -5052,7 +5041,7 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
               border:`1px solid ${Q.border}`,borderRadius:7,
               padding:"6px 10px",cursor:"pointer",color:Q.muted,
               fontSize:10.5,lineHeight:1.3,textAlign:"left",
-              fontFamily:"'Space Grotesk',system-ui"}}>{q}</button>
+              fontFamily:F_BODY}}>{q}</button>
         ))}
       </div>
 
@@ -5063,7 +5052,7 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
         <GCard glow={Q.cyan} style={{padding:15,marginTop:12}}>
           <div style={{color:Q.text,fontSize:13,lineHeight:1.65,
             whiteSpace:"pre-wrap",
-            fontFamily:"'Space Grotesk',system-ui"}}>{respuesta}</div>
+            fontFamily:F_BODY}}>{respuesta}</div>
         </GCard>
       )}
     </div>
@@ -5145,21 +5134,21 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
   const inp={background:"rgba(255,255,255,0.05)",
     border:`1px solid ${Q.border}`,borderRadius:8,padding:"9px 11px",
     color:Q.text,fontSize:13,flex:1,minWidth:0,
-    fontFamily:"'Space Grotesk',system-ui"};
+    fontFamily:F_BODY};
 
   return(
     <div>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:3,
-        fontFamily:"'Space Grotesk',system-ui"}}>🤝 Desafíos</div>
+        fontFamily:F_BODY}}>🤝 Desafíos</div>
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
-        lineHeight:1.55,fontFamily:"'Space Grotesk',system-ui"}}>
+        lineHeight:1.55,fontFamily:F_BODY}}>
         Tus clientes apuestan entre ellos en IACOIN. La casa no
         arriesga: cobra comisión y vos cobrás una parte.</div>
 
       {!loTengo&&(
         <GCard glow={Q.red} style={{padding:16,marginBottom:12}}>
           <div style={{color:Q.red,fontSize:13,fontWeight:700,
-            marginBottom:5,fontFamily:"'Space Grotesk',system-ui"}}>
+            marginBottom:5,fontFamily:F_BODY}}>
             No tenés este producto</div>
           <div style={{color:Q.muted,fontSize:11.5,lineHeight:1.55}}>
             Pedíselo a la administración para que tus clientes puedan
@@ -5189,11 +5178,11 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
           <div style={{display:"flex",justifyContent:"space-between",
             alignItems:"center",marginBottom:9}}>
             <span style={{color:Q.text,fontSize:13,fontWeight:700,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               {liq.total_liquidar>=0?"Te pagamos":"Le debés a la casa"}</span>
             <span style={{color:liq.total_liquidar>=0?Q.green:Q.amber,
               fontWeight:900,fontSize:22,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               {ars(Math.abs(liq.total_liquidar))}</span>
           </div>
           {[["Deportivas",liq.deportivas?.comision||0],
@@ -5205,7 +5194,7 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
             <div key={l} style={{display:"flex",
               justifyContent:"space-between",fontSize:11.5,
               padding:"3px 0",borderTop:`1px solid ${Q.border}`,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               <span style={{color:Q.muted}}>{l}</span>
               <span style={{color:v>=0?Q.text:Q.amber}}>
                 {v>=0?"+":""}{ars(v)}</span>
@@ -5222,16 +5211,16 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
           <div style={{display:"flex",justifyContent:"space-between",
             alignItems:"center"}}>
             <span style={{color:Q.text,fontSize:13,fontWeight:700,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               {cc.saldo>=0?"Te transferimos":"Le debés al sistema"}</span>
             <span style={{color:cc.saldo>=0?Q.green:Q.amber,
               fontWeight:900,fontSize:20,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               {Math.abs(cc.saldo).toLocaleString("es-AR",
                 {maximumFractionDigits:2})}</span>
           </div>
           <div style={{color:Q.dim,fontSize:10,marginTop:7,
-            lineHeight:1.5,fontFamily:"'Space Grotesk',system-ui"}}>
+            lineHeight:1.5,fontFamily:F_BODY}}>
             Cobraste {cc.cobrado_a_jugadores.toLocaleString("es-AR")} de
             tus jugadores
             {cc.premios_a_pagar>0&&
@@ -5249,19 +5238,19 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
             <div style={{flex:1}}>
               <div style={{color:Q.muted,fontSize:10}}>Desafíos</div>
               <div style={{color:Q.text,fontWeight:800,fontSize:18,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 {rep.desafios}</div>
             </div>
             <div style={{flex:1}}>
               <div style={{color:Q.muted,fontSize:10}}>Jugadores</div>
               <div style={{color:Q.text,fontWeight:800,fontSize:18,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 {rep.jugadores}</div>
             </div>
             <div style={{flex:1}}>
               <div style={{color:Q.muted,fontSize:10}}>Jugado</div>
               <div style={{color:Q.gold,fontWeight:800,fontSize:18,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 {rep.jugado.toLocaleString("es-AR",
                   {maximumFractionDigits:0})}</div>
             </div>
@@ -5270,14 +5259,14 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
             alignItems:"center",paddingTop:9,
             borderTop:`1px solid ${Q.border}`}}>
             <span style={{color:Q.text,fontWeight:700,fontSize:13,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               Tu comisión
               {rep.mi_pct>0&&(
                 <span style={{color:Q.dim,fontSize:10,marginLeft:6}}>
                   {rep.mi_pct}%</span>
               )}</span>
             <span style={{color:Q.green,fontWeight:900,fontSize:20,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               {rep.mi_comision.toLocaleString("es-AR",
                 {maximumFractionDigits:2})}</span>
           </div>
@@ -5295,7 +5284,7 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
       {prods&&(prods.hijas||[]).length>0&&(
         <GCard style={{padding:14,marginTop:12}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:12.5,
-            marginBottom:4,fontFamily:"'Space Grotesk',system-ui"}}>
+            marginBottom:4,fontFamily:F_BODY}}>
             Tus subagencias</div>
           <div style={{color:Q.dim,fontSize:10.5,marginBottom:10,
             lineHeight:1.5}}>
@@ -5317,7 +5306,7 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
                     :(tiene?`${Q.green}44`:`${Q.red}44`)}`,
                   borderRadius:9,padding:"11px 13px",marginBottom:6,
                   cursor:loTengo?"pointer":"not-allowed",
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                 <span style={{color:loTengo?Q.text:Q.dim,fontSize:12.5,
                   minWidth:0,overflow:"hidden",textOverflow:"ellipsis",
                   whiteSpace:"nowrap"}}>{h.nombre}</span>
@@ -5369,7 +5358,7 @@ function MisCanales({ agencia, onSesionExpirada }){
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
     border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
     color:Q.text,fontSize:14,marginBottom:8,
-    fontFamily:"'Space Grotesk',system-ui"};
+    fontFamily:F_BODY};
 
   return(
     <div style={{marginBottom:12,paddingBottom:12,
@@ -5378,7 +5367,7 @@ function MisCanales({ agencia, onSesionExpirada }){
         display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{color:Q.muted,fontSize:11,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             Cómo te contactan tus clientes</div>
           {!abierto&&(
             <div style={{color:(wa||tg)?Q.green:Q.amber,fontSize:10,
@@ -5456,7 +5445,7 @@ function MensajesAgencia({ agencia, onSesionExpirada }){
     <div style={{display:"flex",flexDirection:"column",
       height:"calc(100dvh - 230px)",minHeight:320}}>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:3,
-        fontFamily:"'Space Grotesk',system-ui"}}>📨 Mensajes</div>
+        fontFamily:F_BODY}}>📨 Mensajes</div>
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:10}}>
         Escribile directo a la administración.</div>
 
@@ -5487,7 +5476,7 @@ function MensajesAgencia({ agencia, onSesionExpirada }){
               border:`1px solid ${m.mio?Q.violet:Q.border}`,
               borderRadius:12,padding:"9px 12px",color:Q.text,
               fontSize:12.5,lineHeight:1.55,whiteSpace:"pre-wrap",
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               {!m.mio&&(
                 <div style={{color:Q.cyan,fontSize:9,fontWeight:700,
                   marginBottom:3}}>ADMINISTRACIÓN</div>
@@ -5507,7 +5496,7 @@ function MensajesAgencia({ agencia, onSesionExpirada }){
           style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
             border:`1px solid ${Q.border}`,borderRadius:10,
             padding:"12px 14px",color:Q.text,fontSize:14,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
         <button onClick={enviar} disabled={proc||!texto.trim()}
           style={{background:texto.trim()?Q.violet:"rgba(255,255,255,0.05)",
             border:"none",borderRadius:10,padding:"0 18px",
@@ -5544,33 +5533,33 @@ function SaldoCC({ agencia, onSesionExpirada }){
     retiro_admin:Q.red};
 
   if(err) return <div style={{color:Q.red,padding:20,textAlign:"center",
-    fontFamily:"'Space Grotesk',system-ui"}}>{err}</div>;
+    fontFamily:F_BODY}}>{err}</div>;
   if(!data) return <div style={{color:Q.muted,padding:20,textAlign:"center",
-    fontFamily:"'Space Grotesk',system-ui"}}>Cargando saldo...</div>;
+    fontFamily:F_BODY}}>Cargando saldo...</div>;
 
   return(
     <div>
       <GCard glow={data.saldo_cc>=0?Q.green:Q.red} style={{padding:18,marginBottom:14,
         background:`linear-gradient(135deg,${data.saldo_cc>=0?Q.green:Q.red}12,${Q.violet}06)`}}>
         <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:2,
-          fontFamily:"'Space Grotesk',system-ui",marginBottom:4}}>Tu saldo disponible</div>
+          fontFamily:F_BODY,marginBottom:4}}>Tu saldo disponible</div>
         <div style={{color:data.saldo_cc>=0?Q.green:Q.red,fontWeight:900,fontSize:32,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           {ars(data.saldo_cc)} <span style={{fontSize:16}}>{data.moneda}</span></div>
         <div style={{color:Q.dim,fontSize:11,marginTop:6,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           Con este saldo das crédito a tus clientes. Si se agota, pedile una carga
           a tu agencia superior.
         </div>
       </GCard>
 
       <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-        fontFamily:"'Space Grotesk',system-ui",marginBottom:8,marginLeft:4}}>
+        fontFamily:F_BODY,marginBottom:8,marginLeft:4}}>
         Movimientos</div>
       {data.movimientos.length===0&&(
         <GCard style={{padding:20,textAlign:"center"}}>
           <div style={{color:Q.muted,fontSize:12,
-            fontFamily:"'Space Grotesk',system-ui"}}>Sin movimientos todavía</div>
+            fontFamily:F_BODY}}>Sin movimientos todavía</div>
         </GCard>
       )}
       {data.movimientos.map((m,i)=>(
@@ -5578,13 +5567,13 @@ function SaldoCC({ agencia, onSesionExpirada }){
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
-                fontFamily:"'Space Grotesk',system-ui"}}>{tipoTxt[m.tipo]||m.tipo}</div>
+                fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</div>
               <div style={{color:Q.muted,fontSize:10}}>
                 {m.fecha}{m.detalle?` · ${m.detalle}`:""}</div>
             </div>
             <div style={{textAlign:"right",flexShrink:0}}>
               <div style={{color:m.monto>=0?Q.green:Q.amber,fontWeight:700,fontSize:14,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 {m.monto>=0?"+":""}{ars(m.monto)}</div>
               <div style={{color:Q.dim,fontSize:9}}>saldo {ars(m.saldo)}</div>
             </div>
@@ -5620,9 +5609,9 @@ function PSPAgencia({ agencia, onSesionExpirada }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
-        fontFamily:"'Space Grotesk',system-ui"}}>🏦 Movimientos digitales</div>
+        fontFamily:F_BODY}}>🏦 Movimientos digitales</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:12,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         Cargas y retiros por transferencia (PSP) de tu rama.</div>
 
       <div style={{display:"flex",gap:6,marginBottom:12}}>
@@ -5631,7 +5620,7 @@ function PSPAgencia({ agencia, onSesionExpirada }){
             background:tipo===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${tipo===k?Q.violet:Q.border}`,borderRadius:9,
             padding:"9px",cursor:"pointer",color:tipo===k?Q.violet2||Q.violet:Q.muted,
-            fontSize:12,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{l}</button>
+            fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
 
@@ -5639,32 +5628,32 @@ function PSPAgencia({ agencia, onSesionExpirada }){
 
       <GCard glow={Q.green} style={{padding:"10px 14px",marginBottom:12,textAlign:"center"}}>
         <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           Total {tipo==="cargas"?"acreditado":"completado"}</div>
         <div style={{color:Q.green,fontWeight:800,fontSize:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>{ars(total)}</div>
+          fontFamily:F_BODY}}>{ars(total)}</div>
       </GCard>
 
       {items===null&&<div style={{color:Q.muted,textAlign:"center",padding:16,
-        fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+        fontFamily:F_BODY}}>Cargando...</div>}
       {items&&lista.length===0&&<GCard style={{padding:24,textAlign:"center"}}>
         <div style={{fontSize:28,marginBottom:6}}>🏦</div>
-        <div style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>
+        <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
           Sin movimientos digitales</div></GCard>}
       {lista.map((x,i)=>(
         <GCard key={i} style={{padding:"11px 13px",marginBottom:6}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                fontFamily:"'Space Grotesk',system-ui"}}>{x.cliente}</div>
-              <div style={{color:Q.dim,fontSize:10,fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>{x.cliente}</div>
+              <div style={{color:Q.dim,fontSize:10,fontFamily:F_BODY}}>
                 {x.fecha}</div>
             </div>
             <div style={{textAlign:"right"}}>
               <div style={{color:Q.gold,fontWeight:700,fontSize:14,
-                fontFamily:"'Space Grotesk',system-ui"}}>{ars(x.monto)}</div>
+                fontFamily:F_BODY}}>{ars(x.monto)}</div>
               <div style={{color:colores[x.estado]||Q.muted,fontSize:10,fontWeight:700,
-                fontFamily:"'Space Grotesk',system-ui"}}>{x.estado}</div>
+                fontFamily:F_BODY}}>{x.estado}</div>
             </div>
           </div>
         </GCard>
@@ -5694,9 +5683,9 @@ function BonosAgencia({ agencia, onSesionExpirada }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
-        fontFamily:"'Space Grotesk',system-ui"}}>🎁 Bonos activos</div>
+        fontFamily:F_BODY}}>🎁 Bonos activos</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:14,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         Bonos que el admin habilitó para tu agencia. Los otorgás a tus clientes.</div>
       <AlertaError mensaje={err}/>
 
@@ -5705,7 +5694,7 @@ function BonosAgencia({ agencia, onSesionExpirada }){
           ["Liberados",res.liberados||0,Q.green]].map(([l,v,c],i)=>(
           <GCard key={i} glow={c} style={{padding:"10px 6px",textAlign:"center"}}>
             <div style={{color:c,fontWeight:800,fontSize:16,
-              fontFamily:"'Space Grotesk',system-ui"}}>{v}</div>
+              fontFamily:F_BODY}}>{v}</div>
             <div style={{color:Q.muted,fontSize:9}}>{l}</div>
           </GCard>
         ))}
@@ -5714,24 +5703,24 @@ function BonosAgencia({ agencia, onSesionExpirada }){
       {bonos.length===0&&(
         <GCard style={{padding:28,textAlign:"center"}}>
           <div style={{fontSize:30,marginBottom:8}}>🎁</div>
-          <div style={{color:Q.muted,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>
+          <div style={{color:Q.muted,fontSize:13,fontFamily:F_BODY}}>
             El admin todavía no habilitó bonos para tu agencia</div>
         </GCard>
       )}
       {bonos.map(b=>(
         <GCard key={b.id} glow={Q.gold} style={{padding:14,marginBottom:8}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,
-            fontFamily:"'Space Grotesk',system-ui"}}>{b.nombre}</div>
-          <div style={{color:Q.muted,fontSize:11,fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>{b.nombre}</div>
+          <div style={{color:Q.muted,fontSize:11,fontFamily:F_BODY}}>
             {b.tipo==="bienvenida"
               ? `Bono de bienvenida · ${ars(b.monto_fijo||0)}`
               : `Bono por carga · ${b.porcentaje||0}% (máx ${ars(b.tope||0)})`}
           </div>
           <div style={{color:Q.cyan,fontSize:11,marginTop:2,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             Rollover: apostar x{b.rollover||0} antes de retirar</div>
           <div style={{color:Q.dim,fontSize:10,marginTop:6,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             Para otorgarlo, entrá a la ficha del cliente en 👤 Clientes.</div>
         </GCard>
       ))}
@@ -5766,7 +5755,7 @@ function HistorialCashout({ agencia, onSesionExpirada }){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:"'Space Grotesk',system-ui"}}>💰 Cash outs de la rama</div>
+          fontFamily:F_BODY}}>💰 Cash outs de la rama</div>
         <Btn label={cargando?"...":"Actualizar"} onClick={cargar} outline color={Q.muted} size="sm"/>
       </div>
       <AlertaError mensaje={err}/>
@@ -5775,7 +5764,7 @@ function HistorialCashout({ agencia, onSesionExpirada }){
           {l:"Total pagado",v:ars(totalPagado),c:Q.gold}].map((x,i)=>(
           <GCard key={i} glow={x.c} style={{padding:"10px 12px",textAlign:"center"}}>
             <div style={{color:x.c,fontWeight:700,fontSize:13,
-              fontFamily:"'Space Grotesk',system-ui"}}>{x.v}</div>
+              fontFamily:F_BODY}}>{x.v}</div>
             <div style={{color:Q.muted,fontSize:9}}>{x.l}</div>
           </GCard>
         ))}
@@ -5792,16 +5781,16 @@ function HistorialCashout({ agencia, onSesionExpirada }){
         <GCard key={c.code+i} style={{padding:"12px 14px",marginBottom:8}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
             <div style={{color:Q.cyan,fontWeight:700,fontSize:13,
-              fontFamily:"'Space Grotesk',system-ui"}}>{c.code}</div>
+              fontFamily:F_BODY}}>{c.code}</div>
             <div style={{background:`${colores[c.estado]||Q.muted}22`,
               border:`1px solid ${colores[c.estado]||Q.muted}`,borderRadius:10,
               padding:"2px 10px",color:colores[c.estado]||Q.muted,fontSize:10,fontWeight:700,
-              fontFamily:"'Space Grotesk',system-ui"}}>{rotulos[c.estado]||c.estado}</div>
+              fontFamily:F_BODY}}>{rotulos[c.estado]||c.estado}</div>
           </div>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
             <span style={{color:Q.muted}}>{c.cliente} · {c.agencia}</span>
             <span style={{color:Q.gold,fontWeight:700,
-              fontFamily:"'Space Grotesk',system-ui"}}>{ars(c.valor)} {c.moneda}</span>
+              fontFamily:F_BODY}}>{ars(c.valor)} {c.moneda}</span>
           </div>
           <div style={{color:Q.dim,fontSize:9,marginTop:2}}>{c.fecha}
             {c.pagado_por?` · pagó ${c.pagado_por}`:""}</div>
@@ -5855,7 +5844,7 @@ function Historial({ agencia, onSesionExpirada }){
       <div style={{display:"flex",justifyContent:"space-between",
         alignItems:"center",marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:"'Space Grotesk',system-ui"}}>Historial</div>
+          fontFamily:F_BODY}}>Historial</div>
         <Btn label={cargando?"...":"Actualizar"} onClick={cargar}
           outline color={Q.muted} size="sm"/>
       </div>
@@ -5872,9 +5861,9 @@ function Historial({ agencia, onSesionExpirada }){
         ].map((x,i)=>(
           <GCard key={i} glow={x.c} style={{padding:"10px 12px",textAlign:"center"}}>
             <div style={{color:x.c,fontWeight:700,fontSize:12,
-              fontFamily:"'Space Grotesk',system-ui"}}>{x.v}</div>
+              fontFamily:F_BODY}}>{x.v}</div>
             <div style={{color:Q.muted,fontSize:9,
-              fontFamily:"'Space Grotesk',system-ui"}}>{x.l}</div>
+              fontFamily:F_BODY}}>{x.l}</div>
           </GCard>
         ))}
       </div>
@@ -5882,7 +5871,7 @@ function Historial({ agencia, onSesionExpirada }){
       {cargando&&(
         <GCard style={{padding:20,textAlign:"center"}}>
           <div style={{color:Q.muted,fontSize:12,
-            fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>
+            fontFamily:F_BODY}}>Cargando...</div>
         </GCard>
       )}
 
@@ -5890,7 +5879,7 @@ function Historial({ agencia, onSesionExpirada }){
         <GCard style={{padding:28,textAlign:"center"}}>
           <div style={{fontSize:30,marginBottom:8}}>🧾</div>
           <div style={{color:Q.muted,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             Todavía no emitiste ningún ticket
           </div>
           <div style={{color:Q.dim,fontSize:11,marginTop:4}}>
@@ -6040,7 +6029,7 @@ function Cierres({ agencia, onSesionExpirada }){
             background:vista===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:9,
             padding:"9px",cursor:"pointer",color:vista===k?Q.cyan:Q.muted,
-            fontSize:13,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{l}</button>
+            fontSize:13,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
 
@@ -6050,7 +6039,7 @@ function Cierres({ agencia, onSesionExpirada }){
           <button key={k} onClick={()=>rango(k)} style={{flex:1,
             background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"8px",cursor:"pointer",color:Q.cyan,
-            fontSize:12,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{l}</button>
+            fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
 
@@ -6059,12 +6048,12 @@ function Cierres({ agencia, onSesionExpirada }){
         <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",
             border:`1px solid ${Q.border}`,borderRadius:9,padding:"8px 10px",
-            color:Q.text,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}/>
+            color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
         <span style={{color:Q.muted}}>→</span>
         <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",
             border:`1px solid ${Q.border}`,borderRadius:9,padding:"8px 10px",
-            color:Q.text,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}/>
+            color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
       </div>
 
       {clientesR.length>0&&(
@@ -6072,7 +6061,7 @@ function Cierres({ agencia, onSesionExpirada }){
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
             border:`1px solid ${filtroCli?Q.gold:Q.border}`,borderRadius:9,
             padding:"9px 12px",color:Q.text,fontSize:14,marginBottom:12,
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
           <option value="">— Toda la rama —</option>
           {clientesR.map(c=>(
             <option key={c.id} value={c.id}>👤 {c.nombre} ({c.agencia})</option>
@@ -6080,7 +6069,7 @@ function Cierres({ agencia, onSesionExpirada }){
         </select>
       )}
       {filtroCli&&<div style={{color:Q.gold,fontSize:11,marginBottom:10,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         Viendo solo ese cliente ·{" "}
         <span onClick={()=>setFiltroCli("")}
           style={{color:Q.muted,textDecoration:"underline",cursor:"pointer"}}>ver toda la rama</span>
@@ -6088,23 +6077,23 @@ function Cierres({ agencia, onSesionExpirada }){
 
       <AlertaError mensaje={err}/>
       {cargando&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-        fontFamily:"'Space Grotesk',system-ui"}}>Calculando...</div>}
+        fontFamily:F_BODY}}>Calculando...</div>}
 
       {vista==="caja"&&(
         <div>
           {!caja&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-            fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+            fontFamily:F_BODY}}>Cargando...</div>}
           {caja?.error&&(
             <GCard glow={Q.red} style={{padding:16,textAlign:"center"}}>
               <div style={{color:Q.red,fontSize:13,
-                fontFamily:"'Space Grotesk',system-ui"}}>{caja.error}</div>
+                fontFamily:F_BODY}}>{caja.error}</div>
             </GCard>
           )}
 
           {caja&&!caja.error&&caja.cliente&&(
             <GCard glow={Q.cyan} style={{padding:16,marginBottom:12}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:14,
-                fontFamily:"'Space Grotesk',system-ui"}}>{caja.cliente.nombre}</div>
+                fontFamily:F_BODY}}>{caja.cliente.nombre}</div>
               <div style={{color:Q.muted,fontSize:11,marginBottom:10}}>
                 Saldo actual: <span style={{color:Q.green,fontWeight:700}}>
                   {ars(caja.cliente.saldo)}</span>
@@ -6115,20 +6104,20 @@ function Cierres({ agencia, onSesionExpirada }){
                 <div style={{flex:1}}>
                   <div style={{color:Q.muted,fontSize:10}}>Cargó</div>
                   <div style={{color:Q.green,fontWeight:800,fontSize:17,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {ars(caja.total.cargas)}</div>
                 </div>
                 <div style={{flex:1}}>
                   <div style={{color:Q.muted,fontSize:10}}>Retiró</div>
                   <div style={{color:Q.amber,fontWeight:800,fontSize:17,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {ars(caja.total.descargas)}</div>
                 </div>
                 <div style={{flex:1}}>
                   <div style={{color:Q.muted,fontSize:10}}>Neto</div>
                   <div style={{color:caja.total.neto>=0?Q.green:Q.red,
                     fontWeight:800,fontSize:17,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {ars(caja.total.neto)}</div>
                 </div>
               </div>
@@ -6143,19 +6132,19 @@ function Cierres({ agencia, onSesionExpirada }){
               {caja.operativa&&(caja.operativa.entro>0||caja.operativa.salio>0)&&(
                 <GCard glow={Q.cyan} style={{padding:16,marginBottom:12}}>
                   <div style={{color:Q.muted,fontSize:11,marginBottom:10,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     Efectivo del mostrador</div>
                   <div style={{display:"flex",gap:10,marginBottom:10}}>
                     <div style={{flex:1}}>
                       <div style={{color:Q.muted,fontSize:10}}>Entró</div>
                       <div style={{color:Q.green,fontWeight:800,fontSize:17,
-                        fontFamily:"'Space Grotesk',system-ui"}}>
+                        fontFamily:F_BODY}}>
                         {ars(caja.operativa.entro)}</div>
                     </div>
                     <div style={{flex:1}}>
                       <div style={{color:Q.muted,fontSize:10}}>Salió</div>
                       <div style={{color:Q.red,fontWeight:800,fontSize:17,
-                        fontFamily:"'Space Grotesk',system-ui"}}>
+                        fontFamily:F_BODY}}>
                         {ars(caja.operativa.salio)}</div>
                     </div>
                   </div>
@@ -6181,12 +6170,12 @@ function Cierres({ agencia, onSesionExpirada }){
                         fontSize:12,padding:"5px 0",
                         borderTop:`1px solid ${Q.border}`}}>
                         <span style={{color:Q.muted,
-                          fontFamily:"'Space Grotesk',system-ui"}}>
+                          fontFamily:F_BODY}}>
                           {l}
                           <span style={{color:Q.dim,fontSize:9,
                             marginLeft:6}}>{det}</span></span>
                         <span style={{color:v>=0?Q.green:Q.red,
-                          fontFamily:"'Space Grotesk',system-ui"}}>
+                          fontFamily:F_BODY}}>
                           {v>=0?"+":"−"}{ars(Math.abs(v))}</span>
                       </div>
                     ))}
@@ -6204,12 +6193,12 @@ function Cierres({ agencia, onSesionExpirada }){
                     alignItems:"center",paddingTop:9,
                     borderTop:`1px solid ${Q.border}`}}>
                     <span style={{color:Q.text,fontWeight:700,fontSize:13,
-                      fontFamily:"'Space Grotesk',system-ui"}}>
+                      fontFamily:F_BODY}}>
                       Debería haber en caja</span>
                     <span style={{
                       color:caja.operativa.en_caja>=0?Q.green:Q.red,
                       fontWeight:900,fontSize:20,
-                      fontFamily:"'Space Grotesk',system-ui"}}>
+                      fontFamily:F_BODY}}>
                       {ars(caja.operativa.en_caja)}</span>
                   </div>
                 </GCard>
@@ -6217,20 +6206,20 @@ function Cierres({ agencia, onSesionExpirada }){
 
               <GCard glow={Q.green} style={{padding:16,marginBottom:12}}>
                 <div style={{color:Q.muted,fontSize:11,marginBottom:8,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   Movimiento de caja · {caja.desde===caja.hasta?caja.desde
                     :`${caja.desde} a ${caja.hasta}`}</div>
                 <div style={{display:"flex",gap:10,marginBottom:12}}>
                   <div style={{flex:1}}>
                     <div style={{color:Q.muted,fontSize:10}}>Entró</div>
                     <div style={{color:Q.green,fontWeight:800,fontSize:20,
-                      fontFamily:"'Space Grotesk',system-ui"}}>
+                      fontFamily:F_BODY}}>
                       {ars(caja.total.cargas)}</div>
                   </div>
                   <div style={{flex:1}}>
                     <div style={{color:Q.muted,fontSize:10}}>Salió</div>
                     <div style={{color:Q.amber,fontWeight:800,fontSize:20,
-                      fontFamily:"'Space Grotesk',system-ui"}}>
+                      fontFamily:F_BODY}}>
                       {ars(caja.total.descargas)}</div>
                   </div>
                 </div>
@@ -6238,10 +6227,10 @@ function Cierres({ agencia, onSesionExpirada }){
                   display:"flex",justifyContent:"space-between",
                   alignItems:"center"}}>
                   <span style={{color:Q.text,fontSize:13,fontWeight:700,
-                    fontFamily:"'Space Grotesk',system-ui"}}>En caja</span>
+                    fontFamily:F_BODY}}>En caja</span>
                   <span style={{color:caja.total.neto_caja>=0?Q.green:Q.red,
                     fontWeight:900,fontSize:24,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {ars(caja.total.neto_caja)}</span>
                 </div>
                 {caja.total.premios_pagados>0&&(
@@ -6255,14 +6244,14 @@ function Cierres({ agencia, onSesionExpirada }){
                   alignItems:"baseline"}}>
                   <div>
                     <div style={{color:Q.muted,fontSize:11,
-                      fontFamily:"'Space Grotesk',system-ui"}}>
+                      fontFamily:F_BODY}}>
                       Saldo de los jugadores</div>
                     <div style={{color:Q.dim,fontSize:10}}>
                       {caja.total.clientes} clientes con cuenta</div>
                   </div>
                   <div style={{textAlign:"right"}}>
                     <div style={{color:Q.cyan,fontWeight:900,fontSize:22,
-                      fontFamily:"'Space Grotesk',system-ui"}}>
+                      fontFamily:F_BODY}}>
                       {ars(caja.total.saldo_clientes)}</div>
                     {caja.total.bono_clientes>0&&(
                       <div style={{color:Q.gold,fontSize:11}}>
@@ -6271,14 +6260,14 @@ function Cierres({ agencia, onSesionExpirada }){
                   </div>
                 </div>
                 <div style={{color:Q.amber,fontSize:10.5,marginTop:10,
-                  lineHeight:1.5,fontFamily:"'Space Grotesk',system-ui"}}>
+                  lineHeight:1.5,fontFamily:F_BODY}}>
                   Esta plata es de los jugadores, no ganancia de la agencia.
                   La utilidad está en el Resumen.</div>
               </GCard>
 
               {(caja.agencias||[]).length>1&&(
                 <div style={{color:Q.muted,fontSize:11,marginBottom:6,
-                  fontFamily:"'Space Grotesk',system-ui"}}>Por agencia</div>
+                  fontFamily:F_BODY}}>Por agencia</div>
               )}
               {(caja.agencias||[]).map(a=>(
                 <GCard key={a.code} glow={a.es_mia?Q.cyan:null}
@@ -6287,7 +6276,7 @@ function Cierres({ agencia, onSesionExpirada }){
                     alignItems:"center",gap:8}}>
                     <div style={{minWidth:0,flex:1}}>
                       <div style={{color:Q.text,fontSize:12.5,fontWeight:700,
-                        fontFamily:"'Space Grotesk',system-ui"}}>
+                        fontFamily:F_BODY}}>
                         {"— ".repeat(Math.max(0,(a.nivel||0)-
                           ((caja.agencias[0]||{}).nivel||0)))}{a.name}
                         {a.es_mia&&<span style={{color:Q.cyan,fontSize:9}}> (vos)</span>}
@@ -6298,7 +6287,7 @@ function Cierres({ agencia, onSesionExpirada }){
                     <div style={{textAlign:"right",flexShrink:0}}>
                       <div style={{color:a.neto_caja>=0?Q.green:Q.red,
                         fontWeight:800,fontSize:14,
-                        fontFamily:"'Space Grotesk',system-ui"}}>
+                        fontFamily:F_BODY}}>
                         {ars(a.neto_caja)}</div>
                       <div style={{color:Q.dim,fontSize:9.5}}>
                         +{ars(a.cargas)} / −{ars(a.descargas)}</div>
@@ -6317,7 +6306,7 @@ function Cierres({ agencia, onSesionExpirada }){
           {caja&&!caja.error&&(caja.movimientos||[]).length>0&&(
             <>
               <div style={{color:Q.muted,fontSize:11,margin:"14px 0 6px",
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 Detalle ({caja.movimientos.length})</div>
               {caja.movimientos.map((m,i)=>{
                 const esCarga=(m.tipo||"").startsWith("carga");
@@ -6335,7 +6324,7 @@ function Cierres({ agencia, onSesionExpirada }){
                     </div>
                     <div style={{color:esCarga?Q.green:Q.amber,fontWeight:700,
                       fontSize:13,flexShrink:0,
-                      fontFamily:"'Space Grotesk',system-ui"}}>
+                      fontFamily:F_BODY}}>
                       {esCarga?"+":"−"}{ars(m.monto)}</div>
                   </div>
                 );
@@ -6352,7 +6341,7 @@ function Cierres({ agencia, onSesionExpirada }){
             background:`linear-gradient(135deg,${Q.green}12,${Q.violet}06)`}}>
             <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
               letterSpacing:1,marginBottom:10,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               {res.es_cliente?`Rentabilidad · ${res.cliente_nombre}`:`Total de mi rama (${res.moneda})`}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               {[["Apostado",res.total.apostado,Q.cyan],
@@ -6362,7 +6351,7 @@ function Cierres({ agencia, onSesionExpirada }){
                 <div key={l}>
                   <div style={{color:Q.muted,fontSize:10}}>{l}</div>
                   <div style={{color:c,fontWeight:800,fontSize:17,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{ars(v)}</div>
+                    fontFamily:F_BODY}}>{ars(v)}</div>
                 </div>
               ))}
             </div>
@@ -6370,28 +6359,28 @@ function Cierres({ agencia, onSesionExpirada }){
               <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${Q.dim}`}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <span style={{color:Q.text,fontWeight:700,fontSize:13,
-                    fontFamily:"'Space Grotesk',system-ui"}}>Neto (sin influencers)</span>
+                    fontFamily:F_BODY}}>Neto (sin influencers)</span>
                   <span style={{color:res.total.neto_sin_influencers>=0?Q.green:Q.red,
                     fontWeight:800,fontSize:18,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{ars(res.total.neto_sin_influencers)}</span>
+                    fontFamily:F_BODY}}>{ars(res.total.neto_sin_influencers)}</span>
                 </div>
                 {res.total.comision_influencers>0&&(
                   <div style={{display:"flex",justifyContent:"space-between",
                     alignItems:"center",marginTop:6}}>
                     <span style={{color:Q.muted,fontSize:12,
-                      fontFamily:"'Space Grotesk',system-ui"}}>🌟 Comisión influencers</span>
+                      fontFamily:F_BODY}}>🌟 Comisión influencers</span>
                     <span style={{color:Q.gold,fontWeight:700,fontSize:13,
-                      fontFamily:"'Space Grotesk',system-ui"}}>−{ars(res.total.comision_influencers)}</span>
+                      fontFamily:F_BODY}}>−{ars(res.total.comision_influencers)}</span>
                   </div>
                 )}
                 <div style={{display:"flex",justifyContent:"space-between",
                   alignItems:"center",marginTop:8,paddingTop:8,
                   borderTop:`1px solid ${Q.dim}`}}>
                   <span style={{color:Q.text,fontWeight:700,fontSize:13,
-                    fontFamily:"'Space Grotesk',system-ui"}}>Neto final</span>
+                    fontFamily:F_BODY}}>Neto final</span>
                   <span style={{color:res.total.neto_con_influencers>=0?Q.green:Q.red,
                     fontWeight:900,fontSize:20,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{ars(res.total.neto_con_influencers)}</span>
+                    fontFamily:F_BODY}}>{ars(res.total.neto_con_influencers)}</span>
                 </div>
               </div>
             )}
@@ -6402,7 +6391,7 @@ function Cierres({ agencia, onSesionExpirada }){
           {res.casino&&(res.casino.apostado>0||res.casino.ggr!==0)&&(
             <GCard glow={Q.gold} style={{padding:14,marginBottom:12}}>
               <div style={{color:Q.gold,fontWeight:700,fontSize:12.5,
-                marginBottom:8,fontFamily:"'Space Grotesk',system-ui"}}>
+                marginBottom:8,fontFamily:F_BODY}}>
                 🎰 Casino y ruleta</div>
               {[["Apostado",res.casino.apostado,Q.text],
                 ["Premios",res.casino.premios,Q.muted],
@@ -6412,7 +6401,7 @@ function Cierres({ agencia, onSesionExpirada }){
                   justifyContent:"space-between",fontSize:12,padding:"3px 0"}}>
                   <span style={{color:Q.muted}}>{l}</span>
                   <span style={{color:c,fontWeight:600,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{ars(v)}</span>
+                    fontFamily:F_BODY}}>{ars(v)}</span>
                 </div>
               ))}
             </GCard>
@@ -6427,14 +6416,14 @@ function Cierres({ agencia, onSesionExpirada }){
                 <div style={{flex:1}}>
                   <div style={{color:Q.muted,fontSize:10}}>Apostado</div>
                   <div style={{color:Q.text,fontWeight:800,fontSize:16,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {ars(res.total_general.apostado)}</div>
                 </div>
                 <div style={{flex:1}}>
                   <div style={{color:Q.muted,fontSize:10}}>GGR</div>
                   <div style={{color:res.total_general.ggr>=0?Q.green:Q.red,
                     fontWeight:800,fontSize:16,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {ars(res.total_general.ggr)}</div>
                 </div>
               </div>
@@ -6445,7 +6434,7 @@ function Cierres({ agencia, onSesionExpirada }){
                   paddingBottom:8,borderBottom:`1px solid ${Q.border}`}}>
                   <span style={{color:Q.muted}}>Bono sports tu parte</span>
                   <span style={{color:Q.red,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     −{ars(res.total_general.bonos)}</span>
                 </div>
               )}
@@ -6454,10 +6443,10 @@ function Cierres({ agencia, onSesionExpirada }){
                 alignItems:"center",paddingTop:9,
                 borderTop:`1px solid ${Q.border}`}}>
                 <span style={{color:Q.text,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   Tu comisión total</span>
                 <span style={{color:Q.green,fontWeight:900,fontSize:22,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {ars(res.total_general.mi_comision)}</span>
               </div>
             </GCard>
@@ -6465,7 +6454,7 @@ function Cierres({ agencia, onSesionExpirada }){
 
           {res.es_cliente&&res.rendimiento&&(
             <div style={{display:"flex",gap:8,marginBottom:12,fontSize:12,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               <span style={{color:Q.green}}>{res.rendimiento.ganadas} ganadas</span>
               <span style={{color:Q.red}}>{res.rendimiento.perdidas} perdidas</span>
               <span style={{color:Q.amber}}>{res.rendimiento.pendientes} pendientes</span>
@@ -6475,7 +6464,7 @@ function Cierres({ agencia, onSesionExpirada }){
           {/* Desglose por agencia de la rama (solo si no es filtro de cliente) */}
           {!res.es_cliente&&<div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",
             letterSpacing:1,marginBottom:8,marginLeft:4,
-            fontFamily:"'Space Grotesk',system-ui"}}>Desglose</div>}
+            fontFamily:F_BODY}}>Desglose</div>}
           {res.agencias.map(a=>(
             <GCard key={a.code} glow={a.es_mia?Q.violet:undefined}
               style={{padding:"11px 13px",marginBottom:6,
@@ -6483,13 +6472,13 @@ function Cierres({ agencia, onSesionExpirada }){
               <div style={{display:"flex",justifyContent:"space-between",
                 alignItems:"center",marginBottom:6}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {a.es_mia?"⭐ ":""}{a.name}</div>
                 <div style={{color:Q.gold,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui"}}>Com {ars(a.comision)}</div>
+                  fontFamily:F_BODY}}>Com {ars(a.comision)}</div>
               </div>
               <div style={{display:"flex",gap:12,fontSize:11,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 <span style={{color:Q.muted}}>Apostado <span style={{color:Q.cyan}}>{ars(a.apostado)}</span></span>
                 <span style={{color:Q.muted}}>Premios <span style={{color:Q.pink}}>{ars(a.premios)}</span></span>
                 <span style={{color:Q.muted}}>GGR <span style={{color:a.ggr>=0?Q.green:Q.red}}>{ars(a.ggr)}</span></span>
@@ -6503,9 +6492,9 @@ function Cierres({ agencia, onSesionExpirada }){
 
       {vista==="movs"&&<>
         {movs===null&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+          fontFamily:F_BODY}}>Cargando...</div>}
         {movs&&movs.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
-          padding:20,fontFamily:"'Space Grotesk',system-ui"}}>Sin movimientos</div>}
+          padding:20,fontFamily:F_BODY}}>Sin movimientos</div>}
         {(movs||[]).map((m,i)=>{
           const tipoTxt={carga_admin:"Carga admin",retiro_admin:"Descuento admin",
             carga_cliente:"Crédito a cliente",retiro_cliente:"Retiro cliente",
@@ -6517,13 +6506,13 @@ function Cierres({ agencia, onSesionExpirada }){
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{tipoTxt}
+                    fontFamily:F_BODY}}>{tipoTxt}
                     {m.origen==="cliente"&&m.cliente?<span style={{color:Q.cyan}}> · {m.cliente}</span>:null}</div>
                   <div style={{color:Q.muted,fontSize:10}}>{m.agencia} · {m.fecha}</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{color:pos?Q.green:Q.amber,fontWeight:700,fontSize:14,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{pos?"+":""}{ars(m.monto)}</div>
+                    fontFamily:F_BODY}}>{pos?"+":""}{ars(m.monto)}</div>
                   {m.saldo!=null&&<div style={{color:Q.dim,fontSize:9}}>saldo {ars(m.saldo)}</div>}
                 </div>
               </div>
@@ -6534,9 +6523,9 @@ function Cierres({ agencia, onSesionExpirada }){
 
       {vista==="apuestas"&&<>
         {apuestas===null&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+          fontFamily:F_BODY}}>Cargando...</div>}
         {apuestas&&apuestas.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
-          padding:20,fontFamily:"'Space Grotesk',system-ui"}}>Sin apuestas</div>}
+          padding:20,fontFamily:F_BODY}}>Sin apuestas</div>}
         {(apuestas||[]).map((a,i)=>{
           const col={won:Q.green,ganada:Q.green,lost:Q.red,perdida:Q.red,
             pending:Q.amber,pendiente:Q.amber,active:Q.cyan,paid:Q.green}[(a.status||"").toLowerCase()]||Q.muted;
@@ -6547,20 +6536,20 @@ function Cierres({ agencia, onSesionExpirada }){
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{a.code}
+                    fontFamily:F_BODY}}>{a.code}
                     <span style={{color:Q.cyan,fontWeight:400}}> · {a.cliente}</span></div>
                   <div style={{color:Q.muted,fontSize:10}}>{a.agencia} · {a.fecha} · {a.picks.length} sel.</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{color:col,fontWeight:700,fontSize:12,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{a.status}</div>
+                    fontFamily:F_BODY}}>{a.status}</div>
                   <div style={{color:Q.muted,fontSize:10}}>{ars(a.stake)} · {fmt(a.odd)}x</div>
                 </div>
               </div>
               {abierta&&(
                 <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${Q.dim}`}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,
-                    fontSize:11,fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontSize:11,fontFamily:F_BODY}}>
                     <span style={{color:Q.muted}}>Monto <span style={{color:Q.cyan}}>{ars(a.stake)}</span></span>
                     <span style={{color:Q.muted}}>Cuota <span style={{color:Q.violet2}}>{fmt(a.odd)}x</span></span>
                     <span style={{color:Q.muted}}>Premio <span style={{color:Q.green}}>{ars(a.premio)}</span></span>
@@ -6569,7 +6558,7 @@ function Cierres({ agencia, onSesionExpirada }){
                     <div key={j} style={{background:"rgba(255,255,255,0.03)",
                       borderRadius:8,padding:"8px 10px",marginBottom:5}}>
                       <div style={{color:Q.text,fontSize:11,fontWeight:600,
-                        fontFamily:"'Space Grotesk',system-ui"}}>
+                        fontFamily:F_BODY}}>
                         {p.home||p.equipo_local||""}{(p.home||p.away)?" vs ":""}{p.away||p.equipo_visitante||""}</div>
                       <div style={{color:Q.muted,fontSize:10,marginTop:2}}>
                         {p.market||p.mercado||p.tipo||"—"}: <span style={{color:Q.cyan}}>
@@ -6578,7 +6567,7 @@ function Cierres({ agencia, onSesionExpirada }){
                     </div>
                   ))}
                   {a.picks.length===0&&<div style={{color:Q.muted,fontSize:11,
-                    fontFamily:"'Space Grotesk',system-ui"}}>Sin detalle</div>}
+                    fontFamily:F_BODY}}>Sin detalle</div>}
                 </div>
               )}
             </GCard>
@@ -6588,15 +6577,15 @@ function Cierres({ agencia, onSesionExpirada }){
 
       {vista==="combos"&&<>
         {combos===null&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+          fontFamily:F_BODY}}>Cargando...</div>}
         {combos&&combos.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
-          padding:20,fontFamily:"'Space Grotesk',system-ui"}}>Sin combos en el período</div>}
+          padding:20,fontFamily:F_BODY}}>Sin combos en el período</div>}
         {(combos||[]).map((c,i)=>(
           <GCard key={i} style={{padding:"11px 13px",marginBottom:6}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
               <div style={{minWidth:0,flex:1}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{c.nombre||"Combo"}
+                  fontFamily:F_BODY}}>{c.nombre||"Combo"}
                   {c.es_ia
                     ?<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
                         borderRadius:12,padding:"1px 7px",fontSize:9,fontWeight:700,
@@ -6609,7 +6598,7 @@ function Cierres({ agencia, onSesionExpirada }){
                 <div style={{color:Q.muted,fontSize:10}}>{c.creado_por||c.origen} · {c.fecha}</div>
               </div>
               <div style={{color:Q.green,fontWeight:700,fontSize:14,flexShrink:0,
-                fontFamily:"'Space Grotesk',system-ui"}}>{fmt(c.odd)}x</div>
+                fontFamily:F_BODY}}>{fmt(c.odd)}x</div>
             </div>
           </GCard>
         ))}
@@ -6617,9 +6606,9 @@ function Cierres({ agencia, onSesionExpirada }){
 
       {vista==="impresiones"&&<>
         {impresiones===null&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+          fontFamily:F_BODY}}>Cargando...</div>}
         {impresiones&&impresiones.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
-          padding:20,fontFamily:"'Space Grotesk',system-ui"}}>Sin impresiones en el período</div>}
+          padding:20,fontFamily:F_BODY}}>Sin impresiones en el período</div>}
         {(impresiones||[]).map((im,i)=>{
           const tipoTxt={ticket:"Ticket",apuesta:"Apuesta",cobro:"Cobro",cierre:"Cierre de caja",combo:"Combo"}[im.tipo]||im.tipo;
           return(
@@ -6627,7 +6616,7 @@ function Cierres({ agencia, onSesionExpirada }){
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{tipoTxt}
+                    fontFamily:F_BODY}}>{tipoTxt}
                     {im.referencia?<span style={{color:Q.cyan,fontWeight:400}}> · {im.referencia}</span>:null}</div>
                   <div style={{color:Q.muted,fontSize:10}}>{im.agencia} · por {im.quien} · {im.fecha}</div>
                 </div>
@@ -6650,7 +6639,7 @@ function Config({ agencia }){
     <div>
       <GCard style={{padding:20,marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:14,
-          fontFamily:"'Space Grotesk',system-ui"}}>Datos de la agencia</div>
+          fontFamily:F_BODY}}>Datos de la agencia</div>
         {[["Nombre",agencia.name||"—"],["Código",agencia.code||"—"],
           ["Dirección",agencia.address||"Sin cargar"],
           ["Teléfono",agencia.phone||"Sin cargar"],
@@ -6668,7 +6657,7 @@ function Config({ agencia }){
 
       <GCard glow={Q.violet} style={{padding:20}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:8,
-          fontFamily:"'Space Grotesk',system-ui"}}>Test de impresora</div>
+          fontFamily:F_BODY}}>Test de impresora</div>
         <div style={{color:Q.muted,fontSize:12,marginBottom:14}}>
           Imprime un ticket de prueba para verificar la conexión
         </div>
@@ -6704,9 +6693,9 @@ function ConectarTelegramAgencia({ agencia }){
   return(
     <GCard glow={Q.cyan} style={{padding:20,marginBottom:12}}>
       <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:6,
-        fontFamily:"'Space Grotesk',system-ui"}}>📲 Conectar Telegram</div>
+        fontFamily:F_BODY}}>📲 Conectar Telegram</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:12,lineHeight:1.5,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         Conectá tu Telegram para recibir los avisos de la agencia
         (apuestas, premios, cargas). Abrí el link desde el celu con tu Telegram.</div>
       <Btn label={proc?"...":"Generar link de conexión"} onClick={conectar}
@@ -6716,12 +6705,12 @@ function ConectarTelegramAgencia({ agencia }){
           <input readOnly value={link.link} style={{flex:1,minWidth:0,
             background:"rgba(0,0,0,0.3)",border:`1px solid ${Q.border}`,borderRadius:8,
             padding:"8px 10px",color:Q.cyan,fontSize:11,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
           <button onClick={()=>{try{navigator.clipboard.writeText(link.link);
             setCopiado(true);setTimeout(()=>setCopiado(false),1500);}catch(e){}}}
             style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,borderRadius:8,
             padding:"8px 12px",cursor:"pointer",color:Q.cyan,fontSize:11,fontWeight:700,
-            fontFamily:"'Space Grotesk',system-ui"}}>{copiado?"✓":"Copiar"}</button>
+            fontFamily:F_BODY}}>{copiado?"✓":"Copiar"}</button>
         </div>
       )}
     </GCard>
@@ -6731,48 +6720,48 @@ function ConectarTelegramAgencia({ agencia }){
 function CambiarMiPassword({ agencia, obligado=false, onListo }){
   const [nueva,setNueva]=useState("");
   const [repetir,setRepetir]=useState("");
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
 
   const guardar=async()=>{
-    if(nueva.length<8){ setMsg("La contraseña debe tener 8+ caracteres"); return; }
-    if(nueva!==repetir){ setMsg("Las contraseñas no coinciden"); return; }
-    setProc(true); setMsg("");
+    if(nueva.length<8){ setMsg({text:"La contraseña debe tener 8+ caracteres", ok:false}); return; }
+    if(nueva!==repetir){ setMsg({text:"Las contraseñas no coinciden", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/password`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
         body:JSON.stringify({nueva}),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg("✅ Contraseña actualizada");
+      setMsg({text:"✅ Contraseña actualizada", ok:true});
       setNueva(""); setRepetir("");
       if(onListo) setTimeout(onListo,800);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
   return(
     <GCard glow={obligado?Q.amber:Q.violet} style={{padding:20,marginBottom:12}}>
       <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:8,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         {obligado?"🔑 Cambiá tu contraseña para continuar":"🔑 Cambiar mi contraseña"}</div>
       {obligado&&<div style={{color:Q.amber,fontSize:11,marginBottom:12,lineHeight:1.4,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         Es tu primer ingreso. Por seguridad, elegí una contraseña nueva.</div>}
       <input type="password" value={nueva} onChange={e=>setNueva(e.target.value)}
         placeholder="Nueva contraseña (8+)"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
           borderRadius:9,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:8,
-          fontFamily:"'Space Grotesk',system-ui"}}/>
+          fontFamily:F_BODY}}/>
       <input type="password" value={repetir} onChange={e=>setRepetir(e.target.value)}
         placeholder="Repetir contraseña"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
           borderRadius:9,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:12,
-          fontFamily:"'Space Grotesk',system-ui"}}/>
+          fontFamily:F_BODY}}/>
       <Btn label={proc?"GUARDANDO...":"Guardar contraseña"} onClick={guardar}
         color={obligado?Q.amber:Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </GCard>
   );
 }
@@ -6893,10 +6882,10 @@ function EnVivo({ agencia }){
           <div style={{width:8,height:8,borderRadius:"50%",background:Q.pink,
             boxShadow:`0 0 6px ${Q.pink}`,animation:"qPulse 1.2s ease-in-out infinite"}}/>
           <span style={{color:Q.text,fontWeight:700,fontSize:15,
-            fontFamily:"'Space Grotesk',system-ui"}}>En Vivo</span>
+            fontFamily:F_BODY}}>En Vivo</span>
           {matches.length>0&&<span style={{background:`${Q.pink}22`,border:`1px solid ${Q.pink}`,
             borderRadius:20,padding:"2px 10px",color:Q.pink,fontSize:11,fontWeight:700,
-            fontFamily:"'Space Grotesk',system-ui"}}>{matches.length} partidos</span>}
+            fontFamily:F_BODY}}>{matches.length} partidos</span>}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           {lastUpdate&&<span style={{color:Q.dim,fontSize:10}}>{lastUpdate}</span>}
@@ -6908,14 +6897,14 @@ function EnVivo({ agencia }){
 
       {loading&&(
         <GCard style={{padding:24,textAlign:"center"}}>
-          <div style={{color:Q.muted,fontFamily:"'Space Grotesk',system-ui"}}>Cargando partidos en vivo...</div>
+          <div style={{color:Q.muted,fontFamily:F_BODY}}>Cargando partidos en vivo...</div>
         </GCard>
       )}
 
       {!loading&&matches.length===0&&(
         <GCard style={{padding:24,textAlign:"center"}}>
           <div style={{fontSize:32,marginBottom:8}}>⚽</div>
-          <div style={{color:Q.muted,fontSize:13,fontFamily:"'Space Grotesk',system-ui"}}>No hay partidos en vivo ahora</div>
+          <div style={{color:Q.muted,fontSize:13,fontFamily:F_BODY}}>No hay partidos en vivo ahora</div>
           <div style={{color:Q.dim,fontSize:11,marginTop:4}}>Se actualiza cada 30 segundos</div>
         </GCard>
       )}
@@ -6943,7 +6932,7 @@ function EnVivo({ agencia }){
               <div style={{width:6,height:6,borderRadius:"50%",background:Q.pink,
                 boxShadow:`0 0 4px ${Q.pink}`}}/>
               <span style={{color:Q.pink,fontSize:10,fontWeight:700,
-                fontFamily:"'Space Grotesk',system-ui"}}>EN VIVO</span>
+                fontFamily:F_BODY}}>EN VIVO</span>
               {m.minute&&<span style={{color:Q.muted,fontSize:10}}>{m.minute}</span>}
             </div>
             {m.minuteLong&&<span style={{color:Q.muted,fontSize:10}}>{m.minuteLong}</span>}
@@ -6953,11 +6942,11 @@ function EnVivo({ agencia }){
             <div style={{flex:1,display:"flex",alignItems:"center",gap:6,minWidth:0}}>
               <TeamLogo name={m.home} size={26}/>
               <div style={{color:Q.text,fontWeight:700,fontSize:14,
-                fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                fontFamily:F_BODY,overflow:"hidden",
                 textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.home}</div>
             </div>
             <div style={{textAlign:"center",padding:"0 12px"}}>
-              <div style={{fontFamily:"'Space Grotesk',system-ui",fontWeight:900,
+              <div style={{fontFamily:F_BODY,fontWeight:900,
                 fontSize:26,color:Q.pink}}>
                 {m.homeScore}<span style={{color:Q.dim}}> - </span>{m.awayScore}
               </div>
@@ -6965,7 +6954,7 @@ function EnVivo({ agencia }){
             <div style={{flex:1,display:"flex",alignItems:"center",gap:6,
               justifyContent:"flex-end",minWidth:0}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:14,
-                fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                fontFamily:F_BODY,overflow:"hidden",
                 textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.away}</div>
               <TeamLogo name={m.away} size={26}/>
             </div>
@@ -6983,22 +6972,22 @@ function EnVivo({ agencia }){
                   border:`1.5px solid ${isSel(m.id,o.l)?Q.pink:Q.border}`,
                   borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
                 }}>
-                  <div style={{color:Q.muted,fontSize:9,fontFamily:"'Space Grotesk',system-ui"}}>{o.l}</div>
+                  <div style={{color:Q.muted,fontSize:9,fontFamily:F_BODY}}>{o.l}</div>
                   <div style={{color:isSel(m.id,o.l)?Q.pink:o.c,fontWeight:700,fontSize:15,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{o.v}</div>
+                    fontFamily:F_BODY}}>{o.v}</div>
                   <div style={{color:Q.pink,fontSize:8}}>◉ LIVE</div>
                 </button>
               ))}
             </div>
           ):(
             <div style={{textAlign:"center",color:Q.dim,fontSize:11,padding:"6px 0",
-              fontFamily:"'Space Grotesk',system-ui"}}>Cuotas no disponibles aún</div>
+              fontFamily:F_BODY}}>Cuotas no disponibles aún</div>
           )}
 
           <button onClick={()=>setAbiertosLive(a=>({...a,[m.id]:!a[m.id]}))} style={{
             width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
             borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,
-            fontSize:10,marginTop:6,fontFamily:"'Space Grotesk',system-ui",
+            fontSize:10,marginTop:6,fontFamily:F_BODY,
           }}>
             {abiertosLive[m.id]?"▲ Menos mercados":"▼ Todos los mercados"}
           </button>
@@ -7020,7 +7009,7 @@ function EnVivo({ agencia }){
                 <div style={{width:6,height:6,borderRadius:"50%",background:Q.pink}}/>
                 <span style={{color:Q.muted,fontSize:12}}>{ticket.length} picks LIVE · <span style={{color:Q.pink,fontWeight:700}}>{totOdd.toFixed(2)}x</span></span>
               </div>
-              <span style={{color:Q.green,fontWeight:700,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>
+              <span style={{color:Q.green,fontWeight:700,fontSize:12,fontFamily:F_BODY}}>
                 Ret: {ars(Math.round(monto*totOdd))}
               </span>
             </div>
@@ -7029,7 +7018,7 @@ function EnVivo({ agencia }){
               style={{width:"100%",background:"rgba(255,255,255,0.05)",
                 border:`1px solid ${Q.border}`,borderRadius:9,
                 padding:"8px 12px",color:Q.text,fontSize:13,marginBottom:8,
-                fontFamily:"'Space Grotesk',system-ui"}}/>
+                fontFamily:F_BODY}}/>
 
             <div style={{display:"flex",gap:5,marginBottom:8}}>
               {montosDe(agencia?.moneda).map(v=>(
@@ -7040,21 +7029,21 @@ function EnVivo({ agencia }){
                   borderRadius:8,padding:"6px 2px",cursor:"pointer",
                   color:monto===v?Q.pink:Q.muted,fontSize:10,
                   fontWeight:monto===v?700:400,
-                  fontFamily:"'Space Grotesk',system-ui",
+                  fontFamily:F_BODY,
                 }}>{v>=1000?`$${v/1000}K`:v}</button>
               ))}
             </div>
         {/* Campo libre: las fichas son atajos, no un límite */}
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
           <span style={{color:Q.muted,fontSize:10,flexShrink:0,
-            fontFamily:"'Space Grotesk',system-ui"}}>Otro:</span>
+            fontFamily:F_BODY}}>Otro:</span>
           <input type="number" inputMode="numeric" min="0" value={monto}
             onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
             aria-label="Monto a apostar"
             style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
               border:`1px solid ${Q.border}`,borderRadius:8,padding:"6px 9px",
               color:Q.text,fontSize:13,fontWeight:700,
-              fontFamily:"'Space Grotesk',system-ui"}}/>
+              fontFamily:F_BODY}}/>
         </div>
 
             <AlertaError mensaje={errGuardar} critico/>
@@ -7063,7 +7052,7 @@ function EnVivo({ agencia }){
               <button onClick={()=>setTicket([])} disabled={guardando} style={{
                 background:"transparent",border:`1px solid ${Q.border}`,
                 borderRadius:12,padding:"0 14px",cursor:"pointer",color:Q.muted,
-                fontSize:12,fontFamily:"'Space Grotesk',system-ui",
+                fontSize:12,fontFamily:F_BODY,
               }}>Limpiar</button>
               <button onClick={confirmarLive} disabled={guardando} style={{
                 flex:1,
@@ -7072,7 +7061,7 @@ function EnVivo({ agencia }){
                 border:"none",borderRadius:12,padding:"13px",
                 cursor:guardando?"wait":"pointer",
                 color:guardando?Q.muted:"#fff",fontWeight:700,fontSize:14,
-                fontFamily:"'Space Grotesk',system-ui",textTransform:"uppercase",
+                fontFamily:F_BODY,textTransform:"uppercase",
               }}>
                 {guardando?"REGISTRANDO..."
                           :`COBRAR ${ars(monto)} E IMPRIMIR`}
@@ -7134,7 +7123,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:"'Space Grotesk',system-ui"}}>🌟 Influencers</div>
+          fontFamily:F_BODY}}>🌟 Influencers</div>
         <Btn label={showForm?"Cancelar":"+ Nuevo"} onClick={()=>setShowForm(s=>!s)}
           color={Q.violet} size="sm"/>
       </div>
@@ -7148,7 +7137,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
             background:vista===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:9,
             padding:"9px",cursor:"pointer",color:vista===k?Q.cyan:Q.muted,
-            fontSize:12,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{l}</button>
+            fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
 
@@ -7156,17 +7145,17 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
         <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"8px 10px",color:Q.text,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
         <span style={{color:Q.muted}}>→</span>
         <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"8px 10px",color:Q.text,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
       </div>
 
       {vista==="mios"&&<>
         {!data&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+          fontFamily:F_BODY}}>Cargando...</div>}
         {data&&(
           <div>
             <GCard glow={Q.violet} style={{padding:14,marginBottom:12,
@@ -7176,14 +7165,14 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
                   ["Comisiones",data.total.comisiones,Q.gold]].map(([l,v,c])=>(
                   <div key={l} style={{textAlign:"center"}}>
                     <div style={{color:c,fontWeight:800,fontSize:15,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{ars(v)}</div>
+                      fontFamily:F_BODY}}>{ars(v)}</div>
                     <div style={{color:Q.muted,fontSize:9}}>{l}</div>
                   </div>
                 ))}
               </div>
             </GCard>
             {data.influencers.length===0&&<div style={{color:Q.muted,fontSize:12,
-              textAlign:"center",padding:20,fontFamily:"'Space Grotesk',system-ui"}}>
+              textAlign:"center",padding:20,fontFamily:F_BODY}}>
               No tenés influencers todavía</div>}
             {data.influencers.map(inf=>(
               <GCard key={inf.code} onClick={()=>setSel(inf.code)}
@@ -7191,7 +7180,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{inf.name}
+                      fontFamily:F_BODY}}>{inf.name}
                       <span style={{color:Q.muted,fontWeight:400,fontSize:10}}> · {inf.codigo_ref}</span></div>
                     <div style={{color:Q.muted,fontSize:10}}>
                       {inf.combos} combos · {inf.jugadas} jugadas</div>
@@ -7200,7 +7189,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
                     <div style={{color:Q.gold,fontWeight:700,fontSize:14,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{ars(inf.comision)}</div>
+                      fontFamily:F_BODY}}>{ars(inf.comision)}</div>
                     <div style={{color:Q.muted,fontSize:9}}>comisión ›</div>
                   </div>
                 </div>
@@ -7212,33 +7201,33 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
 
       {vista==="costos"&&<>
         {!costos&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+          fontFamily:F_BODY}}>Cargando...</div>}
         {costos&&(
           <div>
             <GCard glow={Q.gold} style={{padding:16,marginBottom:12,textAlign:"center"}}>
               <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1,
-                marginBottom:4,fontFamily:"'Space Grotesk',system-ui"}}>
+                marginBottom:4,fontFamily:F_BODY}}>
                 Comisiones que absorbés</div>
               <div style={{color:Q.gold,fontWeight:900,fontSize:26,
-                fontFamily:"'Space Grotesk',system-ui"}}>{ars(costos.total_comision)}</div>
+                fontFamily:F_BODY}}>{ars(costos.total_comision)}</div>
               <div style={{color:Q.dim,fontSize:10,marginTop:4,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 Por jugadas con código de influencer en tu caja</div>
             </GCard>
             {costos.detalle.length===0&&<div style={{color:Q.muted,fontSize:12,
-              textAlign:"center",padding:20,fontFamily:"'Space Grotesk',system-ui"}}>
+              textAlign:"center",padding:20,fontFamily:F_BODY}}>
               Sin jugadas con influencer en el período</div>}
             {costos.detalle.map((d,i)=>(
               <GCard key={i} style={{padding:"11px 13px",marginBottom:6}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{d.influencer}</div>
+                      fontFamily:F_BODY}}>{d.influencer}</div>
                     <div style={{color:Q.muted,fontSize:10}}>
                       en {d.agencia} · {d.jugadas} jugadas · {ars(d.apostado)}</div>
                   </div>
                   <div style={{color:Q.gold,fontWeight:700,fontSize:14,flexShrink:0,
-                    fontFamily:"'Space Grotesk',system-ui"}}>−{ars(d.comision)}</div>
+                    fontFamily:F_BODY}}>−{ars(d.comision)}</div>
                 </div>
               </GCard>
             ))}
@@ -7248,7 +7237,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
 
       {vista==="escaneos"&&<>
         {!escaneos&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+          fontFamily:F_BODY}}>Cargando...</div>}
         {escaneos&&(
           <div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
@@ -7256,26 +7245,26 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
                 ["Conversión",escaneos.conversion+"%",Q.gold]].map(([l,v,c])=>(
                 <GCard key={l} style={{padding:"14px 8px",textAlign:"center"}}>
                   <div style={{color:c,fontWeight:800,fontSize:18,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{v}</div>
+                    fontFamily:F_BODY}}>{v}</div>
                   <div style={{color:Q.muted,fontSize:9,marginTop:2}}>{l}</div>
                 </GCard>
               ))}
             </div>
             {escaneos.detalle.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
-              padding:20,fontFamily:"'Space Grotesk',system-ui"}}>Sin escaneos en el período</div>}
+              padding:20,fontFamily:F_BODY}}>Sin escaneos en el período</div>}
             {escaneos.detalle.map(d=>(
               <GCard key={d.code} style={{padding:"11px 13px",marginBottom:6}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{d.name}
+                      fontFamily:F_BODY}}>{d.name}
                       <span style={{color:Q.muted,fontWeight:400,fontSize:10}}> · {d.codigo_ref}</span></div>
                     <div style={{color:Q.muted,fontSize:10}}>
                       {d.escaneos} escaneos · {d.jugadas} jugaron · cuota {fmt(d.cuota_prom)}x</div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
                     <div style={{color:d.conversion>=30?Q.green:d.conversion>=10?Q.gold:Q.muted,
-                      fontWeight:700,fontSize:16,fontFamily:"'Space Grotesk',system-ui"}}>{d.conversion}%</div>
+                      fontWeight:700,fontSize:16,fontFamily:F_BODY}}>{d.conversion}%</div>
                     <div style={{color:Q.muted,fontSize:9}}>conversión</div>
                   </div>
                 </div>
@@ -7293,12 +7282,12 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
 
 function CrearInfluencerAgencia({ agencia, onListo, onSesionExpirada }){
   const [form,setForm]=useState({name:"",username:"",password:"",pct_ggr:"",pct_ventas:"",alcance:""});
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
 
   const crear=async()=>{
-    if(!form.name||!form.username||!form.password){ setMsg("Completá nombre, usuario y clave"); return; }
-    if(form.password.length<8){ setMsg("La clave debe tener 8+ caracteres"); return; }
-    setProc(true); setMsg("");
+    if(!form.name||!form.username||!form.password){ setMsg({text:"Completá nombre, usuario y clave", ok:false}); return; }
+    if(form.password.length<8){ setMsg({text:"La clave debe tener 8+ caracteres", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/influencers`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
@@ -7307,38 +7296,38 @@ function CrearInfluencerAgencia({ agencia, onListo, onSesionExpirada }){
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg(`✅ Creado: ${d.code} · código ${d.codigo_ref}`);
+      setMsg({text:`✅ Creado: ${d.code} · código ${d.codigo_ref}`, ok:true});
       setTimeout(onListo,900);
-    }catch(e){ setMsg("⚠️ "+e.message); setProc(false); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
   };
 
   return(
     <GCard glow={Q.violet} style={{padding:16,marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
-        fontFamily:"'Space Grotesk',system-ui"}}>🌟 Nuevo influencer</div>
+        fontFamily:F_BODY}}>🌟 Nuevo influencer</div>
       {[["name","Nombre"],["username","Usuario"],["password","Contraseña (8+)"]].map(([k,l])=>(
         <input key={k} value={form[k]} type={k==="password"?"password":"text"}
           onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={l}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"10px 12px",color:Q.text,fontSize:16,marginBottom:8,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
       ))}
       <div style={{display:"flex",gap:8,marginBottom:8}}>
         <input value={form.pct_ggr} onChange={e=>setForm(f=>({...f,pct_ggr:e.target.value}))}
           placeholder="% GGR" inputMode="decimal"
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"10px 12px",color:Q.text,fontSize:16,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
         <input value={form.pct_ventas} onChange={e=>setForm(f=>({...f,pct_ventas:e.target.value}))}
           placeholder="% Ventas" inputMode="decimal"
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"10px 12px",color:Q.text,fontSize:16,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
       </div>
       <select value={form.alcance} onChange={e=>setForm(f=>({...f,alcance:e.target.value}))}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
           borderRadius:9,padding:"10px 12px",color:form.alcance?Q.text:Q.muted,fontSize:15,marginBottom:10,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
         <option value="">Dónde valen sus links (por defecto: solo mi agencia)</option>
         <option value="solo_agencia">Solo mi agencia</option>
         <option value="rama">Toda mi rama</option>
@@ -7346,15 +7335,15 @@ function CrearInfluencerAgencia({ agencia, onListo, onSesionExpirada }){
       </select>
       <Btn label={proc?"CREANDO...":"Crear influencer"} onClick={crear} color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </GCard>
   );
 }
 
 function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSesionExpirada }){
   const [d,setD]=useState(null);
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
   const [resetOpen,setResetOpen]=useState(false);
   const [configOpen,setConfigOpen]=useState(false);
 
@@ -7367,7 +7356,7 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
   },[code]);
 
   const liquidar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/influencers/${code}/liquidar`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
@@ -7375,8 +7364,8 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const j=await r.json();
-      setMsg(`✅ Liquidación generada · ${ars(j.comision)}`);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:`✅ Liquidación generada · ${ars(j.comision)}`, ok:true});
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7389,26 +7378,26 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
         maxHeight:"90vh",overflowY:"auto",padding:20,border:`1px solid ${Q.border}`,borderBottom:"none"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:16,
-            fontFamily:"'Space Grotesk',system-ui"}}>🌟 {rep?rep.name:code}</div>
+            fontFamily:F_BODY}}>🌟 {rep?rep.name:code}</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:26,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
         {!d&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-          fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+          fontFamily:F_BODY}}>Cargando...</div>}
         {d&&(
           <div>
             <GCard glow={Q.gold} style={{padding:14,marginBottom:12}}>
               <div style={{color:Q.muted,fontSize:10,marginBottom:4,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 Usuario: <span style={{color:Q.cyan,fontWeight:700}}>{rep.username||"—"}</span></div>
               <div style={{color:Q.muted,fontSize:10,marginBottom:8,
-                fontFamily:"'Space Grotesk',system-ui"}}>Código: {rep.codigo_ref}</div>
+                fontFamily:F_BODY}}>Código: {rep.codigo_ref}</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
                 {[["Ventas",rep.apostado,Q.cyan],["GGR",rep.ggr,Q.green],
                   ["Comisión",rep.comision,Q.gold]].map(([l,v,c])=>(
                   <div key={l} style={{textAlign:"center"}}>
                     <div style={{color:c,fontWeight:800,fontSize:15,
-                      fontFamily:"'Space Grotesk',system-ui"}}>{ars(v)}</div>
+                      fontFamily:F_BODY}}>{ars(v)}</div>
                     <div style={{color:Q.muted,fontSize:9}}>{l}</div>
                   </div>
                 ))}
@@ -7430,35 +7419,35 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
                 </div>
               )}
               {msg&&<div style={{fontSize:12,marginTop:8,
-                color:msg.startsWith("✅")?Q.green:Q.red,
-                fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+                color:msg.ok?Q.green:Q.red,
+                fontFamily:F_BODY}}>{msg.text}</div>}
               {resetOpen&&<ResetPassword agencia={agencia} code={code}
                 nombre={rep?rep.name:code} onCerrar={()=>setResetOpen(false)}/>}
             </GCard>
             <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-              marginBottom:8,fontFamily:"'Space Grotesk',system-ui"}}>Combos ({d.combos.length})</div>
+              marginBottom:8,fontFamily:F_BODY}}>Combos ({d.combos.length})</div>
             {d.combos.map(c=>(
               <GCard key={c.id} style={{padding:"9px 12px",marginBottom:5}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{c.nombre}
+                    fontFamily:F_BODY}}>{c.nombre}
                     {c.codigo&&<span style={{color:Q.cyan,fontSize:10}}> · {c.codigo}</span>}</div>
                   <div style={{color:Q.green,fontWeight:700,fontSize:13,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{fmt(c.odd)}x</div>
+                    fontFamily:F_BODY}}>{fmt(c.odd)}x</div>
                 </div>
               </GCard>
             ))}
             <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-              margin:"12px 0 8px",fontFamily:"'Space Grotesk',system-ui"}}>Jugadas ({d.jugadas.length})</div>
+              margin:"12px 0 8px",fontFamily:F_BODY}}>Jugadas ({d.jugadas.length})</div>
             {d.jugadas.length===0&&<div style={{color:Q.muted,fontSize:12,
-              fontFamily:"'Space Grotesk',system-ui"}}>Sin jugadas en el período</div>}
+              fontFamily:F_BODY}}>Sin jugadas en el período</div>}
             {d.jugadas.map((j,i)=>(
               <div key={i} style={{display:"flex",justifyContent:"space-between",
                 alignItems:"center",padding:"7px 0",
                 borderBottom:i<d.jugadas.length-1?`1px solid ${Q.dim}`:"none"}}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                    fontFamily:"'Space Grotesk',system-ui"}}>{j.code}</div>
+                    fontFamily:F_BODY}}>{j.code}</div>
                   <div style={{color:Q.muted,fontSize:10}}>{j.cliente} · {ars(j.stake)} · {fmt(j.odd)}x</div>
                 </div>
                 <span style={{color:Q.muted,fontSize:11,flexShrink:0}}>{j.status}</span>
@@ -7483,10 +7472,10 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
   const [ggrCasino,setGgrCasino]=useState(String(cuenta?.pct_ggr_casino||0));
   const [pctDesafios,setPctDesafios]=useState(String(cuenta?.pct_desafios||0));
   const [alcance,setAlcance]=useState(cuenta.alcance||"");
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
 
   const guardar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const body={name,address,phone,
         pct_ggr:parseFloat(ggr)||0, pct_ventas:parseFloat(ventas)||0,
@@ -7502,41 +7491,41 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
       let extra="";
       if(d.hijos_sobre_limite&&d.hijos_sobre_limite.length)
         extra=` ⚠️ ${d.hijos_sobre_limite.length} hija(s) quedaron con % mayor.`;
-      setMsg("✅ Configuración guardada."+extra);
+      setMsg({text:"✅ Configuración guardada."+extra, ok:true});
       onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
     border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
-    color:Q.text,fontSize:15,marginBottom:8,fontFamily:"'Space Grotesk',system-ui"};
+    color:Q.text,fontSize:15,marginBottom:8,fontFamily:F_BODY};
 
   return(
     <div>
       <div style={{color:Q.muted,fontSize:10,marginBottom:6,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         Usuario: <span style={{color:Q.dim}}>{cuenta.username||"—"} (no editable)</span></div>
       <div style={{color:Q.muted,fontSize:10,marginBottom:2,
-        fontFamily:"'Space Grotesk',system-ui"}}>Nombre</div>
+        fontFamily:F_BODY}}>Nombre</div>
       <input value={name} onChange={e=>setName(e.target.value)} style={inp}/>
       {!esInf&&<>
         <div style={{color:Q.muted,fontSize:10,marginBottom:2,
-          fontFamily:"'Space Grotesk',system-ui"}}>Dirección</div>
+          fontFamily:F_BODY}}>Dirección</div>
         <input value={address} onChange={e=>setAddress(e.target.value)} style={inp}/>
         <div style={{color:Q.muted,fontSize:10,marginBottom:2,
-          fontFamily:"'Space Grotesk',system-ui"}}>Teléfono</div>
+          fontFamily:F_BODY}}>Teléfono</div>
         <input value={phone} onChange={e=>setPhone(e.target.value)} style={inp}/>
       </>}
       <div style={{display:"flex",gap:8}}>
         <div style={{flex:1}}>
           <div style={{color:Q.muted,fontSize:10,marginBottom:2,
-            fontFamily:"'Space Grotesk',system-ui"}}>% GGR</div>
+            fontFamily:F_BODY}}>% GGR</div>
           <input value={ggr} onChange={e=>setGgr(e.target.value)} inputMode="decimal" style={inp}/>
         </div>
         <div style={{flex:1}}>
           <div style={{color:Q.muted,fontSize:10,marginBottom:2,
-            fontFamily:"'Space Grotesk',system-ui"}}>% Ventas</div>
+            fontFamily:F_BODY}}>% Ventas</div>
           <input value={ventas} onChange={e=>setVentas(e.target.value)} inputMode="decimal" style={inp}/>
         </div>
       </div>
@@ -7545,14 +7534,14 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
         <div style={{display:"flex",gap:8}}>
           <div style={{flex:1}}>
             <div style={{color:Q.muted,fontSize:10,marginBottom:2,
-              fontFamily:"'Space Grotesk',system-ui"}}>% GGR casino</div>
+              fontFamily:F_BODY}}>% GGR casino</div>
             <input value={ggrCasino}
               onChange={e=>setGgrCasino(e.target.value)}
               inputMode="decimal" style={inp}/>
           </div>
           <div style={{flex:1}}>
             <div style={{color:Q.muted,fontSize:10,marginBottom:2,
-              fontFamily:"'Space Grotesk',system-ui"}}>% Desafíos</div>
+              fontFamily:F_BODY}}>% Desafíos</div>
             <input value={pctDesafios}
               onChange={e=>setPctDesafios(e.target.value)}
               inputMode="decimal" style={inp}/>
@@ -7561,13 +7550,13 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
       )}
       {!esInf&&(
         <div style={{color:Q.dim,fontSize:9.5,marginBottom:6,
-          lineHeight:1.5,fontFamily:"'Space Grotesk',system-ui"}}>
+          lineHeight:1.5,fontFamily:F_BODY}}>
           Lo que le das sale de lo tuyo: si le ponés más de lo que
           cobrás vos, esa parte la pagás de tu comisión.</div>
       )}
       {esInf&&<>
         <div style={{color:Q.muted,fontSize:10,marginBottom:2,
-          fontFamily:"'Space Grotesk',system-ui"}}>Dónde valen sus links</div>
+          fontFamily:F_BODY}}>Dónde valen sus links</div>
         <select value={alcance} onChange={e=>setAlcance(e.target.value)}
           style={{...inp,color:alcance?Q.text:Q.muted}}>
           <option value="">— Sin cambios —</option>
@@ -7582,12 +7571,12 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
           configuración no acepta ese campo, así que no guardaba nada.
           Los permisos se definen al crear la sub-agencia. */}
       <div style={{color:Q.dim,fontSize:10,marginBottom:10,
-        fontFamily:"'Space Grotesk',system-ui"}}>El % no puede superar el tuyo.</div>
+        fontFamily:F_BODY}}>El % no puede superar el tuyo.</div>
       <Btn label={proc?"GUARDANDO...":"💾 Guardar configuración"} onClick={guardar}
         color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </div>
   );
 }
@@ -7595,12 +7584,12 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
 function ResetPassword({ agencia, code, userId, nombre, esAdmin=false, onCerrar }){
   const [nueva,setNueva]=useState("");
   const [repetir,setRepetir]=useState("");
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
 
   const guardar=async()=>{
-    if(nueva.length<8){ setMsg("La contraseña debe tener 8+ caracteres"); return; }
-    if(nueva!==repetir){ setMsg("Las contraseñas no coinciden"); return; }
-    setProc(true); setMsg("");
+    if(nueva.length<8){ setMsg({text:"La contraseña debe tener 8+ caracteres", ok:false}); return; }
+    if(nueva!==repetir){ setMsg({text:"Las contraseñas no coinciden", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const url = esAdmin ? `${API_URL}/api/admin/reset-password`
                           : `${API_URL}/api/agencias/me/reset-password`;
@@ -7610,9 +7599,9 @@ function ResetPassword({ agencia, code, userId, nombre, esAdmin=false, onCerrar 
       const body = code ? {code,nueva} : {user_id:userId,nueva};
       const r=await fetch(url,{method:"POST",headers,body:JSON.stringify(body)});
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg("✅ Contraseña reseteada. Deberá cambiarla en su próximo ingreso.");
+      setMsg({text:"✅ Contraseña reseteada. Deberá cambiarla en su próximo ingreso.", ok:true});
       setTimeout(onCerrar,1200);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7623,28 +7612,28 @@ function ResetPassword({ agencia, code, userId, nombre, esAdmin=false, onCerrar 
         style={{padding:20,maxWidth:400,width:"100%"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:15,
-            fontFamily:"'Space Grotesk',system-ui"}}>🔑 Resetear contraseña</div>
+            fontFamily:F_BODY}}>🔑 Resetear contraseña</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
         <div style={{color:Q.muted,fontSize:12,marginBottom:12,lineHeight:1.5,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           Nueva contraseña para <span style={{color:Q.cyan,fontWeight:700}}>{nombre||code||"la cuenta"}</span>.
           Deberá cambiarla en su próximo ingreso.</div>
         <input type="password" value={nueva} onChange={e=>setNueva(e.target.value)}
           placeholder="Nueva contraseña (8+)"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:8,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
         <input type="password" value={repetir} onChange={e=>setRepetir(e.target.value)}
           placeholder="Repetir contraseña"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:12,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
         <Btn label={proc?"GUARDANDO...":"Resetear"} onClick={guardar} color={Q.amber} full disabled={proc}/>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-          color:msg.startsWith("✅")?Q.green:Q.red,
-          fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}>{msg.text}</div>}
       </GCard>
     </div>
   );
@@ -7656,7 +7645,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
   const [ccPara,setCcPara]=useState(null);   // code al que cargar crédito
   const [resetPara,setResetPara]=useState(null);   // code al que resetear pass
   const [configPara,setConfigPara]=useState(null);   // cuenta a configurar
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
 
   const cargar=async()=>{
     try{
@@ -7679,16 +7668,16 @@ function MisAgencias({ agencia, onSesionExpirada }){
       });
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg(bloquear_flag?"✅ Agencia bloqueada":"✅ Agencia desbloqueada");
-      setTimeout(()=>setMsg(""),2000); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); setTimeout(()=>setMsg(""),3000); }
+      setMsg({text: bloquear_flag?"✅ Agencia bloqueada":"✅ Agencia desbloqueada", ok:true});
+      setTimeout(()=>setMsg(null),2000); cargar();
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setTimeout(()=>setMsg(null),3000); }
   };
 
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:"'Space Grotesk',system-ui"}}>🏢 Mis agencias</div>
+          fontFamily:F_BODY}}>🏢 Mis agencias</div>
         <Btn label={showForm?"Cancelar":"+ Nueva"} onClick={()=>setShowForm(s=>!s)}
           color={Q.violet} size="sm"/>
       </div>
@@ -7697,13 +7686,13 @@ function MisAgencias({ agencia, onSesionExpirada }){
         onListo={()=>{setShowForm(false);cargar();}} onSesionExpirada={onSesionExpirada}/>}
 
       {msg&&<div style={{fontSize:13,marginBottom:10,textAlign:"center",
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       {!arbol&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-        fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+        fontFamily:F_BODY}}>Cargando...</div>}
       {arbol&&arbol.agencias.length===0&&!showForm&&<div style={{color:Q.muted,fontSize:12,
-        textAlign:"center",padding:20,fontFamily:"'Space Grotesk',system-ui"}}>
+        textAlign:"center",padding:20,fontFamily:F_BODY}}>
         Todavía no creaste sub-agencias</div>}
 
       {arbol&&arbol.agencias.map(a=>{
@@ -7719,7 +7708,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
               <div style={{minWidth:0,flex:1}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui"}}>
+                  fontFamily:F_BODY}}>
                   {"— ".repeat(Math.max(0,(a.nivel||0)-(agencia.nivel||0)-1))}{a.name}
                   {bloqueada&&<span style={{color:Q.red,fontSize:10}}> 🔒</span>}</div>
                 <div style={{color:Q.muted,fontSize:10}}>{a.code} · GGR {fmt(a.pct_ggr)}% · Ventas {fmt(a.pct_ventas)}%</div>
@@ -7729,28 +7718,28 @@ function MisAgencias({ agencia, onSesionExpirada }){
                     : ((arbol.agencias.find(x=>x.code===a.parent_code)||{}).name||a.parent_code)}</div>}
                 {a.username&&(
                   <div style={{color:Q.cyan,fontSize:10,marginTop:2,
-                    fontFamily:"'Space Grotesk',system-ui"}}>@{a.username}</div>
+                    fontFamily:F_BODY}}>@{a.username}</div>
                 )}
                 <div style={{color:a.saldo_cc>=0?Q.green:Q.red,fontSize:11,marginTop:2,
-                  fontFamily:"'Space Grotesk',system-ui"}}>CC: {ars(a.saldo_cc)}</div>
+                  fontFamily:F_BODY}}>CC: {ars(a.saldo_cc)}</div>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
                 <button onClick={()=>setCcPara(a.code)} style={{background:`${Q.cyan}18`,
                   border:`1px solid ${Q.cyan}`,borderRadius:7,padding:"5px 10px",cursor:"pointer",
                   color:Q.cyan,fontSize:11,fontWeight:700,
-                  fontFamily:"'Space Grotesk',system-ui"}}>💰 Crédito</button>
+                  fontFamily:F_BODY}}>💰 Crédito</button>
                 <button onClick={()=>bloquear(a.code,!bloqueada)} style={{background:"transparent",
                   border:`1px solid ${bloqueada?Q.green:Q.red}`,borderRadius:7,padding:"5px 10px",
                   cursor:"pointer",color:bloqueada?Q.green:Q.red,fontSize:11,fontWeight:700,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{bloqueada?"Desbloquear":"Bloquear"}</button>
+                  fontFamily:F_BODY}}>{bloqueada?"Desbloquear":"Bloquear"}</button>
                 <button onClick={()=>setResetPara({code:a.code,nombre:a.name})} style={{background:`${Q.amber}18`,
                   border:`1px solid ${Q.amber}`,borderRadius:7,padding:"5px 10px",cursor:"pointer",
                   color:Q.amber,fontSize:11,fontWeight:700,
-                  fontFamily:"'Space Grotesk',system-ui"}}>🔑 Clave</button>
+                  fontFamily:F_BODY}}>🔑 Clave</button>
                 <button onClick={()=>setConfigPara(a)} style={{background:`${Q.violet}18`,
                   border:`1px solid ${Q.violet}`,borderRadius:7,padding:"5px 10px",cursor:"pointer",
                   color:Q.violet2,fontSize:11,fontWeight:700,
-                  fontFamily:"'Space Grotesk',system-ui"}}>⚙️ Config</button>
+                  fontFamily:F_BODY}}>⚙️ Config</button>
               </div>
             </div>
           </GCard>
@@ -7770,7 +7759,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
             style={{padding:20,maxWidth:420,width:"100%",maxHeight:"90vh",overflowY:"auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:15,
-                fontFamily:"'Space Grotesk',system-ui"}}>⚙️ Configurar · {configPara.name}</div>
+                fontFamily:F_BODY}}>⚙️ Configurar · {configPara.name}</div>
               <button onClick={()=>setConfigPara(null)} style={{background:"transparent",border:"none",
                 color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
             </div>
@@ -7785,14 +7774,14 @@ function MisAgencias({ agencia, onSesionExpirada }){
 
 function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
   const [form,setForm]=useState({name:"",username:"",password:"",pct_ggr:"",pct_ventas:"",permiso:"solo_agencia"});
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
   const miPermiso = agencia.permiso || "ambos";
   const puedeDelegarInf = miPermiso==="crea_influencers" || miPermiso==="ambos";
 
   const crear=async()=>{
-    if(!form.name||!form.username||!form.password){ setMsg("Completá nombre, usuario y clave"); return; }
-    if(form.password.length<8){ setMsg("La clave debe tener 8+ caracteres"); return; }
-    setProc(true); setMsg("");
+    if(!form.name||!form.username||!form.password){ setMsg({text:"Completá nombre, usuario y clave", ok:false}); return; }
+    if(form.password.length<8){ setMsg({text:"La clave debe tener 8+ caracteres", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/sub`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
@@ -7803,52 +7792,52 @@ function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg(`✅ Creada: ${d.code||d.name||"sub-agencia"}`);
+      setMsg({text:`✅ Creada: ${d.code||d.name||"sub-agencia"}`, ok:true});
       setTimeout(onListo,900);
-    }catch(e){ setMsg("⚠️ "+e.message); setProc(false); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
   };
 
   return(
     <GCard glow={Q.violet} style={{padding:16,marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
-        fontFamily:"'Space Grotesk',system-ui"}}>🏢 Nueva sub-agencia</div>
+        fontFamily:F_BODY}}>🏢 Nueva sub-agencia</div>
       {[["name","Nombre"],["username","Usuario"],["password","Contraseña (8+)"]].map(([k,l])=>(
         <input key={k} value={form[k]} type={k==="password"?"password":"text"}
           onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={l}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"10px 12px",color:Q.text,fontSize:16,marginBottom:8,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
       ))}
       <div style={{display:"flex",gap:8,marginBottom:6}}>
         <input value={form.pct_ggr} onChange={e=>setForm(f=>({...f,pct_ggr:e.target.value}))}
           placeholder="% GGR" inputMode="decimal"
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"10px 12px",color:Q.text,fontSize:16,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
         <input value={form.pct_ventas} onChange={e=>setForm(f=>({...f,pct_ventas:e.target.value}))}
           placeholder="% Ventas" inputMode="decimal"
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"10px 12px",color:Q.text,fontSize:16,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
       </div>
       <div style={{color:Q.muted,fontSize:10,marginBottom:4,marginTop:6,
-        fontFamily:"'Space Grotesk',system-ui"}}>Permisos de esta sub-agencia</div>
+        fontFamily:F_BODY}}>Permisos de esta sub-agencia</div>
       <select value={form.permiso} onChange={e=>setForm(f=>({...f,permiso:e.target.value}))}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.violet}`,
           borderRadius:9,padding:"10px 12px",color:Q.text,fontSize:15,marginBottom:8,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
         <option value="solo_agencia">Solo agencia (crea clientes)</option>
         <option value="crea_agencias">+ Crear sub-agencias</option>
         {puedeDelegarInf&&<option value="crea_influencers">+ Crear influencers</option>}
         {puedeDelegarInf&&<option value="ambos">Todo (sub-agencias + influencers)</option>}
       </select>
       <div style={{color:Q.dim,fontSize:10,marginBottom:10,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         No podés dar más % del que tenés vos.</div>
       <Btn label={proc?"CREANDO...":"Crear sub-agencia"} onClick={crear} color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </GCard>
   );
 }
@@ -7856,13 +7845,13 @@ function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
 function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }){
   const [monto,setMonto]=useState("");
   const [modo,setModo]=useState("cargar");   // cargar | retirar
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
 
   const cargar=async()=>{
     const m=parseFloat(monto);
-    if(!m||m<=0){ setMsg("Ingresá un monto"); return; }
+    if(!m||m<=0){ setMsg({text:"Ingresá un monto", ok:false}); return; }
     const signed = modo==="retirar" ? -Math.abs(m) : Math.abs(m);
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/sub/${code}/cc`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
@@ -7870,9 +7859,9 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
       });
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg(modo==="retirar"?"✅ Crédito retirado":"✅ Crédito cargado");
+      setMsg({text: modo==="retirar"?"✅ Crédito retirado":"✅ Crédito cargado", ok:true});
       setTimeout(onListo,800);
-    }catch(e){ setMsg("⚠️ "+e.message); setProc(false); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
   };
 
   return(
@@ -7882,7 +7871,7 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
         style={{padding:20,maxWidth:380,width:"100%"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:15,
-            fontFamily:"'Space Grotesk',system-ui"}}>💰 Crédito · {code}</div>
+            fontFamily:F_BODY}}>💰 Crédito · {code}</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
@@ -7892,11 +7881,11 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
               background:modo===k?`${Q.cyan}33`:"rgba(255,255,255,0.04)",
               border:`1px solid ${modo===k?Q.cyan:Q.border}`,borderRadius:9,
               padding:"9px",cursor:"pointer",color:modo===k?Q.cyan:Q.muted,
-              fontSize:13,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{l}</button>
+              fontSize:13,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
           ))}
         </div>
         <div style={{color:Q.muted,fontSize:11,marginBottom:10,lineHeight:1.5,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           {modo==="retirar"
             ?"Retirás crédito de la sub-agencia y vuelve a tu cuenta. No puede quedar en negativo."
             :"Transferís crédito de tu cuenta a la sub-agencia. Se descuenta de tu saldo."}</div>
@@ -7904,11 +7893,11 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
           placeholder="Ej: 50000"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:10,padding:"12px 14px",color:Q.text,fontSize:18,marginBottom:12,
-            textAlign:"center",fontFamily:"'Space Grotesk',system-ui"}}/>
+            textAlign:"center",fontFamily:F_BODY}}/>
         <Btn label={proc?"PROCESANDO...":(modo==="retirar"?"Retirar":"Cargar")} onClick={cargar} color={modo==="retirar"?Q.amber:Q.cyan} full disabled={proc}/>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-          color:msg.startsWith("✅")?Q.green:Q.red,
-          fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}>{msg.text}</div>}
       </GCard>
     </div>
   );
@@ -8003,14 +7992,14 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             border:`1px solid ${(saldoCC??0)>=0?Q.green:Q.red}66`,
             borderRadius:10,padding:"5px 10px",cursor:"pointer",textAlign:"right"}}>
             <div style={{color:Q.muted,fontSize:8,textTransform:"uppercase",
-              letterSpacing:1,fontFamily:"'Space Grotesk',system-ui"}}>Saldo</div>
+              letterSpacing:1,fontFamily:F_BODY}}>Saldo</div>
             <div style={{color:(saldoCC??0)>=0?Q.green:Q.red,fontWeight:800,fontSize:13,
-              fontFamily:"'Space Grotesk',system-ui"}}>
+              fontFamily:F_BODY}}>
               {saldoCC==null?"...":ars(saldoCC)}</div>
           </button>
           <div style={{textAlign:"right"}}>
             <div style={{color:Q.text,fontSize:12,fontWeight:600,
-              fontFamily:"'Space Grotesk',system-ui"}}>{agencia.name}</div>
+              fontFamily:F_BODY}}>{agencia.name}</div>
             <div style={{color:Q.muted,fontSize:10}}>{agencia.code}</div>
           </div>
           <button onClick={onLogout} style={{background:"transparent",
@@ -8028,7 +8017,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
             borderRadius:10,padding:"7px 14px",cursor:"pointer",flexShrink:0,
             color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
-            fontFamily:"'Space Grotesk',system-ui",
+            fontFamily:F_BODY,
             position:"relative",
           }}>
             {t.l}
@@ -8038,7 +8027,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
                 minWidth:16,height:16,fontSize:9,fontWeight:800,
                 display:"flex",alignItems:"center",
                 justifyContent:"center",padding:"0 4px",lineHeight:1,
-                fontFamily:"'Space Grotesk',system-ui"}}>
+                fontFamily:F_BODY}}>
                 {msgPendientes>9?"9+":msgPendientes}</span>
             )}
           </button>
@@ -8087,7 +8076,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             <div style={{display:"flex",justifyContent:"space-between",
               alignItems:"center",marginBottom:14}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:16,
-                fontFamily:"'Space Grotesk',system-ui"}}>💰 Mi saldo</div>
+                fontFamily:F_BODY}}>💰 Mi saldo</div>
               <button onClick={()=>setVerSaldo(false)} style={{background:"transparent",
                 border:"none",color:Q.muted,fontSize:26,cursor:"pointer",lineHeight:1}}>×</button>
             </div>
@@ -8302,7 +8291,7 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
           marginBottom:12}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:16,
-            fontFamily:"'Space Grotesk',system-ui"}}>🎨 Editor de placa</div>
+            fontFamily:F_BODY}}>🎨 Editor de placa</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:28,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
@@ -8318,13 +8307,13 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
         {capaSel&&(
           <GCard style={{padding:12,marginBottom:10}}>
             <div style={{color:Q.cyan,fontSize:11,marginBottom:8,
-              fontFamily:"'Space Grotesk',system-ui"}}>Editando: {capaSel.tipo}</div>
+              fontFamily:F_BODY}}>Editando: {capaSel.tipo}</div>
             {capaSel.tipo==="texto"&&(
               <input value={capaSel.texto} onChange={e=>editarTextoSel(e.target.value)}
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
                   border:`1px solid ${Q.border}`,borderRadius:8,padding:"8px 10px",
                   color:Q.text,fontSize:14,marginBottom:8,
-                  fontFamily:"'Space Grotesk',system-ui"}}/>
+                  fontFamily:F_BODY}}/>
             )}
             <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8}}>
               {colores.map(col=>(
@@ -8350,20 +8339,20 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
 
         {/* Fondos */}
         <div style={{color:Q.muted,fontSize:11,marginBottom:6,
-          fontFamily:"'Space Grotesk',system-ui"}}>Fondo</div>
+          fontFamily:F_BODY}}>Fondo</div>
         <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
           {templates.map((t,i)=>(
             <button key={i} onClick={()=>setFondo({tipo:"template",valor:i})}
               style={{padding:"7px 12px",borderRadius:8,fontSize:12,cursor:"pointer",
                 background:fondo.tipo==="template"&&fondo.valor===i?`${Q.violet}44`:"rgba(255,255,255,0.05)",
                 border:`1px solid ${fondo.tipo==="template"&&fondo.valor===i?Q.violet:Q.border}`,
-                color:Q.text,fontFamily:"'Space Grotesk',system-ui"}}>{t.name}</button>
+                color:Q.text,fontFamily:F_BODY}}>{t.name}</button>
           ))}
           <button onClick={()=>fileRef.current?.click()}
             style={{padding:"7px 12px",borderRadius:8,fontSize:12,cursor:"pointer",
               background:fondo.tipo==="imagen"?`${Q.cyan}33`:"rgba(255,255,255,0.05)",
               border:`1px solid ${fondo.tipo==="imagen"?Q.cyan:Q.border}`,
-              color:Q.text,fontFamily:"'Space Grotesk',system-ui"}}>📷 Mi foto</button>
+              color:Q.text,fontFamily:F_BODY}}>📷 Mi foto</button>
           <input ref={fileRef} type="file" accept="image/*" onChange={subirImagen} style={{display:"none"}}/>
         </div>
         <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
@@ -8378,14 +8367,14 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
         {fondo.tipo==="imagen"&&(
           <div style={{marginBottom:10}}>
             <div style={{color:Q.muted,fontSize:11,marginBottom:6,
-              fontFamily:"'Space Grotesk',system-ui"}}>Filtro</div>
+              fontFamily:F_BODY}}>Filtro</div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               {[["none","Normal"],["bn","B/N"],["calido","Cálido"],["frio","Frío"],["oscuro","Oscuro"]].map(([k,l])=>(
                 <button key={k} onClick={()=>setFiltro(k)}
                   style={{padding:"6px 11px",borderRadius:8,fontSize:12,cursor:"pointer",
                     background:filtro===k?`${Q.violet}44`:"rgba(255,255,255,0.05)",
                     border:`1px solid ${filtro===k?Q.violet:Q.border}`,
-                    color:Q.text,fontFamily:"'Space Grotesk',system-ui"}}>{l}</button>
+                    color:Q.text,fontFamily:F_BODY}}>{l}</button>
               ))}
             </div>
           </div>
@@ -8393,7 +8382,7 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
 
         {/* Stickers */}
         <div style={{color:Q.muted,fontSize:11,marginBottom:6,
-          fontFamily:"'Space Grotesk',system-ui"}}>Stickers (tocá para agregar)</div>
+          fontFamily:F_BODY}}>Stickers (tocá para agregar)</div>
         <div style={{display:"flex",gap:4,marginBottom:12,flexWrap:"wrap"}}>
           {emojis.map(em=>(
             <button key={em} onClick={()=>addSticker(em)}
@@ -8407,7 +8396,7 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
           <Btn label="⬇ Descargar" onClick={descargar} color={Q.gold} full/>
         </div>
         <div style={{color:Q.dim,fontSize:10,textAlign:"center",marginTop:8,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           Tocá un texto para moverlo o editarlo · Las cuotas del combo son fijas</div>
       </div>
     </div>
@@ -8445,21 +8434,21 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
       <GCard glow={Q.cyan} style={{padding:16,marginBottom:12,
         background:`linear-gradient(135deg,${Q.cyan}10,${Q.violet}06)`}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:6,
-          fontFamily:"'Space Grotesk',system-ui"}}>📸 Tu escáner de apuestas</div>
+          fontFamily:F_BODY}}>📸 Tu escáner de apuestas</div>
         <div style={{color:Q.muted,fontSize:11,marginBottom:12,lineHeight:1.5,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           Compartí este link. Tus seguidores escanean su apuesta, se la mejoramos,
           y cada jugada suma a tu comisión.</div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           <button onClick={()=>copiar(linkScanTg,"tg")} style={{background:`${Q.cyan}18`,
             border:`1px solid ${Q.cyan}`,borderRadius:9,padding:"11px",cursor:"pointer",
             color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             {copiado==="tg"?"✅ Copiado":"📲 Copiar link de escáner (Telegram)"}</button>
           <button onClick={()=>copiar(linkScanWeb,"web")} style={{background:`${Q.violet}18`,
             border:`1px solid ${Q.violet}`,borderRadius:9,padding:"11px",cursor:"pointer",
             color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             {copiado==="web"?"✅ Copiado":"🌐 Copiar link de escáner (web)"}</button>
         </div>
       </GCard>
@@ -8468,16 +8457,16 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
         <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"8px 10px",color:Q.text,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
         <span style={{color:Q.muted}}>→</span>
         <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"8px 10px",color:Q.text,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
       </div>
 
       {!data&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-        fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+        fontFamily:F_BODY}}>Cargando...</div>}
       {data&&(
         <div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
@@ -8485,28 +8474,28 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
               ["Conversión",data.conversion+"%",Q.gold]].map(([l,v,c])=>(
               <GCard key={l} style={{padding:"14px 8px",textAlign:"center"}}>
                 <div style={{color:c,fontWeight:800,fontSize:18,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{v}</div>
+                  fontFamily:F_BODY}}>{v}</div>
                 <div style={{color:Q.muted,fontSize:9,marginTop:2}}>{l}</div>
               </GCard>
             ))}
           </div>
 
           <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-            marginBottom:8,fontFamily:"'Space Grotesk',system-ui"}}>Últimos escaneos</div>
+            marginBottom:8,fontFamily:F_BODY}}>Últimos escaneos</div>
           {data.ultimos.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
-            padding:20,fontFamily:"'Space Grotesk',system-ui"}}>Sin escaneos en el período</div>}
+            padding:20,fontFamily:F_BODY}}>Sin escaneos en el período</div>}
           {data.ultimos.map((u,i)=>(
             <GCard key={i} style={{padding:"10px 13px",marginBottom:6}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontWeight:600,fontSize:12,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {u.picks_ok}/{u.picks_leidos} picks · {fmt(u.cuota)}x</div>
                   <div style={{color:Q.muted,fontSize:10}}>{u.fecha}
                     {u.betslip?` · ${u.betslip}`:""}</div>
                 </div>
                 <span style={{color:u.jugo?Q.green:Q.muted,fontWeight:700,fontSize:11,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{u.jugo?"✅ Jugó":"Escaneó"}</span>
+                  fontFamily:F_BODY}}>{u.jugo?"✅ Jugó":"Escaneó"}</span>
               </div>
             </GCard>
           ))}
@@ -8525,11 +8514,11 @@ function InfluencerPanel({ agencia, onLogout, onSesionExpirada }){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
         padding:"16px 0 12px"}}>
         <div style={{color:Q.text,fontWeight:800,fontSize:18,
-          fontFamily:"'Space Grotesk',system-ui"}}>🌟 {agencia.name}</div>
+          fontFamily:F_BODY}}>🌟 {agencia.name}</div>
         <button onClick={onLogout} style={{background:"transparent",
           border:`1px solid ${Q.border}`,borderRadius:8,padding:"6px 12px",
           color:Q.muted,fontSize:12,cursor:"pointer",
-          fontFamily:"'Space Grotesk',system-ui"}}>Salir</button>
+          fontFamily:F_BODY}}>Salir</button>
       </div>
 
       <div style={{display:"flex",gap:6,marginBottom:14}}>
@@ -8538,7 +8527,7 @@ function InfluencerPanel({ agencia, onLogout, onSesionExpirada }){
             background:tab===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${tab===k?Q.violet:Q.border}`,borderRadius:9,
             padding:"10px",cursor:"pointer",color:tab===k?Q.cyan:Q.muted,
-            fontSize:13,fontWeight:700,fontFamily:"'Space Grotesk',system-ui"}}>{l}</button>
+            fontSize:13,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
 
@@ -8585,23 +8574,23 @@ function InfluencerHome({ agencia, onSesionExpirada }){
       <GCard glow={Q.violet} style={{padding:16,marginBottom:12,
         background:`linear-gradient(135deg,${Q.violet}12,${Q.cyan}06)`}}>
         <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1,
-          marginBottom:6,fontFamily:"'Space Grotesk',system-ui"}}>Tu código</div>
+          marginBottom:6,fontFamily:F_BODY}}>Tu código</div>
         <div style={{color:Q.cyan,fontWeight:800,fontSize:22,marginBottom:12,
-          fontFamily:"'Space Grotesk',system-ui"}}>{ref||"—"}</div>
+          fontFamily:F_BODY}}>{ref||"—"}</div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           <button onClick={()=>copiar(linkTelegram,"tg")} style={{background:`${Q.cyan}18`,
             border:`1px solid ${Q.cyan}`,borderRadius:9,padding:"10px",cursor:"pointer",
             color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             {copiado==="tg"?"✅ Copiado":"📲 Copiar link de Telegram"}</button>
           <button onClick={()=>copiar(linkWeb,"web")} style={{background:`${Q.violet}18`,
             border:`1px solid ${Q.violet}`,borderRadius:9,padding:"10px",cursor:"pointer",
             color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
-            fontFamily:"'Space Grotesk',system-ui"}}>
+            fontFamily:F_BODY}}>
             {copiado==="web"?"✅ Copiado":"🌐 Copiar link web"}</button>
         </div>
         <div style={{color:Q.dim,fontSize:10,marginTop:8,
-          fontFamily:"'Space Grotesk',system-ui"}}>
+          fontFamily:F_BODY}}>
           Quien juegue por tus links o tus combos suma a tu comisión.</div>
       </GCard>
 
@@ -8610,23 +8599,23 @@ function InfluencerHome({ agencia, onSesionExpirada }){
         <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"8px 10px",color:Q.text,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
         <span style={{color:Q.muted}}>→</span>
         <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"8px 10px",color:Q.text,fontSize:13,
-            fontFamily:"'Space Grotesk',system-ui"}}/>
+            fontFamily:F_BODY}}/>
       </div>
 
       {!data&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-        fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+        fontFamily:F_BODY}}>Cargando...</div>}
       {data&&(
         <div>
           <GCard glow={Q.gold} style={{padding:18,marginBottom:12}}>
             <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1,
-              marginBottom:4,fontFamily:"'Space Grotesk',system-ui"}}>Tu comisión</div>
+              marginBottom:4,fontFamily:F_BODY}}>Tu comisión</div>
             <div style={{color:Q.gold,fontWeight:900,fontSize:30,
-              fontFamily:"'Space Grotesk',system-ui"}}>{ars(data.comision)}</div>
+              fontFamily:F_BODY}}>{ars(data.comision)}</div>
             <div style={{color:Q.muted,fontSize:11,marginTop:4}}>
               {fmt(data.pct_ggr)}% GGR + {fmt(data.pct_ventas)}% ventas</div>
           </GCard>
@@ -8635,7 +8624,7 @@ function InfluencerHome({ agencia, onSesionExpirada }){
               ["Jugadas",data.jugadas,Q.violet2,true]].map(([l,v,c,esNum])=>(
               <GCard key={l} style={{padding:"12px 8px",textAlign:"center"}}>
                 <div style={{color:c,fontWeight:800,fontSize:16,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{esNum?v:ars(v)}</div>
+                  fontFamily:F_BODY}}>{esNum?v:ars(v)}</div>
                 <div style={{color:Q.muted,fontSize:9,marginTop:2}}>{l}</div>
               </GCard>
             ))}
@@ -8670,7 +8659,7 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
   return(
     <div>
       <div style={{color:Q.muted,fontSize:11,marginBottom:12,
-        fontFamily:"'Space Grotesk',system-ui"}}>
+        fontFamily:F_BODY}}>
         Compartí estos combos con tu firma. Quien juegue por tu link suma a tu comisión.</div>
 
       <div style={{display:"flex",gap:6,marginBottom:12}}>
@@ -8679,14 +8668,14 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
             background:histo===v?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
             border:`1px solid ${histo===v?Q.cyan:Q.border}`,borderRadius:9,padding:"8px",
             cursor:"pointer",color:histo===v?Q.cyan:Q.muted,fontSize:12,fontWeight:700,
-            fontFamily:"'Space Grotesk',system-ui"}}>{l}</button>
+            fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
 
       {!combos&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-        fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+        fontFamily:F_BODY}}>Cargando...</div>}
       {combos&&combos.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
-        padding:20,fontFamily:"'Space Grotesk',system-ui"}}>No hay combos de la IA por ahora</div>}
+        padding:20,fontFamily:F_BODY}}>No hay combos de la IA por ahora</div>}
 
       {(combos||[]).map(c=>{
         const abierta=abierto===c.id;
@@ -8699,7 +8688,7 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
                 gap:8,cursor:"pointer"}}>
               <div style={{minWidth:0,flex:1}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{c.nombre}
+                  fontFamily:F_BODY}}>{c.nombre}
                   {c.es_ia&&<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
                     borderRadius:10,padding:"1px 7px",fontSize:9,color:Q.violet2,marginLeft:6}}>🤖 IA</span>}
                   {c.expirado&&<span style={{background:`${Q.amber}22`,border:`1px solid ${Q.amber}`,
@@ -8715,7 +8704,7 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
               <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${Q.dim}`}}>
                 {c.picks.map((p,j)=>(
                   <div key={j} style={{color:Q.muted,fontSize:11,marginBottom:4,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {(p.home||p.h||"")}{(p.home||p.h)?" · ":""}
                     <span style={{color:Q.cyan}}>{p.sel||p.label||""}</span>
                     <span style={{color:Q.violet2}}> @{fmt(p.odd)}</span></div>
@@ -8724,33 +8713,33 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
                   <button onClick={()=>copiar(linkTg,`tg${c.id}`)} style={{background:`${Q.cyan}18`,
                     border:`1px solid ${Q.cyan}`,borderRadius:9,padding:"9px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {copiado===`tg${c.id}`?"✅ Copiado":"📲 Link Telegram con tu firma"}</button>
                   <button onClick={()=>copiar(linkWeb,`web${c.id}`)} style={{background:`${Q.violet}18`,
                     border:`1px solid ${Q.violet}`,borderRadius:9,padding:"9px",cursor:"pointer",
                     color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {copiado===`web${c.id}`?"✅ Copiado":"🌐 Link web con tu firma"}</button>
                   <button onClick={()=>copiar(ref,`ref${c.id}`)} style={{background:"rgba(255,255,255,0.05)",
                     border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px",cursor:"pointer",
                     color:Q.muted,fontSize:12,fontWeight:700,textAlign:"left",
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {copiado===`ref${c.id}`?"✅ Copiado":`🎟️ Copiar tu código (${ref}) para agencia`}</button>
                   <div style={{height:1,background:Q.dim,margin:"4px 0"}}/>
                   <button onClick={()=>copiar(textoCombo(c,ref,linkTg),`txt${c.id}`)}
                     style={{background:`${Q.green}18`,border:`1px solid ${Q.green}`,borderRadius:9,
                     padding:"9px",cursor:"pointer",color:Q.green,fontSize:12,fontWeight:700,
-                    textAlign:"left",fontFamily:"'Space Grotesk',system-ui"}}>
+                    textAlign:"left",fontFamily:F_BODY}}>
                     {copiado===`txt${c.id}`?"✅ Texto copiado":"📝 Copiar texto para redes"}</button>
                   <button onClick={()=>descargarPlacaCombo(c,ref,linkTg)}
                     style={{background:`${Q.gold}18`,border:`1px solid ${Q.gold}`,borderRadius:9,
                     padding:"9px",cursor:"pointer",color:Q.gold,fontSize:12,fontWeight:700,
-                    textAlign:"left",fontFamily:"'Space Grotesk',system-ui"}}>
+                    textAlign:"left",fontFamily:F_BODY}}>
                     🖼️ Descargar placa (imagen)</button>
                   <button onClick={()=>setEditando(c)}
                     style={{background:`${Q.violet}18`,border:`1px solid ${Q.violet}`,borderRadius:9,
                     padding:"9px",cursor:"pointer",color:Q.violet2,fontSize:12,fontWeight:700,
-                    textAlign:"left",fontFamily:"'Space Grotesk',system-ui"}}>
+                    textAlign:"left",fontFamily:F_BODY}}>
                     🎨 Editar imagen (crear placa)</button>
                 </div>
               </div>
@@ -8790,7 +8779,7 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-          fontFamily:"'Space Grotesk',system-ui"}}>Mis combos</div>
+          fontFamily:F_BODY}}>Mis combos</div>
         <Btn label={crear?"Cancelar":"+ Nuevo"} onClick={()=>setCrear(c=>!c)}
           color={Q.violet} size="sm"/>
       </div>
@@ -8799,9 +8788,9 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
         onListo={()=>{setCrear(false);cargar();}} onSesionExpirada={onSesionExpirada}/>}
 
       {!combos&&<div style={{color:Q.muted,textAlign:"center",padding:20,
-        fontFamily:"'Space Grotesk',system-ui"}}>Cargando...</div>}
+        fontFamily:F_BODY}}>Cargando...</div>}
       {combos&&combos.length===0&&!crear&&<div style={{color:Q.muted,fontSize:12,
-        textAlign:"center",padding:20,fontFamily:"'Space Grotesk',system-ui"}}>
+        textAlign:"center",padding:20,fontFamily:F_BODY}}>
         Todavía no creaste combos</div>}
 
       {(combos||[]).map(c=>{
@@ -8816,7 +8805,7 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
                 gap:8,cursor:"pointer"}}>
               <div style={{minWidth:0,flex:1}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{c.nombre}
+                  fontFamily:F_BODY}}>{c.nombre}
                   {c.codigo&&<span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,
                     borderRadius:10,padding:"1px 8px",fontSize:10,color:Q.cyan,marginLeft:6}}>{c.codigo}</span>}</div>
                 <div style={{color:Q.muted,fontSize:10}}>{c.picks.length} picks · {fmt(c.odd)}x{c.fecha?` · ${c.fecha}`:""}</div>
@@ -8828,7 +8817,7 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
               <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${Q.dim}`}}>
                 {c.picks.map((p,j)=>(
                   <div key={j} style={{color:Q.muted,fontSize:11,marginBottom:4,
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {(p.home||p.h||"")}{(p.home||p.h)?" · ":""}
                     <span style={{color:Q.cyan}}>{p.sel||p.label||""}</span>
                     <span style={{color:Q.violet2}}> @{fmt(p.odd)}</span></div>
@@ -8837,9 +8826,9 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
                 <div style={{marginTop:8,marginBottom:6}}>
                   {montosDe(agencia?.moneda).slice(1).map(m=>(
                     <div key={m} style={{display:"flex",justifyContent:"space-between",padding:"1px 0"}}>
-                      <span style={{color:Q.muted,fontSize:11,fontFamily:"'Space Grotesk',system-ui"}}>Apostás {ars(m)}</span>
+                      <span style={{color:Q.muted,fontSize:11,fontFamily:F_BODY}}>Apostás {ars(m)}</span>
                       <span style={{color:Q.green,fontWeight:700,fontSize:11,
-                        fontFamily:"'Space Grotesk',system-ui"}}>→ {ars(Math.round(m*(c.odd||1)))}</span>
+                        fontFamily:F_BODY}}>→ {ars(Math.round(m*(c.odd||1)))}</span>
                     </div>
                   ))}
                 </div>
@@ -8847,33 +8836,33 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
                   <button onClick={()=>copiar(linkTg,`tg${c.id}`)} style={{background:`${Q.cyan}18`,
                     border:`1px solid ${Q.cyan}`,borderRadius:9,padding:"9px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {copiado===`tg${c.id}`?"✅ Copiado":"📲 Link Telegram con tu firma"}</button>
                   <button onClick={()=>copiar(linkWeb,`web${c.id}`)} style={{background:`${Q.violet}18`,
                     border:`1px solid ${Q.violet}`,borderRadius:9,padding:"9px",cursor:"pointer",
                     color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {copiado===`web${c.id}`?"✅ Copiado":"🌐 Link web con tu firma"}</button>
                   <button onClick={()=>copiar(codOut,`ref${c.id}`)} style={{background:"rgba(255,255,255,0.05)",
                     border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px",cursor:"pointer",
                     color:Q.muted,fontSize:12,fontWeight:700,textAlign:"left",
-                    fontFamily:"'Space Grotesk',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {copiado===`ref${c.id}`?"✅ Copiado":`🎟️ Copiar código (${codOut}) para agencia`}</button>
                   <div style={{height:1,background:Q.dim,margin:"4px 0"}}/>
                   <button onClick={()=>copiar(textoCombo(c,ref,linkTg),`txt${c.id}`)}
                     style={{background:`${Q.green}18`,border:`1px solid ${Q.green}`,borderRadius:9,
                     padding:"9px",cursor:"pointer",color:Q.green,fontSize:12,fontWeight:700,
-                    textAlign:"left",fontFamily:"'Space Grotesk',system-ui"}}>
+                    textAlign:"left",fontFamily:F_BODY}}>
                     {copiado===`txt${c.id}`?"✅ Texto copiado":"📝 Copiar texto para redes"}</button>
                   <button onClick={()=>descargarPlacaCombo(c,ref,linkTg)}
                     style={{background:`${Q.gold}18`,border:`1px solid ${Q.gold}`,borderRadius:9,
                     padding:"9px",cursor:"pointer",color:Q.gold,fontSize:12,fontWeight:700,
-                    textAlign:"left",fontFamily:"'Space Grotesk',system-ui"}}>
+                    textAlign:"left",fontFamily:F_BODY}}>
                     🖼️ Descargar placa (imagen)</button>
                   <button onClick={()=>setEditando(c)}
                     style={{background:`${Q.violet}18`,border:`1px solid ${Q.violet}`,borderRadius:9,
                     padding:"9px",cursor:"pointer",color:Q.violet2,fontSize:12,fontWeight:700,
-                    textAlign:"left",fontFamily:"'Space Grotesk',system-ui"}}>
+                    textAlign:"left",fontFamily:F_BODY}}>
                     🎨 Editar imagen (Instagram)</button>
                 </div>
               </div>
@@ -8896,7 +8885,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
   const [prematch,setPrematch]=useState(null);
   const [liga,setLiga]=useState(null);
   const [busqueda,setBusqueda]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [editando,setEditando]=useState(null);
 
@@ -8922,8 +8911,8 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
   const oddTotal=picks.reduce((a,p)=>a*(parseFloat(p.odd)||1),1);
 
   const guardar=async()=>{
-    if(picks.length===0){ setMsg("Elegí al menos un partido"); return; }
-    setProc(true); setMsg("");
+    if(picks.length===0){ setMsg({text:"Elegí al menos un partido", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/influencer/me/combos`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
@@ -8934,62 +8923,62 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg("✅ Combo creado");
+      setMsg({text:"✅ Combo creado", ok:true});
       // Ofrecer editar la placa del combo recién creado
       setEditando({id:d.id, nombre, codigo, picks, odd_total:d.odd_total||oddTotal});
       setProc(false);
-    }catch(e){ setMsg("⚠️ "+e.message); setProc(false); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
   };
 
   return(
     <GCard glow={Q.violet} style={{padding:16,marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
-        fontFamily:"'Space Grotesk',system-ui"}}>⚡ Nuevo combo · elegí de la oferta real</div>
+        fontFamily:F_BODY}}>⚡ Nuevo combo · elegí de la oferta real</div>
       <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre del combo"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
           borderRadius:9,padding:"9px 12px",color:Q.text,fontSize:16,marginBottom:8,
-          fontFamily:"'Space Grotesk',system-ui"}}/>
+          fontFamily:F_BODY}}/>
       <input value={codigo} onChange={e=>setCodigo(e.target.value.toUpperCase())}
         placeholder="Código de salida (opcional, ej: JUANTIPS)"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
           borderRadius:9,padding:"9px 12px",color:Q.text,fontSize:16,marginBottom:12,
-          fontFamily:"'Space Grotesk',system-ui"}}/>
+          fontFamily:F_BODY}}/>
 
       {/* Picks elegidos + ganancias */}
       {picks.length>0&&(
         <GCard glow={Q.gold} style={{padding:12,marginBottom:12,
           background:`linear-gradient(135deg,${Q.violet}10,${Q.gold}08)`}}>
           <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1,
-            marginBottom:8,fontFamily:"'Space Grotesk',system-ui"}}>Tu combo ({picks.length})</div>
+            marginBottom:8,fontFamily:F_BODY}}>Tu combo ({picks.length})</div>
           {picks.map((p,i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
               padding:"5px 0",borderBottom:i<picks.length-1?`1px solid ${Q.dim}`:"none"}}>
               <div style={{minWidth:0,flex:1}}>
                 <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                  fontFamily:"'Space Grotesk',system-ui"}}>{p.sel}</div>
+                  fontFamily:F_BODY}}>{p.sel}</div>
                 <div style={{color:Q.muted,fontSize:9}}>{p.home} vs {p.away}</div>
               </div>
               <span style={{color:Q.cyan,fontWeight:700,fontSize:13,marginRight:8,
-                fontFamily:"'Space Grotesk',system-ui"}}>{fmt(p.odd)}</span>
+                fontFamily:F_BODY}}>{fmt(p.odd)}</span>
               <span onClick={()=>quitarPick(i)} style={{color:Q.red,fontSize:11,cursor:"pointer"}}>✕</span>
             </div>
           ))}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
             marginTop:10,paddingTop:8,borderTop:`1px solid ${Q.violet}44`}}>
             <span style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-              fontFamily:"'Space Grotesk',system-ui"}}>Cuota total</span>
+              fontFamily:F_BODY}}>Cuota total</span>
             <span style={{color:Q.gold,fontWeight:900,fontSize:22,
-              fontFamily:"'Space Grotesk',system-ui"}}>{fmt(oddTotal)}x</span>
+              fontFamily:F_BODY}}>{fmt(oddTotal)}x</span>
           </div>
           <div style={{marginTop:8}}>
             <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1,
-              marginBottom:4,fontFamily:"'Space Grotesk',system-ui"}}>Ganancias</div>
+              marginBottom:4,fontFamily:F_BODY}}>Ganancias</div>
             {montosDe(agencia?.moneda).slice(1).map(m=>(
               <div key={m} style={{display:"flex",justifyContent:"space-between",padding:"2px 0"}}>
-                <span style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>
+                <span style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
                   Apostás {ars(m)}</span>
                 <span style={{color:Q.green,fontWeight:700,fontSize:12,
-                  fontFamily:"'Space Grotesk',system-ui"}}>→ {ars(Math.round(m*oddTotal))}</span>
+                  fontFamily:F_BODY}}>→ {ars(Math.round(m*oddTotal))}</span>
               </div>
             ))}
           </div>
@@ -8999,8 +8988,8 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
       <Btn label={proc?"GUARDANDO...":"💾 Crear combo"} onClick={guardar}
         color={Q.violet} full disabled={proc||picks.length===0}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:"'Space Grotesk',system-ui"}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       {editando&&(
         <div style={{marginTop:12}}>
@@ -9018,9 +9007,9 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
       {/* Oferta de prematch para elegir */}
       <div style={{marginTop:16}}>
         <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-          marginBottom:8,fontFamily:"'Space Grotesk',system-ui"}}>📋 Elegí partidos</div>
+          marginBottom:8,fontFamily:F_BODY}}>📋 Elegí partidos</div>
         {!prematch&&<GCard style={{padding:20,textAlign:"center"}}>
-          <div style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>
+          <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
             Cargando cuotas...</div></GCard>}
         {prematch&&prematch.length>0&&(
           <FiltroEventos ligas={prematch} liga={liga} setLiga={setLiga}
@@ -9028,12 +9017,12 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
             total={prematch.reduce((a,d)=>a+(d.events||[]).length,0)}/>
         )}
         {prematch&&prematch.length===0&&<GCard style={{padding:20,textAlign:"center"}}>
-          <div style={{color:Q.muted,fontSize:12,fontFamily:"'Space Grotesk',system-ui"}}>
+          <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
             No hay eventos con cuotas ahora</div></GCard>}
         {filtrarDeportes(prematch||[], liga, busqueda).map(d=>(
           <GCard key={d.name} style={{padding:14,marginBottom:10}}>
             <div style={{color:Q.violet2,fontWeight:700,fontSize:13,marginBottom:10,
-              fontFamily:"'Space Grotesk',system-ui"}}>{d.icon} {d.name}</div>
+              fontFamily:F_BODY}}>{d.icon} {d.name}</div>
             {(d.events||[]).map(ev=>(
               <div key={ev.id||(ev.h+ev.a)} style={{marginBottom:12,
                 borderBottom:`1px solid ${Q.dim}`,paddingBottom:10}}>
@@ -9041,7 +9030,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
                   <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0}}>
                     <TeamLogo name={ev.h} size={20}/>
                     <span style={{color:Q.text,fontWeight:600,fontSize:12,
-                      fontFamily:"'Space Grotesk',system-ui",overflow:"hidden",
+                      fontFamily:F_BODY,overflow:"hidden",
                       textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.h} vs {ev.a}</span>
                     <TeamLogo name={ev.a} size={20}/>
                   </div>
@@ -9064,7 +9053,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
                         textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt.label}</div>
                       <div style={{color:hasPick(ev.h,opt.label)?Q.cyan:Q.text,
                         fontWeight:700,fontSize:15,
-                        fontFamily:"'Space Grotesk',system-ui"}}>{opt.odd}</div>
+                        fontFamily:F_BODY}}>{opt.odd}</div>
                     </button>
                   ))}
                 </div>
@@ -9143,14 +9132,14 @@ export default function QuartzAgencia(){
           <div style={{textAlign:"center",marginBottom:20}}>
             <div style={{fontSize:44,marginBottom:8}}>🔐</div>
             <div style={{color:Q.text,fontWeight:800,fontSize:18,
-              fontFamily:"'Space Grotesk',system-ui"}}>Bienvenido/a {agencia.name}</div>
+              fontFamily:F_BODY}}>Bienvenido/a {agencia.name}</div>
           </div>
           <CambiarMiPassword agencia={agencia} obligado
             onListo={()=>setAgencia(a=>({...a,debe_cambiar_pass:false}))}/>
           <button onClick={()=>setAgencia(null)} style={{width:"100%",
             background:"transparent",border:`1px solid ${Q.border}`,borderRadius:9,
             padding:"10px",color:Q.muted,fontSize:12,cursor:"pointer",marginTop:8,
-            fontFamily:"'Space Grotesk',system-ui"}}>Salir</button>
+            fontFamily:F_BODY}}>Salir</button>
         </div>
       ) : agencia.tipo==="influencer" ? (
         <InfluencerPanel agencia={agencia}

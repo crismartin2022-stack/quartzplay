@@ -16,52 +16,21 @@ import {
   estadoDeAcciones, stakeValido, mensajeDeDetalle, cuerpoDeApuesta,
   hasIdentity,
 } from "./betBestActions";
-import { THEMES as TEMAS, F_NUM, F_BODY, inkOn } from "./theme";
+import { oscuro as Q, F_NUM, F_BODY, inkOn } from "./theme";
+import BrandMark from "./BrandMark";
+import Mascot from "./Mascot";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 
-function temaGuardado(){
-  try{ return localStorage.getItem("qp_tema")==="claro" ? "claro" : "oscuro"; }
-  catch(e){ return "oscuro"; }
-}
-
-let TEMA = temaGuardado();
-let Q = TEMAS[TEMA];
-
-function aplicarTema(nombre){
-  TEMA = nombre==="claro" ? "claro" : "oscuro";
-  Q = TEMAS[TEMA];
-  try{ localStorage.setItem("qp_tema", TEMA); }catch(e){}
+// Un único tema. Los ~1000 usos de Q.algo siguen funcionando sin
+// tocarlos porque Q es la paleta oscura importada directamente.
+function aplicarTema(){
   try{ document.body.style.background = Q.void; }catch(e){}
 }
 
-// Superposiciones (hover, vidrio). En claro tienen que oscurecer,
-// no aclarar: blanco sobre blanco no se ve.
+// Superposiciones (hover, vidrio).
 function ov(a){
-  return TEMA==="claro" ? `rgba(15,26,51,${a})` : `rgba(255,255,255,${a})`;
-}
-
-// Botón para alternar. Se usa en las tres superficies.
-function BotonTema({ tema, onCambiar, compacto }){
-  const claro = tema==="claro";
-  return(
-    <button onClick={()=>onCambiar(claro?"oscuro":"claro")}
-      aria-label={claro?"Cambiar a modo noche":"Cambiar a modo día"}
-      title={claro?"Modo noche":"Modo día"}
-      style={{width:compacto?30:34,height:compacto?30:34,borderRadius:"50%",
-        flexShrink:0,background:"transparent",border:`1px solid ${Q.border}`,
-        cursor:"pointer",display:"flex",alignItems:"center",
-        justifyContent:"center",padding:0}}>
-      <svg width={compacto?15:17} height={compacto?15:17} viewBox="0 0 24 24"
-        fill="none" stroke={Q.muted} strokeWidth="1.8"
-        strokeLinecap="round" strokeLinejoin="round">
-        {claro
-          ? <path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>
-          : <><circle cx="12" cy="12" r="4"/>
-              <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></>}
-      </svg>
-    </button>
-  );
+  return `rgba(255,255,255,${a})`;
 }
 
 const fmt  = n => Number(n||0).toFixed(2);
@@ -1416,8 +1385,7 @@ function PantallaTerminal({ codigo, onSeguir }){
       padding:"40px 22px",maxWidth:440,margin:"0 auto",
       display:"flex",flexDirection:"column",justifyContent:"center"}}>
       <div style={{textAlign:"center"}}>
-        <div style={{color:Q.violet,fontWeight:900,fontSize:15,
-          letterSpacing:2,fontFamily:F_BODY}}>IAQP</div>
+        <BrandMark size={15}/>
 
         <div style={{color:Q.text,fontSize:26,fontWeight:800,
           marginTop:18,lineHeight:1.3,fontFamily:F_BODY}}>
@@ -1744,8 +1712,7 @@ function BotMsgWeb({ children, time="9:41" }){
           por debajo de su contenido y los nombres largos de equipos
           empujan toda la pantalla hacia la derecha. */}
       <div style={{flex:1,minWidth:0}}>
-        <div style={{color:Q.violet2,fontSize:11,fontWeight:700,marginBottom:3,
-          fontFamily:F_BODY,letterSpacing:0.3}}>IAQP</div>
+        <BrandMark size={11} style={{marginBottom:3}}/>
         <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:12,padding:"14px"}}>
           {children}
           <div style={{textAlign:"right",marginTop:6,color:Q.muted,fontSize:9,
@@ -2528,10 +2495,12 @@ function CampanaWeb({ sesion }){
             </div>
 
             {avisos.length===0&&(
-              <div style={{color:Q.muted,fontSize:13,textAlign:"center",
-                padding:"24px 12px",lineHeight:1.6,
-                fontFamily:F_BODY}}>
-                No hay novedades por ahora.</div>
+              <div style={{textAlign:"center",padding:"24px 12px"}}>
+                <Mascot size={56} style={{margin:"0 auto 8px"}}/>
+                <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
+                  fontFamily:F_BODY}}>
+                  No hay novedades por ahora.</div>
+              </div>
             )}
 
             {avisos.map(a=>(
@@ -2567,7 +2536,7 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
   const [vista,setVista]=useState(inicial||"cuenta");
   const [d,setD]=useState(null);
   const [hist,setHist]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [pass,setPass]=useState({actual:"",nueva:"",repetir:""});
 
@@ -2588,14 +2557,14 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
 
   const cambiarPass=async()=>{
     if(pass.nueva.length<6){
-      setMsg("La clave nueva tiene que tener al menos 6 caracteres");
+      setMsg({text:"La clave nueva tiene que tener al menos 6 caracteres", ok:false});
       return;
     }
     if(pass.nueva!==pass.repetir){
-      setMsg("Las dos claves nuevas no coinciden");
+      setMsg({text:"Las dos claves nuevas no coinciden", ok:false});
       return;
     }
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/cliente/password`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -2603,9 +2572,9 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
         body:JSON.stringify({actual:pass.actual, nueva:pass.nueva})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"No se pudo cambiar");
-      setMsg("✅ Clave cambiada");
+      setMsg({text:"✅ Clave cambiada", ok:true});
       setPass({actual:"",nueva:"",repetir:""});
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -2670,9 +2639,9 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
         </div>
 
         {msg&&(
-          <div style={{color:msg.startsWith("✅")?Q.green:Q.red,
+          <div style={{color:msg.ok?Q.green:Q.red,
             fontSize:12.5,marginBottom:12,textAlign:"center",
-            lineHeight:1.5,fontFamily:F_BODY}}>{msg}</div>
+            lineHeight:1.5,fontFamily:F_BODY}}>{msg.text}</div>
         )}
 
         {vista==="cuenta"&&(
@@ -2739,10 +2708,12 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
                 </div>
 
                 {(hist.movimientos||[]).length===0&&(
-                  <div style={{color:Q.muted,textAlign:"center",
-                    padding:"30px 20px",fontSize:13,lineHeight:1.6,
-                    fontFamily:F_BODY}}>
-                    Todavía no jugaste nada.</div>
+                  <div style={{textAlign:"center",padding:"30px 20px"}}>
+                    <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+                    <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
+                      fontFamily:F_BODY}}>
+                      Todavía no jugaste nada.</div>
+                  </div>
                 )}
 
                 {(hist.movimientos||[]).map((m,i)=>(
@@ -3681,7 +3652,7 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
   const [pongo,setPongo]=useState("");
   const [pido,setPido]=useState("");
   const [coincidencias,setCoincidencias]=useState([]);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   // Se buscan coincidencias mientras escribe: si ya existe lo
@@ -3702,7 +3673,7 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
   },[titulo,pongo,pido]);
 
   const crear=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/p2p/crear`,{
         method:"POST",headers:{"Content-Type":"application/json"},
@@ -3712,24 +3683,24 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
           monto_aceptador:parseFloat(pido)||0})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo crear");
-      setMsg("✅ "+(d.aviso||"Listo"));
+      setMsg({text:"✅ "+(d.aviso||"Listo"), ok:true});
       setTitulo(""); setDesc(""); setPongo(""); setPido("");
       setTimeout(()=>onListo&&onListo(),1200);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
   const aceptarExistente=async(id)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/p2p/${id}/aceptar`,{
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({user_id:user.id})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo");
-      setMsg("✅ "+(d.aviso||"Aceptado"));
+      setMsg({text:"✅ "+(d.aviso||"Aceptado"), ok:true});
       setTimeout(()=>onListo&&onListo(),1200);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -3745,9 +3716,9 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
 
   return(
     <div>
-      {msg&&<div style={{color:msg.startsWith("✅")?Q.green:Q.red,
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,
         fontSize:13,marginBottom:12,textAlign:"center",lineHeight:1.5,
-        fontFamily:F_BODY}}>{msg}</div>}
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       <div style={{color:Q.muted,fontSize:12.5,marginBottom:14,
         lineHeight:1.6,fontFamily:F_BODY}}>
@@ -3911,6 +3882,7 @@ function MisDesafiosWeb({ user, onCambio }){
 
   if(!lista.length) return(
     <div style={{textAlign:"center",padding:"36px 20px"}}>
+      <Mascot size={64} style={{margin:"0 auto 8px"}}/>
       <div style={{color:Q.muted,fontSize:13.5,lineHeight:1.6,
         fontFamily:F_BODY}}>
         Todavía no participaste de ningún desafío.</div>
@@ -4019,7 +3991,7 @@ function MisDesafiosWeb({ user, onCambio }){
 function PanelIacoinWeb({ user, saldo, onCambio }){
   const [modo,setModo]=useState("comprar");
   const [cantidad,setCantidad]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const cot=saldo?.cotizacion;
@@ -4028,7 +4000,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
   const total=n*precio;
 
   const operar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(
         `${API}/api/iacoin/${modo==="comprar"?"comprar":"vender"}`,{
@@ -4036,16 +4008,17 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
         body:JSON.stringify({user_id:user.id, cantidad:n})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo");
-      setMsg(modo==="comprar"
+      setMsg({text: modo==="comprar"
         ?`✅ Compraste ${n} IACOIN por ${d.pagaste.toLocaleString("es-AR")}`
-        :`✅ Vendiste ${n} IACOIN por ${d.recibiste.toLocaleString("es-AR")}`);
+        :`✅ Vendiste ${n} IACOIN por ${d.recibiste.toLocaleString("es-AR")}`, ok:true});
       setCantidad(""); onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
   if(!cot) return(
     <div style={{textAlign:"center",padding:"36px 20px"}}>
+      <Mascot size={64} style={{margin:"0 auto 8px"}}/>
       <div style={{color:Q.muted,fontSize:13.5,lineHeight:1.6,
         fontFamily:F_BODY}}>
         Todavía no hay cotización para tu moneda.<br/>
@@ -4082,7 +4055,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
 
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         {[["comprar","Comprar"],["vender","Vender"]].map(([k,l])=>(
-          <button key={k} onClick={()=>{setModo(k);setMsg("");}}
+          <button key={k} onClick={()=>{setModo(k);setMsg(null);}}
             style={{flex:1,
               background:modo===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${modo===k?Q.violet:Q.border}`,
@@ -4093,9 +4066,9 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
         ))}
       </div>
 
-      {msg&&<div style={{color:msg.startsWith("✅")?Q.green:Q.red,
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,
         fontSize:13,marginBottom:12,textAlign:"center",lineHeight:1.5,
-        fontFamily:F_BODY}}>{msg}</div>}
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:5,
         fontFamily:F_BODY}}>Cuántos IACOIN</div>
@@ -4503,9 +4476,7 @@ export default function Web(){
   // ligas. Va DESPUÉS de declarar vista: antes reventaba al abrir.
   const esDeportes = vista==="prematch" || vista==="vivo";   // prematch | vivo
   const [boletoAbierto,setBoletoAbierto]=useState(false);
-  const [tema,setTema]=useState(temaGuardado());
-  const cambiarTema=(t)=>{ aplicarTema(t); setTema(t); };
-  aplicarTema(tema);
+  aplicarTema();
   const [ancho,setAncho]=useState(typeof window!=="undefined"?window.innerWidth>=1000:true);
 
   // Código de referido del enlace (?ref=CODIGO o ?scan=CODIGO). Sin esto,
@@ -4637,9 +4608,7 @@ export default function Web(){
         display:"flex",alignItems:"center",gap:ancho?22:12,
         padding:ancho?"0 18px":"0 10px",height:56,
         position:"sticky",top:0,zIndex:100}}>
-        <span style={{fontFamily:F_NUM,fontSize:ancho?23:19,fontWeight:700,
-          letterSpacing:.4,whiteSpace:"nowrap"}}>
-          IA<span style={{color:Q.gold}}>QP</span></span>
+        <BrandMark size={ancho?23:19}/>
 
         {/* El saldo, a la izquierda junto al logo. La navegación
             vive toda en la barra de abajo. */}
@@ -4686,8 +4655,6 @@ export default function Web(){
             color:Q.cyan,fontSize:12.5,fontWeight:700,cursor:"pointer",
             whiteSpace:"nowrap"}}>Ingresar</button>
         )}
-
-        <BotonTema tema={tema} onCambiar={cambiarTema} compacto/>
 
         {ancho&&(
           <button onClick={()=>setConsultar(true)} style={{background:"transparent",
@@ -4854,11 +4821,13 @@ export default function Web(){
           {vista==="vivo"&&(
             <div style={{marginBottom:16}}>
               {!vivosFiltrados.length&&(
-                <div style={{..._panel(),padding:"40px 20px",textAlign:"center",
-                  color:Q.muted,fontSize:13}}>
-                  {grupo
-                    ? `No hay ${(GRUPOS[grupo]||grupo).toLowerCase()} en vivo ahora.`
-                    : "No hay partidos en vivo en este momento."}</div>
+                <div style={{..._panel(),padding:"40px 20px",textAlign:"center"}}>
+                  <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+                  <div style={{color:Q.muted,fontSize:13}}>
+                    {grupo
+                      ? `No hay ${(GRUPOS[grupo]||grupo).toLowerCase()} en vivo ahora.`
+                      : "No hay partidos en vivo en este momento."}</div>
+                </div>
               )}
               {vivosFiltrados.length>0&&(
                 <>
@@ -4891,9 +4860,11 @@ export default function Web(){
           )}
 
           {vista==="prematch"&&!cargando&&!listado.length&&(
-            <div style={{..._panel(),padding:"40px 20px",textAlign:"center",
-              color:Q.muted,fontSize:13}}>
-              No hay partidos disponibles en este momento.</div>
+            <div style={{..._panel(),padding:"40px 20px",textAlign:"center"}}>
+              <Mascot size={64} style={{margin:"0 auto 8px"}}/>
+              <div style={{color:Q.muted,fontSize:13}}>
+                No hay partidos disponibles en este momento.</div>
+            </div>
           )}
 
           {vista==="prematch"&&listado.map(grupo=>(
