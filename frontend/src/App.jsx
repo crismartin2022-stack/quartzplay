@@ -633,7 +633,7 @@ function EstadisticasPartido({ ev, onCerrar }){
               fontFamily:F_BODY}}>
               {stats.marcador.home} - {stats.marcador.away}</div>
             <div style={{color:Q.muted,fontSize:11,fontFamily:F_BODY}}>
-              {stats.estado==="live"?"🔴 En vivo":stats.estado==="closed"?"Finalizado":stats.estado}</div>
+              {stats.estado==="live"?<><Icon name="circle-dot" size={11}/> En vivo</>:stats.estado==="closed"?"Finalizado":stats.estado}</div>
           </div>
         )}
 
@@ -654,7 +654,7 @@ function EstadisticasPartido({ ev, onCerrar }){
             {stats&&(!stats.disponible||!stats.tiene_stats)&&(
               <div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:24,
                 fontFamily:F_BODY}}>
-                📊 No hay estadísticas detalladas disponibles para este partido.
+                <Icon name="chart-no-axes-combined" size={13}/> No hay estadísticas detalladas disponibles para este partido.
                 {stats.disponible===false&&" El partido no se encontró en el proveedor."}</div>
             )}
             {stats&&stats.tiene_stats&&Array.isArray(stats.stats)&&stats.stats.map((s,i)=>{
@@ -721,7 +721,7 @@ function EstadisticasPartidoBoton({ ev }){
       <button onClick={()=>setAbierto(true)} style={{width:"100%",marginTop:6,
         background:ov(0.04),border:`1px solid ${Q.cyan}44`,borderRadius:8,
         padding:"6px",cursor:"pointer",color:Q.cyan,fontSize:10,fontWeight:700,
-        fontFamily:F_BODY}}>📊 Estadísticas y análisis</button>
+        fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={10}/> Estadísticas y análisis</button>
       {abierto&&<EstadisticasPartido ev={ev} onCerrar={()=>setAbierto(false)}/>}
     </>
   );
@@ -989,10 +989,10 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 120px"}}>
-        <UserMsg time="9:50">📋 Prematch</UserMsg>
+        <UserMsg time="9:50"><Icon name="clipboard-list" size={13}/> Prematch</UserMsg>
         <BotMsg time="9:50">
           <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:10,fontFamily:F_BODY}}>
-            📋 Apuestas Prematch — Cuotas reales
+            <Icon name="clipboard-list" size={13}/> Apuestas Prematch — Cuotas reales
           </div>
 
           {/* Buscador de equipo */}
@@ -1000,7 +1000,7 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
             <div style={{display:"flex",alignItems:"center",gap:8,
               background:ov(0.05),border:`1px solid ${Q.border}`,
               borderRadius:10,padding:"8px 12px",marginBottom:8}}>
-              <span style={{color:Q.muted,fontSize:14}}>🔍</span>
+              <Icon name="search" size={14} color={Q.muted}/>
               <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
                 placeholder="Buscar equipo..."
                 style={{background:"transparent",border:"none",color:Q.text,
@@ -1098,7 +1098,7 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
           {srPartidos.length>0&&(
             <div style={{marginTop:16}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                <span style={{fontSize:16}}>⚽</span>
+                <Icon name="trophy" size={16}/>
                 <span style={{color:Q.cyan,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>Sportradar · {srPartidos.length} partidos</span>
                 <span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}55`,
@@ -1176,7 +1176,7 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
               ))}
             </div>
           )}
-          <QKB rows={[[{label:"◀ Sports",action:"sports"},{label:"⚡ AI Combo",action:"combo"}]]} onPress={onAction}/>
+          <QKB rows={[[{icon:<Icon name="arrow-left" size={14}/>,label:"Sports",action:"sports"},{icon:<Zap size={14}/>,label:"AI Combo",action:"combo"}]]} onPress={onAction}/>
         </BotMsg>
       </div>
 
@@ -1235,7 +1235,7 @@ function ScreenLive({ onAction, onBet, onLocal, moneda, betsIniciales,
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 120px"}}>
-        <UserMsg time="9:55">🔴 En Vivo</UserMsg>
+        <UserMsg time="9:55"><Icon name="circle-dot" size={13}/> En Vivo</UserMsg>
         <BotMsg time="9:55">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1255,7 +1255,7 @@ function ScreenLive({ onAction, onBet, onLocal, moneda, betsIniciales,
 
           {!loading&&matches.length===0&&(
             <div style={{textAlign:"center",padding:24}}>
-              <div style={{fontSize:32,marginBottom:8}}>⚽</div>
+              <div style={{marginBottom:8}}><Icon name="trophy" size={32}/></div>
               <div style={{color:Q.muted,fontSize:13,fontFamily:F_BODY}}>No hay partidos en vivo ahora</div>
             </div>
           )}
@@ -1338,7 +1338,7 @@ function ScreenLive({ onAction, onBet, onLocal, moneda, betsIniciales,
             </GCard>
           ))}
 
-          <QKB rows={[[{label:"◀ Sports",action:"sports"},{label:"📋 Prematch",action:"prematch"}]]} onPress={onAction}/>
+          <QKB rows={[[{icon:<Icon name="arrow-left" size={14}/>,label:"Sports",action:"sports"},{icon:<Icon name="clipboard-list" size={14}/>,label:"Prematch",action:"prematch"}]]} onPress={onAction}/>
         </BotMsg>
       </div>
 
@@ -1362,7 +1362,7 @@ function ScreenPool({ onAction }){
                    "cuenta de quién entra y con cuánto. Eso todavía no existe, "+
                    "así que la pantalla anterior mostraba montos y jugadores "+
                    "inventados."}/>
-        <QKB rows={[[{label:"◀ Sports",action:"sports"}]]} onPress={onAction}/>
+        <QKB rows={[[{icon:<Icon name="arrow-left" size={14}/>,label:"Sports",action:"sports"}]]} onPress={onAction}/>
       </BotMsg>
     </div>
   );
@@ -1373,12 +1373,12 @@ function ScreenP2P({ onAction }){
     <div style={{background:Q.void,minHeight:"100%",padding:"14px 12px"}}>
       <BotMsg time="">
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,
-          fontFamily:F_BODY}}>🤝 Apuestas P2P</div>
+          fontFamily:F_BODY}}><Handshake size={13}/> Apuestas P2P</div>
         <SinBackend titulo="Todavía no está disponible"
           detalle={"Apostar contra otro usuario requiere emparejar ofertas y "+
                    "retener el dinero de las dos partes. Las ofertas que se "+
                    "veían antes eran de ejemplo."}/>
-        <QKB rows={[[{label:"◀ Sports",action:"sports"}]]} onPress={onAction}/>
+        <QKB rows={[[{icon:<Icon name="arrow-left" size={14}/>,label:"Sports",action:"sports"}]]} onPress={onAction}/>
       </BotMsg>
     </div>
   );
@@ -1564,7 +1564,7 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
     <div style={{background:Q.void,minHeight:"100%",padding:"14px 12px"}}>
       <BotMsg time="">
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,
-          fontFamily:F_BODY}}>⚡ AI Combos</div>
+          fontFamily:F_BODY}}><Zap size={13}/> AI Combos</div>
         <GCard style={{padding:26,textAlign:"center",margin:"12px 0"}}>
           <div style={{fontSize:30,marginBottom:8}}>🌙</div>
           <div style={{color:Q.muted,fontSize:13,
@@ -1575,7 +1575,7 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
             Se arman con los partidos del día
           </div>
         </GCard>
-        <QKB rows={[[{label:"◀ Sports",action:"sports"}]]} onPress={onAction}/>
+        <QKB rows={[[{icon:<Icon name="arrow-left" size={14}/>,label:"Sports",action:"sports"}]]} onPress={onAction}/>
       </BotMsg>
     </div>
   );
@@ -1599,14 +1599,14 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
-        <UserMsg time="10:30">⚡ Combinadas IA</UserMsg>
+        <UserMsg time="10:30"><Zap size={13}/> Combinadas IA</UserMsg>
         <BotMsg time="10:30">
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{width:30,height:30,borderRadius:9,
                 background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
                 display:"flex",alignItems:"center",justifyContent:"center",
-                color:inkOn(Q.violet, Q.cyan),fontSize:16}}>⚡</div>
+                color:inkOn(Q.violet, Q.cyan)}}><Zap size={16}/></div>
               <div>
                 <div style={{color:Q.text,fontWeight:700,fontSize:14,fontFamily:F_BODY}}>AI Combos del día</div>
                 <div style={{color:Q.muted,fontSize:11}}>{realCombos?"Datos reales":"Generados por IAQP IA"}</div>
@@ -1726,7 +1726,7 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
                   fontFamily:F_BODY,textTransform:"uppercase",
                   boxShadow:`0 6px 24px ${Q.violet}66`,
                   display:"flex",alignItems:"center",justifyContent:"center",gap:8,
-                }}>⚡ APOSTAR {ars(stake)}</button>
+                }}><Zap size={13}/> APOSTAR {ars(stake)}</button>
 
                 <button onClick={()=>onEditar&&onEditar(combo.picks||[])} style={{
                   width:"100%",background:ov(0.04),
@@ -1767,8 +1767,8 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
           </GCard>
 
           <QKB rows={[
-            [{label:"📋 Prematch",action:"prematch"},{label:"🔴 En Vivo",action:"live"}],
-            [{label:"◀ Sports",action:"sports"}],
+            [{icon:<Icon name="clipboard-list" size={14}/>,label:"Prematch",action:"prematch"},{icon:<Icon name="circle-dot" size={14}/>,label:"En Vivo",action:"live"}],
+            [{icon:<Icon name="arrow-left" size={14}/>,label:"Sports",action:"sports"}],
           ]} onPress={onAction}/>
         </BotMsg>
       </div>
@@ -1787,7 +1787,7 @@ function ScreenBetConfirmed({ bets, stake, odd, code, onAction, onRepetir, userI
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 80px"}}>
         <BotMsg time="10:20">
           <div style={{textAlign:"center",marginBottom:14}}>
-            <div style={{fontSize:52,marginBottom:8,filter:`drop-shadow(0 0 16px ${Q.green})`}}>🎰</div>
+            <div style={{marginBottom:8,filter:`drop-shadow(0 0 16px )`}}><Icon name="spade" size={52} color={Q.green}/></div>
             <div style={{fontFamily:F_BODY,fontWeight:900,fontSize:20,
               color:Q.green,textShadow:`0 0 16px ${Q.green}66`,marginBottom:4}}>¡Apuesta registrada!</div>
           </div>
@@ -1817,7 +1817,7 @@ function ScreenBetConfirmed({ bets, stake, odd, code, onAction, onRepetir, userI
             <CodigoReserva code={code}/>
           </GCard>
           <div style={{color:Q.amber,fontSize:11,marginBottom:10,fontFamily:F_BODY}}>
-            ⏳ El boleto queda reservado 24 horas. Pagalo en efectivo en la agencia.
+            <Icon name="clock-3" size={13}/> El boleto queda reservado 24 horas. Pagalo en efectivo en la agencia.
           </div>
           {/* Repetir: vuelve a Deportes con las mismas selecciones ya
               cargadas. Sin esto había que buscar cada partido de nuevo
@@ -1840,8 +1840,8 @@ function ScreenBetConfirmed({ bets, stake, odd, code, onAction, onRepetir, userI
           )}
 
           <QKB rows={[
-            [{label:"🔴 Ver en vivo",action:"live",primary:true,color:Q.pink}],
-            [{label:"⚡ Nuevo combo",action:"combo"},{label:"◀ Sports",action:"sports"}],
+            [{icon:<Icon name="circle-dot" size={14}/>,label:"Ver en vivo",action:"live",primary:true,color:Q.pink}],
+            [{icon:<Zap size={14}/>,label:"Nuevo combo",action:"combo"},{icon:<Icon name="arrow-left" size={14}/>,label:"Sports",action:"sports"}],
           ]} onPress={onAction}/>
         </BotMsg>
       </div>
@@ -1923,7 +1923,7 @@ function CashOutBtn({ code, moneda, onHecho }){
       background:`${Q.gold}18`,border:`1px solid ${Q.gold}`,borderRadius:9,padding:"9px",
       color:Q.gold,fontWeight:700,fontSize:12,cursor:"pointer",
       fontFamily:F_BODY}}>
-      {estado==="cargando"?"Calculando...":"💰 Cash out"}</button>
+      {estado==="cargando"?"Calculando...":<><Icon name="wallet-cards" size={12}/> Cash out</>}</button>
   );
 }
 
@@ -1953,7 +1953,7 @@ function ScreenMyBets({ onAction, user }){
         <UserMsg time="">Mis apuestas</UserMsg>
         <BotMsg time="">
           <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:12,
-            fontFamily:F_BODY}}>📊 Mis apuestas</div>
+            fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={13}/> Mis apuestas</div>
 
           {!datos&&(
             <div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:16,
@@ -1973,7 +1973,7 @@ function ScreenMyBets({ onAction, user }){
 
           {datos?.registrado&&lista.length===0&&(
             <GCard style={{padding:28,textAlign:"center"}}>
-              <div style={{fontSize:30,marginBottom:8}}>🎟️</div>
+              <div style={{marginBottom:8}}><Icon name="ticket" size={30}/></div>
               <div style={{color:Q.muted,fontSize:13,
                 fontFamily:F_BODY}}>
                 Todavía no hiciste ninguna apuesta
@@ -2029,7 +2029,7 @@ function ScreenMyBets({ onAction, user }){
             </GCard>
           ))}
 
-          <QKB rows={[[{label:"◀ Sports",action:"sports"}]]} onPress={onAction}/>
+          <QKB rows={[[{icon:<Icon name="arrow-left" size={14}/>,label:"Sports",action:"sports"}]]} onPress={onAction}/>
         </BotMsg>
       </div>
     </div>
@@ -2350,7 +2350,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
     <div style={{background:Q.void,minHeight:"100%",padding:"14px 12px"}}>
       <BotMsg time="">
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,
-          fontFamily:F_BODY}}>📸 Mejorar mi apuesta</div>
+          fontFamily:F_BODY}}><Icon name="scan-line" size={13}/> Mejorar mi apuesta</div>
         <div style={{color:Q.muted,fontSize:11,marginBottom:12,lineHeight:1.4,
           fontFamily:F_BODY}}>
           Subí la captura de una apuesta de otro sitio. La leemos y te decimos
@@ -2377,7 +2377,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
             background:"transparent",border:`2px dashed ${Q.border}`,
             borderRadius:12,padding:"18px 10px",textAlign:"center",
             cursor:"pointer"}}>
-            <div style={{fontSize:24,marginBottom:4}}>📸</div>
+            <div style={{marginBottom:4}}><Icon name="camera" size={24}/></div>
             <div style={{color:Q.text,fontWeight:700,fontSize:11,
               fontFamily:F_BODY}}>Sacar foto</div>
           </button>
@@ -2405,7 +2405,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
             border:"none",borderRadius:10,padding:"12px",marginBottom:4,
             cursor:analizando?"wait":"pointer",color:analizando?Q.muted:inkOn(Q.cyan, Q.violet),
             fontWeight:700,fontSize:13,fontFamily:F_BODY}}>
-            {analizando?"Leyendo...":`🔍 Analizar ${imagenes.length} foto${imagenes.length>1?"s":""}`}</button>
+            {analizando?"Leyendo...":<><Icon name="search" size={13}/> Analizar {imagenes.length} foto{imagenes.length>1?"s":""}</>}</button>
         )}
 
         {err&&<div style={{color:Q.red,fontSize:12,marginTop:10,
@@ -2428,7 +2428,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
               <div style={{background:`${Q.red}12`,border:`1px solid ${Q.red}66`,
                 borderRadius:9,padding:"9px 11px",marginBottom:10,color:Q.red,
                 fontSize:11,lineHeight:1.4,fontFamily:F_BODY}}>
-                ⚠️ El cupón marca cuota {fmt(res.total_odd_cupon)} pero con lo leído
+                <Icon name="triangle-alert" size={13}/> El cupón marca cuota {fmt(res.total_odd_cupon)} pero con lo leído
                 no llegamos. Falta algún partido — agregá otra foto.
               </div>
             )}
@@ -2497,7 +2497,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
               <div style={{background:`${Q.amber}12`,border:`1px solid ${Q.amber}55`,
                 borderRadius:10,padding:"9px 12px",margin:"8px 0",color:Q.amber,
                 fontSize:11,lineHeight:1.4,fontFamily:F_BODY}}>
-                ⚠️ Hay selecciones que no tenemos. Podés armar la combinada con
+                <Icon name="triangle-alert" size={13}/> Hay selecciones que no tenemos. Podés armar la combinada con
                 las {res.picks_ok} que sí, desde Prematch.
               </div>
             )}
@@ -2556,7 +2556,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
                     border:"none",borderRadius:10,padding:"13px",color:inkOn(Q.green, Q.cyan),
                     fontWeight:800,fontSize:15,cursor:"pointer",marginBottom:8,
                     fontFamily:F_BODY}}>
-                  {generando?"Generando...":"🎟️ Generar mi código para jugar"}</button>
+                  {generando?"Generando...":<><Icon name="ticket" size={13}/> Generar mi código para jugar</>}</button>
 
                 {/* Descartar lo escaneado. Antes solo se podía salir
                     de la pantalla, y no era evidente qué pasaba con
@@ -2601,7 +2601,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
         )}
 
         <div style={{marginTop:14}}>
-          <QKB rows={[[{label:"◀ Sports",action:"sports"}]]} onPress={onAction}/>
+          <QKB rows={[[{icon:<Icon name="arrow-left" size={14}/>,label:"Sports",action:"sports"}]]} onPress={onAction}/>
         </div>
       </BotMsg>
     </div>
@@ -2629,7 +2629,7 @@ class CazaError extends Component {
       return (
         <div style={{padding:20,color:Q.text,fontFamily:F_BODY}}>
           <div style={{color:Q.red,fontWeight:800,fontSize:15,marginBottom:8}}>
-            ⚠️ Algo falló en esta pantalla</div>
+            <Icon name="triangle-alert" size={15}/> Algo falló en esta pantalla</div>
           <div style={{color:Q.muted,fontSize:12,marginBottom:8}}>
             {String(this.state.err&&this.state.err.message||this.state.err).slice(0,200)}</div>
           <div style={{color:Q.dim,fontSize:9,marginBottom:16,whiteSpace:"pre-wrap",
@@ -2853,7 +2853,7 @@ function BotonAyuda({ userId, origen }){
             cursor:"pointer", fontSize:13, fontWeight:700, color:inkOn(Q.violet, Q.violet2||Q.cyan),
             display:"flex", alignItems:"center", gap:6,
             fontFamily:F_BODY}}>
-          💬 Ayuda</button>
+          <Icon name="message-circle" size={13}/> Ayuda</button>
       )}
       {abierto&&(
         <div onClick={()=>setAbierto(false)} style={{position:"fixed",
@@ -2986,7 +2986,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
         alignItems:"center",marginBottom:9}}>
         <div>
           <div style={{color:Q.text,fontWeight:700,fontSize:14}}>
-            💬 Ayuda</div>
+            <Icon name="message-circle" size={13}/> Ayuda</div>
           <div style={{color:Q.muted,fontSize:10.5}}>
             {derivado?"Te va a responder tu agencia"
                      :"Preguntá lo que necesites"}</div>
@@ -3176,8 +3176,8 @@ function HistorialJuegos({ user, onCerrar }){
       .catch(()=>{});
   },[user?.id]);
 
-  const ICONO={deportivas:"⚽",casino:"🎰",casino_vivo:"🎥",
-    desafios:"🤝"};
+  const ICONO={deportivas:<Icon name="trophy" size={13}/>,casino:<Icon name="spade" size={13}/>,
+    casino_vivo:<Video size={13}/>,desafios:<Handshake size={13}/>};
   const NOMBRE={deportivas:"Deportiva",casino:"Casino",
     casino_vivo:"En vivo",desafios:"Desafío"};
 
@@ -3246,8 +3246,9 @@ function HistorialJuegos({ user, onCerrar }){
 
             <div style={{display:"flex",gap:5,marginBottom:10,
               overflowX:"auto"}}>
-              {[["","Todo"],["deportivas","⚽"],["casino","🎰"],
-                ["desafios","🤝"]].map(([k,l])=>(
+              {[["","Todo"],["deportivas",<Icon name="trophy" size={13}/>],
+                ["casino",<Icon name="spade" size={13}/>],
+                ["desafios",<Handshake size={13}/>]].map(([k,l])=>(
                 <button key={k} onClick={()=>setFiltro(k)}
                   style={{background:filtro===k?`${Q.violet}28`:"transparent",
                     border:`1px solid ${filtro===k?Q.violet:Q.border}`,
@@ -3332,7 +3333,7 @@ function HistorialJuegos({ user, onCerrar }){
                     overflow:"hidden",textOverflow:"ellipsis",
                     whiteSpace:"nowrap",
                     fontFamily:F_BODY}}>
-                    {j.en_vivo&&"🎥 "}{j.juego}</div>
+                    {j.en_vivo&&<><Video size={11}/> </>}{j.juego}</div>
                   <div style={{color:Q.dim,fontSize:9.5,marginTop:2}}>
                     {j.jugadas} jugadas · {j.ultima}</div>
                 </div>
@@ -3708,7 +3709,7 @@ function ScreenCasino({ user, vivo }){
 
   if(!juegos.length) return(
     <div style={{padding:"40px 24px",textAlign:"center"}}>
-      <div style={{fontSize:38,marginBottom:12}}>{vivo?"🎥":"🎰"}</div>
+      <div style={{marginBottom:12}}>{vivo?<Video size={38}/>:<Icon name="spade" size={38}/>}</div>
       <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
         fontFamily:F_BODY}}>
         {!disponible
@@ -3891,7 +3892,7 @@ function ScreenDesafios({ user, onAction }){
 
   if(!uid) return(
     <div style={{padding:"40px 24px",textAlign:"center"}}>
-      <div style={{fontSize:38,marginBottom:12}}>🤝</div>
+      <div style={{marginBottom:12}}><Handshake size={38}/></div>
       <div style={{color:Q.text,fontSize:17,fontWeight:700,marginBottom:8,
         fontFamily:F_BODY}}>Desafíos</div>
       <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
@@ -3902,7 +3903,7 @@ function ScreenDesafios({ user, onAction }){
 
   if(!cfg?.activo) return(
     <div style={{padding:"40px 24px",textAlign:"center"}}>
-      <div style={{fontSize:38,marginBottom:12}}>🤝</div>
+      <div style={{marginBottom:12}}><Handshake size={38}/></div>
       <div style={{color:Q.text,fontSize:17,fontWeight:700,marginBottom:8,
         fontFamily:F_BODY}}>Desafíos</div>
       <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
@@ -4307,7 +4308,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
                 style={{width:"100%",marginTop:8,background:"none",
                   border:"none",cursor:"pointer",color:Q.muted,
                   fontSize:11.5,padding:"4px 0"}}>
-                💬 {a.comentarios>0
+                <Icon name="message-circle" size={11}/> {a.comentarios>0
                   ? `${a.comentarios} ${a.comentarios===1?"comentario":"comentarios"}`
                   : "Comentar"}</button>
 
@@ -4380,7 +4381,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
             <button onClick={()=>setVerCom(verCom===p.id?null:p.id)}
               style={{background:"none",border:"none",cursor:"pointer",
                 color:Q.muted,fontSize:12,padding:0}}>
-              💬 {p.comentarios>0?p.comentarios:""}</button>
+              <Icon name="message-circle" size={12}/> {p.comentarios>0?p.comentarios:""}</button>
             {!p.es_mio&&(
               <button onClick={()=>denunciar(p.id)}
                 style={{background:"none",border:"none",cursor:"pointer",
@@ -5098,7 +5099,7 @@ function BotonCompartir({ picks, odd, code, refCode, compacto, userId }){
       <button onClick={compartir} aria-label="Compartir"
         style={{background:"transparent",border:"none",cursor:"pointer",
           color:Q.cyan,fontSize:13,padding:"4px 8px"}}>
-        {copiado?"✓ Copiado":"↗ Compartir"}</button>
+        {copiado?"✓ Copiado":<><Icon name="arrow-up-right" size={13}/> Compartir</>}</button>
     );
   }
 
@@ -5111,7 +5112,7 @@ function BotonCompartir({ picks, odd, code, refCode, compacto, userId }){
         color:premio?Q.gold:Q.cyan,
         fontSize:13,fontWeight:600,display:"flex",alignItems:"center",
         justifyContent:"center",gap:7}}>
-        {copiado ? "✓ Copiado al portapapeles" : "↗ Compartir mi jugada"}
+        {copiado ? "✓ Copiado al portapapeles" : <><Icon name="arrow-up-right" size={13}/> Compartir mi jugada</>}
       </button>
       {premio&&!copiado&&(
         <div style={{color:Q.dim,fontSize:10.5,textAlign:"center",
@@ -5711,13 +5712,13 @@ function CargaDigitalBox({ user, moneda }){
     <button onClick={()=>setAbierto(true)} style={{width:"100%",
       background:`${Q.green}14`,border:`1px solid ${Q.green}`,borderRadius:12,padding:"13px",
       color:Q.green,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10,
-      fontFamily:F_BODY}}>⬆️ Cargar por transferencia</button>
+      fontFamily:F_BODY}}><Icon name="arrow-up-right" size={13}/> Cargar por transferencia</button>
   );
 
   return(
     <GCard glow={Q.green} style={{padding:16,marginBottom:10}}>
       <div style={{color:Q.green,fontWeight:700,fontSize:14,marginBottom:8,
-        fontFamily:F_BODY}}>⬆️ Cargar por transferencia</div>
+        fontFamily:F_BODY}}><Icon name="arrow-up-right" size={13}/> Cargar por transferencia</div>
       <input value={monto} onChange={e=>setMonto(e.target.value.replace(/\D/g,""))}
         placeholder={`Monto en ${mon}`} inputMode="numeric"
         style={{width:"100%",background:ov(0.05),border:`1px solid ${Q.border}`,
@@ -5772,7 +5773,7 @@ function RetiroDigitalBox({ user, moneda, saldo }){
 
   if(estado==="ok"&&ok) return(
     <GCard glow={Q.cyan} style={{padding:16,marginBottom:10,textAlign:"center"}}>
-      <div style={{fontSize:36,marginBottom:6}}>🏦</div>
+      <div style={{marginBottom:6}}><Icon name="landmark" size={36}/></div>
       <div style={{color:Q.cyan,fontWeight:800,fontSize:14,
         fontFamily:F_BODY}}>{ok.mensaje}</div>
       <button onClick={()=>{setEstado("idle");setAbierto(false);setMonto("");setDestino("");setOk(null);}}
@@ -5786,13 +5787,13 @@ function RetiroDigitalBox({ user, moneda, saldo }){
     <button onClick={()=>setAbierto(true)} style={{width:"100%",
       background:`${Q.cyan}14`,border:`1px solid ${Q.cyan}`,borderRadius:12,padding:"13px",
       color:Q.cyan,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10,
-      fontFamily:F_BODY}}>⬇️ Retirar a mi banco</button>
+      fontFamily:F_BODY}}><Icon name="arrow-down-left" size={13}/> Retirar a mi banco</button>
   );
 
   return(
     <GCard glow={Q.cyan} style={{padding:16,marginBottom:10}}>
       <div style={{color:Q.cyan,fontWeight:700,fontSize:14,marginBottom:8,
-        fontFamily:F_BODY}}>⬇️ Retirar a mi banco</div>
+        fontFamily:F_BODY}}><Icon name="arrow-down-left" size={13}/> Retirar a mi banco</div>
       <input value={monto} onChange={e=>setMonto(e.target.value.replace(/\D/g,""))}
         placeholder={`Monto en ${mon}`} inputMode="numeric"
         style={{width:"100%",background:ov(0.05),border:`1px solid ${Q.border}`,
@@ -5845,7 +5846,7 @@ function RetiroBox({ moneda, saldo, onHecho }){
 
   if(estado==="ok"&&res) return(
     <GCard glow={Q.gold} style={{padding:18,marginBottom:10,textAlign:"center"}}>
-      <div style={{fontSize:40,marginBottom:6}}>🎫</div>
+      <div style={{marginBottom:6}}><Icon name="receipt-text" size={40}/></div>
       <div style={{color:Q.gold,fontWeight:800,fontSize:15,
         fontFamily:F_BODY}}>Retiro solicitado</div>
       <div style={{color:Q.muted,fontSize:12,margin:"8px 0",
@@ -6073,7 +6074,7 @@ function ScreenCuenta({ user, onNav, onJR, onHist }){
             padding:"14px",cursor:"pointer",textAlign:"left",
             fontFamily:F_BODY}}>
           <div style={{color:Q.text,fontSize:13.5,fontWeight:600}}>
-            📋 Mi historial</div>
+            <Icon name="clipboard-list" size={13}/> Mi historial</div>
           <div style={{color:Q.muted,fontSize:11,marginTop:3,
             lineHeight:1.45}}>
             Todo lo que jugaste, con fecha y hora</div>
@@ -6087,7 +6088,7 @@ function ScreenCuenta({ user, onNav, onJR, onHist }){
             padding:"14px",cursor:"pointer",textAlign:"left",
             fontFamily:F_BODY}}>
           <div style={{color:Q.text,fontSize:13.5,fontWeight:600}}>
-            🛡️ Juego responsable</div>
+            <Icon name="shield-check" size={13}/> Juego responsable</div>
           <div style={{color:Q.muted,fontSize:11,marginTop:3,
             lineHeight:1.45}}>
             Poné tus límites o cerrá tu cuenta por un tiempo</div>
@@ -6325,7 +6326,7 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
         <div style={{display:"flex",alignItems:"center",gap:8,
           background:ov(0.05),border:`1px solid ${Q.border}`,
           borderRadius:10,padding:"8px 12px",marginBottom:8}}>
-          <span style={{color:Q.muted,fontSize:14}}>🔍</span>
+          <Icon name="search" size={14} color={Q.muted}/>
           <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
             placeholder="Buscar equipo..."
             style={{background:"transparent",border:"none",color:Q.text,fontSize:14,flex:1,minWidth:0,
@@ -6394,7 +6395,7 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
         maxHeight:"46vh",overflowY:"auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:14,
-            fontFamily:F_BODY}}>🎟️ Tu apuesta · {picks.length} {picks.length===1?"pick":"picks"}</div>
+            fontFamily:F_BODY}}><Icon name="ticket" size={13}/> Tu apuesta · {picks.length} {picks.length===1?"pick":"picks"}</div>
           {picks.length>0&&<button onClick={onLimpiar} style={{background:"transparent",border:"none",
             color:Q.red,fontSize:11,cursor:"pointer",fontFamily:F_BODY}}>Vaciar</button>}
         </div>
@@ -6700,7 +6701,7 @@ export default function QuartzSports(){
           borderRadius:12,padding:"10px 14px",display:"flex",
           alignItems:"center",justifyContent:"space-between",gap:8}}>
           <span style={{color:Q.text,fontSize:12,
-            fontFamily:F_BODY}}>⚠️ {errorGlobal}</span>
+            fontFamily:F_BODY}}><Icon name="triangle-alert" size={13}/> {errorGlobal}</span>
           <button onClick={()=>setErrorGlobal("")} style={{background:"transparent",
             border:"none",color:Q.muted,fontSize:16,cursor:"pointer",padding:0}}>✕</button>
         </div>
