@@ -100,9 +100,18 @@ Out of scope: every other screen, the 378 hardcoded `'Inter'` declarations in
       narrower `.screen-app` variant (mascot 148px, padding-right 122px)
       was also measured and **does** overlap this panel's text, so it was
       not used.
-- [ ] **T4** Icons instead of emoji on this screen, and the two hand-written
+- [x] **T4** Icons instead of emoji on this screen, and the two hand-written
       gradients onto brand accents, with the ink helper deciding what sits on
-      them.
+      them. Commit `4b90bde`. Casino → `Icon name="spade"`; En vivo ahora →
+      `Icon name="circle-dot"`; the four gap emoji (En vivo card, Desafíos,
+      Combo del día, Saldo bono) → lucide-react's `Video`/`Handshake`/`Zap`/
+      `Gift`. Casino card: `linear-gradient(135deg, Q.violet, Q.violet2)`
+      (the same pair the top-bar avatar already uses). En vivo card:
+      `linear-gradient(135deg, Q.pink, Q.gold)` — reuses this file's own
+      "live" accent (`Q.pink`/`Q.red`, already used for the "EN VIVO"
+      badge) toward the brand's attention colour, kept different from
+      Casino's violet pair so the two stay distinguishable. Both call
+      `inkOn(...)` for text instead of hardcoded `#fff`/`rgba(255,255,255,…)`.
 
 ## Delivery
 
@@ -114,13 +123,27 @@ the owner's to answer.
 
 ## Progress
 
-T1 done (`a019d18`). T2 done (`de597ff`). T3 done (`fa631e7`). Baseline on
-`staging`: 24 suites / 384 tests, all green; main.js gzip 282.94 kB. T1,
-T2 and T3 all assessed `review_due: false` (`under_budget`, medium risk
-from the `package.json` config change) against `--base-ref staging`; 319
-changed lines cumulative after T3. The reviewed boundary has not moved
-and stays `staging`.
+All four tasks done: T1 `a019d18`, T2 `de597ff`, T3 `fa631e7`, T4
+`4b90bde` (plus one `docs(odd)` commit per task). Baseline on `staging`:
+24 suites / 384 tests, all green; main.js gzip 282.94 kB. Final: 28
+suites / 410 tests, all green.
+
+T1–T3 assessed `review_due: false` (`under_budget`). After T4, cumulative
+507 changed lines crossed the ~400-line slice budget:
+`review_due: true`, `review_due_reason: "slice_budget_reached"`, risk
+`medium` (the `package.json` configuration change). Per the delivery
+instructions, this was **not** run — it is the owner's consent to give,
+handed back verbatim in the implementation report:
+
+```
+gentle-ai review status '--cwd=/Users/usuario/Documents/Trabajo 2026/iaqp/app' --contract=gentle-ai.review-integration/v2 --agent=claude-code --next-transition=true --base-ref=staging --committed-only=true
+```
+
+Rollback boundary: `staging` (the reviewed boundary never advanced —
+nothing was acknowledged).
 
 ## Next step
 
-T4.
+None — all four tasks are done. Waiting on the owner to run (or decline)
+the `gentle-ai review status ...` command above before this branch is
+considered reviewed. No push, no PR (out of scope for this change).
