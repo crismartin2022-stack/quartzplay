@@ -79,13 +79,41 @@ Out of scope, deliberately:
 
 - **Resolve for the deploy target, not for this laptop.** The only local
   Python is 3.14.7; railpack gives the sibling project 3.11.16 and gives
-  `app/bot` an unknown default. Resolve with pip's own cross-target
-  resolution (`pip install --dry-run --report - --only-binary=:all:
-  --python-version <v> --platform manylinux2014_x86_64 --target <tmp>`) for
-  **3.11, 3.12 and 3.13**, and pin only if all three resolve to the same
-  version set. If they diverge, do not guess: report the divergence and which
-  packages differ, and pin nothing for the bot until the owner picks the
-  interpreter.
+  `app/bot` an unknown default. Resolve inside a container of the real
+  deploy target, not by guessing `pip`'s `--platform` tag. Railway's
+  railpack runtime image (`ghcr.io/railwayapp/railpack-runtime`,
+  `mise-2026.8.16`) is Debian 13 "trixie" / glibc 2.41 / amd64 — confirmed
+  by running `ldd --version` and reading `/etc/os-release` inside that
+  image. Resolve with:
+  ```
+  docker run --rm --platform linux/amd64 \
+    -v "$(pwd)/bot/requirements.txt:/req.txt:ro" \
+    python:<v>-slim-trixie \
+    sh -c 'pip install --quiet --no-cache-dir -r /req.txt && \
+           pip freeze --all --exclude-editable'
+  ```
+  for **3.11, 3.12 and 3.13** (`python:<v>-slim-trixie` is the same Debian
+  trixie / glibc family, amd64), dropping `pip`/`setuptools`/`wheel`/
+  `packaging` from the output — those are the base image's own
+  pre-installed toolchain (present by default on `python:3.11-slim-trixie`,
+  absent on `python:3.12`/`3.13-slim-trixie`), never something
+  `bot/requirements.txt` pulls in — and pin only if all three then agree on
+  the same version set. If they diverge, do not guess: report the
+  divergence and which packages differ, with the offending package's PyPI
+  wheel-file listing as evidence, and pin nothing for the bot until the
+  owner picks the interpreter.
+
+  **Do not use `pip install --dry-run --report --platform <manylinux tag>`
+  for this.** It was tried first and produced a false divergence:
+  `asyncpg==0.31.0` resolved for 3.11 and 3.13 but fell back to
+  `asyncpg==0.30.0` for 3.12 under `--platform manylinux2014_x86_64`. PyPI's
+  own file listing for `asyncpg` 0.31.0 shows why —
+  `asyncpg-0.31.0-cp312-cp312-manylinux_2_28_x86_64.whl` exists, it is just
+  tagged `manylinux_2_28` only, with no `manylinux2014` alias, unlike the
+  cp311/cp313 wheels which carry both tags. A single `--platform` value is
+  a guess at which manylinux tags the target actually satisfies; it isn't
+  one, so it silently discards real wheels. Resolving inside the actual
+  target container has no such gap.
 - The pinned set must include transitive dependencies. A top-level-only pin
   leaves `starlette`, `pydantic`, `httpcore`, `h11` and the rest floating,
   which is the same defect one layer down. Write the complete set, with a
@@ -104,9 +132,11 @@ Out of scope, deliberately:
   `REACT_APP_*` values, from a **clean `node_modules`** reinstalled through
   `npm ci` against the new lockfile. `npm ci` is the whole point: it fails
   loudly if the lockfile and `package.json` disagree.
-- Bot: the full suite from `app/bot` (baseline **193 passed**) against a
-  fresh venv built from the pinned `requirements-dev.txt`. Note honestly if
-  any package has no wheel for local Python 3.14 and say which check that
+- Bot: the full suite from `app/bot` (baseline **212 passed** — measured
+  fresh against current `HEAD` with the unpinned `requirements-dev.txt`;
+  this document previously stated 193, which was stale) against a fresh
+  venv built from the pinned `requirements-dev.txt`. Note honestly if any
+  package has no wheel for local Python 3.14 and say which check that
   weakened.
 - Report both baselines and both after-numbers. A pin that quietly changes a
   version is a failure of this change, not a detail.
@@ -158,50 +188,74 @@ green at their baseline counts. No dependency moved.
       anticipated). Per instructions, the returned `next_transition.command`
       was **not** run; it is handed back verbatim in the writer's final
       report for the owner to act on.
-- [ ] **T2 — STOPPED, divergence found, decision handed back.**
-      Pin `bot/requirements.txt` to the complete set that the
+- [x] **T2** Pin `bot/requirements.txt` to the complete set that the
       three-interpreter cross-resolution agrees on, direct and transitive,
       with the regeneration header. Prove the bot suite still passes.
+      Commit: `07af0dbf285dac792f3217bc866560d41e99dcb0` —
+      `chore(bot): pin requirements.txt to the resolved dependency set`.
 
       Baseline (unpinned `requirements-dev.txt`, fresh venv, local Python
       3.14.7): `python -m pytest` from `app/bot` →
-      `212 passed, 304 warnings`. This document's own stated baseline is
-      "193 passed" — that number is stale relative to the current repo
-      (the bot test suite has grown since it was recorded); 212 is what
-      was actually observed against current `HEAD`/`staging` and is the
-      number this task compares against, honestly reported as a
-      discrepancy from the doc rather than silently substituted.
+      `212 passed, 304 warnings`. This document previously stated the
+      baseline as "193 passed"; that was stale against the current repo
+      (the bot suite has grown since it was recorded). 212 is what was
+      actually measured against current `HEAD` and is the number this task
+      compares against — the stale figure has now been corrected above in
+      `## Checks` rather than silently overwritten here.
 
-      Cross-target resolution (pip dry-run, `--only-binary=:all:
-      --platform manylinux2014_x86_64`, run from `app`) for `3.11`, `3.12`,
-      `3.13` against `bot/requirements.txt`:
-      ```
-      python3 -m pip install --dry-run --report <scratch>/report-<v>.json \
-        --only-binary=:all: --python-version <v> \
-        --platform manylinux2014_x86_64 --target <scratch>/t<v> \
-        -r bot/requirements.txt
-      ```
-      No `--implementation`/`--abi` overrides were needed; the plain
-      `--python-version` form resolved for all three. 34 packages resolved
-      per interpreter. 33 of 34 agree exactly across 3.11/3.12/3.13.
-      **One package diverges: `asyncpg`.** 3.11 → `0.31.0`, 3.12 →
-      `0.30.0`, 3.13 → `0.31.0`. Confirmed twice for 3.12 (not resolver
-      noise) and root-caused: `pip download --only-binary=:all:
-      --python-version 3.12 --platform manylinux2014_x86_64 asyncpg==0.31.0`
-      fails with "Could not find a version that satisfies the requirement
-      ... (from versions: 0.29.0, 0.30.0)" — `asyncpg` 0.31.0 ships no
-      `cp312`-tagged wheel for `manylinux2014_x86_64` (as of 2026-09-19),
-      so pip falls back to `0.30.0` on that interpreter only.
+      **First attempt produced a false divergence — corrected before
+      pinning.** The pip cross-target dry-run recipe this document
+      originally prescribed (`pip install --dry-run --report --only-binary
+      --python-version <v> --platform manylinux2014_x86_64`) resolved
+      `asyncpg==0.31.0` for 3.11 and 3.13, but fell back to
+      `asyncpg==0.30.0` for 3.12 — a real-looking divergence, reported and
+      T2 stopped on the first pass. It turned out to be an artifact of the
+      method, not a real interpreter difference: PyPI's file listing for
+      `asyncpg` 0.31.0 (`https://pypi.org/pypi/asyncpg/0.31.0/json`)
+      includes `asyncpg-0.31.0-cp312-cp312-manylinux_2_28_x86_64.whl` — the
+      cp312 wheel exists, it is just tagged `manylinux_2_28` only, unlike
+      the cp311/cp313 wheels which also carry `manylinux2014`. A single
+      `--platform manylinux2014_x86_64` value made pip blind to that wheel
+      and it silently fell back to an older version on that one
+      interpreter. This was reproduced twice (not resolver noise) before
+      being root-caused, so it was correctly reported rather than
+      guessed past — the method was the defect, not the judgment to stop.
 
-      Per the feature document's own instruction ("If they diverge, STOP
-      T2: do not guess and do not pin"), **T2 is stopped here.**
-      `bot/requirements.txt` was NOT written or touched.
-      `bot/requirements-dev.txt` was NOT touched. No commit was made for
-      T2. The decision — which interpreter Railway actually runs, which
-      determines whether `asyncpg==0.30.0` or `0.31.0` is correct — is
-      handed back to the owner; it's the same class of decision this
-      document already deferred for the interpreter version itself.
-      T1 was finished regardless, as instructed.
+      **Corrected method: resolve inside the real deploy target.** Pulled
+      Railway's own railpack runtime image
+      (`ghcr.io/railwayapp/railpack-runtime:mise-2026.8.16`) and read it:
+      `ldd --version` → glibc 2.41; `/etc/os-release` → Debian GNU/Linux 13
+      "trixie", amd64. Re-ran the resolution inside
+      `python:<v>-slim-trixie` containers (`--platform linux/amd64`) for
+      3.11, 3.12, 3.13 with `pip install -r bot/requirements.txt && pip
+      freeze --all --exclude-editable` — an actual install against the
+      target's real wheel compatibility, no tag guessing. Confirmed
+      `ldd`/`/etc/os-release` match glibc 2.41 / Debian trixie on all three
+      images. `pip freeze --all` on a bare (nothing installed) container of
+      each image showed that `python:3.11-slim-trixie` ships
+      `packaging`/`setuptools`/`wheel` pre-installed by default while
+      `python:3.12`/`3.13-slim-trixie` ship only bare `pip` — so those four
+      names were excluded as the base image's own toolchain, not
+      dependencies of `bot/requirements.txt`. After that exclusion, **all
+      three interpreters agree exactly: 34 packages, byte-identical
+      versions, including `asyncpg==0.31.0` on all three.** Pinned that
+      set.
+
+      `bot/requirements.txt` rewritten as the complete pinned set (34
+      lines: the 9 direct dependencies plus 25 transitive), sorted
+      case-insensitively by name, `uvicorn[standard]` kept with its extra
+      on the direct line, preceded by a header comment naming the nine
+      direct dependencies and the exact docker regeneration command (see
+      the corrected `## Constraints` above — this is the same recipe).
+      `bot/requirements-dev.txt` left untouched (`-r requirements.txt` line
+      intact).
+
+      Verify: fresh scratchpad venv, local Python 3.14.7,
+      `pip install -r requirements-dev.txt` from the pinned file →
+      succeeded, no wheel gaps (every pinned package, including
+      `asyncpg==0.31.0`, has a `cp314` wheel). `python -m pytest` →
+      `212 passed, 304 warnings` — matches the measured baseline exactly.
+      No check was weakened.
 
 ## Delivery
 
@@ -226,24 +280,49 @@ No push, no PR.
 
 ## Progress
 
-T1 done (commit `047598f`). Frontend lockfile tracked, `npm ci` verified
-green at baseline, build verified with staging-shaped placeholders. Review
-came due on T1 (`slice_budget_reached`); the consent command was handed back
-to the owner rather than run.
+Both tasks done.
 
-T2 stopped by design: the three-interpreter cross-resolution for
-`bot/requirements.txt` diverges on `asyncpg` (`0.31.0` for 3.11/3.13,
-`0.30.0` for 3.12, because `asyncpg` 0.31.0 has no `cp312` manylinux2014
-wheel). Per this document's own instruction, no guess was made and nothing
-was pinned or committed for T2. Bot suite baseline observed:
-`212 passed` (this document's stated "193 passed" baseline is stale).
+T1 (commit `047598f`): frontend lockfile tracked, `npm ci` verified green at
+baseline, build verified with staging-shaped placeholders. Review came due
+on T1 (`slice_budget_reached`); the consent command was handed back to the
+owner rather than run.
+
+T2 (commit `07af0db`): `bot/requirements.txt` pinned to the complete
+34-package set (direct + transitive) that all of Python 3.11, 3.12 and 3.13
+agree on when resolved inside Railway's real deploy target (Debian 13
+trixie / glibc 2.41, via docker). The first resolution attempt, using the
+`pip --dry-run --platform manylinux2014_x86_64` recipe this document
+originally prescribed, produced a false divergence on `asyncpg`
+(0.31.0 vs 0.30.0 on 3.12) caused by that single platform tag missing a
+real cp312 wheel tagged only `manylinux_2_28`. `## Constraints` above has
+been corrected to the docker-based method that doesn't have this gap. Bot
+suite baseline was measured fresh at **212 passed** (this document's
+previous "193 passed" was stale and has been corrected in `## Checks`);
+the pinned set reproduces 212 passed exactly, with no wheel gaps on local
+Python 3.14.
+
+Assess run twice after the T2 commit, both reported, neither's lifecycle
+command run:
+- From the last reviewed boundary (`staging`, `8be18a0`, nothing has been
+  acknowledged yet): `risk: medium`, `review_due: true`,
+  `review_due_reason: slice_budget_reached` — same class as T1, expected
+  once the lockfile and the bot pin are both in the diff. Returned
+  `next_transition.command`:
+  ```
+  gentle-ai review status '--cwd=/Users/usuario/Documents/Trabajo 2026/iaqp/app' --contract=gentle-ai.review-integration/v2 --agent=claude-code --next-transition=true --base-ref=8be18a00224ef8c88d1c21d5f16f90cdd834f254 --committed-only=true
+  ```
+- Scoped to the bot change alone (`--base-ref 047598f`, i.e. from T1's
+  commit): `risk: medium`, `review_due: false`,
+  `review_due_reason: under_budget` — no `next_transition` returned.
+
+Both are informational for the owner to choose between; the writer ran
+neither.
 
 ## Next step
 
-Owner decides which Python minor version Railway actually runs `app/bot`
-on (this is the same open question this document already named for the
-interpreter pin itself — see "Out of scope, deliberately"). Once that's
-known: re-run the single-interpreter resolution for that version, pin
-`bot/requirements.txt` to it (direct + transitive, with the regeneration
-header), verify the bot suite against a fresh venv, and commit. Nothing
-else on this branch is pending.
+Nothing pending on this branch. Both tasks are complete, verified and
+committed. Outstanding for the owner: answer (or ignore) the T1/full-branch
+review consent envelope above, and separately decide the Python interpreter
+pin for `app/bot` (still out of scope here, per "Out of scope,
+deliberately" — now more actionable since this change establishes the
+image is Debian 13 trixie / glibc 2.41, whichever minor version is chosen).
