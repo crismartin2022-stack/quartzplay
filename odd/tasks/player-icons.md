@@ -380,6 +380,13 @@ character. The player sees exactly what they saw before.
   `review_due_reason: "under_budget"`. No `next_transition` returned;
   nothing further run.
 
+- [ ] **T4** The same fix on `/admin` — 17 sniffing sites, the last of the
+      35 and the largest file in the product. Branched on top of the agency
+      slice rather than off `staging`, because both edit the same guard test
+      file; it rebases onto `staging` once the agency PR merges. After this,
+      no screen decides a message's colour by reading its text, and the
+      emoji-to-icon migration becomes safe to start.
+
 ## Delivery
 
 One work-unit commit on `fix/quartzplay-message-status`, off `staging`. After
