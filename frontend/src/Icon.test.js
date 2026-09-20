@@ -29,10 +29,16 @@ describe("the icon set is complete and drawable", () => {
   test("the set is local: nothing is fetched at runtime", () => {
     const source = fs.readFileSync(path.join(__dirname, "Icon.jsx"), "utf8");
     expect(source).not.toMatch(/https?:\/\//);
-    const pkg = JSON.parse(
-      fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8")
-    );
-    expect(Object.keys(pkg.dependencies)).not.toContain("lucide-react");
+  });
+
+  // lucide-react is now a real dependency (docs/icon-inventory.md: it is
+  // the full set these 36 paths were drawn from, added to carry the icons
+  // that set does not have yet). It is additive: this file's own 36 icons
+  // stay pinned and hand-copied, and Icon.jsx never imports the package
+  // that grows beside it.
+  test("Icon.jsx itself never imports lucide-react — the 36 stay pinned, the package is additive", () => {
+    const source = fs.readFileSync(path.join(__dirname, "Icon.jsx"), "utf8");
+    expect(source).not.toMatch(/lucide-react/);
   });
 });
 

@@ -6,6 +6,11 @@ import { estadoDeAcciones, stakeValido, mensajeDeDetalle } from "./betBestAction
 import { oscuro as Q, F_NUM, F_BODY, inkOn } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot from "./Mascot";
+import Icon from "./Icon";
+// lucide-react carries the icons this screen's emoji have no match for
+// among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
+// no live-feed mark, no handshake, no bolt, no gift.
+import { Video, Handshake, Zap, Gift } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
 // IAQP SPORTS — Web App Telegram completa
@@ -5258,10 +5263,16 @@ function BarraSuperior({ user, onNav }){
   return(
     <div style={{flexShrink:0,background:Q.deep,borderBottom:`1px solid ${Q.border}`,
       display:"flex",alignItems:"center",gap:12,
-      padding:"9px 13px calc(9px)",position:"relative"}}>
+      padding:"5px 13px 5px",position:"relative"}}>
       <button onClick={()=>onNav("home")} style={{background:"transparent",border:"none",
         cursor:"pointer",padding:0,display:"flex",alignItems:"center"}}>
-        <BrandMark size={20}/>
+        {/* 82px wide in the prototype (html/styles.css .brand img), which at
+            the shipped file's own 503:244 ratio is ~40px tall — BrandMark
+            takes a height. The row's padding was cut from 9px to 5px
+            top/bottom to keep the bar at the height it already was (51px on
+            a 360px phone, measured in headless Chromium; see
+            topBarLogoSize.test.js). */}
+        <BrandMark size={40}/>
       </button>
       <div style={{flex:1}}/>
       {user?.saldo!=null&&(
@@ -5375,12 +5386,6 @@ function ScreenHome({ user, onNav, onBet, refCode }){
 
   return(
     <div style={{padding:"14px 12px 20px"}}>
-      {/* Mascota de inicio, donde la pone el prototipo (player-home.html:
-          `.mascot-header`, junto al encabezado de la pantalla de inicio).
-          Puramente decorativa, no desplaza nada de lo que ya había abajo. */}
-      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-        <Mascot size={56}/>
-      </div>
       {/* Partidos en vivo. Se cargaban pero nunca se mostraban: el
           código quedó a medias y el inicio no los dibujaba. */}
       {live&&live.length>0&&(
@@ -5445,10 +5450,16 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         </div>
       )}
 
-      {/* Bet Best — la funcion insignia va primero y ocupa el ancho */}
+      {/* Bet Best — la funcion insignia va primero y ocupa el ancho.
+          La mascota vive acá adentro, como en el prototipo
+          (player-home.html: `.hero-balance` > `.mascot-header`), no en una
+          franja aparte arriba: pegada a las esquinas inferior y derecha,
+          recortada, y el panel le reserva el lugar (min-height/padding-right,
+          los mismos números que .hero-balance:has(.mascot-header) en
+          html/styles.css:876-891) para que nunca tape el título ni el botón. */}
       <div onClick={()=>onNav("mejorar")} style={{
         position:"relative",overflow:"hidden",borderRadius:14,marginBottom:14,
-        padding:"18px 16px",cursor:"pointer",
+        padding:"18px 16px",paddingRight:166,minHeight:244,cursor:"pointer",
         background:`linear-gradient(115deg,${Q.violet2} 0%,${Q.violet} 70%)`}}>
         <svg viewBox="0 0 320 120" preserveAspectRatio="none" style={{position:"absolute",
           inset:0,width:"100%",height:"100%",opacity:0.22,pointerEvents:"none"}}>
@@ -5457,6 +5468,11 @@ function ScreenHome({ user, onNav, onBet, refCode }){
             <rect x="0" y="30" width="40" height="60"/><rect x="280" y="30" width="40" height="60"/>
           </g>
         </svg>
+        {/* size=275 is the mascot's height; at the file's own 540:802
+            ratio that rounds to a 185px width, the prototype's own
+            .mascot-header width. */}
+        <Mascot size={275} style={{position:"absolute",right:-33,bottom:-56,
+          opacity:0.96,zIndex:2,clipPath:"inset(0 0 13% 0)"}}/>
         <div style={{position:"relative"}}>
           <div style={{fontSize:9,letterSpacing:2,fontWeight:800,color:Q.gold,
             fontFamily:F_BODY}}>BET BEST</div>
@@ -5489,8 +5505,10 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           background:`linear-gradient(135deg,${Q.gold}14,${Q.violet}08)`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
-              <div style={{color:Q.gold,fontSize:10,textTransform:"uppercase",letterSpacing:1.5,
-                fontWeight:700,fontFamily:"'Inter',system-ui"}}>🎁 Saldo bono</div>
+              <div style={{display:"flex",alignItems:"center",gap:4,color:Q.gold,fontSize:10,
+                textTransform:"uppercase",letterSpacing:1.5,
+                fontWeight:700,fontFamily:"'Inter',system-ui"}}>
+                <Gift size={12} color={Q.gold} aria-hidden="true"/>Saldo bono</div>
               <div style={{color:Q.text,fontWeight:900,fontSize:22,marginTop:2,
                 fontFamily:"'Inter',system-ui"}}>{money(user.saldo_bono,mon)}</div>
             </div>
@@ -5511,26 +5529,34 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         </GCard>
       )}
 
-      {/* Casino: no entra en la barra de abajo, así que va acá */}
+      {/* Casino: no entra en la barra de abajo, así que va acá.
+          Los dos degradés eran hex escritos a mano (#7B1FA2/#4A148C y
+          #B71C1C/#7F0000); ahora salen de los acentos de marca, y el ink
+          lo decide inkOn en vez de un "#fff" fijo. Violeta para Casino
+          (el mismo par que usa el avatar de la barra superior); rosa/rojo
+          hacia dorado para En vivo — el mismo acento que ya usa "EN VIVO"
+          en este archivo, hacia el color de atención de la marca, para que
+          las dos tarjetas sean distinguibles entre sí y no un violeta
+          repetido dos veces. */}
       <div style={{display:"flex",gap:8,marginBottom:16}}>
         <div onClick={()=>onNav("casino")} style={{flex:1,
           cursor:"pointer",borderRadius:12,padding:"15px 13px",
-          background:`linear-gradient(135deg,#7B1FA2,#4A148C)`}}>
-          <div style={{fontSize:22,marginBottom:3}}>🎰</div>
-          <div style={{color:"#fff",fontWeight:800,fontSize:14,
+          background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`}}>
+          <Icon name="spade" size={24} color={inkOn(Q.violet,Q.violet2)} style={{marginBottom:3}}/>
+          <div style={{color:inkOn(Q.violet,Q.violet2),fontWeight:800,fontSize:14,
             fontFamily:"'Inter',system-ui"}}>Casino</div>
-          <div style={{color:"rgba(255,255,255,.72)",fontSize:10.5,
+          <div style={{color:inkOn(Q.violet,Q.violet2),opacity:.72,fontSize:10.5,
             marginTop:2,lineHeight:1.35,
             fontFamily:"'Inter',system-ui"}}>
             Tragamonedas y mesas</div>
         </div>
         <div onClick={()=>onNav("casinovivo")} style={{flex:1,
           cursor:"pointer",borderRadius:12,padding:"15px 13px",
-          background:`linear-gradient(135deg,#B71C1C,#7F0000)`}}>
-          <div style={{fontSize:22,marginBottom:3}}>🎥</div>
-          <div style={{color:"#fff",fontWeight:800,fontSize:14,
+          background:`linear-gradient(135deg,${Q.pink},${Q.gold})`}}>
+          <Video size={24} color={inkOn(Q.pink,Q.gold)} style={{marginBottom:3}} aria-hidden="true"/>
+          <div style={{color:inkOn(Q.pink,Q.gold),fontWeight:800,fontSize:14,
             fontFamily:"'Inter',system-ui"}}>En vivo</div>
-          <div style={{color:"rgba(255,255,255,.72)",fontSize:10.5,
+          <div style={{color:inkOn(Q.pink,Q.gold),opacity:.72,fontSize:10.5,
             marginTop:2,lineHeight:1.35,
             fontFamily:"'Inter',system-ui"}}>
             Mesas con crupier</div>
@@ -5542,7 +5568,7 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           cursor:"pointer",borderRadius:12,padding:"15px 13px",
           background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{fontSize:22}}>🤝</div>
+            <Handshake size={22} color={inkOn(Q.violet,Q.cyan)} aria-hidden="true"/>
             <div style={{minWidth:0}}>
               <div style={{color:inkOn(Q.violet,Q.cyan),fontWeight:800,fontSize:14,
                 fontFamily:"'Inter',system-ui"}}>Desafíos</div>
@@ -5556,8 +5582,9 @@ function ScreenHome({ user, onNav, onBet, refCode }){
       </div>
 
       {/* Combo del día destacado */}
-      <div style={{color:Q.text,fontWeight:800,fontSize:15,marginBottom:8,
-        fontFamily:"'Inter',system-ui"}}>⚡ Combo del día</div>
+      <div style={{display:"flex",alignItems:"center",gap:6,color:Q.text,fontWeight:800,fontSize:15,
+        marginBottom:8,fontFamily:"'Inter',system-ui"}}>
+        <Zap size={16} color={Q.gold} aria-hidden="true"/>Combo del día</div>
       {combo?(
         <GCard glow={Q.gold} onClick={()=>onNav("combo")}
           style={{padding:16,marginBottom:16,cursor:"pointer",
@@ -5588,8 +5615,9 @@ function ScreenHome({ user, onNav, onBet, refCode }){
 
       {/* En vivo */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-        <div style={{color:Q.text,fontWeight:800,fontSize:15,
-          fontFamily:"'Inter',system-ui"}}>🔴 En vivo ahora</div>
+        <div style={{display:"flex",alignItems:"center",gap:6,color:Q.text,fontWeight:800,fontSize:15,
+          fontFamily:"'Inter',system-ui"}}>
+          <Icon name="circle-dot" size={16} color={Q.red}/>En vivo ahora</div>
         <button onClick={()=>onNav("live")} style={{background:"transparent",border:"none",
           color:Q.cyan,fontSize:12,fontWeight:700,cursor:"pointer",
           fontFamily:"'Inter',system-ui"}}>Ver todo →</button>
