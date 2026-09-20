@@ -82,6 +82,28 @@ Out of scope: `Web.jsx` (85 uses), `Agencia.jsx` (310), `Admin.jsx` (537),
       Q.red`. The `{text, ok}` contract itself is unchanged.
 - [x] **T2** The chrome: the emoji in `App.jsx`'s JSX become icons, guided by
       the inventory. Commit `e250210`.
+- [x] **T3** One live-matches section, below the hero. Not part of the
+      original plan: the owner asked for it on 2026-09-20 from a screenshot,
+      while this branch was open. Commit `a60aac4`.
+      `ScreenHome` drew live matches **twice from the same array**: a grid
+      above the hero — three odds per match, league, score — and a compact
+      list below with a single odd. Both mapped over `live`, which holds
+      `slice(0,3)`, so the player saw the same three matches twice on one
+      screen. The grid stays and moves down beside the other sections.
+      It keeps the header and the empty state that belonged to that
+      position: the compact list was the only one that told the player when
+      nothing was live, and the grid simply did not render in that case.
+      The `sport`/`h`/`a` aliases in the fetch existed only to feed the
+      compact list and are gone with it — verified first that `live` never
+      leaves the component and that nothing else in `ScreenHome` reads them.
+      Section order is now Bet Best, Casino, Combo del día, En vivo, Accesos
+      rápidos. Suite **460 passed**, ESLint clean, build `Compiled
+      successfully` at 283.43 kB (−284 B, the removed duplicate).
+      The block was re-indented after a first pass left it flush-left; the
+      bundle hash was byte-identical before and after that re-indent, which
+      is the proof it changed nothing.
+      The league flags (🇧🇷 🇩🇪 🇫🇷) stay as emoji — a flag has no icon
+      equivalent and will not have one.
 
 ## Measurement correction
 
@@ -203,7 +225,7 @@ to by the time this task started.
 
 ## Progress
 
-Both tasks done. Working tree clean; nothing pushed, no PR opened, no merge.
+T1, T2 and T3 done. Working tree clean.
 
 ## Next step
 
