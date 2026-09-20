@@ -3424,9 +3424,11 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
       setConfirmBloq(false); setMotivo("");
-      // "🔒 Cliente bloqueado" carries no ✅ prefix — it fell through to red
-      // under the old sniffing render, same as it does explicitly here.
-      setMsg({text: bloquear?"🔒 Cliente bloqueado":"✅ Cliente desbloqueado", ok: !bloquear});
+      // Blocking and unblocking are the same operation with opposite sign,
+      // and both report success. Under the old sniffing render the block
+      // confirmation showed red only because its text carried no ✅ prefix,
+      // which told the agency an action that worked had failed.
+      setMsg({text: bloquear?"🔒 Cliente bloqueado":"✅ Cliente desbloqueado", ok: true});
       cargarFicha();
     }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);

@@ -68,3 +68,20 @@ describe.each(FIXED_SCREENS)("%s does not decide a message's colour from its own
     expect(source).toMatch(/⚠️/);
   });
 });
+
+describe("Agencia.jsx does not report a successful action in red", () => {
+  const source = sourceOf("Agencia.jsx");
+
+  test("blocking a client is confirmed in green, like unblocking", () => {
+    // Blocking and unblocking are one operation with opposite sign. The old
+    // sniffing render coloured the block confirmation red purely because its
+    // text starts with 🔒 instead of ✅, so an agency was told an action that
+    // had worked did not. Both now report ok:true.
+    const confirmation = source.match(
+      /setMsg\(\{\s*text:\s*bloquear\s*\?[^}]*\}\)/
+    );
+    expect(confirmation).not.toBeNull();
+    expect(confirmation[0]).toMatch(/ok:\s*true/);
+    expect(confirmation[0]).not.toMatch(/ok:\s*!bloquear/);
+  });
+});
