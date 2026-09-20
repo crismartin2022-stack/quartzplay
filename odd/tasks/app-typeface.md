@@ -75,6 +75,18 @@ baseline plus the new test. The build succeeds.
       the Inter defect and naming a different typeface on purpose is out
       of this change's scope.
 
+- [x] **T2** The same defect on `/box`, and a guard that covers every clean
+      screen instead of only `App.jsx`. Commit `8f3000d`. `Box.jsx` named
+      `'Inter'` in four places (lines 397, 405, 412, 1200); it already
+      imported `F_BODY`/`F_NUM` and used them elsewhere, so these four were
+      stragglers. `appTypeface.test.js` now runs over `App.jsx`, `Web.jsx`,
+      `Casino.jsx` and `Box.jsx`, and additionally rejects `'Space Grotesk'`
+      so the literal cannot spread from the panels that still carry it.
+      Observed RED first: with `Box.jsx` unfixed the suite reported
+      `2 failed, 14 passed, 16 total`, both failures on `Box.jsx`.
+      Full suite 416 -> **429 passed**. ESLint clean on `Box.jsx`.
+      Production build `Compiled successfully`, 284.5 kB gzip.
+
 ## Delivery
 
 One work-unit commit. Branch `fix/quartzplay-app-typeface` off `staging`.
@@ -123,8 +135,32 @@ T1 done, committed as `031a692` on `fix/quartzplay-app-typeface`
 Not done: pushing, opening a PR, merging, and running the review status
 command above — all left for the repository owner.
 
+## What the audit of the other screens found
+
+Counting `fontFamily` occurrences is not the same as reading their value, and
+the first pass through this made that mistake. The corrected map:
+
+| Route | File | Role | State |
+|---|---|---|---|
+| Telegram (default) | `App.jsx` | Player | fixed, T1 |
+| `/sitio` | `Web.jsx` | Player | already correct, 227 `F_BODY` + 41 `F_NUM` |
+| `/casino` | `Casino.jsx` | Player | already correct |
+| `/box` | `Box.jsx` | Cashier | fixed, T2 |
+| `/agencia` | `Agencia.jsx` | Agency | 620 `'Space Grotesk'` |
+| `/admin` | `Admin.jsx` | Admin | 967 `'Space Grotesk'` |
+
+`'Space Grotesk'` is served nowhere: it appears only as a literal inside those
+two files, in no `@font-face` rule and no font file in the repository. The
+admin and agency panels have therefore never rendered in it — they fall back
+to `system-ui` exactly as the player screens did.
+
+That is not a mechanical fix, so it is deliberately not part of this change.
+It is a product decision: either the internal panels adopt Poppins like the
+player-facing screens, or Space Grotesk is actually shipped and the panels
+carry their own identity. Today neither is true. The guard test rejects the
+literal on the clean screens so the ambiguity cannot spread while it is open.
+
 ## Next step
 
-Hand off to the repository owner: run the review status command above
-(or decline) to clear `slice_budget_reached`, then push/PR/merge under
-ordinary repository policy. No further T1 work remains.
+Nothing pending on this branch. Open for the owner: the review consent for
+this branch, and the Space Grotesk decision above.
