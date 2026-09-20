@@ -272,12 +272,12 @@ function TabCierre({ adminKey, onNoAutorizado }){
   },[vista,desde,hasta,filtroAg]);
   const [clientesF,setClientesF]=useState([]);     // clientes de la agencia elegida
   const [filtroCli,setFiltroCli]=useState("");     // cliente elegido ("" = todos)
-  const [liqMsg,setLiqMsg]=useState("");
+  const [liqMsg,setLiqMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [liqProc,setLiqProc]=useState(false);
   const [verLiq,setVerLiq]=useState(false);
   const [liquidaciones,setLiquidaciones]=useState(null);
   const [liqAuto,setLiqAuto]=useState([]);
-  const [liqAutoMsg,setLiqAutoMsg]=useState("");
+  const [liqAutoMsg,setLiqAutoMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [liqAutoProc,setLiqAutoProc]=useState(false);
 
   useEffect(()=>{
@@ -297,7 +297,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
   };
 
   const dispararAuto=async(periodo)=>{
-    setLiqAutoProc(true); setLiqAutoMsg("");
+    setLiqAutoProc(true); setLiqAutoMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/liquidar-auto`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -305,14 +305,14 @@ function TabCierre({ adminKey, onNoAutorizado }){
       });
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
-      setLiqAutoMsg(`✅ ${d.generadas} liquidaciones (${d.desde} a ${d.hasta})`);
-    }catch(e){ setLiqAutoMsg("⚠️ "+e.message); }
+      setLiqAutoMsg({text:`✅ ${d.generadas} liquidaciones (${d.desde} a ${d.hasta})`,ok:true});
+    }catch(e){ setLiqAutoMsg({text:"⚠️ "+e.message,ok:false}); }
     setLiqAutoProc(false);
   };
 
   const generarLiquidacion=async()=>{
     if(!filtroAg) return;
-    setLiqProc(true); setLiqMsg("");
+    setLiqProc(true); setLiqMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/liquidar`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -322,8 +322,8 @@ function TabCierre({ adminKey, onNoAutorizado }){
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setLiqMsg(`✅ Liquidación generada · Comisión ${ars(d.comision_total)}`);
-    }catch(e){ setLiqMsg("⚠️ "+e.message); }
+      setLiqMsg({text:`✅ Liquidación generada · Comisión ${ars(d.comision_total)}`,ok:true});
+    }catch(e){ setLiqMsg({text:"⚠️ "+e.message,ok:false}); }
     setLiqProc(false);
   };
 
@@ -965,8 +965,8 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   onClick={()=>dispararAuto("mensual")} color={Q.cyan} outline full disabled={liqAutoProc}/>
               </div>
               {liqAutoMsg&&<div style={{fontSize:12,marginTop:8,
-                color:liqAutoMsg.startsWith("✅")?Q.green:Q.red,
-                fontFamily:F_BODY}}>{liqAutoMsg}</div>}
+                color:liqAutoMsg.ok?Q.green:Q.red,
+                fontFamily:F_BODY}}>{liqAutoMsg.text}</div>}
             </GCard>
           )}
 
@@ -986,8 +986,8 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   color={Q.gold} full disabled={liqProc}/>
               </div>
               {liqMsg&&<div style={{fontSize:12,marginTop:8,
-                color:liqMsg.startsWith("✅")?Q.green:Q.red,
-                fontFamily:F_BODY}}>{liqMsg}</div>}
+                color:liqMsg.ok?Q.green:Q.red,
+                fontFamily:F_BODY}}>{liqMsg.text}</div>}
             </GCard>
           )}
 
@@ -1445,7 +1445,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
   const [destAg,setDestAg]=useState(false);
   const [agencias,setAgencias]=useState("");   // vacío = todas
   const [guardando,setGuardando]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [infList,setInfList]=useState([]);
   const [infCode,setInfCode]=useState("");
   const [codigoSalida,setCodigoSalida]=useState("");
@@ -1486,7 +1486,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
 
   const guardar=async()=>{
     if(!picks.length||guardando) return;
-    setGuardando(true); setMsg("");
+    setGuardando(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/combos`,{
         method:"POST",
@@ -1506,9 +1506,9 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg("✅ Combo publicado");
+      setMsg({text:"✅ Combo publicado",ok:true});
       setTimeout(onListo, 800);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setGuardando(false);
   };
 
@@ -1674,8 +1674,8 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       </div>
 
       {msg&&<div style={{fontSize:12,marginBottom:10,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       {picks.length>0&&(
         <GCard glow={Q.violet} style={{padding:14}}>
@@ -1865,14 +1865,14 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
   const [destBox,setDestBox]=useState(true);
   const [destApp,setDestApp]=useState(false);
   const [destAg,setDestAg]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [pub,setPub]=useState(false);
 
   const elegir=(e)=>{
     const files=Array.from(e.target.files||[]);
     if(!files.length) return;
     files.forEach(f=>{
-      if(f.size>8*1024*1024){ setMsg("Una imagen supera 8MB"); return; }
+      if(f.size>8*1024*1024){ setMsg({text:"Una imagen supera 8MB",ok:false}); return; }
       const rd=new FileReader();
       rd.onload=()=>setImgs(prev=>[...prev,{b64:rd.result.split(",")[1],
         tipo:f.type||"image/jpeg",preview:rd.result}]);
@@ -1883,7 +1883,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
   const quitarImg=(i)=>setImgs(prev=>prev.filter((_,k)=>k!==i));
   const analizar=async()=>{
     if(!imgs.length||analizando) return;
-    setAnalizando(true); setMsg(""); setRes(null);
+    setAnalizando(true); setMsg(null); setRes(null);
     try{
       const r=await fetch(`${API}/api/admin/escanear-combo`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -1891,16 +1891,16 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       });
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
-      if(!d.ok) setMsg(d.mensaje||"No se pudo leer");
+      if(!d.ok) setMsg({text:d.mensaje||"No se pudo leer",ok:false});
       else setRes(d);
-    }catch(e){ setMsg("Error al analizar"); }
+    }catch(e){ setMsg({text:"Error al analizar",ok:false}); }
     setAnalizando(false);
   };
   const publicar=async()=>{
     if(!res||pub) return;
     const validos=res.picks.filter(p=>p.odd_nuestra);
-    if(!validos.length){ setMsg("No hay picks que podamos tomar"); return; }
-    setPub(true); setMsg("");
+    if(!validos.length){ setMsg({text:"No hay picks que podamos tomar",ok:false}); return; }
+    setPub(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/combos`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -1916,9 +1916,9 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg("✅ Combo publicado");
+      setMsg({text:"✅ Combo publicado",ok:true});
       setTimeout(onListo, 800);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setPub(false);
   };
 
@@ -1977,8 +1977,8 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       )}
 
       {msg&&<div style={{fontSize:12,marginBottom:10,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       {res&&(
         <div>
@@ -2216,7 +2216,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
   const [monto,setMonto]=useState("");
   const [detalle,setDetalle]=useState("");
   const [operando,setOperando]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [motivo,setMotivo]=useState("");
   const [confirmBloq,setConfirmBloq]=useState(false);
   const [verApuesta,setVerApuesta]=useState(null);
@@ -2235,8 +2235,8 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
 
   const mover=async(signo)=>{
     const m=parseInt(monto);
-    if(!m||m<=0){ setMsg("Poné un monto"); return; }
-    setOperando(true); setMsg("");
+    if(!m||m<=0){ setMsg({text:"Poné un monto",ok:false}); return; }
+    setOperando(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/clientes/${userId}/saldo`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -2245,16 +2245,16 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg(signo>0?"✅ Crédito cargado":"✅ Retiro hecho");
+      setMsg({text:signo>0?"✅ Crédito cargado":"✅ Retiro hecho",ok:true});
       setMonto(""); setDetalle(""); cargar(); onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setOperando(false);
   };
 
   const toggleBloqueo=async()=>{
     const bloquear=!f.bloqueado;
     if(bloquear && !confirmBloq){ setConfirmBloq(true); return; }
-    setOperando(true); setMsg("");
+    setOperando(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/bloquear`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -2265,9 +2265,12 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
       setConfirmBloq(false); setMotivo("");
-      setMsg(bloquear?"🔒 Cliente bloqueado":"✅ Cliente desbloqueado");
+      // "🔒 Cliente bloqueado" carries no ✅, but the old render already
+      // matched either status glyph before deciding green — unlike
+      // Agencia.jsx, this screen never had the red-block asymmetry.
+      setMsg({text:bloquear?"🔒 Cliente bloqueado":"✅ Cliente desbloqueado",ok:true});
       cargar(); onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setOperando(false);
   };
 
@@ -2537,8 +2540,8 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
             {resetOpen&&<ResetPasswordAdmin adminKey={adminKey} userId={userId}
               nombre={f?(f.nombre_completo||f.username):"el cliente"} onCerrar={()=>setResetOpen(false)}/>}
             {msg&&<div style={{fontSize:12,marginBottom:10,textAlign:"center",
-              color:msg.startsWith("✅")||msg.startsWith("🔒")?Q.green:Q.red,
-              fontFamily:F_BODY}}>{msg}</div>}
+              color:msg.ok?Q.green:Q.red,
+              fontFamily:F_BODY}}>{msg.text}</div>}
 
             {/* Apuestas */}
             <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
@@ -2582,7 +2585,7 @@ function TabClientes({ adminKey, onNoAutorizado }){
   const [nombre,setNombre]=useState("");
   const [agNueva,setAgNueva]=useState("");
   const [tel,setTel]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
 
   const cargarAgs=async()=>{
     try{
@@ -2606,8 +2609,8 @@ function TabClientes({ adminKey, onNoAutorizado }){
   },[filtroAg]);
 
   const crear=async()=>{
-    if(!nombre.trim()||!agNueva){ setMsg("Poné nombre y agencia"); return; }
-    setCreando(true); setMsg("");
+    if(!nombre.trim()||!agNueva){ setMsg({text:"Poné nombre y agencia",ok:false}); return; }
+    setCreando(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/clientes`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -2616,9 +2619,9 @@ function TabClientes({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg("✅ Cliente creado");
+      setMsg({text:"✅ Cliente creado",ok:true});
       setNombre(""); setTel(""); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setCreando(false);
   };
 
@@ -2658,8 +2661,8 @@ function TabClientes({ adminKey, onNoAutorizado }){
         <Btn label={creando?"CREANDO...":"Crear cliente"} onClick={crear}
           color={Q.violet} full disabled={creando}/>
         {msg&&<div style={{fontSize:12,marginTop:8,
-          color:msg.startsWith("✅")?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg}</div>}
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}>{msg.text}</div>}
       </GCard>
 
       {/* Filtros */}
@@ -4021,7 +4024,7 @@ function VistaEscaneos({ data }){
 function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
   const [form,setForm]=useState({name:"",username:"",password:"",pct_ggr:"",pct_ventas:"",parent_code:"",alcance:""});
   const [ags,setAgs]=useState([]);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   useEffect(()=>{
@@ -4031,9 +4034,9 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
   },[]);
 
   const crear=async()=>{
-    if(!form.name||!form.username||!form.password){ setMsg("Completá nombre, usuario y clave"); return; }
-    if(form.password.length<8){ setMsg("La clave debe tener 8+ caracteres"); return; }
-    setProc(true); setMsg("");
+    if(!form.name||!form.username||!form.password){ setMsg({text:"Completá nombre, usuario y clave",ok:false}); return; }
+    if(form.password.length<8){ setMsg({text:"La clave debe tener 8+ caracteres",ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/influencers`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -4042,9 +4045,9 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg(`✅ Creado: ${d.code} · código ${d.codigo_ref}`);
+      setMsg({text:`✅ Creado: ${d.code} · código ${d.codigo_ref}`,ok:true});
       setTimeout(onListo,900);
-    }catch(e){ setMsg("⚠️ "+e.message); setProc(false); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); setProc(false); }
   };
 
   return(
@@ -4116,15 +4119,15 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
       </div>
       <Btn label={proc?"CREANDO...":"Crear influencer"} onClick={crear} color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </GCard>
   );
 }
 
 function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutorizado }){
   const [d,setD]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [resetOpen,setResetOpen]=useState(false);
   const [configOpen,setConfigOpen]=useState(false);
@@ -4141,7 +4144,7 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
   },[code]);
 
   const liquidar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/influencers/${code}/liquidar`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -4149,8 +4152,8 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const j=await r.json();
-      setMsg(`✅ Liquidación generada · ${ars(j.comision)}`);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:`✅ Liquidación generada · ${ars(j.comision)}`,ok:true});
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setProc(false);
   };
 
@@ -4203,8 +4206,8 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
                 </div>
               )}
               {msg&&<div style={{fontSize:12,marginTop:8,
-                color:msg.startsWith("✅")?Q.green:Q.red,
-                fontFamily:F_BODY}}>{msg}</div>}
+                color:msg.ok?Q.green:Q.red,
+                fontFamily:F_BODY}}>{msg.text}</div>}
               {resetOpen&&<ResetPasswordAdmin adminKey={adminKey} code={code}
                 nombre={d.reporte?d.reporte.name:code} onCerrar={()=>setResetOpen(false)}/>}
             </GCard>
@@ -4410,7 +4413,7 @@ function AsignarAgenciaAdmin({ adminKey, userId, esDirecto, agenciaActual, onCam
   const [abierto,setAbierto]=useState(false);
   const [agencias,setAgencias]=useState([]);
   const [sel,setSel]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   useEffect(()=>{
     if(!abierto) return;
     fetch(`${API}/api/admin/arbol`,{headers:adminHeaders(adminKey)})
@@ -4426,9 +4429,9 @@ function AsignarAgenciaAdmin({ adminKey, userId, esDirecto, agenciaActual, onCam
         body:JSON.stringify({agencia_code:sel}),
       });
       const d=await r.json();
-      if(r.ok&&d.ok){ setMsg("✅ Agencia actualizada"); if(onCambio) onCambio(); }
-      else setMsg("⚠️ "+(d.detail||"Error"));
-    }catch(e){ setMsg("⚠️ Error"); }
+      if(r.ok&&d.ok){ setMsg({text:"✅ Agencia actualizada",ok:true}); if(onCambio) onCambio(); }
+      else setMsg({text:"⚠️ "+(d.detail||"Error"),ok:false});
+    }catch(e){ setMsg({text:"⚠️ Error",ok:false}); }
   };
 
   if(!abierto) return(
@@ -4452,12 +4455,12 @@ function AsignarAgenciaAdmin({ adminKey, userId, esDirecto, agenciaActual, onCam
         {agencias.map(a=>(<option key={a.code} value={a.code}>{a.code} · {a.name}</option>))}
       </select>
       <div style={{display:"flex",gap:6}}>
-        <Btn label="Cerrar" onClick={()=>{setAbierto(false);setMsg("");}} outline color={Q.muted} full/>
+        <Btn label="Cerrar" onClick={()=>{setAbierto(false);setMsg(null);}} outline color={Q.muted} full/>
         <Btn label="Guardar" onClick={asignar} color={Q.cyan} full/>
       </div>
       {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </div>
   );
 }
@@ -4465,12 +4468,12 @@ function AsignarAgenciaAdmin({ adminKey, userId, esDirecto, agenciaActual, onCam
 function ResetPasswordAdmin({ adminKey, code, userId, nombre, onCerrar }){
   const [nueva,setNueva]=useState("");
   const [repetir,setRepetir]=useState("");
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null — status lives here, not in the text
 
   const guardar=async()=>{
-    if(nueva.length<8){ setMsg("La contraseña debe tener 8+ caracteres"); return; }
-    if(nueva!==repetir){ setMsg("Las contraseñas no coinciden"); return; }
-    setProc(true); setMsg("");
+    if(nueva.length<8){ setMsg({text:"La contraseña debe tener 8+ caracteres",ok:false}); return; }
+    if(nueva!==repetir){ setMsg({text:"Las contraseñas no coinciden",ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const body = code ? {code,nueva} : {user_id:userId,nueva};
       const r=await fetch(`${API}/api/admin/reset-password`,{
@@ -4478,9 +4481,9 @@ function ResetPasswordAdmin({ adminKey, code, userId, nombre, onCerrar }){
         body:JSON.stringify(body),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg("✅ Contraseña reseteada. Deberá cambiarla en su próximo ingreso.");
+      setMsg({text:"✅ Contraseña reseteada. Deberá cambiarla en su próximo ingreso.",ok:true});
       setTimeout(onCerrar,1200);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setProc(false);
   };
 
@@ -4511,8 +4514,8 @@ function ResetPasswordAdmin({ adminKey, code, userId, nombre, onCerrar }){
             fontFamily:F_BODY}}/>
         <Btn label={proc?"GUARDANDO...":"Resetear"} onClick={guardar} color={Q.amber} full disabled={proc}/>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-          color:msg.startsWith("✅")?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg}</div>}
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}>{msg.text}</div>}
       </GCard>
     </div>
   );
@@ -4532,10 +4535,10 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
   const [pctDesafios,setPctDesafios]=useState(String(cuenta?.pct_desafios||0));
   const [alcance,setAlcance]=useState(cuenta.alcance||"");
   const [permiso,setPermiso]=useState(cuenta.permiso||"ambos");
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null — status lives here, not in the text
 
   const guardar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const headers = esAdmin
         ? {"Content-Type":"application/json",...adminHeaders(adminKey)}
@@ -4556,9 +4559,9 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
       let extra="";
       if(d.hijos_sobre_limite&&d.hijos_sobre_limite.length)
         extra=` ⚠️ ${d.hijos_sobre_limite.length} cuenta(s) hija(s) quedaron con % mayor al tuyo.`;
-      setMsg("✅ Configuración guardada."+extra);
+      setMsg({text:"✅ Configuración guardada."+extra,ok:true});
       onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setProc(false);
   };
 
@@ -4659,15 +4662,15 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
       <Btn label={proc?"GUARDANDO...":"💾 Guardar configuración"} onClick={guardar}
         color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </div>
   );
 }
 
 function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
   const [ccMonto,setCcMonto]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [ver,setVer]=useState("cc");   // cc | config | editar | anular
   const [resetOpen,setResetOpen]=useState(false);
@@ -4678,7 +4681,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
   const [puedeCashout,setPuedeCashout]=useState(agencia?.puede_cashout!==false);
 
   const guardarPermisoCashout=async(activo)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(
         `${API}/api/admin/agencias/${agencia.code}/permiso-cashout`,{
@@ -4690,18 +4693,18 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
       setPuedeCashout(activo);
-      setMsg(anulaRama
+      setMsg({text:anulaRama
         ? `✅ Cash out ${activo?"habilitado":"quitado"} en ${d.agencias_alcanzadas} agencias`
-        : `✅ Cash out ${activo?"habilitado":"quitado"}`);
+        : `✅ Cash out ${activo?"habilitado":"quitado"}`,ok:true});
       onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setProc(false);
   };
 
   // Permiso de anular apuestas. Con rama, alcanza a esta agencia y a
   // todas las que cuelgan de ella.
   const guardarPermisoAnular=async(activo)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(
         `${API}/api/admin/agencias/${agencia.code}/permiso-anular`,{
@@ -4713,18 +4716,18 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
       setPuedeAnular(activo);
-      setMsg(anulaRama
+      setMsg({text:anulaRama
         ? `✅ ${activo?"Habilitado":"Quitado"} en ${d.agencias_alcanzadas} agencias`
-        : `✅ ${activo?"Habilitado":"Quitado"}`);
+        : `✅ ${activo?"Habilitado":"Quitado"}`,ok:true});
       onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setProc(false);
   };
 
   const cargarCC=async(signo)=>{
     const m=parseFloat(ccMonto);
-    if(!m||m<=0){ setMsg("Poné un monto"); return; }
-    setProc(true); setMsg("");
+    if(!m||m<=0){ setMsg({text:"Poné un monto",ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/agencias/${agencia.code}/cc`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -4733,14 +4736,14 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg("✅ Saldo actualizado"); setCcMonto(""); onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"✅ Saldo actualizado",ok:true}); setCcMonto(""); onCambio&&onCambio();
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setProc(false);
   };
 
   const toggleStatus=async()=>{
     const nuevo=agencia.status==="active"?"suspended":"active";
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/agencias/${agencia.code}`,{
         method:"PUT",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -4748,8 +4751,12 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       });
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok) throw new Error(`Error ${r.status}`);
-      setMsg(nuevo==="active"?"✅ Reactivada":"🔒 Suspendida"); onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      // "🔒 Suspendida" carries no ✅, but the old render already matched
+      // either status glyph before deciding green — same as FichaCliente's
+      // block confirmation, this screen never had the red-on-success
+      // asymmetry Agencia.jsx did.
+      setMsg({text:nuevo==="active"?"✅ Reactivada":"🔒 Suspendida",ok:true}); onCambio&&onCambio();
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setProc(false);
   };
 
@@ -4902,8 +4909,8 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       )}
 
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")||msg.startsWith("🔒")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
       {resetOpen&&<ResetPasswordAdmin adminKey={adminKey} code={agencia.code}
         nombre={agencia.name} onCerrar={()=>setResetOpen(false)}/>}
     </GCard>
@@ -4920,7 +4927,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
   // Los desafíos comisionan sobre el rake, no sobre el GGR: la casa
   // no arriesga nada ahí, solo cobra por juntar a los dos jugadores.
   const [pctDes,setPctDes]=useState(String(agencia.pct_desafios||0));
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   // Qué productos ofrece esta agencia
@@ -4942,7 +4949,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
   useEffect(()=>{ cargarProds(); /* eslint-disable-next-line */ },[agencia.code]);
 
   const cambiarProd=async(codigo,activo)=>{
-    setProcProd(true); setMsg("");
+    setProcProd(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/productos/agencia`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -4951,14 +4958,14 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
                              producto:codigo, activo})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg(activo?"✅ Producto habilitado":"✅ Producto quitado");
+      setMsg({text:activo?"✅ Producto habilitado":"✅ Producto quitado",ok:true});
       cargarProds();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setProcProd(false);
   };
 
   const guardar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/agencias/${agencia.code}/comisiones`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -4986,8 +4993,8 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       if(!rc.ok){ const e=await rc.json().catch(()=>({}));
         throw new Error(e.detail||"No se pudo guardar el % de casino"); }
 
-      setMsg("✅ Comisiones actualizadas"); onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"✅ Comisiones actualizadas",ok:true}); onCambio&&onCambio();
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
     setProc(false);
   };
 
@@ -5083,8 +5090,8 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
         </div>
       )}
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </div>
   );
 }
@@ -5161,7 +5168,7 @@ function CrearClienteAdmin({ adminKey, agencia, onListo, onCancel, onNoAutorizad
 function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
   const [form,setForm]=useState({name:"",username:"",password:"",
     parent_code:"",pct_ggr:"",pct_ventas:"",moneda:"ARS",permiso:"ambos"});
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [monedas,setMonedas]=useState([]);
   useEffect(()=>{
@@ -5170,8 +5177,8 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
   },[]);
 
   const crear=async()=>{
-    if(!form.name||!form.username||!form.password){ setMsg("Completá nombre, usuario y clave"); return; }
-    setProc(true); setMsg("");
+    if(!form.name||!form.username||!form.password){ setMsg({text:"Completá nombre, usuario y clave",ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/agencias`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -5181,9 +5188,9 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg(`✅ Creada: ${d.code}`);
+      setMsg({text:`✅ Creada: ${d.code}`,ok:true});
       setTimeout(onListo,700);
-    }catch(e){ setMsg("⚠️ "+e.message); setProc(false); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); setProc(false); }
   };
 
   return(
@@ -5269,8 +5276,8 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
       <Btn label={proc?"CREANDO...":"Crear agencia"} onClick={crear}
         color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </GCard>
   );
 }
@@ -5430,7 +5437,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json().catch(()=>({}));
       setBonos(d.bonos||[]);
-    }catch(e){ setMsg("⚠️ No se pudieron cargar los bonos"); }
+    }catch(e){ setMsg({text:"⚠️ No se pudieron cargar los bonos",ok:false}); }
   };
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[adminKey]);
   const [form,setForm]=useState({nombre:"",tipo:"bienvenida",monto_fijo:"",
@@ -5440,7 +5447,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
     vigente_desde:"",vigente_hasta:"",dias_semana:"",hora_desde:"",hora_hasta:"",
     // Quién paga el bono cuando se libere. Por defecto la casa.
     pct_paga_casa:"100",pct_paga_agencia:"0"});
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [analisis,setAnalisis]=useState("");
   // Se perdió al reorganizar el analizador: sin esto el componente
@@ -5490,8 +5497,8 @@ function TabBonos({ adminKey, onNoAutorizado }){
   };
 
   const guardar=async()=>{
-    if(!form.nombre.trim()){ setMsg("Poné un nombre"); return; }
-    setProc(true); setMsg("");
+    if(!form.nombre.trim()){ setMsg({text:"Poné un nombre",ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/bonos`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -5499,14 +5506,14 @@ function TabBonos({ adminKey, onNoAutorizado }){
       });
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
-      if(r.ok&&d.ok){ setMsg("✅ Bono guardado");
+      if(r.ok&&d.ok){ setMsg({text:"✅ Bono guardado",ok:true});
         setForm({nombre:"",tipo:"bienvenida",monto_fijo:"",porcentaje:"",tope:"",rollover:"5",
           deposito_minimo:"",cuota_minima:"1.50",requiere_verificacion:true,evento:"primer_deposito",
           stake_max_tipo:"porcentaje",stake_max_valor:"15",cuota_maxima:"",mercados_excluidos:"",
     vigente_desde:"",vigente_hasta:"",dias_semana:"",hora_desde:"",hora_hasta:""});
         setAnalisis(""); cargar(); }
-      else setMsg("⚠️ "+(d.detail||"Error"));
-    }catch(e){ setMsg("⚠️ Error"); }
+      else setMsg({text:"⚠️ "+(d.detail||"Error"),ok:false});
+    }catch(e){ setMsg({text:"⚠️ Error",ok:false}); }
     setProc(false);
   };
 
@@ -5514,7 +5521,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
     // Antes esto no miraba la respuesta ni avisaba si fallaba: si el
     // servidor rechazaba, la pantalla recargaba con el estado viejo y
     // parecía que el botón no hacía nada.
-    setMsg("");
+    setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/bonos/${b.id}/activar`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -5523,22 +5530,22 @@ function TabBonos({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json().catch(()=>({}));
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg(d.activo?"✅ Bono activado":"✅ Bono desactivado");
+      setMsg({text:d.activo?"✅ Bono activado":"✅ Bono desactivado",ok:true});
       await cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
   };
   const borrar=async(id)=>{
     if(!window.confirm("¿Borrar este bono? No se puede deshacer.")) return;
-    setMsg("");
+    setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/bonos/${id}`,
         {method:"DELETE",headers:adminHeaders(adminKey)});
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg("✅ Bono borrado");
+      setMsg({text:"✅ Bono borrado",ok:true});
       await cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
   };
   const resetear=async(id)=>{
     if(!window.confirm("¿Resetear este bono? Se borran todos sus otorgamientos y se puede reutilizar desde cero.")) return;
@@ -5856,8 +5863,8 @@ function TabBonos({ adminKey, onNoAutorizado }){
           cursor:"pointer",fontFamily:F_BODY}}>
           {proc?"Guardando...":"Guardar bono"}</button>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-          color:msg.startsWith("✅")?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg}</div>}
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}>{msg.text}</div>}
       </GCard>
 
       <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
@@ -6101,7 +6108,7 @@ function TabPSP({ adminKey, onNoAutorizado }){
 
 function TabBetBuilder({ adminKey, onNoAutorizado }){
   const [cfg,setCfg]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [analisis,setAnalisis]=useState("");
   const [analizando,setAnalizando]=useState(false);
 
@@ -6121,15 +6128,15 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
   // momento, sin esperar a que aprieten "Guardar". Antes el cambio
   // quedaba solo en pantalla y parecía que no funcionaba.
   const guardar=async(estado)=>{
-    setMsg("");
+    setMsg(null);
     const c = estado || cfg;
     try{
       const r=await fetch(`${API}/api/admin/bet-builder/config`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
         body:JSON.stringify({...c, excluidas:c.excluidas||[]}),
       });
-      if(r.ok) setMsg("✅ Guardado"); else setMsg("⚠️ Error");
-    }catch(e){ setMsg("⚠️ Error"); }
+      if(r.ok) setMsg({text:"✅ Guardado",ok:true}); else setMsg({text:"⚠️ Error",ok:false});
+    }catch(e){ setMsg({text:"⚠️ Error",ok:false}); }
   };
 
   const analizar=async()=>{
@@ -6310,8 +6317,8 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
           padding:"12px",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",
           fontFamily:F_BODY}}>Guardar configuración</button>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-          color:msg.startsWith("✅")?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg}</div>}
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}>{msg.text}</div>}
       </GCard>
 
       <div style={{color:Q.dim,fontSize:11,textAlign:"center",lineHeight:1.5,
@@ -14032,7 +14039,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
         setMonedas(d.monedas.map(m=>m.codigo)); })
       .catch(()=>{});
   },[]);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const cargar=async()=>{
@@ -14053,8 +14060,8 @@ function TabLimites({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const guardar=async()=>{
-    if(form.alcance!=="global"&&!form.agencia_code){ setMsg("Elegí una agencia"); return; }
-    setProc(true); setMsg("");
+    if(form.alcance!=="global"&&!form.agencia_code){ setMsg({text:"Elegí una agencia",ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/limites`,{
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
@@ -14062,10 +14069,10 @@ function TabLimites({ adminKey, onNoAutorizado }){
       });
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
-      if(r.ok&&d.ok){ setMsg(`✅ Guardado${d.aplicado_a?` (${d.aplicado_a} agencias)`:""}`);
+      if(r.ok&&d.ok){ setMsg({text:`✅ Guardado${d.aplicado_a?` (${d.aplicado_a} agencias)`:""}`,ok:true});
         setForm(f=>({...f,monto_min:"",monto_max:"",pago_max:""})); cargar(); }
-      else setMsg("⚠️ "+(d.detail||"Error"));
-    }catch(e){ setMsg("⚠️ Error"); }
+      else setMsg({text:"⚠️ "+(d.detail||"Error"),ok:false});
+    }catch(e){ setMsg({text:"⚠️ Error",ok:false}); }
     setProc(false);
   };
 
@@ -14177,8 +14184,8 @@ function TabLimites({ adminKey, onNoAutorizado }){
           cursor:"pointer",fontFamily:F_BODY}}>
           {proc?"Guardando...":"Guardar límite"}</button>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-          color:msg.startsWith("✅")?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg}</div>}
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}>{msg.text}</div>}
       </GCard>
 
       <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
@@ -14212,7 +14219,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
                   monto_max:l.monto_max!=null?String(l.monto_max):"",
                   pago_max:l.pago_max!=null?String(l.pago_max):"",
                 });
-                setMsg("Valores cargados arriba: ajustá y guardá");
+                setMsg({text:"Valores cargados arriba: ajustá y guardá",ok:false});
                 window.scrollTo({top:0,behavior:"smooth"});
               }} style={{background:"transparent",
                 border:`1px solid ${Q.cyan}55`,borderRadius:7,
