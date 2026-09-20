@@ -87,8 +87,19 @@ Out of scope: every other screen, the 378 hardcoded `'Inter'` declarations in
       503:244 ratio ≈ 39.77 → 40). Top bar padding cut 9px→5px top/bottom
       to absorb the growth; headless Chromium measured 51px before and
       after at 360px width (59px if padding were left alone).
-- [ ] **T3** The mascot inside the hero, placed as the prototype places it,
-      with the panel making room for it.
+- [x] **T3** The mascot inside the hero, placed as the prototype places it,
+      with the panel making room for it. Commit `fa631e7`. This screen has
+      no literal balance hero; "Bet Best" (first big panel, headline + CTA)
+      plays that role, replacing the old flex strip above it. Used the
+      prototype's literal numbers verbatim (`right:-33px; bottom:-56px;
+      width:185px` via `Mascot size={275}`; `clip-path:inset(0 0 13% 0)`;
+      panel `min-height:244px; padding-right:166px`) — checked at 360px
+      **and** 320px with headless Chromium against this panel's own
+      (longer) copy: zero bounding-box overlap between the mascot and the
+      headline/paragraph/button at both widths. The prototype's own
+      narrower `.screen-app` variant (mascot 148px, padding-right 122px)
+      was also measured and **does** overlap this panel's text, so it was
+      not used.
 - [ ] **T4** Icons instead of emoji on this screen, and the two hand-written
       gradients onto brand accents, with the ink helper deciding what sits on
       them.
@@ -103,12 +114,13 @@ the owner's to answer.
 
 ## Progress
 
-T1 done (`a019d18`). T2 done (`de597ff`). Baseline on `staging`: 24 suites
-/ 384 tests, all green; main.js gzip 282.94 kB. Both T1 and T2 assessed
-`review_due: false` (`under_budget`, medium risk from the `package.json`
-config change) against `--base-ref staging`, so the reviewed boundary has
-not moved and stays `staging`.
+T1 done (`a019d18`). T2 done (`de597ff`). T3 done (`fa631e7`). Baseline on
+`staging`: 24 suites / 384 tests, all green; main.js gzip 282.94 kB. T1,
+T2 and T3 all assessed `review_due: false` (`under_budget`, medium risk
+from the `package.json` config change) against `--base-ref staging`; 319
+changed lines cumulative after T3. The reviewed boundary has not moved
+and stays `staging`.
 
 ## Next step
 
-T3.
+T4.
