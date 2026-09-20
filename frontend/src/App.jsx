@@ -5375,11 +5375,10 @@ function ScreenHome({ user, onNav, onBet, refCode }){
     // vivo aunque el servidor los estuviera enviando.
     fetch(`${API}/api/live/combined`).then(r=>r.ok?r.json():null)
       .then(d=>{
-        const evs=(d?.matches||[]).map(m=>({
-          ...m, sport:m.liga||m.sport_key,
-          h:m.home, a:m.away,
-        }));
-        setLive(evs.slice(0,3));
+        // Los alias sport/h/a existían sólo para alimentar la lista
+        // compacta que mostraba estos mismos partidos más abajo. Con esa
+        // lista fuera, la grilla lee los campos tal como llegan.
+        setLive((d?.matches||[]).slice(0,3));
       }).catch(()=>setLive([]));
   },[]);
 
@@ -5389,70 +5388,6 @@ function ScreenHome({ user, onNav, onBet, refCode }){
 
   return(
     <div style={{padding:"14px 12px 20px"}}>
-      {/* Partidos en vivo. Se cargaban pero nunca se mostraban: el
-          código quedó a medias y el inicio no los dibujaba. */}
-      {live&&live.length>0&&(
-        <div style={{marginBottom:14}}>
-          <div style={{display:"flex",justifyContent:"space-between",
-            alignItems:"center",marginBottom:8}}>
-            <span style={{color:Q.red,fontSize:11,fontWeight:800,
-              letterSpacing:0.8,display:"flex",alignItems:"center",
-              gap:5,fontFamily:F_BODY}}>
-              <span style={{width:7,height:7,borderRadius:"50%",
-                background:Q.red,display:"inline-block"}}/>
-              EN VIVO</span>
-            <button onClick={()=>onNav("live")}
-              style={{background:"none",border:"none",cursor:"pointer",
-                color:Q.cyan,fontSize:11.5,padding:0,
-                fontFamily:F_BODY}}>Ver todos →</button>
-          </div>
-
-          {live.map(m=>{
-            const h2h=(m.markets||{}).h2h||{};
-            const nombres=Object.keys(h2h);
-            return(
-              <div key={m.id} onClick={()=>onNav("live")}
-                style={{background:Q.card||"rgba(255,255,255,0.04)",
-                  border:`1px solid ${Q.border}`,borderRadius:11,
-                  padding:"11px 13px",marginBottom:7,cursor:"pointer"}}>
-                <div style={{display:"flex",justifyContent:"space-between",
-                  alignItems:"baseline",marginBottom:6}}>
-                  <span style={{color:Q.dim,fontSize:9.5,
-                    fontFamily:F_BODY}}>
-                    {m.icon} {m.liga}</span>
-                  {m.scoreStr&&(
-                    <span style={{color:Q.gold,fontSize:11,fontWeight:700,
-                      fontFamily:F_BODY}}>{m.scoreStr}</span>
-                  )}
-                </div>
-                <div style={{color:Q.text,fontSize:13,fontWeight:600,
-                  lineHeight:1.4,fontFamily:F_BODY}}>
-                  {m.home} <span style={{color:Q.dim}}>vs</span> {m.away}</div>
-
-                {nombres.length>0&&(
-                  <div style={{display:"flex",gap:6,marginTop:8}}>
-                    {nombres.slice(0,3).map(n=>(
-                      <div key={n} style={{flex:1,
-                        background:"rgba(255,255,255,0.04)",
-                        border:`1px solid ${Q.border}`,borderRadius:7,
-                        padding:"6px 4px",textAlign:"center",minWidth:0}}>
-                        <div style={{color:Q.muted,fontSize:9,
-                          overflow:"hidden",textOverflow:"ellipsis",
-                          whiteSpace:"nowrap"}}>{n}</div>
-                        <div style={{color:Q.gold,fontSize:13,
-                          fontWeight:700,
-                          fontFamily:F_BODY}}>
-                          {fmt(h2h[n])}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {/* Bet Best — la funcion insignia va primero y ocupa el ancho.
           La mascota vive acá adentro, como en el prototipo
           (player-home.html: `.hero-balance` > `.mascot-header`), no en una
@@ -5616,7 +5551,11 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         </GCard>
       )}
 
-      {/* En vivo */}
+      {/* En vivo. Esta grilla vivía arriba del hero y mostraba los mismos
+          tres partidos que la lista compacta que había acá: los dos widgets
+          leían el mismo `live`, que trae slice(0,3). Queda la grilla — tres
+          cuotas por partido, liga y resultado — junto a las demás secciones,
+          con el encabezado y el estado vacío que ya tenía esta posición. */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
         <div style={{display:"flex",alignItems:"center",gap:6,color:Q.text,fontWeight:800,fontSize:15,
           fontFamily:F_BODY}}>
@@ -5625,22 +5564,49 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           color:Q.cyan,fontSize:12,fontWeight:700,cursor:"pointer",
           fontFamily:F_BODY}}>Ver todo →</button>
       </div>
-      {(live||[]).length>0?(live||[]).map((ev,i)=>(
-        <GCard key={i} onClick={()=>onNav("live")} style={{padding:12,marginBottom:8,cursor:"pointer"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{minWidth:0,flex:1}}>
-              <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                fontFamily:F_BODY}}>{ev.h} vs {ev.a}</div>
-              <div style={{color:Q.pink,fontSize:9,fontWeight:700,marginTop:1}}>● {ev.sport||"EN VIVO"}</div>
+      {(live||[]).length>0?(live||[]).map(m=>{
+        const h2h=(m.markets||{}).h2h||{};
+        const nombres=Object.keys(h2h);
+        return(
+          <div key={m.id} onClick={()=>onNav("live")}
+            style={{background:Q.card||"rgba(255,255,255,0.04)",
+              border:`1px solid ${Q.border}`,borderRadius:11,
+              padding:"11px 13px",marginBottom:7,cursor:"pointer"}}>
+            <div style={{display:"flex",justifyContent:"space-between",
+              alignItems:"baseline",marginBottom:6}}>
+              <span style={{color:Q.dim,fontSize:9.5,
+                fontFamily:F_BODY}}>
+                {m.icon} {m.liga}</span>
+              {m.scoreStr&&(
+                <span style={{color:Q.gold,fontSize:11,fontWeight:700,
+                  fontFamily:F_BODY}}>{m.scoreStr}</span>
+              )}
             </div>
-            {ev.odds?.L&&<div style={{display:"flex",gap:5}}>
-              <span style={{background:ov(0.05),border:`1px solid ${Q.border}`,
-                borderRadius:7,padding:"5px 9px",color:Q.cyan,fontSize:12,fontWeight:700,
-                fontFamily:F_BODY}}>{fmt(ev.odds.L)}</span>
-            </div>}
+            <div style={{color:Q.text,fontSize:13,fontWeight:600,
+              lineHeight:1.4,fontFamily:F_BODY}}>
+              {m.home} <span style={{color:Q.dim}}>vs</span> {m.away}</div>
+
+            {nombres.length>0&&(
+              <div style={{display:"flex",gap:6,marginTop:8}}>
+                {nombres.slice(0,3).map(n=>(
+                  <div key={n} style={{flex:1,
+                    background:"rgba(255,255,255,0.04)",
+                    border:`1px solid ${Q.border}`,borderRadius:7,
+                    padding:"6px 4px",textAlign:"center",minWidth:0}}>
+                    <div style={{color:Q.muted,fontSize:9,
+                      overflow:"hidden",textOverflow:"ellipsis",
+                      whiteSpace:"nowrap"}}>{n}</div>
+                    <div style={{color:Q.gold,fontSize:13,
+                      fontWeight:700,
+                      fontFamily:F_BODY}}>
+                      {fmt(h2h[n])}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </GCard>
-      )):(
+        );
+      }):(
         <GCard style={{padding:20,textAlign:"center"}}>
           <Mascot size={64} style={{margin:"0 auto 8px"}}/>
           <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
