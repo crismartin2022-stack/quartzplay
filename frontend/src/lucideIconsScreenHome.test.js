@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import * as LucideIcons from "lucide-react";
 
 // docs/icon-inventory.md's gap list names four emoji on this screen
@@ -19,6 +21,34 @@ const SCREEN_HOME_GAP_ICONS = {
   Zap: "⚡ Combo del día",
   Gift: "🎁 Saldo bono",
 };
+
+// This repository tracks no lockfile, so a caret range would leave nothing
+// pinning which version actually resolves — and the checks below run against
+// whatever happens to be installed, so they could not detect that drift. The
+// dependency is therefore pinned exactly, and this asserts the pin and the
+// installed copy still agree: if someone widens the range, or installs a
+// different version, the suite says so instead of the home screen rendering
+// `undefined` as an element type.
+describe("the icon dependency resolves to exactly one known version", () => {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8")
+  );
+  const pinned = manifest.dependencies["lucide-react"];
+
+  test("the range is an exact version, not a caret or tilde", () => {
+    expect(pinned).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  test("the installed copy is the pinned version", () => {
+    const installed = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, "..", "node_modules", "lucide-react", "package.json"),
+        "utf8"
+      )
+    ).version;
+    expect(installed).toBe(pinned);
+  });
+});
 
 describe("lucide-react carries the icons ScreenHome's emoji gaps need", () => {
   test("the package actually exports something (guards against a broken import)", () => {
