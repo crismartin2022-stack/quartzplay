@@ -11,16 +11,16 @@
 // Read from source, the way theme.test.js and noThemeSwitch.test.js do:
 // this project has no testing-library, so the screens are checked as text.
 //
-// Agencia.jsx (13 sites) and Admin.jsx (17) still carry the pattern and are
-// deliberately absent: each is its own slice, and no emoji may move on those
-// screens until they are done. Add them here as they land.
+// Admin.jsx (17 sites) still carries the pattern and is deliberately absent:
+// it is its own slice, and no emoji may move on that screen until it is
+// done. Add it here as it lands.
 import fs from "fs";
 import path from "path";
 
 const SRC = path.resolve(__dirname);
 
 // The screens whose messages already carry their own status.
-const FIXED_SCREENS = ["App.jsx", "Web.jsx"];
+const FIXED_SCREENS = ["App.jsx", "Web.jsx", "Agencia.jsx"];
 
 const sourceOf = (file) => fs.readFileSync(path.join(SRC, file), "utf8");
 
