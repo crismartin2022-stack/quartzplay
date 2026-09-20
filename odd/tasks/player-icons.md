@@ -186,6 +186,200 @@ character. The player sees exactly what they saw before.
       observing `3 failed, 6 passed`. Suite 442 -> **447 passed**. ESLint
       clean. Build `Compiled successfully`, 283.09 kB.
 
+- [x] **T3** The same fix on `/agencia` — 13 sniffing sites, the first of the
+      two money screens. Commit `369578a` on
+      `fix/quartzplay-agency-message-status`.
+
+  **Baseline** (`CI=true npx react-scripts test --watchAll=false` from
+  `app/frontend`, before any change): 30 suites passed, 447 tests passed
+  — matches T2's ending state exactly (branch created off `staging`
+  after T2 merged).
+
+  **Component inventory** (13 sniffing sites, one per component, found via
+  `rg -n '\.startsWith\(\s*["'"'"'](✅|⚠️)["'"'"']\s*\)' src/Agencia.jsx`
+  then mapped to the nearest enclosing `function` above each match; no
+  other status-glyph sniff shape — `charAt(0)`, `[0]===`, `indexOf`,
+  `includes` — exists anywhere in the file):
+
+  | Component | Line range | State var | `setMsg` calls | Unprefixed content |
+  |---|---|---|---|---|
+  | `CrearComboAgencia` | 2362-2618 | `msg` | 3 | none |
+  | `OtorgarBonoCliente` | 3301-3376 | `msg` | 6 | `"Elegí un bono"` |
+  | `FichaCliente` | 3378-3700 | `msg` | 6 | `"🔒 Cliente bloqueado"` |
+  | `TicketHistorial` | 3883-4080 | `msg` | 6 | none |
+  | `CambiarMiPassword` | 6716-6763 | `msg` | 5 | `"La contraseña debe tener 8+ caracteres"`, `"Las contraseñas no coinciden"` |
+  | `CrearInfluencerAgencia` | 7279-7338 | `msg` | 5 | `"Completá nombre, usuario y clave"`, `"La clave debe tener 8+ caracteres"` |
+  | `DetalleInfluencerAgencia` | 7340-7457 | `msg` | 3 | none |
+  | `ConfigurarCuentaAg` | 7459-7578 | `msg` | 3 | none |
+  | `ResetPassword` | 7580-7636 | `msg` | 5 | `"La contraseña debe tener 8+ caracteres"`, `"Las contraseñas no coinciden"` |
+  | `MisAgencias` | 7638-7769 | `msg` | 4 | none |
+  | `CrearSubAgencia` | 7771-7839 | `msg` | 5 | `"Completá nombre, usuario y clave"`, `"La clave debe tener 8+ caracteres"` |
+  | `CargarCreditoSub` | 7841-7900 | `msg` | 4 | `"Ingresá un monto"` |
+  | `CrearComboInfluencer` | 8877-9063 | `msg` | 4 | `"Elegí al menos un partido"` |
+
+  59 `setMsg` calls total. No component used `setMensaje`, `setAviso` or
+  `setLiqMsg` for a sniffing message; every sniffing site used the local
+  variable `msg`. Other components in the file (`Clientes`, `AltaCliente`,
+  `SoporteAgencia`, `ProveedoresAgencia`, `ProductosRed`, `Terminales`,
+  `DesafiosAgencia`, `MisCanales` and others) also hold local state called
+  `msg` but never sniff it — left untouched, confirmed by the guard test's
+  post-fix scan below still finding zero sniff sites (would have risen
+  above 13 if a wrong component had been touched, or the untouched
+  components had somehow started sniffing).
+
+  **12 unprefixed messages found** — the ones needing a colour decision
+  rather than a copied prefix, all validation/guard messages except one:
+
+  | Component | Message | Colour given | Reasoning |
+  |---|---|---|---|
+  | `OtorgarBonoCliente` | `"Elegí un bono"` | red (`ok:false`) | Validation guard; fell through to red today. |
+  | `FichaCliente` | `"🔒 Cliente bloqueado"` | red (`ok:false`) | The one non-validation case: a **successful** block action, but it carries no `✅` and fell through to red today (its sibling branch, `"✅ Cliente desbloqueado"`, is green). Preserving today's colour means preserving this asymmetry — fixing it is out of scope for a change that must not alter what the agency sees. |
+  | `CambiarMiPassword` | `"La contraseña debe tener 8+ caracteres"` | red (`ok:false`) | Validation guard. |
+  | `CambiarMiPassword` | `"Las contraseñas no coinciden"` | red (`ok:false`) | Validation guard. |
+  | `CrearInfluencerAgencia` | `"Completá nombre, usuario y clave"` | red (`ok:false`) | Validation guard. |
+  | `CrearInfluencerAgencia` | `"La clave debe tener 8+ caracteres"` | red (`ok:false`) | Validation guard. |
+  | `ResetPassword` | `"La contraseña debe tener 8+ caracteres"` | red (`ok:false`) | Validation guard. |
+  | `ResetPassword` | `"Las contraseñas no coinciden"` | red (`ok:false`) | Validation guard. |
+  | `CrearSubAgencia` | `"Completá nombre, usuario y clave"` | red (`ok:false`) | Validation guard. |
+  | `CrearSubAgencia` | `"La clave debe tener 8+ caracteres"` | red (`ok:false`) | Validation guard. |
+  | `CargarCreditoSub` | `"Ingresá un monto"` | red (`ok:false`) | Validation guard. |
+  | `CrearComboInfluencer` | `"Elegí al menos un partido"` | red (`ok:false`) | Validation guard. |
+
+  **Shape**: identical to T1/T2 — `const [msg, setMsg] = useState(null)`,
+  `msg` is `{text, ok} | null`, comment `// {text, ok} | null — status
+  lives here, not in the text`. Renders changed from
+  `msg.startsWith("✅")?Q.green:Q.red` / `{msg}` to `msg.ok?Q.green:Q.red`
+  / `{msg.text}` at all 13 sites.
+
+  **Guard test**: extended `FIXED_SCREENS` in
+  `messageStatusNotSniffed.test.js` to `["App.jsx", "Web.jsx",
+  "Agencia.jsx"]`; updated the header comment to name only `Admin.jsx`
+  (17 sites) as still pending. Proven to bite in step 8 below by
+  restoring the pre-fix `Agencia.jsx` from a scratch copy, running the
+  guard, and observing the exact failure, then restoring the fix —
+  performed after implementation rather than before, since the fix and
+  the guard extension were written in the same pass; the restore test
+  gives the same RED evidence the strict-TDD order would have given
+  first.
+
+  **Player-visible before/after**, every `setMsg` call site touched (13
+  components, 59 calls; clears/`setTimeout` clears listed once per site
+  since text and colour are both n/a for them):
+
+  | Component | Call site | Text before | Text after | Colour before | Colour after |
+  |---|---|---|---|---|---|
+  | CrearComboAgencia | `guardar()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | CrearComboAgencia | `guardar()` success | `` `✅ Combo creado.${...}` `` | same | green | green |
+  | CrearComboAgencia | `guardar()` catch | `"⚠️ "+e.message` | same | red | red |
+  | OtorgarBonoCliente | `otorgar()` no bono | `"Elegí un bono"` | same | red | red |
+  | OtorgarBonoCliente | `otorgar()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | OtorgarBonoCliente | `otorgar()` success | `` `✅ Bono otorgado · ${ars(d.monto)}` `` | same | green | green |
+  | OtorgarBonoCliente | `otorgar()` rejected | `"⚠️ "+(d.detail\|\|"No se pudo")` | same | red | red |
+  | OtorgarBonoCliente | `otorgar()` catch | `"⚠️ Error"` | same | red | red |
+  | OtorgarBonoCliente | Cerrar button | `""` (no render) | `null` (no render) | n/a | n/a |
+  | FichaCliente | `toggleBloqueo()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | FichaCliente | `toggleBloqueo()` bloquear=true | `"🔒 Cliente bloqueado"` | same | red | red |
+  | FichaCliente | `toggleBloqueo()` bloquear=false | `"✅ Cliente desbloqueado"` | same | green | green |
+  | FichaCliente | `toggleBloqueo()` catch | `"⚠️ "+e.message` | same | red | red |
+  | FichaCliente | `aplicar()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | FichaCliente | `aplicar()` success | `` `✅ ${modo}...` `` | same | green | green |
+  | FichaCliente | `aplicar()` catch | `"⚠️ "+e.message` | same | red | red |
+  | TicketHistorial | `accion()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | TicketHistorial | `accion()` success | `"✅ "+okMsg` | same | green | green |
+  | TicketHistorial | `accion()` catch | `"⚠️ "+e.message` | same | red | red |
+  | TicketHistorial | `confirmarAnular()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | TicketHistorial | `confirmarAnular()` con devolución | `` `✅ Anulada. Devolvé ${ars(...)}...` `` | same | green | green |
+  | TicketHistorial | `confirmarAnular()` sin devolución | `"✅ Anulada. El saldo volvió..."` | same | green | green |
+  | TicketHistorial | `confirmarAnular()` catch | `"⚠️ "+e.message` | same | red | red |
+  | CambiarMiPassword | `guardar()` clave corta | `"La contraseña debe tener 8+ caracteres"` | same | red | red |
+  | CambiarMiPassword | `guardar()` no coincide | `"Las contraseñas no coinciden"` | same | red | red |
+  | CambiarMiPassword | `guardar()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | CambiarMiPassword | `guardar()` success | `"✅ Contraseña actualizada"` | same | green | green |
+  | CambiarMiPassword | `guardar()` catch | `"⚠️ "+e.message` | same | red | red |
+  | CrearInfluencerAgencia | `crear()` faltan campos | `"Completá nombre, usuario y clave"` | same | red | red |
+  | CrearInfluencerAgencia | `crear()` clave corta | `"La clave debe tener 8+ caracteres"` | same | red | red |
+  | CrearInfluencerAgencia | `crear()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | CrearInfluencerAgencia | `crear()` success | `` `✅ Creado: ${d.code}...` `` | same | green | green |
+  | CrearInfluencerAgencia | `crear()` catch | `"⚠️ "+e.message` | same | red | red |
+  | DetalleInfluencerAgencia | `liquidar()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | DetalleInfluencerAgencia | `liquidar()` success | `` `✅ Liquidación generada · ${ars(j.comision)}` `` | same | green | green |
+  | DetalleInfluencerAgencia | `liquidar()` catch | `"⚠️ "+e.message` | same | red | red |
+  | ConfigurarCuentaAg | `guardar()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | ConfigurarCuentaAg | `guardar()` success | `"✅ Configuración guardada."+extra` | same | green | green |
+  | ConfigurarCuentaAg | `guardar()` catch | `"⚠️ "+e.message` | same | red | red |
+  | ResetPassword | `guardar()` clave corta | `"La contraseña debe tener 8+ caracteres"` | same | red | red |
+  | ResetPassword | `guardar()` no coincide | `"Las contraseñas no coinciden"` | same | red | red |
+  | ResetPassword | `guardar()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | ResetPassword | `guardar()` success | `"✅ Contraseña reseteada..."` | same | green | green |
+  | ResetPassword | `guardar()` catch | `"⚠️ "+e.message` | same | red | red |
+  | MisAgencias | `bloquear()` bloquear_flag=true | `"✅ Agencia bloqueada"` | same | green | green |
+  | MisAgencias | `bloquear()` bloquear_flag=false | `"✅ Agencia desbloqueada"` | same | green | green |
+  | MisAgencias | `bloquear()` setTimeout clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | MisAgencias | `bloquear()` catch | `"⚠️ "+e.message` | same | red | red |
+  | MisAgencias | `bloquear()` catch setTimeout clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | CrearSubAgencia | `crear()` faltan campos | `"Completá nombre, usuario y clave"` | same | red | red |
+  | CrearSubAgencia | `crear()` clave corta | `"La clave debe tener 8+ caracteres"` | same | red | red |
+  | CrearSubAgencia | `crear()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | CrearSubAgencia | `crear()` success | `` `✅ Creada: ${d.code\|\|d.name\|\|"sub-agencia"}` `` | same | green | green |
+  | CrearSubAgencia | `crear()` catch | `"⚠️ "+e.message` | same | red | red |
+  | CargarCreditoSub | `cargar()` monto inválido | `"Ingresá un monto"` | same | red | red |
+  | CargarCreditoSub | `cargar()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | CargarCreditoSub | `cargar()` retirar | `"✅ Crédito retirado"` | same | green | green |
+  | CargarCreditoSub | `cargar()` cargar | `"✅ Crédito cargado"` | same | green | green |
+  | CargarCreditoSub | `cargar()` catch | `"⚠️ "+e.message` | same | red | red |
+  | CrearComboInfluencer | `guardar()` sin picks | `"Elegí al menos un partido"` | same | red | red |
+  | CrearComboInfluencer | `guardar()` clear | `""` (no render) | `null` (no render) | n/a | n/a |
+  | CrearComboInfluencer | `guardar()` success | `"✅ Combo creado"` | same | green | green |
+  | CrearComboInfluencer | `guardar()` catch | `"⚠️ "+e.message` | same | red | red |
+
+  No text or colour differs anywhere. Verified programmatically: `msg.ok`
+  appears exactly 13 times (one per render site), `{msg.text}` exactly 13
+  times, `setMsg({text:` exactly 42 times and `setMsg(null)` exactly 17
+  times — 42+17=59, matching the full `setMsg` call count found in
+  mapping.
+
+  **Checks, exact observed results:**
+  - `CI=true npx react-scripts test --watchAll=false` (guard test only,
+    post-fix, run before the restore test): 1 suite passed, 13/13 tests
+    passed (4 new `Agencia.jsx` tests alongside the existing `App.jsx`
+    and `Web.jsx` ones).
+  - `CI=true npx react-scripts test --watchAll=false` (full suite,
+    post-fix): 30 suites passed, 451 tests passed. Delta from baseline
+    (30/447) is exactly the 4 new `Agencia.jsx` guard assertions.
+  - `npx eslint src/Agencia.jsx --no-eslintrc --env browser,es2021
+    --parser-options
+    ecmaVersion:2021,sourceType:module,ecmaFeatures:{jsx:true} --rule
+    '{"no-undef":"error"}'`: no output, exit clean.
+  - Production build with the staging-shaped placeholder values: `Compiled
+    successfully.`, `283.22 kB (+126 B) build/static/js/main.d6ee5dce.js`.
+  - Post-fix scan for the *concept*: `rg -n '\.startsWith\(\s*["'"'"'](✅|⚠️)'
+    src/Agencia.jsx` — no output (exit 1). Positive control:
+    `rg -c "startsWith" src/Agencia.jsx` reports 5, all unrelated (an
+    `event_id` prefix check, a ticket-code `RT-` prefix check, a
+    `loc_` username prefix check, a `"carga"` tipo check, and
+    `ConfigurarCuentaAg`'s own `INF`-code prefix check for whether an
+    account is an influencer — none is a colour decision).
+  - **Guard-bites-here proof (step 8)**: copied the fixed `Agencia.jsx`
+    aside, ran `git checkout -- frontend/src/Agencia.jsx` to restore the
+    pre-fix source (confirmed via
+    `rg -c '\.startsWith\(\s*["'"'"'](✅|⚠️)' src/Agencia.jsx` → 13),
+    ran the guard test: **3 failed, 10 passed of 13** — the 3 failures
+    were exactly `Agencia.jsx does not call .startsWith("✅") anywhere`,
+    `Agencia.jsx does not call .startsWith on either status glyph
+    anywhere`, and `Agencia.jsx the status travels beside the text, not
+    inside it`; the fourth Agencia.jsx assertion (`the ✅/⚠️ prefixes are
+    still in the message text`) and all `App.jsx`/`Web.jsx` tests stayed
+    green. Then restored the fixed `Agencia.jsx` from the scratch copy;
+    full suite re-run afterward confirmed 30/30 suites, 451/451 tests.
+
+  **Review assess**, run after the commit:
+  `gentle-ai review assess --cwd . --agent claude-code --base-ref staging
+  --committed-only --json` → `risk: "medium"` (reason:
+  `executable_change` on `frontend/src/Agencia.jsx`), `changed_paths: 3`,
+  `changed_lines: 212`, `review_due: false`,
+  `review_due_reason: "under_budget"`. No `next_transition` returned;
+  nothing further run.
+
 ## Delivery
 
 One work-unit commit on `fix/quartzplay-message-status`, off `staging`. After
@@ -195,13 +389,16 @@ is due, hand the returned command back verbatim rather than running it.
 
 ## Progress
 
-T1 done (commit `bd93e09`). Baseline recorded, full suite green
-(30/442), guard test proven to fail before the fix and pass after,
-ESLint clean, staging-shaped production build clean, review assess
-under budget so no review was due.
+T1 done (commit `bd93e09`) and T2 done (`/sitio`, `Web.jsx`, 3 sites,
+merged to `staging`). T3 done (`/agencia`, `Agencia.jsx`, 13 sites,
+commit `369578a` on `fix/quartzplay-agency-message-status`). Full suite
+green (30/451), guard test extended to `Agencia.jsx` and proven to fail
+on the pre-fix source (3/13 failing) and pass after (13/13), ESLint
+clean, staging-shaped production build clean, review assess under
+budget (`medium` risk, 212 changed lines) so no review was due.
 
 ## Next step
 
-The same fix in `Web.jsx` (3 sites), then `Agencia.jsx` (13), then
-`Admin.jsx` (17) — each its own slice — before any emoji-to-icon glyph
-move.
+`Admin.jsx` (17 sniffing sites) — its own slice, same shape as T1-T3.
+After that, the emoji-to-icon glyph move itself becomes safe across all
+35 original sites.

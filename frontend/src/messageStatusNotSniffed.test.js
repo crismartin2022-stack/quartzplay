@@ -11,16 +11,16 @@
 // Read from source, the way theme.test.js and noThemeSwitch.test.js do:
 // this project has no testing-library, so the screens are checked as text.
 //
-// Agencia.jsx (13 sites) and Admin.jsx (17) still carry the pattern and are
-// deliberately absent: each is its own slice, and no emoji may move on those
-// screens until they are done. Add them here as they land.
+// Admin.jsx (17 sites) still carries the pattern and is deliberately absent:
+// it is its own slice, and no emoji may move on that screen until it is
+// done. Add it here as it lands.
 import fs from "fs";
 import path from "path";
 
 const SRC = path.resolve(__dirname);
 
 // The screens whose messages already carry their own status.
-const FIXED_SCREENS = ["App.jsx", "Web.jsx"];
+const FIXED_SCREENS = ["App.jsx", "Web.jsx", "Agencia.jsx"];
 
 const sourceOf = (file) => fs.readFileSync(path.join(SRC, file), "utf8");
 
@@ -66,5 +66,22 @@ describe.each(FIXED_SCREENS)("%s does not decide a message's colour from its own
     // out is the next slice's job, and it is safe only because of this one.
     expect(source).toMatch(/✅/);
     expect(source).toMatch(/⚠️/);
+  });
+});
+
+describe("Agencia.jsx does not report a successful action in red", () => {
+  const source = sourceOf("Agencia.jsx");
+
+  test("blocking a client is confirmed in green, like unblocking", () => {
+    // Blocking and unblocking are one operation with opposite sign. The old
+    // sniffing render coloured the block confirmation red purely because its
+    // text starts with 🔒 instead of ✅, so an agency was told an action that
+    // had worked did not. Both now report ok:true.
+    const confirmation = source.match(
+      /setMsg\(\{\s*text:\s*bloquear\s*\?[^}]*\}\)/
+    );
+    expect(confirmation).not.toBeNull();
+    expect(confirmation[0]).toMatch(/ok:\s*true/);
+    expect(confirmation[0]).not.toMatch(/ok:\s*!bloquear/);
   });
 });

@@ -2368,7 +2368,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
   const [busqueda,setBusqueda]=useState("");
   const [liga,setLiga]=useState(null);
   const [guardando,setGuardando]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [infList,setInfList]=useState([]);
   const [infCode,setInfCode]=useState("");
   const [codigoSalida,setCodigoSalida]=useState("");
@@ -2412,7 +2412,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
 
   const guardar=async()=>{
     if(!picks.length||guardando) return;
-    setGuardando(true); setMsg("");
+    setGuardando(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/combos`,{
         method:"POST",
@@ -2429,10 +2429,10 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
         throw new Error(e.detail||`Error ${r.status}`); }
       const nComp=(todosSubs?destinatarios.subs.length:destSubs.length)
                  +(todosInfs?destinatarios.influencers.length:destInfs.length);
-      setMsg(`✅ Combo creado.${nComp>0?` Compartido con ${nComp} cuenta(s).`:" Ya aparece en tus terminales."}`);
+      setMsg({text:`✅ Combo creado.${nComp>0?` Compartido con ${nComp} cuenta(s).`:" Ya aparece en tus terminales."}`, ok:true});
       setPicks([]); setNombre("");
       setDestSubs([]); setDestInfs([]); setTodosSubs(false); setTodosInfs(false);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setGuardando(false);
   };
 
@@ -2598,8 +2598,8 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
       </div>
 
       {msg&&<div style={{fontSize:12,marginBottom:10,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       {picks.length>0&&(
         <GCard glow={Q.violet} style={{padding:14,marginBottom:10}}>
@@ -3302,7 +3302,7 @@ function OtorgarBonoCliente({ agencia, userId }){
   const [bonos,setBonos]=useState([]);
   const [sel,setSel]=useState("");
   const [montoCarga,setMontoCarga]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [abierto,setAbierto]=useState(false);
 
@@ -3314,8 +3314,8 @@ function OtorgarBonoCliente({ agencia, userId }){
 
   const bonoSel = bonos.find(b=>String(b.id)===String(sel));
   const otorgar=async()=>{
-    if(!sel){ setMsg("Elegí un bono"); return; }
-    setProc(true); setMsg("");
+    if(!sel){ setMsg({text:"Elegí un bono", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const body={user_id:userId,bono_id:parseInt(sel,10)};
       if(bonoSel&&bonoSel.tipo==="carga") body.monto_carga=parseInt(montoCarga||"0",10);
@@ -3324,9 +3324,9 @@ function OtorgarBonoCliente({ agencia, userId }){
         body:JSON.stringify(body),
       });
       const d=await r.json();
-      if(r.ok&&d.ok){ setMsg(`✅ Bono otorgado · ${ars(d.monto)}`); setSel(""); setMontoCarga(""); }
-      else setMsg("⚠️ "+(d.detail||"No se pudo"));
-    }catch(e){ setMsg("⚠️ Error"); }
+      if(r.ok&&d.ok){ setMsg({text:`✅ Bono otorgado · ${ars(d.monto)}`, ok:true}); setSel(""); setMontoCarga(""); }
+      else setMsg({text:"⚠️ "+(d.detail||"No se pudo"), ok:false});
+    }catch(e){ setMsg({text:"⚠️ Error", ok:false}); }
     setProc(false);
   };
 
@@ -3363,14 +3363,14 @@ function OtorgarBonoCliente({ agencia, userId }){
                 fontSize:13,marginBottom:8,fontFamily:F_BODY}}/>
           )}
           <div style={{display:"flex",gap:6}}>
-            <Btn label="Cerrar" onClick={()=>{setAbierto(false);setMsg("");}} outline color={Q.muted} full/>
+            <Btn label="Cerrar" onClick={()=>{setAbierto(false);setMsg(null);}} outline color={Q.muted} full/>
             <Btn label={proc?"...":"Otorgar"} onClick={otorgar} color={Q.gold} full disabled={proc}/>
           </div>
         </>
       )}
       {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </div>
   );
 }
@@ -3395,7 +3395,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
   const [movs,setMovs]=useState(null);
   const [monto,setMonto]=useState(montoInicial(agencia?.moneda));
   const [modo,setModo]=useState("carga");   // carga | retiro
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [ficha,setFicha]=useState(null);     // rendimiento + apuestas + bloqueo
   const [motivo,setMotivo]=useState("");
@@ -3413,7 +3413,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
   const toggleBloqueo=async()=>{
     const bloquear=!ficha?.bloqueado;
     if(bloquear && !confirmBloq){ setConfirmBloq(true); return; }
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/bloquear`,{
         method:"POST",
@@ -3424,9 +3424,13 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
       setConfirmBloq(false); setMotivo("");
-      setMsg(bloquear?"🔒 Cliente bloqueado":"✅ Cliente desbloqueado");
+      // Blocking and unblocking are the same operation with opposite sign,
+      // and both report success. Under the old sniffing render the block
+      // confirmation showed red only because its text carried no ✅ prefix,
+      // which told the agency an action that worked had failed.
+      setMsg({text: bloquear?"🔒 Cliente bloqueado":"✅ Cliente desbloqueado", ok: true});
       cargarFicha();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -3443,7 +3447,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
 
   const aplicar=async()=>{
     if(proc||!monto) return;
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/cargar`,{
         method:"POST",
@@ -3456,9 +3460,9 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
       setSaldo(d.saldo);
-      setMsg(`✅ ${modo==="carga"?"Cargado":"Retirado"} ${ars(monto)}`);
+      setMsg({text:`✅ ${modo==="carga"?"Cargado":"Retirado"} ${ars(monto)}`, ok:true});
       cargarMovs();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -3569,8 +3573,8 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         </div>
 
         {msg&&<div style={{fontSize:12,marginBottom:10,
-          color:msg.startsWith("✅")?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg}</div>}
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}>{msg.text}</div>}
 
         <Btn label={proc?"PROCESANDO...":
           `${modo==="carga"?"CARGAR":"RETIRAR"} ${ars(monto)}`}
@@ -3883,7 +3887,7 @@ function CodigoReserva({ code, compacto=false, vence=null }){
 function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
   const [verDetalle,setVerDetalle]=useState(false);
   const [proc,setProc]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [res,setRes]=useState(t.resultado||null);
   const [pagado,setPagado]=useState(!!t.pagado);
   const [anulado,setAnulado]=useState(false);
@@ -3906,7 +3910,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
 
   const accion=async(ruta,body,okMsg)=>{
     if(proc) return null;
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/${ruta}`,{
         method:"POST",
@@ -3917,9 +3921,9 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      if(okMsg) setMsg("✅ "+okMsg);
+      if(okMsg) setMsg({text:"✅ "+okMsg, ok:true});
       return d;
-    }catch(e){ setMsg("⚠️ "+e.message); return null; }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); return null; }
     finally{ setProc(false); }
   };
 
@@ -3935,7 +3939,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
 
   const confirmarAnular=async()=>{
     if(proc) return;
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/betslip/${t.code}/anular`,{
         method:"POST",
@@ -3946,11 +3950,11 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
       const d=await r.json().catch(()=>({}));
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
       setAnulado(true); setConfirmando(false);
-      setMsg(d.efectivo_a_devolver
+      setMsg({text: d.efectivo_a_devolver
         ? `✅ Anulada. Devolvé ${ars(d.efectivo_a_devolver)} al cliente.`
-        : "✅ Anulada. El saldo volvió a la cuenta del cliente.");
+        : "✅ Anulada. El saldo volvió a la cuenta del cliente.", ok:true});
       onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     finally{ setProc(false); }
   };
 
@@ -4070,8 +4074,8 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
       )}
 
       {msg&&<div style={{fontSize:11,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       {verDetalle&&<DetalleTicket code={t.code}
         onCerrar={()=>setVerDetalle(false)}/>}
@@ -6716,22 +6720,22 @@ function ConectarTelegramAgencia({ agencia }){
 function CambiarMiPassword({ agencia, obligado=false, onListo }){
   const [nueva,setNueva]=useState("");
   const [repetir,setRepetir]=useState("");
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
 
   const guardar=async()=>{
-    if(nueva.length<8){ setMsg("La contraseña debe tener 8+ caracteres"); return; }
-    if(nueva!==repetir){ setMsg("Las contraseñas no coinciden"); return; }
-    setProc(true); setMsg("");
+    if(nueva.length<8){ setMsg({text:"La contraseña debe tener 8+ caracteres", ok:false}); return; }
+    if(nueva!==repetir){ setMsg({text:"Las contraseñas no coinciden", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/password`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
         body:JSON.stringify({nueva}),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg("✅ Contraseña actualizada");
+      setMsg({text:"✅ Contraseña actualizada", ok:true});
       setNueva(""); setRepetir("");
       if(onListo) setTimeout(onListo,800);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -6756,8 +6760,8 @@ function CambiarMiPassword({ agencia, obligado=false, onListo }){
       <Btn label={proc?"GUARDANDO...":"Guardar contraseña"} onClick={guardar}
         color={obligado?Q.amber:Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </GCard>
   );
 }
@@ -7278,12 +7282,12 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
 
 function CrearInfluencerAgencia({ agencia, onListo, onSesionExpirada }){
   const [form,setForm]=useState({name:"",username:"",password:"",pct_ggr:"",pct_ventas:"",alcance:""});
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
 
   const crear=async()=>{
-    if(!form.name||!form.username||!form.password){ setMsg("Completá nombre, usuario y clave"); return; }
-    if(form.password.length<8){ setMsg("La clave debe tener 8+ caracteres"); return; }
-    setProc(true); setMsg("");
+    if(!form.name||!form.username||!form.password){ setMsg({text:"Completá nombre, usuario y clave", ok:false}); return; }
+    if(form.password.length<8){ setMsg({text:"La clave debe tener 8+ caracteres", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/influencers`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
@@ -7292,9 +7296,9 @@ function CrearInfluencerAgencia({ agencia, onListo, onSesionExpirada }){
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg(`✅ Creado: ${d.code} · código ${d.codigo_ref}`);
+      setMsg({text:`✅ Creado: ${d.code} · código ${d.codigo_ref}`, ok:true});
       setTimeout(onListo,900);
-    }catch(e){ setMsg("⚠️ "+e.message); setProc(false); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
   };
 
   return(
@@ -7331,15 +7335,15 @@ function CrearInfluencerAgencia({ agencia, onListo, onSesionExpirada }){
       </select>
       <Btn label={proc?"CREANDO...":"Crear influencer"} onClick={crear} color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </GCard>
   );
 }
 
 function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSesionExpirada }){
   const [d,setD]=useState(null);
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
   const [resetOpen,setResetOpen]=useState(false);
   const [configOpen,setConfigOpen]=useState(false);
 
@@ -7352,7 +7356,7 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
   },[code]);
 
   const liquidar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/influencers/${code}/liquidar`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
@@ -7360,8 +7364,8 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const j=await r.json();
-      setMsg(`✅ Liquidación generada · ${ars(j.comision)}`);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:`✅ Liquidación generada · ${ars(j.comision)}`, ok:true});
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7415,8 +7419,8 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
                 </div>
               )}
               {msg&&<div style={{fontSize:12,marginTop:8,
-                color:msg.startsWith("✅")?Q.green:Q.red,
-                fontFamily:F_BODY}}>{msg}</div>}
+                color:msg.ok?Q.green:Q.red,
+                fontFamily:F_BODY}}>{msg.text}</div>}
               {resetOpen&&<ResetPassword agencia={agencia} code={code}
                 nombre={rep?rep.name:code} onCerrar={()=>setResetOpen(false)}/>}
             </GCard>
@@ -7468,10 +7472,10 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
   const [ggrCasino,setGgrCasino]=useState(String(cuenta?.pct_ggr_casino||0));
   const [pctDesafios,setPctDesafios]=useState(String(cuenta?.pct_desafios||0));
   const [alcance,setAlcance]=useState(cuenta.alcance||"");
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
 
   const guardar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const body={name,address,phone,
         pct_ggr:parseFloat(ggr)||0, pct_ventas:parseFloat(ventas)||0,
@@ -7487,9 +7491,9 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
       let extra="";
       if(d.hijos_sobre_limite&&d.hijos_sobre_limite.length)
         extra=` ⚠️ ${d.hijos_sobre_limite.length} hija(s) quedaron con % mayor.`;
-      setMsg("✅ Configuración guardada."+extra);
+      setMsg({text:"✅ Configuración guardada."+extra, ok:true});
       onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7571,8 +7575,8 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
       <Btn label={proc?"GUARDANDO...":"💾 Guardar configuración"} onClick={guardar}
         color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </div>
   );
 }
@@ -7580,12 +7584,12 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
 function ResetPassword({ agencia, code, userId, nombre, esAdmin=false, onCerrar }){
   const [nueva,setNueva]=useState("");
   const [repetir,setRepetir]=useState("");
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
 
   const guardar=async()=>{
-    if(nueva.length<8){ setMsg("La contraseña debe tener 8+ caracteres"); return; }
-    if(nueva!==repetir){ setMsg("Las contraseñas no coinciden"); return; }
-    setProc(true); setMsg("");
+    if(nueva.length<8){ setMsg({text:"La contraseña debe tener 8+ caracteres", ok:false}); return; }
+    if(nueva!==repetir){ setMsg({text:"Las contraseñas no coinciden", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const url = esAdmin ? `${API_URL}/api/admin/reset-password`
                           : `${API_URL}/api/agencias/me/reset-password`;
@@ -7595,9 +7599,9 @@ function ResetPassword({ agencia, code, userId, nombre, esAdmin=false, onCerrar 
       const body = code ? {code,nueva} : {user_id:userId,nueva};
       const r=await fetch(url,{method:"POST",headers,body:JSON.stringify(body)});
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg("✅ Contraseña reseteada. Deberá cambiarla en su próximo ingreso.");
+      setMsg({text:"✅ Contraseña reseteada. Deberá cambiarla en su próximo ingreso.", ok:true});
       setTimeout(onCerrar,1200);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7628,8 +7632,8 @@ function ResetPassword({ agencia, code, userId, nombre, esAdmin=false, onCerrar 
             fontFamily:F_BODY}}/>
         <Btn label={proc?"GUARDANDO...":"Resetear"} onClick={guardar} color={Q.amber} full disabled={proc}/>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-          color:msg.startsWith("✅")?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg}</div>}
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}>{msg.text}</div>}
       </GCard>
     </div>
   );
@@ -7641,7 +7645,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
   const [ccPara,setCcPara]=useState(null);   // code al que cargar crédito
   const [resetPara,setResetPara]=useState(null);   // code al que resetear pass
   const [configPara,setConfigPara]=useState(null);   // cuenta a configurar
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
 
   const cargar=async()=>{
     try{
@@ -7664,9 +7668,9 @@ function MisAgencias({ agencia, onSesionExpirada }){
       });
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg(bloquear_flag?"✅ Agencia bloqueada":"✅ Agencia desbloqueada");
-      setTimeout(()=>setMsg(""),2000); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); setTimeout(()=>setMsg(""),3000); }
+      setMsg({text: bloquear_flag?"✅ Agencia bloqueada":"✅ Agencia desbloqueada", ok:true});
+      setTimeout(()=>setMsg(null),2000); cargar();
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setTimeout(()=>setMsg(null),3000); }
   };
 
   return(
@@ -7682,8 +7686,8 @@ function MisAgencias({ agencia, onSesionExpirada }){
         onListo={()=>{setShowForm(false);cargar();}} onSesionExpirada={onSesionExpirada}/>}
 
       {msg&&<div style={{fontSize:13,marginBottom:10,textAlign:"center",
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       {!arbol&&<div style={{color:Q.muted,textAlign:"center",padding:20,
         fontFamily:F_BODY}}>Cargando...</div>}
@@ -7770,14 +7774,14 @@ function MisAgencias({ agencia, onSesionExpirada }){
 
 function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
   const [form,setForm]=useState({name:"",username:"",password:"",pct_ggr:"",pct_ventas:"",permiso:"solo_agencia"});
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
   const miPermiso = agencia.permiso || "ambos";
   const puedeDelegarInf = miPermiso==="crea_influencers" || miPermiso==="ambos";
 
   const crear=async()=>{
-    if(!form.name||!form.username||!form.password){ setMsg("Completá nombre, usuario y clave"); return; }
-    if(form.password.length<8){ setMsg("La clave debe tener 8+ caracteres"); return; }
-    setProc(true); setMsg("");
+    if(!form.name||!form.username||!form.password){ setMsg({text:"Completá nombre, usuario y clave", ok:false}); return; }
+    if(form.password.length<8){ setMsg({text:"La clave debe tener 8+ caracteres", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/sub`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
@@ -7788,9 +7792,9 @@ function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg(`✅ Creada: ${d.code||d.name||"sub-agencia"}`);
+      setMsg({text:`✅ Creada: ${d.code||d.name||"sub-agencia"}`, ok:true});
       setTimeout(onListo,900);
-    }catch(e){ setMsg("⚠️ "+e.message); setProc(false); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
   };
 
   return(
@@ -7832,8 +7836,8 @@ function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
         No podés dar más % del que tenés vos.</div>
       <Btn label={proc?"CREANDO...":"Crear sub-agencia"} onClick={crear} color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
     </GCard>
   );
 }
@@ -7841,13 +7845,13 @@ function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
 function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }){
   const [monto,setMonto]=useState("");
   const [modo,setModo]=useState("cargar");   // cargar | retirar
-  const [msg,setMsg]=useState(""); const [proc,setProc]=useState(false);
+  const [msg,setMsg]=useState(null); const [proc,setProc]=useState(false); // msg: {text, ok} | null
 
   const cargar=async()=>{
     const m=parseFloat(monto);
-    if(!m||m<=0){ setMsg("Ingresá un monto"); return; }
+    if(!m||m<=0){ setMsg({text:"Ingresá un monto", ok:false}); return; }
     const signed = modo==="retirar" ? -Math.abs(m) : Math.abs(m);
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/sub/${code}/cc`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
@@ -7855,9 +7859,9 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
       });
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg(modo==="retirar"?"✅ Crédito retirado":"✅ Crédito cargado");
+      setMsg({text: modo==="retirar"?"✅ Crédito retirado":"✅ Crédito cargado", ok:true});
       setTimeout(onListo,800);
-    }catch(e){ setMsg("⚠️ "+e.message); setProc(false); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
   };
 
   return(
@@ -7892,8 +7896,8 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
             textAlign:"center",fontFamily:F_BODY}}/>
         <Btn label={proc?"PROCESANDO...":(modo==="retirar"?"Retirar":"Cargar")} onClick={cargar} color={modo==="retirar"?Q.amber:Q.cyan} full disabled={proc}/>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-          color:msg.startsWith("✅")?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg}</div>}
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}>{msg.text}</div>}
       </GCard>
     </div>
   );
@@ -8881,7 +8885,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
   const [prematch,setPrematch]=useState(null);
   const [liga,setLiga]=useState(null);
   const [busqueda,setBusqueda]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [editando,setEditando]=useState(null);
 
@@ -8907,8 +8911,8 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
   const oddTotal=picks.reduce((a,p)=>a*(parseFloat(p.odd)||1),1);
 
   const guardar=async()=>{
-    if(picks.length===0){ setMsg("Elegí al menos un partido"); return; }
-    setProc(true); setMsg("");
+    if(picks.length===0){ setMsg({text:"Elegí al menos un partido", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/influencer/me/combos`,{
         method:"POST",headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
@@ -8919,11 +8923,11 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg("✅ Combo creado");
+      setMsg({text:"✅ Combo creado", ok:true});
       // Ofrecer editar la placa del combo recién creado
       setEditando({id:d.id, nombre, codigo, picks, odd_total:d.odd_total||oddTotal});
       setProc(false);
-    }catch(e){ setMsg("⚠️ "+e.message); setProc(false); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
   };
 
   return(
@@ -8984,8 +8988,8 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
       <Btn label={proc?"GUARDANDO...":"💾 Crear combo"} onClick={guardar}
         color={Q.violet} full disabled={proc||picks.length===0}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
-        color:msg.startsWith("✅")?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg}</div>}
+        color:msg.ok?Q.green:Q.red,
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       {editando&&(
         <div style={{marginTop:12}}>
