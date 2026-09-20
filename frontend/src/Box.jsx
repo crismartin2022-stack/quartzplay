@@ -394,7 +394,7 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
       {(pick.candidatos&&pick.candidatos.length>0)&&(
         <div style={{marginBottom:10}}>
           <div style={{color:Q.amber,fontSize:10,marginBottom:6,
-            fontFamily:"'Inter',system-ui"}}>
+            fontFamily:F_BODY}}>
             ¿Quisiste decir alguno de estos?
           </div>
           {pick.candidatos.map((ev,ci)=>(
@@ -402,14 +402,14 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
               border:`1px solid ${Q.amber}44`,borderRadius:8,
               padding:"8px 10px",marginBottom:6}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:5,
-                fontFamily:"'Inter',system-ui"}}>{ev.home} vs {ev.away}</div>
+                fontFamily:F_BODY}}>{ev.home} vs {ev.away}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:ov(0.05),border:`1px solid ${Q.border}`,
                     borderRadius:7,padding:"5px 9px",cursor:"pointer",
                     color:Q.cyan,fontSize:11,fontWeight:600,
-                    fontFamily:"'Inter',system-ui"}}>
+                    fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
                 ))}
               </div>
@@ -1197,7 +1197,7 @@ export default function Box(){
           <div style={{background:`${Q.violet}12`,border:`1px solid ${Q.violet}55`,borderRadius:10,
             padding:"9px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
             <span style={{fontSize:16}}>🛠️</span>
-            <div style={{color:Q.muted,fontSize:11,fontFamily:"'Inter',system-ui"}}>
+            <div style={{color:Q.muted,fontSize:11,fontFamily:F_BODY}}>
               <b style={{color:Q.violet}}>Bet Builder activo</b> · combiná hasta {bbFeature.max_picks||4} mercados del mismo partido</div>
           </div>
         )}

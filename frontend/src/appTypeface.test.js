@@ -1,39 +1,54 @@
-// App.jsx used to write `fontFamily:"'Inter',system-ui"` inline in about 365
-// style objects. Inter is never served — fonts.css only declares @font-face
-// for Poppins — so every one of those sites rendered in system-ui instead
-// of the brand typeface. The fix is mechanical: replace the hardcoded
-// literal with the imported F_BODY constant everywhere it appears.
+// The screens used to write their font-family inline, naming typefaces the
+// app never serves: App.jsx and Box.jsx asked for `'Inter',system-ui`, and
+// fonts.css declares @font-face only for Poppins. Every one of those sites
+// rendered in system-ui — the viewer's operating-system default — instead of
+// the brand typeface. The fix is mechanical: the family comes from the theme
+// module's F_BODY/F_NUM constants, never from a literal.
 //
-// Read the way theme.test.js and noThemeSwitch.test.js read App.jsx: from
-// source, since there is no testing-library in this project. This test
-// pins the absence of the hardcoded literal so it cannot come back.
+// Read from source, the way theme.test.js and noThemeSwitch.test.js do:
+// this project has no testing-library, so the screens are checked as text.
+//
+// Admin.jsx and Agencia.jsx are deliberately absent from this list. They name
+// `'Space Grotesk'` in ~1600 places, a typeface that is likewise never served,
+// so they have the same defect — but whether the internal panels should adopt
+// Poppins or actually ship Space Grotesk is an open product decision, not a
+// mechanical fix. Add them here once that is settled.
 import fs from "fs";
 import path from "path";
 
 const SRC = path.resolve(__dirname);
-const appSource = fs.readFileSync(path.join(SRC, "App.jsx"), "utf8");
 
-describe("App.jsx has no hardcoded font-family literal", () => {
+// Every screen whose font-family is expected to come from the theme module.
+const CLEAN_SCREENS = ["App.jsx", "Web.jsx", "Casino.jsx", "Box.jsx"];
+
+const sourceOf = (file) => fs.readFileSync(path.join(SRC, file), "utf8");
+
+describe.each(CLEAN_SCREENS)("%s takes its typeface from the theme", (file) => {
+  const source = sourceOf(file);
+
   test("does not hardcode the Inter/system-ui font-family string", () => {
-    expect(appSource).not.toMatch(/fontFamily\s*:\s*["']'Inter',\s*system-ui["']/);
+    expect(source).not.toMatch(/fontFamily\s*:\s*["']'Inter',\s*system-ui["']/);
   });
 
-  test("does not hardcode 'Inter' as a font-family anywhere, in any shape", () => {
-    // Broader than the exact literal above: no style object should name
-    // Inter as a font-family value in any quoting/spacing variant. It must
-    // come from the theme module's F_BODY constant instead. This does not
-    // reach the two unrelated, pre-existing literals in this file —
-    // `monospace` on the error boundary's stack-trace display, and the
-    // `system-ui` fallback on the registration wrapper — which name a
-    // different typeface on purpose and are out of this change's scope.
-    expect(appSource).not.toMatch(/fontFamily\s*:\s*"[^"]*Inter[^"]*"|fontFamily\s*:\s*'[^']*Inter[^']*'/);
+  test("does not name Inter as a font-family in any shape", () => {
+    // Broader than the exact literal above: no style object may name Inter
+    // as a font-family value in any quoting or spacing variant.
+    expect(source).not.toMatch(
+      /fontFamily\s*:\s*"[^"]*Inter[^"]*"|fontFamily\s*:\s*'[^']*Inter[^']*'/
+    );
+  });
+
+  test("does not name Space Grotesk as a font-family either", () => {
+    // The same defect under a different name, kept out of the clean screens
+    // so it cannot spread from the panels that still carry it.
+    expect(source).not.toMatch(/fontFamily\s*:\s*["'][^"']*Space Grotesk[^"']*["']/);
   });
 
   test("still uses the theme's font constants", () => {
-    // A positive control: proves the file still has font-family sites at
-    // all, so the checks above are testing something rather than passing
-    // on an empty file.
-    expect(appSource).toMatch(/fontFamily\s*:\s*F_BODY/);
-    expect(appSource).toMatch(/import\s*\{[^}]*\bF_BODY\b[^}]*\}\s*from\s*"\.\/theme"/s);
+    // A positive control: proves the file has font-family sites at all, so
+    // the checks above are testing something rather than passing on a file
+    // that simply never sets a font.
+    expect(source).toMatch(/fontFamily\s*:\s*F_(BODY|NUM)/);
+    expect(source).toMatch(/import\s*\{[^}]*\bF_(BODY|NUM)\b[^}]*\}\s*from\s*"\.\/theme"/s);
   });
 });
