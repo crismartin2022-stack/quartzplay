@@ -2536,7 +2536,7 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
   const [vista,setVista]=useState(inicial||"cuenta");
   const [d,setD]=useState(null);
   const [hist,setHist]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [pass,setPass]=useState({actual:"",nueva:"",repetir:""});
 
@@ -2557,14 +2557,14 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
 
   const cambiarPass=async()=>{
     if(pass.nueva.length<6){
-      setMsg("La clave nueva tiene que tener al menos 6 caracteres");
+      setMsg({text:"La clave nueva tiene que tener al menos 6 caracteres", ok:false});
       return;
     }
     if(pass.nueva!==pass.repetir){
-      setMsg("Las dos claves nuevas no coinciden");
+      setMsg({text:"Las dos claves nuevas no coinciden", ok:false});
       return;
     }
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/cliente/password`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -2572,9 +2572,9 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
         body:JSON.stringify({actual:pass.actual, nueva:pass.nueva})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"No se pudo cambiar");
-      setMsg("✅ Clave cambiada");
+      setMsg({text:"✅ Clave cambiada", ok:true});
       setPass({actual:"",nueva:"",repetir:""});
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -2639,9 +2639,9 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
         </div>
 
         {msg&&(
-          <div style={{color:msg.startsWith("✅")?Q.green:Q.red,
+          <div style={{color:msg.ok?Q.green:Q.red,
             fontSize:12.5,marginBottom:12,textAlign:"center",
-            lineHeight:1.5,fontFamily:F_BODY}}>{msg}</div>
+            lineHeight:1.5,fontFamily:F_BODY}}>{msg.text}</div>
         )}
 
         {vista==="cuenta"&&(
@@ -3652,7 +3652,7 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
   const [pongo,setPongo]=useState("");
   const [pido,setPido]=useState("");
   const [coincidencias,setCoincidencias]=useState([]);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   // Se buscan coincidencias mientras escribe: si ya existe lo
@@ -3673,7 +3673,7 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
   },[titulo,pongo,pido]);
 
   const crear=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/p2p/crear`,{
         method:"POST",headers:{"Content-Type":"application/json"},
@@ -3683,24 +3683,24 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
           monto_aceptador:parseFloat(pido)||0})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo crear");
-      setMsg("✅ "+(d.aviso||"Listo"));
+      setMsg({text:"✅ "+(d.aviso||"Listo"), ok:true});
       setTitulo(""); setDesc(""); setPongo(""); setPido("");
       setTimeout(()=>onListo&&onListo(),1200);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
   const aceptarExistente=async(id)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/p2p/${id}/aceptar`,{
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({user_id:user.id})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo");
-      setMsg("✅ "+(d.aviso||"Aceptado"));
+      setMsg({text:"✅ "+(d.aviso||"Aceptado"), ok:true});
       setTimeout(()=>onListo&&onListo(),1200);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -3716,9 +3716,9 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
 
   return(
     <div>
-      {msg&&<div style={{color:msg.startsWith("✅")?Q.green:Q.red,
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,
         fontSize:13,marginBottom:12,textAlign:"center",lineHeight:1.5,
-        fontFamily:F_BODY}}>{msg}</div>}
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       <div style={{color:Q.muted,fontSize:12.5,marginBottom:14,
         lineHeight:1.6,fontFamily:F_BODY}}>
@@ -3991,7 +3991,7 @@ function MisDesafiosWeb({ user, onCambio }){
 function PanelIacoinWeb({ user, saldo, onCambio }){
   const [modo,setModo]=useState("comprar");
   const [cantidad,setCantidad]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const cot=saldo?.cotizacion;
@@ -4000,7 +4000,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
   const total=n*precio;
 
   const operar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(
         `${API}/api/iacoin/${modo==="comprar"?"comprar":"vender"}`,{
@@ -4008,11 +4008,11 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
         body:JSON.stringify({user_id:user.id, cantidad:n})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo");
-      setMsg(modo==="comprar"
+      setMsg({text: modo==="comprar"
         ?`✅ Compraste ${n} IACOIN por ${d.pagaste.toLocaleString("es-AR")}`
-        :`✅ Vendiste ${n} IACOIN por ${d.recibiste.toLocaleString("es-AR")}`);
+        :`✅ Vendiste ${n} IACOIN por ${d.recibiste.toLocaleString("es-AR")}`, ok:true});
       setCantidad(""); onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
     setProc(false);
   };
 
@@ -4055,7 +4055,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
 
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         {[["comprar","Comprar"],["vender","Vender"]].map(([k,l])=>(
-          <button key={k} onClick={()=>{setModo(k);setMsg("");}}
+          <button key={k} onClick={()=>{setModo(k);setMsg(null);}}
             style={{flex:1,
               background:modo===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${modo===k?Q.violet:Q.border}`,
@@ -4066,9 +4066,9 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
         ))}
       </div>
 
-      {msg&&<div style={{color:msg.startsWith("✅")?Q.green:Q.red,
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,
         fontSize:13,marginBottom:12,textAlign:"center",lineHeight:1.5,
-        fontFamily:F_BODY}}>{msg}</div>}
+        fontFamily:F_BODY}}>{msg.text}</div>}
 
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:5,
         fontFamily:F_BODY}}>Cuántos IACOIN</div>
