@@ -5258,10 +5258,16 @@ function BarraSuperior({ user, onNav }){
   return(
     <div style={{flexShrink:0,background:Q.deep,borderBottom:`1px solid ${Q.border}`,
       display:"flex",alignItems:"center",gap:12,
-      padding:"9px 13px calc(9px)",position:"relative"}}>
+      padding:"5px 13px 5px",position:"relative"}}>
       <button onClick={()=>onNav("home")} style={{background:"transparent",border:"none",
         cursor:"pointer",padding:0,display:"flex",alignItems:"center"}}>
-        <BrandMark size={20}/>
+        {/* 82px wide in the prototype (html/styles.css .brand img), which at
+            the shipped file's own 503:244 ratio is ~40px tall — BrandMark
+            takes a height. The row's padding was cut from 9px to 5px
+            top/bottom to keep the bar at the height it already was (51px on
+            a 360px phone, measured in headless Chromium; see
+            topBarLogoSize.test.js). */}
+        <BrandMark size={40}/>
       </button>
       <div style={{flex:1}}/>
       {user?.saldo!=null&&(
