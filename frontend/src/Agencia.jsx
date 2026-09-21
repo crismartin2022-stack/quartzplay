@@ -6,7 +6,7 @@ import { getFrontendConfig } from "./config";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import PageHeader from "./PageHeader";
-import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon, Bell, Moon } from "lucide-react";
+import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon, Bell, Moon, Scale } from "lucide-react";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 
 // La hora del partido, en la zona horaria del dispositivo.
@@ -3506,7 +3506,8 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
           </div>
           <div style={{textAlign:"right",flexShrink:0}}>
             <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
-              letterSpacing:1}}>Saldo</div>
+              letterSpacing:1,display:"flex",alignItems:"center",justifyContent:"flex-end",
+              gap:SPACING[4]}}><Icon name="wallet-cards" size={12}/> Saldo</div>
             <div style={{color:saldo>0?Q.green:Q.text,fontWeight:900,fontSize:22,
               fontFamily:F_BODY}}>{ars(saldo)}</div>
           </div>
@@ -3520,24 +3521,28 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         )}
       </GCard>
 
-      {/* Rendimiento */}
+      {/* Rendimiento — an icon per figure so this reads as three
+          distinct metrics at a glance, not a row of plain numbers. */}
       {ficha&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
           <GCard style={{padding:"8px",textAlign:"center"}}>
             <div style={{color:Q.cyan,fontWeight:700,fontSize:13,
               fontFamily:F_BODY}}>{ars(ficha.rendimiento.apostado)}</div>
-            <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
+            <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+              justifyContent:"center",gap:SPACING[4]}}><Icon name="ticket" size={12}/> Apostado</div>
           </GCard>
           <GCard style={{padding:"8px",textAlign:"center"}}>
             <div style={{color:Q.violet2,fontWeight:700,fontSize:13,
               fontFamily:F_BODY}}>{ars(ficha.rendimiento.ganado)}</div>
-            <div style={{color:Q.muted,fontSize:12}}>Ganado</div>
+            <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+              justifyContent:"center",gap:SPACING[4]}}><Icon name="trophy" size={12}/> Ganado</div>
           </GCard>
           <GCard style={{padding:"8px",textAlign:"center"}}>
             <div style={{color:ficha.rendimiento.neto_cliente>=0?Q.green:Q.red,
               fontWeight:700,fontSize:13,fontFamily:F_BODY}}>
               {ars(ficha.rendimiento.neto_cliente)}</div>
-            <div style={{color:Q.muted,fontSize:12}}>Neto</div>
+            <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+              justifyContent:"center",gap:SPACING[4]}}><Scale size={12}/> Neto</div>
           </GCard>
         </div>
       )}

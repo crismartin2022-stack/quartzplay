@@ -2363,30 +2363,34 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
               </div>
               <div style={{marginTop:12,paddingTop:SPACING[12],borderTop:`1px solid ${Q.dim}`,
                 display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{color:Q.muted,fontSize:12,
-                  fontFamily:F_BODY}}>Saldo actual</span>
+                <span style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+                  gap:SPACING[4],fontFamily:F_BODY}}><Icon name="wallet-cards" size={13}/> Saldo actual</span>
                 <span style={{color:Q.green,fontWeight:900,fontSize:24,
                   fontFamily:F_BODY}}>{ars(f.saldo)}</span>
               </div>
             </GCard>
 
-            {/* Rendimiento */}
+            {/* Rendimiento — an icon per figure so this reads as three
+                distinct metrics at a glance, not a row of plain numbers. */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
               <GCard level={2} style={{padding:"12px",textAlign:"center"}}>
                 <div style={{color:Q.cyan,fontWeight:700,fontSize:14,
                   fontFamily:F_BODY}}>{ars(f.rendimiento.apostado)}</div>
-                <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
+                <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+                  justifyContent:"center",gap:SPACING[4]}}><Icon name="ticket" size={12}/> Apostado</div>
               </GCard>
               <GCard level={2} style={{padding:"12px",textAlign:"center"}}>
                 <div style={{color:Q.violet2,fontWeight:700,fontSize:14,
                   fontFamily:F_BODY}}>{ars(f.rendimiento.ganado)}</div>
-                <div style={{color:Q.muted,fontSize:12}}>Ganado</div>
+                <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+                  justifyContent:"center",gap:SPACING[4]}}><Icon name="trophy" size={12}/> Ganado</div>
               </GCard>
               <GCard level={2} style={{padding:"12px",textAlign:"center"}}>
                 <div style={{color:f.rendimiento.neto_cliente>=0?Q.green:Q.red,
                   fontWeight:700,fontSize:14,fontFamily:F_BODY}}>
                   {ars(f.rendimiento.neto_cliente)}</div>
-                <div style={{color:Q.muted,fontSize:12}}>Neto</div>
+                <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+                  justifyContent:"center",gap:SPACING[4]}}><Scale size={12}/> Neto</div>
               </GCard>
             </div>
             <div style={{display:"flex",gap:SPACING[8],marginBottom:14,
