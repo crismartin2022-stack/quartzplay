@@ -30,14 +30,6 @@ function horaLocal(ev){
 
 const { apiUrl: API } = getFrontendConfig();
 
-// Un único tema. Los ~1000 usos de Q.algo siguen funcionando sin
-// tocarlos porque Q es la paleta oscura importada directamente.
-function aplicarTema(){
-  try{
-    document.body.style.background = Q.void;
-    document.body.style.color = Q.text;
-  }catch(e){}
-}
 
 // Superposiciones (hover, vidrio).
 function ov(a){
@@ -775,7 +767,6 @@ export default function Box(){
   };
 
   // ── Estilos base full-screen ──
-  aplicarTema();
 
   const wrap={minHeight:"100dvh",background:Q.void,color:Q.text,
     fontFamily:F_BODY,
