@@ -5333,8 +5333,8 @@ function BarraInferior({ actual, onNav, onAyuda }){
         textAlign:"center",position:"relative"}}>
         {on&&<span aria-hidden="true" style={{position:"absolute",top:0,
           width:16,height:3,borderRadius:RADII.sm,background:Q.gold}}/>}
-        <Ico d={ICONOS[it.k]} on={on} size={19}/>
-        <span style={{fontSize:12,lineHeight:1.15,whiteSpace:"nowrap",
+        <Ico d={ICONOS[it.k]} on={on} size={20}/>
+        <span style={{fontSize:11,lineHeight:1.15,whiteSpace:"nowrap",
           fontWeight:on?700:600,color:on?Q.gold:Q.dim,
           fontFamily:F_BODY}}>{it.l}</span>
       </button>
@@ -5366,7 +5366,7 @@ function BarraInferior({ actual, onNav, onAyuda }){
             {ICONOS.camara}
           </svg>
         </span>
-        <span style={{fontSize:12,lineHeight:1.15,whiteSpace:"nowrap",
+        <span style={{fontSize:11,lineHeight:1.15,whiteSpace:"nowrap",
           fontWeight:700,color:activoBB?Q.gold:Q.text,
           fontFamily:F_BODY}}>Bet Best</span>
       </button>
@@ -5502,8 +5502,8 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         <div style={{position:"relative"}}>
           <div style={{fontSize:12,letterSpacing:2,fontWeight:800,color:Q.gold,
             fontFamily:F_BODY}}>BET BEST</div>
-          <div style={{fontFamily:F_NUM,fontSize:27,fontWeight:700,color:inkOn(Q.violet2,Q.violet),
-            lineHeight:1.02,marginTop:5}}>Sacale una foto<br/>a tu boleto</div>
+          <div style={{fontFamily:F_NUM,fontSize:22,fontWeight:700,color:inkOn(Q.violet2,Q.violet),
+            lineHeight:1.15,marginTop:5,whiteSpace:"nowrap"}}>Sacale una foto<br/>a tu boleto</div>
           <div style={{fontSize:12,color:inkOn(Q.violet2,Q.violet),opacity:.8,marginTop:7,lineHeight:1.4,
             maxWidth:230,fontFamily:F_BODY}}>
             Leemos las selecciones y te decimos si podemos pagarte una cuota mejor.</div>
@@ -5583,15 +5583,15 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           cards share it as equal columns instead of staying phone-sized
           and leaving the rest of the column empty — the same "mobile
           inside desktop" the panels were just fixed for. */}
-      <div style={isDesktopShell ? {display:"grid",
-        gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:SPACING[16],
-        marginBottom:16} : {display:"flex",gap:SPACING[8],marginBottom:16,
-        overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:SPACING[4],
-        scrollSnapType:"x proximity"}}>
+      {/* Three columns at every width. A scroller hid the third card
+          behind a swipe nobody is told about; on a 360px phone the
+          content column is about 328px, which leaves ~104px per card. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(3,minmax(0,1fr))",
+        gap:isDesktopShell?SPACING[16]:SPACING[8],marginBottom:16}}>
         <div onClick={()=>onNav("casino")} style={{position:"relative",overflow:"hidden",
-          flexShrink:0,width:isDesktopShell?"auto":152,
-          height:isDesktopShell?232:168,cursor:"pointer",borderRadius:RADII.lg,
-          scrollSnapAlign:"start",
+          minWidth:0,height:isDesktopShell?232:168,
+          cursor:"pointer",borderRadius:RADII.lg,
           backgroundImage:"url(/brand/slot.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
           <div aria-hidden="true" style={{position:"absolute",inset:0,
             background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,opacity:0.32}}/>
@@ -5618,9 +5618,8 @@ function ScreenHome({ user, onNav, onBet, refCode }){
             NOMBRE.casino_vivo, the only other place in this file that
             labels this same casino_vivo destination. */}
         <div onClick={()=>onNav("casinovivo")} style={{position:"relative",overflow:"hidden",
-          flexShrink:0,width:isDesktopShell?"auto":152,
-          height:isDesktopShell?232:168,cursor:"pointer",borderRadius:RADII.lg,
-          scrollSnapAlign:"start",
+          minWidth:0,height:isDesktopShell?232:168,
+          cursor:"pointer",borderRadius:RADII.lg,
           backgroundImage:"url(/brand/live-casino.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
           <div aria-hidden="true" style={{position:"absolute",inset:0,
             background:`linear-gradient(135deg,${Q.pink},${Q.gold})`,opacity:0.32}}/>
@@ -5640,9 +5639,8 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           </div>
         </div>
         <div onClick={()=>onNav("desafios")} style={{position:"relative",overflow:"hidden",
-          flexShrink:0,width:isDesktopShell?"auto":152,
-          height:isDesktopShell?232:168,cursor:"pointer",borderRadius:RADII.lg,
-          scrollSnapAlign:"start",
+          minWidth:0,height:isDesktopShell?232:168,
+          cursor:"pointer",borderRadius:RADII.lg,
           backgroundImage:"url(/brand/desafios.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
           <div aria-hidden="true" style={{position:"absolute",inset:0,
             background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,opacity:0.32}}/>
