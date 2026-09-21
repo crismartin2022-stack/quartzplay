@@ -6,6 +6,8 @@ import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
 import { oscuro as Q, F_BODY } from "./theme";
 import BrandMark from "./BrandMark";
+import Icon from "./Icon";
+import { Zap, Gift } from "lucide-react";
 
 const ars  = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt  = n => Number(n||0).toFixed(2);
@@ -305,8 +307,8 @@ function TabCierre({ adminKey, onNoAutorizado }){
       });
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
-      setLiqAutoMsg({text:`✅ ${d.generadas} liquidaciones (${d.desde} a ${d.hasta})`,ok:true});
-    }catch(e){ setLiqAutoMsg({text:"⚠️ "+e.message,ok:false}); }
+      setLiqAutoMsg({text:`${d.generadas} liquidaciones (${d.desde} a ${d.hasta})`,ok:true});
+    }catch(e){ setLiqAutoMsg({text:e.message,ok:false}); }
     setLiqAutoProc(false);
   };
 
@@ -322,8 +324,8 @@ function TabCierre({ adminKey, onNoAutorizado }){
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setLiqMsg({text:`✅ Liquidación generada · Comisión ${ars(d.comision_total)}`,ok:true});
-    }catch(e){ setLiqMsg({text:"⚠️ "+e.message,ok:false}); }
+      setLiqMsg({text:`Liquidación generada · Comisión ${ars(d.comision_total)}`,ok:true});
+    }catch(e){ setLiqMsg({text:e.message,ok:false}); }
     setLiqProc(false);
   };
 
@@ -836,7 +838,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
             <GCard glow={Q.gold} style={{padding:14,marginBottom:12}}>
               <div style={{color:Q.gold,fontWeight:700,fontSize:12.5,
                 marginBottom:8,fontFamily:F_BODY}}>
-                🎰 Casino y ruleta</div>
+                <Icon name="spade" size={14}/> Casino y ruleta</div>
               {[["Apostado",data.casino.apostado,Q.text],
                 ["Premios",data.casino.premios,Q.muted],
                 ["GGR",data.casino.ggr,data.casino.ggr>=0?Q.green:Q.red],
@@ -942,7 +944,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
             <GCard glow={Q.violet} style={{padding:14,marginBottom:12,
               background:`linear-gradient(135deg,${Q.violet}10,${Q.cyan}06)`}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
-                fontFamily:F_BODY}}>⚙️ Liquidación automática</div>
+                fontFamily:F_BODY}}><Icon name="sliders-horizontal" size={14}/> Liquidación automática</div>
               <div style={{color:Q.muted,fontSize:11,marginBottom:10,
                 fontFamily:F_BODY}}>
                 Genera liquidaciones de agencias e influencers al cierre del período.
@@ -959,14 +961,14 @@ function TabCierre({ adminKey, onNoAutorizado }){
                 ))}
               </div>
               <div style={{display:"flex",gap:8}}>
-                <Btn label={liqAutoProc?"...":"▶ Correr semanal ahora"}
+                <Btn label={liqAutoProc?"...":<><Icon name="play" size={13}/> Correr semanal ahora</>}
                   onClick={()=>dispararAuto("semanal")} color={Q.cyan} outline full disabled={liqAutoProc}/>
-                <Btn label={liqAutoProc?"...":"▶ Correr mensual ahora"}
+                <Btn label={liqAutoProc?"...":<><Icon name="play" size={13}/> Correr mensual ahora</>}
                   onClick={()=>dispararAuto("mensual")} color={Q.cyan} outline full disabled={liqAutoProc}/>
               </div>
               {liqAutoMsg&&<div style={{fontSize:12,marginTop:8,
                 color:liqAutoMsg.ok?Q.green:Q.red,
-                fontFamily:F_BODY}}>{liqAutoMsg.text}</div>}
+                fontFamily:F_BODY}}><Icon name={liqAutoMsg.ok?"circle-check":"triangle-alert"} size={13}/> {liqAutoMsg.text}</div>}
             </GCard>
           )}
 
@@ -974,12 +976,12 @@ function TabCierre({ adminKey, onNoAutorizado }){
             <GCard glow={Q.gold} style={{padding:14,marginBottom:12,
               background:`linear-gradient(135deg,${Q.gold}10,${Q.violet}06)`}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
-                fontFamily:F_BODY}}>💵 Liquidación de comisiones</div>
+                fontFamily:F_BODY}}><Icon name="wallet-cards" size={14}/> Liquidación de comisiones</div>
               <div style={{color:Q.muted,fontSize:11,marginBottom:10,
                 fontFamily:F_BODY}}>
                 Genera la liquidación de {filtroAg} para el período elegido.</div>
               <div style={{display:"flex",gap:8}}>
-                <Btn label="📋 Ver anteriores"
+                <Btn label={<><Icon name="clipboard-list" size={13}/> Ver anteriores</>}
                   onClick={()=>{setVerLiq(true);cargarLiquidaciones();}}
                   color={Q.cyan} outline full/>
                 <Btn label={liqProc?"...":"Generar"} onClick={generarLiquidacion}
@@ -987,7 +989,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
               </div>
               {liqMsg&&<div style={{fontSize:12,marginTop:8,
                 color:liqMsg.ok?Q.green:Q.red,
-                fontFamily:F_BODY}}>{liqMsg.text}</div>}
+                fontFamily:F_BODY}}><Icon name={liqMsg.ok?"circle-check":"triangle-alert"} size={13}/> {liqMsg.text}</div>}
             </GCard>
           )}
 
@@ -995,7 +997,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
             alignItems:"center",marginBottom:8}}>
             <span style={{color:Q.muted,fontSize:11,textTransform:"uppercase",
               letterSpacing:1,fontFamily:F_BODY}}>Por agencia</span>
-            <Btn label="⬇ CSV" onClick={exportar} color={Q.cyan} size="sm"/>
+            <Btn label={<><Icon name="arrow-down-left" size={13}/> CSV</>} onClick={exportar} color={Q.cyan} size="sm"/>
           </div>
 
           {data.agencias.map(a=>(
@@ -1026,7 +1028,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
           <span style={{color:Q.muted,fontSize:11,textTransform:"uppercase",
             letterSpacing:1,fontFamily:F_BODY}}>
             Movimientos {filtroAg?"de la rama":"del sistema"}</span>
-          <Btn label="⬇ CSV" onClick={exportarMovs} color={Q.cyan} size="sm"/>
+          <Btn label={<><Icon name="arrow-down-left" size={13}/> CSV</>} onClick={exportarMovs} color={Q.cyan} size="sm"/>
         </div>
         {cargMovs&&<div style={{color:Q.muted,textAlign:"center",padding:20,
           fontFamily:F_BODY}}>Cargando...</div>}
@@ -1209,7 +1211,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
             <div style={{display:"flex",justifyContent:"space-between",
               alignItems:"center",marginBottom:16}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:16,
-                fontFamily:F_BODY}}>💵 Liquidaciones {filtroAg}</div>
+                fontFamily:F_BODY}}><Icon name="wallet-cards" size={14}/> Liquidaciones {filtroAg}</div>
               <button onClick={()=>setVerLiq(false)} style={{background:"transparent",
                 border:"none",color:Q.muted,fontSize:26,cursor:"pointer",lineHeight:1}}>×</button>
             </div>
@@ -1277,11 +1279,11 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
         <KPI label="Agencias" value={r.agencias} color={Q.cyan} icon="🏪"
           onClick={()=>onIr&&onIr("agencias")}/>
-        <KPI label="Usuarios" value={r.usuarios} color={Q.violet} icon="👥"
+        <KPI label="Usuarios" value={r.usuarios} color={Q.violet} icon={<Icon name="users" size={16}/>}
           onClick={()=>onIr&&onIr("usuarios")}/>
-        <KPI label="Tickets hoy" value={r.tickets_hoy} color={Q.amber} icon="🎫"
+        <KPI label="Tickets hoy" value={r.tickets_hoy} color={Q.amber} icon={<Icon name="receipt-text" size={16}/>}
           onClick={()=>onIr&&onIr("cierre")}/>
-        <KPI label="Cobrado hoy" value={ars(r.cobrado_hoy)} color={Q.green} icon="💰"
+        <KPI label="Cobrado hoy" value={ars(r.cobrado_hoy)} color={Q.green} icon={<Icon name="wallet-cards" size={16}/>}
           onClick={()=>onIr&&onIr("cierre")}/>
       </div>
 
@@ -1394,14 +1396,14 @@ function TabCombos({ adminKey, onNoAutorizado }){
     <div>
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         <Btn label="+ Crear combo" onClick={()=>setModo("crear")} color={Q.violet} full/>
-        <Btn label="📸 Escanear" onClick={()=>setModo("escanear")} color={Q.cyan} full/>
+        <Btn label={<><Icon name="scan-line" size={13}/> Escanear</>} onClick={()=>setModo("escanear")} color={Q.cyan} full/>
       </div>
 
       {combos===null&&<div style={{color:Q.muted,textAlign:"center",padding:20,
         fontFamily:F_BODY}}>Cargando...</div>}
       {combos&&combos.length===0&&(
         <GCard style={{padding:24,textAlign:"center"}}>
-          <div style={{fontSize:26,marginBottom:8}}>⚡</div>
+          <div style={{fontSize:26,marginBottom:8}}><Zap size={26}/></div>
           <div style={{color:Q.muted,fontSize:13,
             fontFamily:F_BODY}}>No hay combos cargados</div>
         </GCard>
@@ -1506,9 +1508,9 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg({text:"✅ Combo publicado",ok:true});
+      setMsg({text:"Combo publicado",ok:true});
       setTimeout(onListo, 800);
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setGuardando(false);
   };
 
@@ -1574,7 +1576,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
         <div style={{background:"rgba(255,255,255,0.03)",border:`1px solid ${Q.border}`,
           borderRadius:10,padding:12,marginBottom:12}}>
           <div style={{color:Q.violet,fontWeight:700,fontSize:12,marginBottom:8,
-            fontFamily:F_BODY}}>📤 Compartir este combo</div>
+            fontFamily:F_BODY}}><Icon name="arrow-up-right" size={14}/> Compartir este combo</div>
 
           {destinatarios.subs.length>0&&(
             <div style={{marginBottom:10}}>
@@ -1631,7 +1633,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       <div style={{display:"flex",alignItems:"center",gap:8,
         background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
         borderRadius:10,padding:"8px 12px",marginBottom:10}}>
-        <span>🔍</span>
+        <span><Icon name="search" size={14}/></span>
         <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
           placeholder="Buscar equipo..."
           style={{background:"transparent",border:"none",color:Q.text,fontSize:14,
@@ -1675,7 +1677,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
 
       {msg&&<div style={{fontSize:12,marginBottom:10,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {picks.length>0&&(
         <GCard glow={Q.violet} style={{padding:14}}>
@@ -1916,9 +1918,9 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg({text:"✅ Combo publicado",ok:true});
+      setMsg({text:"Combo publicado",ok:true});
       setTimeout(onListo, 800);
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setPub(false);
   };
 
@@ -1948,7 +1950,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
           <button onClick={()=>setCamaraAbierta(true)} style={{flex:1,
             background:"transparent",border:`2px dashed ${Q.border}`,borderRadius:12,
             padding:"22px 10px",textAlign:"center",cursor:"pointer"}}>
-            <div style={{fontSize:26,marginBottom:5}}>📸</div>
+            <div style={{fontSize:26,marginBottom:5}}><Icon name="camera" size={26}/></div>
             <div style={{fontWeight:700,fontSize:12,color:Q.text,
               fontFamily:F_BODY}}>Cámara</div>
           </button>
@@ -1971,14 +1973,14 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
 
       {imgs.length>0&&!res&&(
         <div style={{marginBottom:12}}>
-          <Btn label={analizando?"LEYENDO...":`🔍 Analizar ${imgs.length} foto${imgs.length>1?"s":""}`}
+          <Btn label={analizando?"LEYENDO...":<><Icon name="search" size={13}/> Analizar {imgs.length} foto{imgs.length>1?"s":""}</>}
             onClick={analizar} color={Q.cyan} full disabled={analizando}/>
         </div>
       )}
 
       {msg&&<div style={{fontSize:12,marginBottom:10,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {res&&(
         <div>
@@ -2245,9 +2247,9 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg({text:signo>0?"✅ Crédito cargado":"✅ Retiro hecho",ok:true});
+      setMsg({text:signo>0?"Crédito cargado":"Retiro hecho",ok:true});
       setMonto(""); setDetalle(""); cargar(); onCambio&&onCambio();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setOperando(false);
   };
 
@@ -2268,9 +2270,9 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
       // "🔒 Cliente bloqueado" carries no ✅, but the old render already
       // matched either status glyph before deciding green — unlike
       // Agencia.jsx, this screen never had the red-block asymmetry.
-      setMsg({text:bloquear?"🔒 Cliente bloqueado":"✅ Cliente desbloqueado",ok:true});
+      setMsg({text:bloquear?"🔒 Cliente bloqueado":"Cliente desbloqueado",ok:true});
       cargar(); onCambio&&onCambio();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setOperando(false);
   };
 
@@ -2376,7 +2378,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                   alignItems:"baseline",marginBottom:6}}>
                   <span style={{color:Q.text,fontWeight:700,fontSize:13,
                     fontFamily:F_BODY}}>
-                    💰 Movimientos de saldo</span>
+                    <Icon name="wallet-cards" size={14}/> Movimientos de saldo</span>
                   <span style={{color:Q.dim,fontSize:10}}>
                     +{ars(f.cargado||0)} / −{ars(f.retirado||0)}</span>
                 </div>
@@ -2410,7 +2412,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
               alignItems:"center",marginBottom:8}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,
                 fontFamily:F_BODY}}>
-                🎫 Apuestas {f.apuestas?.length ? `(${f.apuestas.length})` : ""}</div>
+                <Icon name="receipt-text" size={14}/> Apuestas {f.apuestas?.length ? `(${f.apuestas.length})` : ""}</div>
               {(f.apuestas||[]).length>6&&(
                 <button onClick={()=>setTodasApuestas(v=>!v)}
                   style={{background:"transparent",border:"none",color:Q.cyan,
@@ -2471,7 +2473,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
             {!f.bloqueado&&(
               <GCard style={{padding:14,marginBottom:12}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
-                  fontFamily:F_BODY}}>💰 Cargar / retirar</div>
+                  fontFamily:F_BODY}}><Icon name="wallet-cards" size={14}/> Cargar / retirar</div>
                 <input value={monto} onChange={e=>setMonto(e.target.value)}
                   placeholder="Monto ($)" inputMode="numeric"
                   style={{width:"100%",background:"rgba(255,255,255,0.05)",
@@ -2541,7 +2543,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
               nombre={f?(f.nombre_completo||f.username):"el cliente"} onCerrar={()=>setResetOpen(false)}/>}
             {msg&&<div style={{fontSize:12,marginBottom:10,textAlign:"center",
               color:msg.ok?Q.green:Q.red,
-              fontFamily:F_BODY}}>{msg.text}</div>}
+              fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
             {/* Apuestas */}
             <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
@@ -2619,16 +2621,16 @@ function TabClientes({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg({text:"✅ Cliente creado",ok:true});
+      setMsg({text:"Cliente creado",ok:true});
       setNombre(""); setTel(""); cargar();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setCreando(false);
   };
 
   return(
     <div>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:12,
-        fontFamily:F_BODY}}>👤 Clientes</div>
+        fontFamily:F_BODY}}><Icon name="users" size={14}/> Clientes</div>
 
       {/* Crear cliente */}
       <GCard style={{padding:14,marginBottom:14,
@@ -2662,7 +2664,7 @@ function TabClientes({ adminKey, onNoAutorizado }){
           color={Q.violet} full disabled={creando}/>
         {msg&&<div style={{fontSize:12,marginTop:8,
           color:msg.ok?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg.text}</div>}
+          fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
       </GCard>
 
       {/* Filtros */}
@@ -2679,14 +2681,14 @@ function TabClientes({ adminKey, onNoAutorizado }){
         <button onClick={cargar} style={{background:`${Q.violet}33`,
           border:`1px solid ${Q.violet}`,borderRadius:9,padding:"0 16px",
           cursor:"pointer",color:Q.cyan,fontSize:13,fontWeight:700,
-          fontFamily:F_BODY}}>🔍</button>
+          fontFamily:F_BODY}}><Icon name="search" size={14}/></button>
       </div>
 
       {clientes===null&&<div style={{color:Q.muted,textAlign:"center",padding:20,
         fontFamily:F_BODY}}>Cargando...</div>}
       {clientes&&clientes.length===0&&(
         <GCard style={{padding:24,textAlign:"center"}}>
-          <div style={{fontSize:26,marginBottom:8}}>👤</div>
+          <div style={{fontSize:26,marginBottom:8}}><Icon name="users" size={26}/></div>
           <div style={{color:Q.muted,fontSize:13,
             fontFamily:F_BODY}}>Sin clientes</div>
         </GCard>
@@ -2744,7 +2746,7 @@ function TabArbol({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
-        fontFamily:F_BODY}}>🌲 Árbol de agencias</div>
+        fontFamily:F_BODY}}><Icon name="network" size={14}/> Árbol de agencias</div>
       <div style={{color:Q.muted,fontSize:11,marginBottom:14,
         fontFamily:F_BODY}}>
         {ags.length} agencias en total. La sangría muestra la jerarquía.
@@ -3035,7 +3037,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
           border:`1.5px solid ${tipo==="live"?Q.pink:Q.border}`,borderRadius:10,
           padding:"10px",cursor:"pointer",color:tipo==="live"?Q.pink:Q.muted,
           fontSize:13,fontWeight:700,fontFamily:F_BODY}}>
-          🔴 En vivo</button>
+          <Icon name="circle-dot" size={13}/> En vivo</button>
       </div>
 
       {/* Bloqueos vigentes: incluye los que no están en la lista de
@@ -3046,7 +3048,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
             display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span style={{color:Q.red,fontWeight:700,fontSize:12.5,
               fontFamily:F_BODY}}>
-              🚫 {bloqueos.length} {bloqueos.length===1?"bloqueo activo"
+              <Icon name="triangle-alert" size={13}/> {bloqueos.length} {bloqueos.length===1?"bloqueo activo"
                 :"bloqueos activos"}</span>
             <span style={{color:Q.muted,fontSize:11}}>
               {verBloqueos?"▲":"▼"}</span>
@@ -3140,7 +3142,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                 alignItems:"center",gap:8,marginBottom:6}}>
                 <div style={{minWidth:0,flex:1,color:Q.text,fontSize:12,fontWeight:600,
                   fontFamily:F_BODY}}>
-                  {bloq&&<span style={{color:Q.red,marginRight:4}}>🚫</span>}
+                  {bloq&&<span style={{color:Q.red,marginRight:4}}><Icon name="triangle-alert" size={11}/></span>}
                   {!bloq&&aju&&<span style={{color:Q.amber,marginRight:4}}>📉</span>}
                   {ev.home} vs {ev.away}</div>
                 <div style={{color:Q.muted,fontSize:10,flexShrink:0}}>
@@ -3211,7 +3213,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                               padding:"5px 10px",cursor:"pointer",
                               color:Q.red,fontSize:10.5,
                               fontFamily:F_BODY}}>
-                            🚫 {m}</button>
+                            <Icon name="triangle-alert" size={12}/> {m}</button>
                         ):(
                           <button key={m}
                             onClick={()=>bloquearMercado(ev,d.liga,m)}
@@ -3309,7 +3311,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                   alignItems:"baseline",marginBottom:8}}>
                   <span style={{color:Q.amber,fontWeight:700,fontSize:12,
                     fontFamily:F_BODY}}>
-                    ⚠️ {expo.total} {expo.total===1?"apuesta viva"
+                    <Icon name="triangle-alert" size={12}/> {expo.total} {expo.total===1?"apuesta viva"
                       :"apuestas vivas"}</span>
                   <span style={{color:Q.dim,fontSize:10}}>
                     apostado {ars(expo.apostado)}</span>
@@ -3604,9 +3606,9 @@ function TabDash(){
     <div>
       <AvisoMock/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-        <KPI label="Usuarios"      value={s.users.toLocaleString()} sub={`+${s.newToday} hoy`} color={Q.cyan}   icon="👥" trend={3.2}/>
-        <KPI label="GGR hoy"       value={ars(s.netwinHoy)}                                     color={Q.green}  icon="📈" trend={4.1}/>
-        <KPI label="Depósitos hoy" value={ars(s.depHoy)}                                        color={Q.violet} icon="📥" trend={12}/>
+        <KPI label="Usuarios"      value={s.users.toLocaleString()} sub={`+${s.newToday} hoy`} color={Q.cyan}   icon={<Icon name="users" size={16}/>} trend={3.2}/>
+        <KPI label="GGR hoy"       value={ars(s.netwinHoy)}                                     color={Q.green}  icon={<Icon name="chart-no-axes-combined" size={16}/>} trend={4.1}/>
+        <KPI label="Depósitos hoy" value={ars(s.depHoy)}                                        color={Q.violet} icon={<Icon name="arrow-down-left" size={16}/>} trend={12}/>
         <KPI label="Apuestas vivas"value={s.apuestasActivas.toString()}                         color={Q.amber}  icon="🎯"/>
       </div>
 
@@ -3622,7 +3624,7 @@ function TabDash(){
 
       <GCard glow={Q.gold} style={{padding:16,marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
-          fontFamily:F_BODY}}>🏆 Top usuarios por GGR</div>
+          fontFamily:F_BODY}}><Icon name="trophy" size={14}/> Top usuarios por GGR</div>
         {MOCK.topUsers.map((u,i)=>(
           <div key={i} style={{display:"flex",alignItems:"center",gap:10,
             padding:"7px 0",borderBottom:i<4?`1px solid ${Q.dim}`:"none"}}>
@@ -3644,7 +3646,7 @@ function TabDash(){
 
       <GCard style={{padding:16}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
-          fontFamily:F_BODY}}>📊 Influencers</div>
+          fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={14}/> Influencers</div>
         {MOCK.influencers.map((inf,i)=>(
           <div key={i} style={{display:"flex",justifyContent:"space-between",
             padding:"7px 0",borderBottom:i<MOCK.influencers.length-1?`1px solid ${Q.dim}`:"none"}}>
@@ -3835,7 +3837,7 @@ function ArbolVisual({ agencias, onElegir, onCerrar }){
         <div style={{display:"flex",justifyContent:"space-between",
           alignItems:"center",marginBottom:16}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:16,
-            fontFamily:F_BODY}}>🌳 Árbol de agencias</div>
+            fontFamily:F_BODY}}><Icon name="network" size={14}/> Árbol de agencias</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:26,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
@@ -4045,9 +4047,9 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg({text:`✅ Creado: ${d.code} · código ${d.codigo_ref}`,ok:true});
+      setMsg({text:`Creado: ${d.code} · código ${d.codigo_ref}`,ok:true});
       setTimeout(onListo,900);
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); setProc(false); }
+    }catch(e){ setMsg({text:e.message,ok:false}); setProc(false); }
   };
 
   return(
@@ -4120,7 +4122,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
       <Btn label={proc?"CREANDO...":"Crear influencer"} onClick={crear} color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
     </GCard>
   );
 }
@@ -4152,8 +4154,8 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const j=await r.json();
-      setMsg({text:`✅ Liquidación generada · ${ars(j.comision)}`,ok:true});
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+      setMsg({text:`Liquidación generada · ${ars(j.comision)}`,ok:true});
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setProc(false);
   };
 
@@ -4187,13 +4189,13 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
                   </div>
                 ))}
               </div>
-              <Btn label={proc?"...":"💵 Liquidar comisión"} onClick={liquidar}
+              <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
                 color={Q.gold} full disabled={proc}/>
               <div style={{height:8}}/>
               <Btn label="🔑 Resetear contraseña" onClick={()=>setResetOpen(true)}
                 color={Q.amber} outline full/>
               <div style={{height:8}}/>
-              <Btn label="⚙️ Configurar influencer" onClick={()=>setConfigOpen(v=>!v)}
+              <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
                 color={Q.violet} outline full/>
               {configOpen&&d.reporte&&(
                 <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${Q.dim}`}}>
@@ -4207,7 +4209,7 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
               )}
               {msg&&<div style={{fontSize:12,marginTop:8,
                 color:msg.ok?Q.green:Q.red,
-                fontFamily:F_BODY}}>{msg.text}</div>}
+                fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
               {resetOpen&&<ResetPasswordAdmin adminKey={adminKey} code={code}
                 nombre={d.reporte?d.reporte.name:code} onCerrar={()=>setResetOpen(false)}/>}
             </GCard>
@@ -4294,7 +4296,7 @@ function TabAgencias({ adminKey, onNoAutorizado }){
         <div style={{color:Q.text,fontWeight:700,fontSize:15,
           fontFamily:F_BODY}}>🏢 Agencias</div>
         <div style={{display:"flex",gap:6}}>
-          <Btn label="🌳 Árbol" onClick={()=>setShowArbol(true)} color={Q.cyan} size="sm"/>
+          <Btn label={<><Icon name="network" size={13}/> Árbol</>} onClick={()=>setShowArbol(true)} color={Q.cyan} size="sm"/>
           <Btn label="🔒 Bloqueos" onClick={()=>setShowBloqueos(true)} color={Q.red} size="sm"/>
           <Btn label="🖨️ Impresiones" onClick={()=>setShowImpresiones(true)} color={Q.amber} size="sm"/>
           <Btn label="+ Nueva" onClick={()=>setShowForm(s=>!s)} color={Q.violet} size="sm"/>
@@ -4429,9 +4431,9 @@ function AsignarAgenciaAdmin({ adminKey, userId, esDirecto, agenciaActual, onCam
         body:JSON.stringify({agencia_code:sel}),
       });
       const d=await r.json();
-      if(r.ok&&d.ok){ setMsg({text:"✅ Agencia actualizada",ok:true}); if(onCambio) onCambio(); }
-      else setMsg({text:"⚠️ "+(d.detail||"Error"),ok:false});
-    }catch(e){ setMsg({text:"⚠️ Error",ok:false}); }
+      if(r.ok&&d.ok){ setMsg({text:"Agencia actualizada",ok:true}); if(onCambio) onCambio(); }
+      else setMsg({text:(d.detail||"Error"),ok:false});
+    }catch(e){ setMsg({text:"Error",ok:false}); }
   };
 
   if(!abierto) return(
@@ -4460,7 +4462,7 @@ function AsignarAgenciaAdmin({ adminKey, userId, esDirecto, agenciaActual, onCam
       </div>
       {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
     </div>
   );
 }
@@ -4481,9 +4483,9 @@ function ResetPasswordAdmin({ adminKey, code, userId, nombre, onCerrar }){
         body:JSON.stringify(body),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg({text:"✅ Contraseña reseteada. Deberá cambiarla en su próximo ingreso.",ok:true});
+      setMsg({text:"Contraseña reseteada. Deberá cambiarla en su próximo ingreso.",ok:true});
       setTimeout(onCerrar,1200);
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setProc(false);
   };
 
@@ -4515,7 +4517,7 @@ function ResetPasswordAdmin({ adminKey, code, userId, nombre, onCerrar }){
         <Btn label={proc?"GUARDANDO...":"Resetear"} onClick={guardar} color={Q.amber} full disabled={proc}/>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
           color:msg.ok?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg.text}</div>}
+          fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
       </GCard>
     </div>
   );
@@ -4559,9 +4561,9 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
       let extra="";
       if(d.hijos_sobre_limite&&d.hijos_sobre_limite.length)
         extra=` ⚠️ ${d.hijos_sobre_limite.length} cuenta(s) hija(s) quedaron con % mayor al tuyo.`;
-      setMsg({text:"✅ Configuración guardada."+extra,ok:true});
+      setMsg({text:"Configuración guardada."+extra,ok:true});
       onCambio&&onCambio();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setProc(false);
   };
 
@@ -4663,7 +4665,7 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
         color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
     </div>
   );
 }
@@ -4694,10 +4696,10 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
       setPuedeCashout(activo);
       setMsg({text:anulaRama
-        ? `✅ Cash out ${activo?"habilitado":"quitado"} en ${d.agencias_alcanzadas} agencias`
-        : `✅ Cash out ${activo?"habilitado":"quitado"}`,ok:true});
+        ? `Cash out ${activo?"habilitado":"quitado"} en ${d.agencias_alcanzadas} agencias`
+        : `Cash out ${activo?"habilitado":"quitado"}`,ok:true});
       onCambio&&onCambio();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setProc(false);
   };
 
@@ -4717,10 +4719,10 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
       setPuedeAnular(activo);
       setMsg({text:anulaRama
-        ? `✅ ${activo?"Habilitado":"Quitado"} en ${d.agencias_alcanzadas} agencias`
-        : `✅ ${activo?"Habilitado":"Quitado"}`,ok:true});
+        ? `${activo?"Habilitado":"Quitado"} en ${d.agencias_alcanzadas} agencias`
+        : `${activo?"Habilitado":"Quitado"}`,ok:true});
       onCambio&&onCambio();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setProc(false);
   };
 
@@ -4736,8 +4738,8 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg({text:"✅ Saldo actualizado",ok:true}); setCcMonto(""); onCambio&&onCambio();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+      setMsg({text:"Saldo actualizado",ok:true}); setCcMonto(""); onCambio&&onCambio();
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setProc(false);
   };
 
@@ -4755,8 +4757,8 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       // either status glyph before deciding green — same as FichaCliente's
       // block confirmation, this screen never had the red-on-success
       // asymmetry Agencia.jsx did.
-      setMsg({text:nuevo==="active"?"✅ Reactivada":"🔒 Suspendida",ok:true}); onCambio&&onCambio();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+      setMsg({text:nuevo==="active"?"Reactivada":"🔒 Suspendida",ok:true}); onCambio&&onCambio();
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setProc(false);
   };
 
@@ -4910,7 +4912,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
 
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
       {resetOpen&&<ResetPasswordAdmin adminKey={adminKey} code={agencia.code}
         nombre={agencia.name} onCerrar={()=>setResetOpen(false)}/>}
     </GCard>
@@ -4958,9 +4960,9 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
                              producto:codigo, activo})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg({text:activo?"✅ Producto habilitado":"✅ Producto quitado",ok:true});
+      setMsg({text:activo?"Producto habilitado":"Producto quitado",ok:true});
       cargarProds();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setProcProd(false);
   };
 
@@ -4993,8 +4995,8 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       if(!rc.ok){ const e=await rc.json().catch(()=>({}));
         throw new Error(e.detail||"No se pudo guardar el % de casino"); }
 
-      setMsg({text:"✅ Comisiones actualizadas",ok:true}); onCambio&&onCambio();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+      setMsg({text:"Comisiones actualizadas",ok:true}); onCambio&&onCambio();
+    }catch(e){ setMsg({text:e.message,ok:false}); }
     setProc(false);
   };
 
@@ -5091,7 +5093,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       )}
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
     </div>
   );
 }
@@ -5130,7 +5132,7 @@ function CrearClienteAdmin({ adminKey, agencia, onListo, onCancel, onNoAutorizad
     <GCard glow={Q.cyan} style={{padding:12,marginBottom:8}}>
       {!agencia&&<div style={{color:Q.muted,fontSize:10,marginBottom:8,lineHeight:1.4,
         fontFamily:F_BODY}}>
-        🏛️ Cliente propio del admin (sin agencia).</div>}
+        <Icon name="landmark" size={11}/> Cliente propio del admin (sin agencia).</div>}
       <input value={nombre} onChange={e=>setNombre(e.target.value)}
         placeholder="Nombre del cliente"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
@@ -5188,15 +5190,15 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg({text:`✅ Creada: ${d.code}`,ok:true});
+      setMsg({text:`Creada: ${d.code}`,ok:true});
       setTimeout(onListo,700);
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); setProc(false); }
+    }catch(e){ setMsg({text:e.message,ok:false}); setProc(false); }
   };
 
   return(
     <GCard glow={Q.violet} style={{padding:16,marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
-        fontFamily:F_BODY}}>➕ Nueva agencia</div>
+        fontFamily:F_BODY}}><Icon name="plus" size={14}/> Nueva agencia</div>
       {[["name","Nombre","Agencia Norte"],["username","Usuario","norte1"],
         ["password","Contraseña","••••••••"]].map(([k,l,ph])=>(
         <div key={k} style={{marginBottom:8}}>
@@ -5277,7 +5279,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
         color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
     </GCard>
   );
 }
@@ -5315,7 +5317,7 @@ function TabUsuarios({ adminKey, onNoAutorizado }){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:16,
-          fontFamily:F_BODY}}>👥 Clientes</div>
+          fontFamily:F_BODY}}><Icon name="users" size={14}/> Clientes</div>
         <Btn label={crear?"Cancelar":"+ Nuevo cliente"} onClick={()=>setCrear(c=>!c)}
           color={Q.violet} size="sm"/>
       </div>
@@ -5326,7 +5328,7 @@ function TabUsuarios({ adminKey, onNoAutorizado }){
 
       <GCard style={{padding:"10px 14px",marginBottom:12,
         display:"flex",alignItems:"center",gap:10}}>
-        <span style={{color:Q.muted,fontSize:16}}>🔍</span>
+        <span style={{color:Q.muted,fontSize:16}}><Icon name="search" size={16}/></span>
         <input value={query} onChange={e=>{setQuery(e.target.value);buscar(e.target.value);}}
           placeholder="Buscar cliente por nombre..."
           style={{background:"transparent",border:"none",color:Q.text,
@@ -5393,7 +5395,7 @@ function TabConfig({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:18,marginBottom:4,
-        fontFamily:F_BODY}}>⚙️ Configuración</div>
+        fontFamily:F_BODY}}><Icon name="sliders-horizontal" size={14}/> Configuración</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:14,
         fontFamily:F_BODY}}>Todo lo configurable del sistema en un solo lugar.</div>
       <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
@@ -5437,7 +5439,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json().catch(()=>({}));
       setBonos(d.bonos||[]);
-    }catch(e){ setMsg({text:"⚠️ No se pudieron cargar los bonos",ok:false}); }
+    }catch(e){ setMsg({text:"No se pudieron cargar los bonos",ok:false}); }
   };
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[adminKey]);
   const [form,setForm]=useState({nombre:"",tipo:"bienvenida",monto_fijo:"",
@@ -5506,14 +5508,14 @@ function TabBonos({ adminKey, onNoAutorizado }){
       });
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
-      if(r.ok&&d.ok){ setMsg({text:"✅ Bono guardado",ok:true});
+      if(r.ok&&d.ok){ setMsg({text:"Bono guardado",ok:true});
         setForm({nombre:"",tipo:"bienvenida",monto_fijo:"",porcentaje:"",tope:"",rollover:"5",
           deposito_minimo:"",cuota_minima:"1.50",requiere_verificacion:true,evento:"primer_deposito",
           stake_max_tipo:"porcentaje",stake_max_valor:"15",cuota_maxima:"",mercados_excluidos:"",
     vigente_desde:"",vigente_hasta:"",dias_semana:"",hora_desde:"",hora_hasta:""});
         setAnalisis(""); cargar(); }
-      else setMsg({text:"⚠️ "+(d.detail||"Error"),ok:false});
-    }catch(e){ setMsg({text:"⚠️ Error",ok:false}); }
+      else setMsg({text:(d.detail||"Error"),ok:false});
+    }catch(e){ setMsg({text:"Error",ok:false}); }
     setProc(false);
   };
 
@@ -5530,9 +5532,9 @@ function TabBonos({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json().catch(()=>({}));
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg({text:d.activo?"✅ Bono activado":"✅ Bono desactivado",ok:true});
+      setMsg({text:d.activo?"Bono activado":"Bono desactivado",ok:true});
       await cargar();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
   };
   const borrar=async(id)=>{
     if(!window.confirm("¿Borrar este bono? No se puede deshacer.")) return;
@@ -5543,9 +5545,9 @@ function TabBonos({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({}));
         throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg({text:"✅ Bono borrado",ok:true});
+      setMsg({text:"Bono borrado",ok:true});
       await cargar();
-    }catch(e){ setMsg({text:"⚠️ "+e.message,ok:false}); }
+    }catch(e){ setMsg({text:e.message,ok:false}); }
   };
   const resetear=async(id)=>{
     if(!window.confirm("¿Resetear este bono? Se borran todos sus otorgamientos y se puede reutilizar desde cero.")) return;
@@ -5581,7 +5583,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
     <div>
       <GCard glow={Q.violet} style={{padding:16,marginBottom:16}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:10,
-          fontFamily:F_BODY}}>🎁 Nuevo bono</div>
+          fontFamily:F_BODY}}><Gift size={14}/> Nuevo bono</div>
         <input value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))}
           placeholder="Nombre del bono" style={inp}/>
         <div style={{display:"flex",gap:6,marginBottom:8}}>
@@ -5619,7 +5621,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
 
         <div style={{borderTop:`1px solid ${Q.border}`,margin:"10px 0",paddingTop:10}}>
           <div style={{color:Q.cyan,fontSize:11,fontWeight:700,marginBottom:8,
-            fontFamily:F_BODY}}>🛡️ Condiciones de riesgo</div>
+            fontFamily:F_BODY}}><Icon name="shield-alert" size={14}/> Condiciones de riesgo</div>
 
           <div style={{color:Q.muted,fontSize:11,marginBottom:4,
             fontFamily:F_BODY}}>Depósito mínimo para activarlo</div>
@@ -5731,7 +5733,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                       color:a.sev==="alta"?Q.red:Q.amber,
                       fontSize:11,lineHeight:1.5,marginBottom:5,
                       fontFamily:F_BODY}}>
-                      {a.sev==="alta"?"🔴":"🟡"} {a.texto}</div>
+                      <Icon name="circle-dot" size={12} color={a.sev==="alta"?Q.red:Q.gold}/> {a.texto}</div>
                   ))}
                 </div>
               )}
@@ -5755,7 +5757,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
           </label>
 
           <div style={{color:Q.gold,fontSize:11,fontWeight:700,marginTop:8,marginBottom:6,
-            fontFamily:F_BODY}}>⚠️ Mitigaciones (recomendadas por IA)</div>
+            fontFamily:F_BODY}}><Icon name="triangle-alert" size={14}/> Mitigaciones (recomendadas por IA)</div>
 
           <div style={{color:Q.muted,fontSize:11,marginBottom:4,
             fontFamily:F_BODY}}>Stake máximo por apuesta durante rollover</div>
@@ -5864,7 +5866,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
           {proc?"Guardando...":"Guardar bono"}</button>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
           color:msg.ok?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg.text}</div>}
+          fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
       </GCard>
 
       <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
@@ -6009,11 +6011,11 @@ function TabPSP({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
-        fontFamily:F_BODY}}>🏦 Pagos digitales (PSP)</div>
+        fontFamily:F_BODY}}><Icon name="landmark" size={14}/> Pagos digitales (PSP)</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:14,
         fontFamily:F_BODY}}>
         Carga y retiro automáticos por transferencia.
-        {!cfg.configurada&&" ⚠️ Falta cargar la PSP_API_KEY en el servidor."}</div>
+        {!cfg.configurada&&(<> <Icon name="triangle-alert" size={11}/> Falta cargar la PSP_API_KEY en el servidor.</>)}</div>
 
       <GCard glow={cfg.activo?Q.green:Q.violet} style={{padding:16,marginBottom:12}}>
         <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",
@@ -6135,8 +6137,8 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
         method:"POST",headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
         body:JSON.stringify({...c, excluidas:c.excluidas||[]}),
       });
-      if(r.ok) setMsg({text:"✅ Guardado",ok:true}); else setMsg({text:"⚠️ Error",ok:false});
-    }catch(e){ setMsg({text:"⚠️ Error",ok:false}); }
+      if(r.ok) setMsg({text:"Guardado",ok:true}); else setMsg({text:"Error",ok:false});
+    }catch(e){ setMsg({text:"Error",ok:false}); }
   };
 
   const analizar=async()=>{
@@ -6277,7 +6279,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
         <div style={{background:`${Q.gold}0C`,border:`1px solid ${Q.gold}44`,borderRadius:10,
           padding:"10px 12px",marginBottom:8}}>
           <div style={{color:Q.gold,fontSize:11,fontWeight:700,marginBottom:6,
-            fontFamily:F_BODY}}>📈 Margen escalonado</div>
+            fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={14}/> Margen escalonado</div>
           <div style={{color:Q.muted,fontSize:10,marginBottom:8,lineHeight:1.4,
             fontFamily:F_BODY}}>
             Suma margen extra por cada selección de más (más picks = más correlación).</div>
@@ -6318,7 +6320,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
           fontFamily:F_BODY}}>Guardar configuración</button>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
           color:msg.ok?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg.text}</div>}
+          fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
       </GCard>
 
       <div style={{color:Q.dim,fontSize:11,textAlign:"center",lineHeight:1.5,
@@ -6529,7 +6531,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
       {/* Créditos de The Odds API */}
       <GCard glow={colorCred} style={{padding:16,marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
-          fontFamily:F_BODY}}>💳 Créditos The Odds API</div>
+          fontFamily:F_BODY}}><Icon name="wallet-cards" size={14}/> Créditos The Odds API</div>
         {creditos?.remaining!=null?(
           <>
             <div style={{color:colorCred,fontWeight:900,fontSize:30,
@@ -6542,7 +6544,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
             {rest!=null&&rest<5000&&(
               <div style={{color:colorCred,fontSize:11,marginTop:8,
                 fontFamily:F_BODY}}>
-                {rest<1000?"⚠️ Saldo crítico — bajá sports_limit o sacá btts"
+                {rest<1000?<><Icon name="triangle-alert" size={11}/> Saldo crítico — bajá sports_limit o sacá btts</>
                           :"Saldo bajo — conviene revisar la configuración"}
               </div>
             )}
@@ -6570,7 +6572,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
       <GCard glow={live?.sin_cuotas?.length?Q.amber:Q.green}
         style={{padding:16,marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:4,
-          fontFamily:F_BODY}}>🔴 En vivo sin cuotas</div>
+          fontFamily:F_BODY}}><Icon name="circle-dot" size={14}/> En vivo sin cuotas</div>
         <div style={{color:Q.muted,fontSize:11,marginBottom:10}}>
           Partidos en curso donde no se pudo cruzar el nombre con el feed de cuotas.
           Sin cuota, el cajero no puede tomar la apuesta.
@@ -6598,7 +6600,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
       {live?.nombres_en_feed_de_cuotas?.length>0&&(
         <GCard style={{padding:16}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:4,
-            fontFamily:F_BODY}}>📋 Nombres en el feed de cuotas</div>
+            fontFamily:F_BODY}}><Icon name="clipboard-list" size={14}/> Nombres en el feed de cuotas</div>
           <div style={{color:Q.muted,fontSize:11,marginBottom:10}}>
             Compará con la lista de arriba: si ves el mismo partido escrito
             distinto, ahí está la razón de que no cruce.
@@ -6618,7 +6620,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
       <GCard glow={srTest?(srTest.ok?Q.green:Q.red):Q.violet} style={{padding:16,marginTop:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:13,
-            fontFamily:F_BODY}}>⚽ Sportradar Soccer API</div>
+            fontFamily:F_BODY}}><Icon name="trophy" size={14}/> Sportradar Soccer API</div>
           <Btn label={srLoading?"Probando...":"Probar"} onClick={probarSR}
             outline color={Q.cyan} size="sm"/>
         </div>
@@ -6626,7 +6628,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
           <div>
             <div style={{color:Q.green,fontWeight:800,fontSize:13,marginBottom:6,
               fontFamily:F_BODY}}>
-              ✅ Conectado · {srTest.total_competiciones} competiciones</div>
+              <Icon name="circle-check" size={13}/> Conectado · {srTest.total_competiciones} competiciones</div>
             {(srTest.ejemplos||[]).map((c,i)=>(
               <div key={i} style={{color:Q.muted,fontSize:10,padding:"1px 0",
                 fontFamily:F_BODY}}>{c.nombre}</div>
@@ -6635,14 +6637,14 @@ function TabDiag({ adminKey, onNoAutorizado }){
         )}
         {srTest&&!srTest.ok&&(
           <div style={{color:Q.red,fontSize:12,fontFamily:F_BODY}}>
-            ❌ {srTest.error}</div>
+            <Icon name="x" size={13}/> {srTest.error}</div>
         )}
         {!srTest&&<div style={{color:Q.muted,fontSize:11,
           fontFamily:F_BODY}}>Tocá "Probar" para verificar la conexión.</div>}
 
         {srTest&&srTest.ok&&(
           <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${Q.border}`}}>
-            <Btn label={srCLoading?"Verificando...":"💰 ¿Tengo acceso a cuotas?"} onClick={probarCuotas}
+            <Btn label={srCLoading?"Verificando...":<><Icon name="wallet-cards" size={13}/> ¿Tengo acceso a cuotas?</>} onClick={probarCuotas}
               outline color={Q.gold} size="sm" full/>
             {srCuotas&&(
               <div style={{marginTop:8,padding:10,borderRadius:8,
@@ -6650,7 +6652,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
                 border:`1px solid ${srCuotas.tiene_cuotas?Q.green:Q.red}44`}}>
                 <div style={{color:srCuotas.tiene_cuotas?Q.green:Q.red,fontSize:12,fontWeight:700,
                   marginBottom:6,fontFamily:F_BODY}}>
-                  {srCuotas.tiene_cuotas?"✅ Tenés acceso a cuotas":"❌ No hay acceso a cuotas (falta activar el producto)"}</div>
+                  {srCuotas.tiene_cuotas?<><Icon name="circle-check" size={13}/> Tenés acceso a cuotas</>:<><Icon name="x" size={13}/> No hay acceso a cuotas (falta activar el producto)</>}</div>
                 {(srCuotas.intentos||[]).map((it,i)=>(
                   <div key={i} style={{color:Q.muted,fontSize:9,padding:"1px 0",
                     fontFamily:F_BODY}}>
@@ -6670,7 +6672,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
                             fontFamily:F_BODY}}>{d.nombre} ({d.id})</div>
                         ))}
                         <div style={{color:Q.muted,fontSize:10,marginTop:6,marginBottom:4,
-                          fontFamily:F_BODY}}>🔬 Probar ruta de cuotas (1 por vez, esperá entre cada una):</div>
+                          fontFamily:F_BODY}}><Icon name="scan-search" size={14}/> Probar ruta de cuotas (1 por vez, esperá entre cada una):</div>
                         <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                           {[1,2,3].map(v=>(
                             <button key={v} onClick={()=>inspeccionar(v)} style={{
@@ -6682,21 +6684,21 @@ function TabDiag({ adminKey, onNoAutorizado }){
                         </div>
                         <div style={{height:6}}/>
                         <div style={{display:"flex",gap:4}}>
-                          <Btn label="💰 Cuotas hoy" onClick={()=>verMercadosDia(0)} color={Q.gold} size="sm" full/>
-                          <Btn label="💰 Cuotas mañana" onClick={()=>verMercadosDia(1)} color={Q.gold} size="sm" full/>
+                          <Btn label={<><Icon name="wallet-cards" size={13}/> Cuotas hoy</>} onClick={()=>verMercadosDia(0)} color={Q.gold} size="sm" full/>
+                          <Btn label={<><Icon name="wallet-cards" size={13}/> Cuotas mañana</>} onClick={()=>verMercadosDia(1)} color={Q.gold} size="sm" full/>
                         </div>
                         <div style={{height:6}}/>
-                        <Btn label="✅ Probar mapeo (partidos + cuotas listos)"
+                        <Btn label={<><Icon name="circle-check" size={13}/> Probar mapeo (partidos + cuotas listos)</>}
                           onClick={verPartidosCuotas} color={Q.green} full/>
                         {srPC&&srPC.cargando&&(
                           <div style={{color:Q.green,fontSize:11,marginTop:6,textAlign:"center",
-                            fontFamily:F_BODY}}>⏳ Procesando...</div>
+                            fontFamily:F_BODY}}><Icon name="clock-3" size={13}/> Procesando...</div>
                         )}
                         {srPC&&!srPC.cargando&&srPC.ok&&(
                           <div style={{marginTop:6}}>
                             <div style={{color:Q.green,fontSize:11,fontWeight:700,marginBottom:4,
                               fontFamily:F_BODY}}>
-                              ✅ {srPC.total} partidos con cuotas mapeados</div>
+                              <Icon name="circle-check" size={13}/> {srPC.total} partidos con cuotas mapeados</div>
                             {(srPC.partidos||[]).map((p,i)=>(
                               <div key={i} style={{padding:"5px 6px",borderBottom:`1px solid ${Q.border}`}}>
                                 <div style={{color:Q.text,fontSize:11,fontWeight:600,
@@ -6709,14 +6711,14 @@ function TabDiag({ adminKey, onNoAutorizado }){
                           </div>
                         )}
                         {srPC&&!srPC.cargando&&!srPC.ok&&(
-                          <div style={{color:Q.red,fontSize:11,marginTop:6}}>❌ {srPC.error}</div>
+                          <div style={{color:Q.red,fontSize:11,marginTop:6}}><Icon name="x" size={13}/> {srPC.error}</div>
                         )}
                         <div style={{height:6}}/>
-                        <Btn label="📋 ¿Qué mercados hay? (córners, tarjetas, etc.)"
+                        <Btn label={<><Icon name="clipboard-list" size={13}/> ¿Qué mercados hay? (córners, tarjetas, etc.)</>}
                           onClick={verMercadosDisp} outline color={Q.violet} size="sm" full/>
                         {srMD&&srMD.cargando&&(
                           <div style={{color:Q.violet,fontSize:11,marginTop:6,textAlign:"center",
-                            fontFamily:F_BODY}}>⏳ Consultando...</div>
+                            fontFamily:F_BODY}}><Icon name="clock-3" size={13}/> Consultando...</div>
                         )}
                         {srMD&&!srMD.cargando&&srMD.ok&&(
                           <div style={{marginTop:6,maxHeight:200,overflowY:"auto"}}>
@@ -6733,11 +6735,11 @@ function TabDiag({ adminKey, onNoAutorizado }){
                           </div>
                         )}
                         {srMD&&!srMD.cargando&&!srMD.ok&&(
-                          <div style={{color:Q.red,fontSize:11,marginTop:6}}>❌ {srMD.error}</div>
+                          <div style={{color:Q.red,fontSize:11,marginTop:6}}><Icon name="x" size={13}/> {srMD.error}</div>
                         )}
                         {srDia&&srDia.cargando&&(
                           <div style={{color:Q.gold,fontSize:11,marginTop:6,textAlign:"center",
-                            fontFamily:F_BODY}}>⏳ Consultando cuotas...</div>
+                            fontFamily:F_BODY}}><Icon name="clock-3" size={13}/> Consultando cuotas...</div>
                         )}
                         {srDia&&!srDia.cargando&&(
                           <pre style={{color:Q.gold,fontSize:8,whiteSpace:"pre-wrap",
@@ -6752,7 +6754,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
                             {(JSON.stringify(srEstruct,null,1)||"").slice(0,2000)}</pre>
                         )}
                         {srEstruct&&srEstruct.ok&&srEstruct.muestra_evento&&srEstruct.muestra_evento.sport_event&&(
-                          <Btn label="💰 Ver cuotas de este evento"
+                          <Btn label={<><Icon name="wallet-cards" size={13}/> Ver cuotas de este evento</>}
                             onClick={()=>verMercados(srEstruct.muestra_evento.sport_event.id)}
                             outline color={Q.gold} size="sm" full/>
                         )}
@@ -6765,7 +6767,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
                       </div>
                     )}
                     {srDeportes&&!srDeportes.cargando&&!srDeportes.ok&&(
-                      <div style={{color:Q.red,fontSize:10,marginTop:4}}>❌ {srDeportes.error}</div>
+                      <div style={{color:Q.red,fontSize:10,marginTop:4}}><Icon name="x" size={13}/> {srDeportes.error}</div>
                     )}
                   </div>
                 )}
@@ -6792,7 +6794,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
           </div>
         )}
         {srPartidos&&!srPartidos.ok&&<div style={{color:Q.red,fontSize:11,marginTop:8,
-          fontFamily:F_BODY}}>❌ {srPartidos.error}</div>}
+          fontFamily:F_BODY}}><Icon name="x" size={13}/> {srPartidos.error}</div>}
         {srResumen&&!srResumen.cargando&&(
           <div style={{marginTop:8,padding:10,background:"rgba(255,255,255,0.04)",borderRadius:8}}>
             {srResumen.ok?(
@@ -6800,12 +6802,12 @@ function TabDiag({ adminKey, onNoAutorizado }){
                 <div style={{color:Q.cyan,fontSize:11,fontWeight:700,marginBottom:4,
                   fontFamily:F_BODY}}>
                   {srResumen.estado} · {srResumen.marcador?.home}-{srResumen.marcador?.away}
-                  {srResumen.tiene_estadisticas?" · 📊 con stats":" · sin stats"}</div>
+                  {srResumen.tiene_estadisticas?(<> · <Icon name="chart-no-axes-combined" size={11}/> con stats</>):" · sin stats"}</div>
                 <pre style={{color:Q.muted,fontSize:9,whiteSpace:"pre-wrap",wordBreak:"break-all",
                   maxHeight:150,overflowY:"auto",margin:0}}>
                   {(JSON.stringify(srResumen.estadisticas,null,1)||"").slice(0,800)}</pre>
               </div>
-            ):<div style={{color:Q.red,fontSize:11}}>❌ {srResumen.error}</div>}
+            ):<div style={{color:Q.red,fontSize:11}}><Icon name="x" size={13}/> {srResumen.error}</div>}
           </div>
         )}
 
@@ -6816,7 +6818,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
             <Btn label={liqLoading?"Liquidando...":"Liquidar apuestas con Sportradar"}
               onClick={liquidarSR} color={Q.green} full/>
             <div style={{height:6}}/>
-            <Btn label={diagLoading?"Analizando...":"🔍 Diagnóstico (por qué no se resuelven)"}
+            <Btn label={diagLoading?"Analizando...":<><Icon name="search" size={13}/> Diagnóstico (por qué no se resuelven)</>}
               onClick={diagnosticar} outline color={Q.amber} full/>
             {diagLiq&&diagLiq.diagnostico&&(
               <div style={{marginTop:8,maxHeight:240,overflowY:"auto"}}>
@@ -6841,12 +6843,12 @@ function TabDiag({ adminKey, onNoAutorizado }){
               <div style={{marginTop:8,padding:10,background:`${Q.green}0C`,
                 border:`1px solid ${liqSR.error?Q.red:Q.green}44`,borderRadius:8}}>
                 {liqSR.error
-                  ? <div style={{color:Q.red,fontSize:11}}>❌ {liqSR.error}</div>
+                  ? <div style={{color:Q.red,fontSize:11}}><Icon name="x" size={13}/> {liqSR.error}</div>
                   : <div style={{color:Q.text,fontSize:11,lineHeight:1.6,
                       fontFamily:F_BODY}}>
-                      Revisadas: {liqSR.revisadas} · <span style={{color:Q.green}}>✅ {liqSR.ganadas} ganadas</span> ·
-                      <span style={{color:Q.red}}> ❌ {liqSR.perdidas} perdidas</span> ·
-                      <span style={{color:Q.amber}}> ⏳ {liqSR.sin_resolver} sin resolver</span>
+                      Revisadas: {liqSR.revisadas} · <span style={{color:Q.green}}><Icon name="circle-check" size={11}/> {liqSR.ganadas} ganadas</span> ·
+                      <span style={{color:Q.red}}> <Icon name="x" size={11}/> {liqSR.perdidas} perdidas</span> ·
+                      <span style={{color:Q.amber}}> <Icon name="clock-3" size={11}/> {liqSR.sin_resolver} sin resolver</span>
                     </div>}
               </div>
             )}
@@ -6871,16 +6873,16 @@ function TabDiag({ adminKey, onNoAutorizado }){
 // ═══════════════════════════════════════════════════════════════
 const TABS=[
   {k:"global",   i:"🌐", l:"Global"},
-  {k:"cierre",   i:"📊", l:"Cierre"},
-  {k:"combos",   i:"⚡", l:"Combos"},
+  {k:"cierre",   i:<Icon name="chart-no-axes-combined" size={17}/>, l:"Cierre"},
+  {k:"combos",   i:<Zap size={17}/>, l:"Combos"},
   {k:"agencias", i:"🏢", l:"Agencias"},
   {k:"influencers", i:"🌟", l:"Influencers"},
   {k:"eventos",  i:"📅", l:"Eventos"},
-  {k:"billetera",i:"💰", l:"Billetera"},
-  {k:"usuarios", i:"👥", l:"Usuarios"},
-  {k:"config",   i:"⚙️", l:"Config"},
+  {k:"billetera",i:<Icon name="wallet-cards" size={17}/>, l:"Billetera"},
+  {k:"usuarios", i:<Icon name="users" size={17}/>, l:"Usuarios"},
+  {k:"config",   i:<Icon name="sliders-horizontal" size={17}/>, l:"Config"},
   {k:"diag",     i:"🩺", l:"Diag"},
-  {k:"chat",     i:"💬", l:"Consultas"},
+  {k:"chat",     i:<Icon name="message-circle" size={17}/>, l:"Consultas"},
 ];
 
 // Agrupa el asistente y los mensajes con agencias en una sola
