@@ -128,8 +128,27 @@ the admin looks at most.
       Tests: 828/828 passed (51 suites, up from 813/50 — T1 added its own
       suite). Build: `Compiled successfully`.
 - [ ] **T3** — Admin: 7 replacements, 3 additions, `global` untouched.
-- [ ] **T4** — A guard that no tab component still hand-rolls the
-      `fontWeight:700,fontSize:15` title pattern outside `PageHeader`.
+- [ ] **T4** — A guard that every tab component's opening view renders
+      `<PageHeader`, `global` excepted by name.
+
+      **T4 was respecified after T2.** It first read "a guard that no tab
+      still hand-rolls the `fontWeight:700,fontSize:15` title pattern".
+      That is not writable: after all 18 agency tabs moved to `PageHeader`,
+      **18 of that exact pattern remain in `Agencia.jsx`** — and every one
+      is legitimate. `700/15` is this codebase's general emphasis size, not
+      a page-header signature:
+
+      ```
+      1007  Buscar código de apuesta      ← a card title
+      1137  {ars(slip.stake)}             ← an amount
+      1539  {opt.odd}                     ← a betting odd
+      2456  Crear combo                   ← a sub-view title
+      7599  Resetear contraseña           ← a section heading
+      ```
+
+      A guard on that pattern would either fail on all of them or be
+      riddled with exceptions. Assert the outcome instead: the opening
+      view renders the component.
 
 Delivery: T1+T2 in one PR, T3+T4 in the next. The two files are large enough
 that one PR would pass the review budget. T1+T2 are done; T3+T4 are a
