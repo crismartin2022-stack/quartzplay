@@ -7,6 +7,7 @@ import { oscuro as Q, F_NUM, F_BODY, inkOn, RADII, SPACING } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot, { MASCOT_FACE_ASSET } from "./Mascot";
 import Icon from "./Icon";
+import { useDesktopShellWidth } from "./desktopShellLayout";
 // lucide-react carries the icons this screen's emoji have no match for
 // among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
 // no live-feed mark, no handshake, no bolt, no gift.
@@ -5375,6 +5376,61 @@ function BarraInferior({ actual, onNav, onAyuda }){
   );
 }
 
+// ── Barra lateral de escritorio: mismos destinos que BarraInferior ────
+// Below DESKTOP_SHELL_BREAKPOINT (1024px, desktopShellLayout.js — the same
+// breakpoint Admin.jsx and Agencia.jsx already share, so this app does not
+// add a second value) nothing changes: BarraInferior keeps rendering
+// exactly as it did. At and above it, this sidebar replaces the bottom tab
+// bar the same way Admin's and Agencia's own desktop sidebars replace
+// their tab rows — same shape, so the product reads as one thing. It
+// offers exactly the six BarraInferior destinations plus Bet Best, no new
+// section: Casino and Casino en Vivo stay ScreenHome-only cards on desktop
+// too, same as on a phone, since neither is in the bottom bar this mirrors.
+//
+// SIDEBAR_ITEMS is declared inside this function, not as a sibling
+// top-level const, on purpose: bottomNavSixItems.test.js reads
+// BarraInferior's own six-item array by slicing from its `function
+// BarraInferior(` to the next top-level `\nfunction `, so any array
+// literal left sitting between the two would silently join that slice.
+function SidebarDesktop({ actual, onNav, onAyuda }){
+  const SIDEBAR_ITEMS = [
+    {k:"prematch", l:"Deportes"},
+    {k:"builder",  l:"Builder"},
+    {k:"mejorar",  l:"Bet Best"},
+    {k:"desafios", l:"Desafíos"},
+    {k:"mybets",   l:"Boletos"},
+    {k:"ayuda",    l:"Ayuda"},
+    {k:"cuenta",   l:"Perfil"},
+  ];
+  return(
+    <div style={{
+      // Deliberately matching Agencia.jsx's/Admin.jsx's literal sidebar
+      // background rather than a Q token — parity with the other two
+      // panels' near-black desktop sidebar; keep in sync if theirs changes.
+      background:"rgba(6,6,18,0.97)",backdropFilter:"blur(20px)",
+      borderRight:`1px solid ${Q.border}`,
+      padding:`${SPACING[24]}px ${SPACING[12]}px`,display:"flex",
+      flexDirection:"column",alignItems:"stretch",gap:SPACING[8],
+      overflowY:"auto",flexShrink:0,gridColumn:"1",gridRow:"1 / span 2",
+      position:"sticky",top:0,alignSelf:"start",width:264,height:"100dvh"}}>
+      {SIDEBAR_ITEMS.map(it=>{
+        const on = actual===it.k;
+        return(
+          <button key={it.k} onClick={()=>it.k==="ayuda"?onAyuda():onNav(it.k)} style={{
+            minWidth:0,background:on?`linear-gradient(135deg,${Q.violet}44,${Q.violet2}22)`:"transparent",
+            border:`1px solid ${on?Q.violet:"transparent"}`,borderRadius:RADII.md,cursor:"pointer",
+            width:"100%",minHeight:44,padding:"0 12px",display:"flex",flexDirection:"row",
+            alignItems:"center",justifyContent:"flex-start",gap:SPACING[12],textAlign:"left"}}>
+            <Ico d={it.k==="mejorar"?ICONOS.camara:ICONOS[it.k]} on={on} size={18}/>
+            <span style={{color:on?Q.gold:Q.dim,fontSize:13,fontWeight:on?700:600,
+              fontFamily:F_BODY}}>{it.l}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── HOME con destacados (combo del día + en vivo) ─────────────
 function ScreenHome({ user, onNav, onBet, refCode }){
   const [combo,setCombo]=useState(null);
@@ -6517,6 +6573,11 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
 
 export default function QuartzSports(){
   const [screen,setScreen]=useState("home");
+  // Below 1024px (desktopShellLayout's own breakpoint) nothing changes —
+  // BarraInferior keeps rendering exactly as it did. At and above it,
+  // SidebarDesktop replaces the bottom tab bar, the same swap Admin.jsx
+  // and Agencia.jsx already make for their own tab rows.
+  const isDesktop = useDesktopShellWidth();
   // Ayuda ahora vive en la barra inferior (T5): el padre guarda si el
   // chat está abierto, la barra lo abre, BotonAyuda solo dibuja el modal.
   const [ayudaAbierto,setAyudaAbierto]=useState(false);
@@ -6689,8 +6750,19 @@ export default function QuartzSports(){
     );
   }
 
+  // Shared by BarraInferior (below 1024px) and SidebarDesktop (at and
+  // above it) — one screen->active-item mapping, not two that could drift.
+  const navActual = ayudaAbierto ? "ayuda"
+    : ["prematch","builder","combo","mybets","mejorar","desafios","cuenta"].includes(screen)?screen
+      :(screen==="live"?"prematch":"");
+
   return(
-    <div style={{maxWidth:520,margin:"0 auto",
+    <div style={isDesktop ? {
+      width:"100%",height:"100dvh",display:"grid",
+      gridTemplateColumns:"264px minmax(0,1fr)",
+      background:Q.void,fontFamily:F_BODY,overflow:"hidden",
+      maxWidth:1600,margin:"0 auto",
+    } : {maxWidth:520,margin:"0 auto",
       fontFamily:F_BODY,background:Q.void,
       width:"100%",height:"100dvh",display:"flex",flexDirection:"column",
       overflow:"hidden"}}>
@@ -6708,7 +6780,18 @@ export default function QuartzSports(){
         ::-webkit-scrollbar{width:3px} ::-webkit-scrollbar-thumb{background:${Q.border}}
       `}</style>
 
+      {isDesktop&&<SidebarDesktop actual={navActual} onNav={setScreen}
+        onAyuda={()=>setAyudaAbierto(true)}/>}
 
+      {/* Header + pantallas: en escritorio, la columna de la derecha de la
+          grilla (junto al sidebar); en teléfono, sigue siendo el único
+          hijo en flex-column que ya era, ahora con un wrapper de más que
+          no cambia nada de su propio comportamiento interno (BarraSuperior
+          flexShrink:0, el área de pantallas flex:1 minHeight:0). */}
+      <div style={isDesktop ? {gridColumn:"2",height:"100dvh",display:"flex",
+        flexDirection:"column",overflow:"hidden",minWidth:0}
+        : {display:"flex",flexDirection:"column",flex:1,minHeight:0,
+        width:"100%",overflow:"hidden"}}>
       <BarraSuperior user={user} onNav={setScreen}/>
 
       {/* Barra de pasos — atajo de desarrollo, oculta por defecto */}
@@ -6792,12 +6875,13 @@ export default function QuartzSports(){
           onCerrar={()=>setConfirmando(null)} onListo={apuestaLista}/>
       )}
 
-      {/* Barra inferior fija */}
-      <BarraInferior actual={
-        ayudaAbierto ? "ayuda"
-          : ["prematch","builder","combo","mybets","mejorar","desafios","cuenta"].includes(screen)?screen
-            :(screen==="live"?"prematch":"")
-      } onNav={setScreen} onAyuda={()=>setAyudaAbierto(true)}/>
+      {/* Barra inferior fija — solo debajo de 1024px; SidebarDesktop la
+          reemplaza arriba de eso. */}
+      {!isDesktop&&(
+        <BarraInferior actual={navActual} onNav={setScreen}
+          onAyuda={()=>setAyudaAbierto(true)}/>
+      )}
+      </div>
 
       {/* Ayuda: disponible en cualquier pantalla */}
       <BotonAyuda userId={user?.id} origen="app" abierto={ayudaAbierto}
