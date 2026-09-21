@@ -27,7 +27,10 @@ const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 // Un único tema. Los ~1000 usos de Q.algo siguen funcionando sin
 // tocarlos porque Q es la paleta oscura importada directamente.
 function aplicarTema(){
-  try{ document.body.style.background = Q.void; }catch(e){}
+  try{
+    document.body.style.background = Q.void;
+    document.body.style.color = Q.text;
+  }catch(e){}
 }
 
 // Superposiciones (hover, vidrio).
