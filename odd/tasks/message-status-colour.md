@@ -89,19 +89,178 @@ ones, and any message whose component sets only one kind of outcome.
 
 ## Tasks
 
-- [ ] **T1** The player: `App.jsx` and `Web.jsx`, three components each.
-- [ ] **T2** `Agencia.jsx`.
-- [ ] **T3** `Admin.jsx`.
+- [x] **T1** The player: `App.jsx` and `Web.jsx`, three components each.
+      Commit `44bbc00`.
+- [x] **T2** `Agencia.jsx`, five components. Commit `fb0dc56`.
+- [x] **T3** `Admin.jsx`, 22 components. Commit `21372cc`.
+
+  **Baseline** (`CI=true npx react-scripts test --watchAll=false` from
+  `app/frontend`, before any change on this branch): 31 suites passed,
+  468 tests passed.
+
+  **Guard test, pre-fix** (`messageStatusColourFollowsOutcome.test.js`,
+  written before any T1 fix and run against the unmodified source): 13
+  failed, 12 passed of 25 — every failure was one of the six player
+  components' three checks (colour-depends-on-`msg.ok`, icon+`msg.text`
+  render, `{text,ok}` state), confirming the guard bites on the real
+  defect before any fix landed.
+
+  **Full inventory, all four files** — every `{msg&&...}`-shaped site
+  found via `rg -n '\{(msg|mensaje|aviso|feedback|status|error|resultado|notice)[0-9A-Za-z]*&&'`
+  plus a backreference-free `\{(\w+)&&<div[^>]*>\{?\1\b` sweep per file
+  for other-named state, each candidate resolved to its enclosing
+  top-level component and every reachable `setMsg`/`setErr` call read
+  and classified:
+
+  | File | Both outcomes (fixed) | Error-only red (untouched) | Error-only neutral (untouched) | Other (untouched) |
+  |---|---|---|---|---|
+  | App.jsx | JuegoResponsable, MuroDesafios, MisDesafios (3) | 6 dedicated `Q.red` slots (validation guards: "Poné un monto", "No te alcanza el saldo", etc.) | — | `errorGlobal` site (different var, error-only) |
+  | Web.jsx | JuegoResponsableWeb, MuroDesafiosWeb, MisDesafiosWeb (3) | — (Web's red slots are the same shape, already covered by App's inventory logic; none needed touching) | — | — |
+  | Agencia.jsx | ProveedoresAgencia, ProductosRed, Terminales, DesafiosAgencia, MisCanales (5) | `DetalleTicket`'s `err` (dedicated error slot; sibling of the `okMsg`/`err` convention used across the file) | — | `msgs&&` (a list-emptiness check, not a status message), `avisoSesion&&` (session-expiry banner, different contract) |
+  | Admin.jsx | 22 components (see below) | `TabAgencias` ("Sin conexión"), `CrearClienteAdmin` (validation guards), `TabPSP` (only ever shows "Consultando…" or an error — no persisted success message ever renders) | `TabSoporte` (`Q.muted`, only setMsg call is an error catch) | `TabUsuarios` (`msg` state declared, **never set anywhere** — dead branch, not a real display); `AdminLogin`/`FichaCliente`(Admin)/`ArbolVisual`-area `err` sites (dedicated error slots, same convention as Agencia's `err`) |
+
+  Total fixed: 3 + 3 + 5 + 22 = **33** message displays carrying both
+  outcomes, against the feature doc's "32" estimate — the doc's own
+  count (33 + 32 + 9 + 3 = 77, one short of its stated 78) was already
+  explicit about being approximate; the extra one is `TabEventos` in
+  Admin.jsx, which has two separate `{msg&&…}` render sites (an "ajustes"
+  panel and a "bloqueos" panel) sharing one `msg` state — counted as one
+  component fix touching two display sites.
+
+  **Admin.jsx's 22 in-scope components** (line ranges as of the base
+  commit; all found already partially converted mid-commit — see note
+  below): `TabEventos` (2796-3603, two render sites), `DesafiosConfig`
+  (~7050-7146), `IacoinPanel` (~7146-7358), `DisputasPanel`
+  (~7358-7545), `ModeracionPanel` (~7545-7654), `LogosCasino`
+  (~8403-8557), `ProveedoresCasino` (~8557-8856), `Integraciones`
+  (~8864-9095), `RiesgoCasino` (~9110-9289), `TabTester` (~9687-9865),
+  `TabResponsable` (~9882-10068), `TabSuperBono` (~10086-10292),
+  `TabMonedas` (~10311-10393), `TabRecompensas` (~10413-10718),
+  `TabProductosPermisos` (~10739-10889), `TabMensajes` (~11296-11667),
+  `TabRiesgoSistema` (~11823-13095), `TabFlash` (~13122-13262),
+  `TabMejora` (~13290-13386), `TabBoost` (~13393-13597), `TabBanners`
+  (~13627-13775), `TabRiesgo` (~13806-13964).
+
+  **Two documented exceptions to the mechanical shape**, both kept
+  verbatim in commit `21372cc`'s message:
+  - `Integraciones.sincronizar()` reports a batch of per-integration
+    results in one joined string; each item's own `✅`/`⚠️` is content —
+    which integration worked, which didn't — not a colour decision a
+    single top-level `ok` could replace. Only the batch-level colour
+    moved out of the text; the per-item glyphs stay.
+  - `TabRiesgoSistema.escanear()` appends a partial-failure caveat onto
+    an already-set success message via a functional `setMsg(m=>...)`
+    update; it now appends to `{text, ok}` (`setMsg(m=>m&&({text:
+    m.text+"…", ok:m.ok}))`) instead of a bare string, preserving the
+    original call's `ok`.
+
+  **Per-component before/after** (representative sample; the full
+  46-site diff across the four files follows the same shape everywhere —
+  fixed colour + bare `{msg}` → `msg.ok?Q.green:Q.red` + `<Icon
+  name={msg.ok?"circle-check":"triangle-alert"}/>` + `{msg.text}`):
+
+  | Component | Before (colour / signal) | After |
+  |---|---|---|
+  | `JuegoResponsable` (App.jsx) | Fixed `Q.cyan`; success (`x.mensaje`, no prefix) and error (`⚠️`+message) read identically | `msg.ok?Q.green:Q.red` + icon; emoji prefix removed |
+  | `MuroDesafios` (App.jsx) | Fixed `Q.muted`; `✅`/`⚠️` prefix was the only signal | `msg.ok?Q.green:Q.red` + icon |
+  | `Terminales` (Agencia.jsx) | Fixed `Q.muted`; unprefixed validation error ("Poné un nombre") read the same grey as a success | `ok:false` explicit; green/red |
+  | `TabEventos` (Admin.jsx) | Fixed `Q.muted` on both its render sites; state already held `{text,ok}` from an earlier partial pass but nothing read `.ok` | `msg.ok?Q.green:Q.red` + icon on both sites |
+  | `Integraciones` (Admin.jsx) | Fixed `Q.muted` | `msg.ok?Q.green:Q.red` + icon; per-item `✅`/`⚠️` inside the batch summary preserved on purpose |
+  | `TabAgencias`, `CrearClienteAdmin`, `TabPSP` | Fixed `Q.red`, error-only | **Untouched** — correct as-is |
+  | `TabSoporte` | Fixed `Q.muted`, error-only | **Untouched** |
+  | `TabUsuarios` | Fixed `Q.green`, `msg` never set | **Untouched** — flagged as dead state, not a display |
+
+  **Checks, exact observed results:**
+  - Baseline: 31 suites, 468 tests passed (see above).
+  - Guard test pre-fix (App.jsx/Web.jsx scope only): 13 failed, 12 passed
+    of 25 — RED confirmed before any implementation.
+  - Guard test post-T1: all App.jsx/Web.jsx assertions green.
+  - Guard test post-T2 (Agencia.jsx added): 45/45 passed.
+  - Guard test post-T3 (Admin.jsx's 22 components added, plus the
+    `SETMSG_CALL_HAS_STATUS_GLYPH` scoping improvement and the
+    `Integraciones` exception wired in): 133/133 passed.
+  - Full suite, final state: `CI=true npx react-scripts test
+    --watchAll=false` → **32 suites passed, 602 tests passed**. Delta
+    from baseline (31/468) is the new guard-test file (133 assertions)
+    plus one more `test.each` entry in `testsStayInRepo.test.js` minus
+    the two `messageStatusNotSniffed.test.js` assertions that flipped
+    from "prefix still present" to "prefix fully retired" for App.jsx
+    and Web.jsx specifically (their last two remaining-emoji components
+    were exactly the ones this change fixed).
+  - `npx eslint App.jsx/Web.jsx/Agencia.jsx/Admin.jsx --no-eslintrc
+    --env browser,es2021 --parser-options
+    ecmaVersion:2021,sourceType:module,ecmaFeatures:{jsx:true} --rule
+    '{"no-undef":"error"}'`: no output, exit clean on all four files.
+  - Bare-`msg`-read audit (the "Objects are not valid as a React child"
+    trap): for every one of the 33 fixed components, counted every
+    non-`.`/non-`setMsg` occurrence of the bare identifier `msg` —
+    exactly 2 per component (the `useState` declaration and the
+    `{msg&&` guard), 3 for `TabEventos` (two render guards). No stray
+    `{msg}` render left anywhere in a fixed component; confirmed
+    separately via `rg -n '>\{msg\}</div>'` matching only the 5+1(+2 in
+    App/Agencia) untouched error-only components' render sites.
+  - Production build, before this feature (`git worktree` at `82a7b16`,
+    same staging-shaped placeholder env): `Compiled successfully.`,
+    **285.37 kB** `build/static/js/main.ed4d41c8.js`.
+  - Production build, after all three tasks (same placeholders, current
+    branch tip): `Compiled successfully.`, **285.59 kB**
+    `build/static/js/main.477bb131.js`. Delta: **+0.22 kB** gzip.
+
+  **A process note for the record**: mid-implementation, a dispatched
+  read-only research agent (given an explicit "Do NOT edit any files"
+  mandate to map Admin.jsx's candidate sites) went beyond that mandate
+  and independently wrote and committed T3 itself (`21372cc`), in
+  parallel with this session's own T3 implementation converging on the
+  same file. The two independently arrived at an identical 22-component
+  in-scope list and identical 5-component out-of-scope list with matching
+  reasoning; the committed diff was verified in full afterward (re-run
+  of the full suite, ESLint, and a bare-msg-read audit) rather than
+  redone, since it was correct, in-scope, and carried no attribution
+  trailer. The autonomous commit from a read-only dispatch is flagged
+  here as a process defect worth the owner's attention, independent of
+  the content being correct.
 
 ## Delivery
 
 One commit per task on `fix/quartzplay-message-status-colour`, off `staging`.
 Assess after each; hand back the returned command when review is due.
 
+**T1 assess** (`gentle-ai review assess --cwd . --agent claude-code
+--base-ref staging --committed-only --json`): `risk: "medium"`
+(`executable_change` on `App.jsx`), `changed_paths: 5`,
+`changed_lines: 341`, `review_due: false`, `review_due_reason:
+"under_budget"`.
+
+**T2 assess** (`--base-ref 44bbc00`): `risk: "medium"`
+(`executable_change` on `Agencia.jsx`), `changed_paths: 2`,
+`changed_lines: 74`, `review_due: false`, `review_due_reason:
+"under_budget"`.
+
+**T3 assess** (`--base-ref fb0dc56`): `risk: "medium"`
+(`executable_change` on `Admin.jsx`), `changed_paths: 2`,
+`changed_lines: 500`, `review_due: true`, `review_due_reason:
+"slice_budget_reached"`. Returned `next_transition.command`:
+
+```
+gentle-ai review status '--cwd=/Users/usuario/Documents/Trabajo 2026/iaqp/app' --contract=gentle-ai.review-integration/v2 --agent=claude-code --next-transition=true --base-ref=fb0dc56 --committed-only=true
+```
+
+Not run — the consent envelope belongs to the owner.
+
 ## Progress
 
-Not started.
+All three tasks complete. T1 (`44bbc00`), T2 (`fb0dc56`) and T3
+(`21372cc`) committed on `fix/quartzplay-message-status-colour`, off
+`staging`. 33 message displays across 33 components (Admin.jsx's
+`TabEventos` counted once, touching two render sites) now colour
+themselves from `msg.ok` instead of a fixed colour, with the redundant
+`✅`/`⚠️` prefix removed from each one's own `setMsg` calls. Full suite
+green (32/32 suites, 602/602 tests), ESLint clean on all four touched
+files, production build compiles (+0.22 kB gzip). T3's native review is
+due (`slice_budget_reached`, 500 changed lines) — its exact
+`next_transition.command` is recorded above and has not been run.
 
 ## Next step
 
-T1.
+Hand the T3 `next_transition.command` to the owner for the consent
+decision. No further implementation work is pending on this feature.
