@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
-import { oscuro as Q, F_BODY, RADII, SPACING, TEXT , ELEVATION } from "./theme";
+import { oscuro as Q, F_BODY, F_MONO, RADII, SPACING, TEXT , ELEVATION } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import PageHeader from "./PageHeader";
@@ -1470,48 +1470,52 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
         </div>
       )}
 
-      <GCard style={{padding:SPACING[16],marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
-          fontFamily:F_BODY}}><Store size={13}/> Agencias hoy</div>
-        {ags.length===0&&<div style={{color:Q.muted,fontSize:12,
-          fontFamily:F_BODY}}>Sin agencias</div>}
-        {ags.map((a,i)=>(
-          <div key={a.code} onClick={()=>onIr&&onIr("agencias")}
-            style={{display:"flex",justifyContent:"space-between",cursor:"pointer",
-            alignItems:"center",padding:"8px 0",
-            borderBottom:i<ags.length-1?`1px solid ${Q.dim}`:"none"}}>
-            <div>
-              <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                fontFamily:F_BODY}}>{a.name} ›</div>
-              <div style={{color:Q.muted,fontSize:12}}>{a.code} · {a.tickets_hoy} tickets hoy</div>
-            </div>
-            <div style={{color:Q.green,fontWeight:700,fontSize:13,
-              fontFamily:F_BODY}}>{ars(a.cobrado_hoy)}</div>
+      {/* No GCard here on purpose: a rounded box per row-list is one
+          more block for the eye to parse on a screen that is already
+          mostly cards. The rows sit straight on the page background,
+          separated by a hairline instead, and the type goes up a step
+          since there is no card padding fighting it for room. */}
+      <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+        textTransform:"uppercase",marginBottom:SPACING[12],
+        fontFamily:F_BODY}}><Store size={13}/> Agencias hoy</div>
+      {ags.length===0&&<div style={{color:Q.muted,fontSize:12,marginBottom:SPACING[24],
+        fontFamily:F_BODY}}>Sin agencias</div>}
+      {ags.map((a,i)=>(
+        <div key={a.code} onClick={()=>onIr&&onIr("agencias")}
+          style={{display:"flex",justifyContent:"space-between",cursor:"pointer",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<ags.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
+              fontFamily:F_BODY}}>{a.name} ›</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>{a.code} · {a.tickets_hoy} tickets hoy</div>
           </div>
-        ))}
-      </GCard>
+          <div style={{color:Q.green,fontWeight:700,fontSize:TEXT[16],flexShrink:0,
+            fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(a.cobrado_hoy)}</div>
+        </div>
+      ))}
 
-      <GCard style={{padding:SPACING[16]}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
-          fontFamily:F_BODY}}><Banknote size={13}/> Últimos movimientos</div>
-        {movs.length===0&&<div style={{color:Q.muted,fontSize:12,
-          fontFamily:F_BODY}}>Sin movimientos</div>}
-        {movs.map((m,i)=>(
-          <div key={i} style={{display:"flex",justifyContent:"space-between",
-            alignItems:"center",padding:"8px 0",
-            borderBottom:i<movs.length-1?`1px solid ${Q.dim}`:"none"}}>
-            <div style={{minWidth:0,flex:1}}>
-              <span style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
-                fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</span>
-              <span style={{color:Q.muted,fontSize:12}}> · {m.agencia} · {m.usuario}</span>
-              <div style={{color:Q.dim,fontSize:12}}>{m.fecha}</div>
-            </div>
-            <div style={{color:m.tipo==="retiro"||m.tipo==="pago_premio"?Q.amber:Q.green,
-              fontWeight:700,fontSize:13,flexShrink:0,
-              fontFamily:F_BODY}}>{ars(m.monto)}</div>
+      <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+        textTransform:"uppercase",marginTop:SPACING[24],marginBottom:SPACING[12],
+        fontFamily:F_BODY}}><Banknote size={13}/> Últimos movimientos</div>
+      {movs.length===0&&<div style={{color:Q.muted,fontSize:12,
+        fontFamily:F_BODY}}>Sin movimientos</div>}
+      {movs.map((m,i)=>(
+        <div key={i} style={{display:"flex",justifyContent:"space-between",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<movs.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:600,fontSize:TEXT[15],
+              fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>{m.agencia} · {m.usuario} · {m.fecha}</div>
           </div>
-        ))}
-      </GCard>
+          <div style={{color:m.tipo==="retiro"||m.tipo==="pago_premio"?Q.amber:Q.green,
+            fontWeight:700,fontSize:TEXT[16],flexShrink:0,
+            fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(m.monto)}</div>
+        </div>
+      ))}
     </div>
   );
 }
