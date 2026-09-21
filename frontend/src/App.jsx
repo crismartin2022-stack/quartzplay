@@ -10,7 +10,7 @@ import Icon from "./Icon";
 // lucide-react carries the icons this screen's emoji have no match for
 // among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
 // no live-feed mark, no handshake, no bolt, no gift.
-import { Video, Handshake, Zap, Gift, Image as ImageIcon, User } from "lucide-react";
+import { Video, Handshake, Zap, Gift, Image as ImageIcon, User, Flame, Coins, Link, Bell } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
 // IAQP SPORTS — Web App Telegram completa
@@ -3002,9 +3002,9 @@ function ChatSoporte({ userId, origen, onCerrar }){
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <button onClick={cambiarSonido} title="Sonido de aviso"
-            style={{background:"transparent",border:"none",fontSize:16,
+            style={{background:"transparent",border:"none",
               cursor:"pointer",padding:0,opacity:sonido?1:0.4}}>
-            {sonido?"🔔":"🔕"}</button>
+            <Bell size={16}/></button>
           {onCerrar&&(
             <button onClick={onCerrar} style={{background:"transparent",
               border:"none",color:Q.muted,fontSize:20,cursor:"pointer",
@@ -3948,15 +3948,19 @@ function ScreenDesafios({ user, onAction }){
 
       <div style={{display:"flex",gap:6,padding:"12px 12px 0",
         overflowX:"auto"}}>
-        {[["muro","🔥 Muro"],["crear","➕ Desafiar"],
-          ["mias","📋 Mías"],["iacoin","🪙 IACOIN"]].map(([k,l])=>(
+        {[
+          {k:"muro",   icon:<Flame size={13}/>, l:"Muro"},
+          {k:"crear",  icon:<Icon name="plus" size={13}/>, l:"Desafiar"},
+          {k:"mias",   icon:<Icon name="clipboard-list" size={13}/>, l:"Mías"},
+          {k:"iacoin", icon:<Coins size={13}/>, l:"IACOIN"},
+        ].map(({k,icon,l})=>(
           <button key={k} onClick={()=>setTab(k)}
             style={{background:tab===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${tab===k?Q.violet:Q.border}`,
               borderRadius:9,padding:"8px 13px",cursor:"pointer",
               color:tab===k?Q.cyan:Q.muted,fontSize:12.5,
               fontWeight:tab===k?700:400,whiteSpace:"nowrap",
-              fontFamily:F_BODY}}>{l}</button>
+              fontFamily:F_BODY}}>{icon} {l}</button>
         ))}
       </div>
 
@@ -4339,7 +4343,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
 
       {posts&&posts.length===0&&abiertos.length===0&&(
         <div style={{textAlign:"center",padding:"30px 20px"}}>
-          <div style={{fontSize:32,marginBottom:10}}>👋</div>
+          <div style={{marginBottom:10}}><Handshake size={32} color={Q.muted}/></div>
           <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
             fontFamily:F_BODY}}>
             Todavía no hay nada por acá.<br/>
@@ -5857,13 +5861,13 @@ function RetiroBox({ moneda, saldo, onHecho }){
     <button onClick={()=>setAbierto(true)} style={{width:"100%",
       background:`${Q.gold}14`,border:`1px solid ${Q.gold}`,borderRadius:12,padding:"13px",
       color:Q.gold,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10,
-      fontFamily:F_BODY}}>💸 Retirar</button>
+      fontFamily:F_BODY}}><Icon name="wallet-cards" size={13}/> Retirar</button>
   );
 
   return(
     <GCard glow={Q.gold} style={{padding:16,marginBottom:10}}>
       <div style={{color:Q.gold,fontWeight:700,fontSize:14,marginBottom:8,
-        fontFamily:F_BODY}}>💸 Retirar en mostrador</div>
+        fontFamily:F_BODY}}><Icon name="wallet-cards" size={13}/> Retirar en mostrador</div>
       <div style={{color:Q.muted,fontSize:11,marginBottom:10,
         fontFamily:F_BODY}}>
         Se descuenta de tu saldo y te damos un código para cobrar en efectivo en tu agencia.</div>
@@ -5962,13 +5966,13 @@ function VincularBox({ moneda, onHecho }){
     <button onClick={()=>setAbierto(true)} style={{width:"100%",
       background:`${Q.cyan}14`,border:`1px solid ${Q.cyan}`,borderRadius:12,padding:"13px",
       color:Q.cyan,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10,
-      fontFamily:F_BODY}}>🔗 Vincular cuenta de mostrador</button>
+      fontFamily:F_BODY}}><Link size={13}/> Vincular cuenta de mostrador</button>
   );
 
   return(
     <GCard glow={Q.cyan} style={{padding:16,marginBottom:10}}>
       <div style={{color:Q.cyan,fontWeight:700,fontSize:14,marginBottom:8,
-        fontFamily:F_BODY}}>🔗 Vincular cuenta</div>
+        fontFamily:F_BODY}}><Link size={13}/> Vincular cuenta</div>
       <div style={{color:Q.muted,fontSize:11,marginBottom:10,
         fontFamily:F_BODY}}>
         Si tenés saldo cargado en una agencia, ingresá el teléfono con el que te registraron.</div>

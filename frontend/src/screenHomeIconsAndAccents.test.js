@@ -59,12 +59,16 @@ describe("ScreenHome draws icons, not emoji", () => {
     // file depends on, and the point of the local Icon.jsx is that the
     // product draws its own. `Image` is aliased because the bare name
     // shadows the browser global of the same name. `User` joined in the
-    // player-chrome batch (odd/tasks/player-chrome-batch.md, T3):
+    // player-chrome batch (odd/tasks/player-chrome-batch.md, T3-T4):
     // Icon.jsx's own 36-mark set has no single-person icon, only `users`
-    // (a group), which is wrong for a profile avatar. None of the five
-    // names below shadow a browser global the way `Image` does.
+    // (a group), which is wrong for a profile avatar (User, T3); Flame,
+    // Coins, Link and Bell followed for the row the row rule had
+    // protected (T4) — a flame for the Muro tab, a coin for IACOIN, a
+    // link for Vincular cuenta, a bell for the help chat's sound toggle.
+    // None of the nine names below shadow a browser global the way
+    // `Image` does.
     expect(APP).toMatch(
-      /import\s*\{\s*Video,\s*Handshake,\s*Zap,\s*Gift,\s*Image as ImageIcon,\s*User\s*\}\s*from\s*"lucide-react";/
+      /import\s*\{\s*Video,\s*Handshake,\s*Zap,\s*Gift,\s*Image as ImageIcon,\s*User,\s*Flame,\s*Coins,\s*Link,\s*Bell\s*\}\s*from\s*"lucide-react";/
     );
   });
 });
