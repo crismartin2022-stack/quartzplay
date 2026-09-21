@@ -19,6 +19,8 @@ import {
 import { oscuro as Q, F_NUM, F_BODY, inkOn } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot from "./Mascot";
+import Icon from "./Icon";
+import { Handshake, Video } from "lucide-react";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 
@@ -806,7 +808,7 @@ function BotonAyuda({ userId, origen, abierto:abiertoFuera, onCerrar }){
             cursor:"pointer",fontSize:13.5,fontWeight:700,color:inkOn(Q.violet, Q.cyan),
             gap:7,
             display:"flex",alignItems:"center",justifyContent:"center"}}>
-          💬 Ayuda</button>
+          <Icon name="message-circle" size={13}/> Ayuda</button>
       )}
       {abierto&&(
         <div onClick={()=>setAbierto(false)} style={{position:"fixed",
@@ -941,7 +943,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
         alignItems:"center",marginBottom:9}}>
         <div>
           <div style={{color:Q.text,fontWeight:700,fontSize:14}}>
-            💬 Ayuda</div>
+            <Icon name="message-circle" size={13}/> Ayuda</div>
           <div style={{color:Q.muted,fontSize:10.5}}>
             {derivado?"Te va a responder tu agencia"
                      :"Preguntá lo que necesites"}</div>
@@ -1235,7 +1237,7 @@ function BotonCompartir({ picks, odd, code, refCode, compacto, userId }){
       <button onClick={compartir} aria-label="Compartir"
         style={{background:"transparent",border:"none",cursor:"pointer",
           color:Q.cyan,fontSize:13,padding:"4px 8px"}}>
-        {copiado?"✓ Copiado":"↗ Compartir"}</button>
+        {copiado?"✓ Copiado":<><Icon name="arrow-up-right" size={13}/> Compartir</>}</button>
     );
   }
 
@@ -1248,7 +1250,7 @@ function BotonCompartir({ picks, odd, code, refCode, compacto, userId }){
         color:premio?Q.gold:Q.cyan,
         fontSize:13,fontWeight:600,display:"flex",alignItems:"center",
         justifyContent:"center",gap:7}}>
-        {copiado ? "✓ Copiado al portapapeles" : "↗ Compartir mi jugada"}
+        {copiado ? "✓ Copiado al portapapeles" : <><Icon name="arrow-up-right" size={13}/> Compartir mi jugada</>}
       </button>
       {premio&&!copiado&&(
         <div style={{color:Q.dim,fontSize:10.5,textAlign:"center",
@@ -2111,7 +2113,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
             background:"transparent",border:`2px dashed ${Q.border}`,
             borderRadius:12,padding:"18px 10px",textAlign:"center",
             cursor:"pointer"}}>
-            <div style={{fontSize:26,marginBottom:5}}>📸</div>
+            <div style={{marginBottom:5}}><Icon name="camera" size={26}/></div>
             <div style={{color:Q.text,fontWeight:700,fontSize:12,
               fontFamily:F_BODY}}>Cámara</div>
           </button>
@@ -2140,7 +2142,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
             border:"none",borderRadius:10,padding:"12px",marginBottom:4,
             cursor:analizando?"wait":"pointer",color:analizando?Q.muted:inkOn(Q.cyan, Q.violet),
             fontWeight:700,fontSize:13,fontFamily:F_BODY}}>
-            {analizando?"Leyendo...":`🔍 Analizar ${imagenes.length} foto${imagenes.length>1?"s":""}`}</button>
+            {analizando?"Leyendo...":<><Icon name="search" size={13}/>{` Analizar ${imagenes.length} foto${imagenes.length>1?"s":""}`}</>}</button>
         )}
 
         {err&&<div style={{color:Q.red,fontSize:12,marginTop:10,
@@ -2163,7 +2165,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
               <div style={{background:`${Q.red}12`,border:`1px solid ${Q.red}66`,
                 borderRadius:9,padding:"9px 11px",marginBottom:10,color:Q.red,
                 fontSize:11,lineHeight:1.4,fontFamily:F_BODY}}>
-                ⚠️ El cupón marca cuota {fmt(res.total_odd_cupon)} pero con lo leído
+                <Icon name="triangle-alert" size={13}/> El cupón marca cuota {fmt(res.total_odd_cupon)} pero con lo leído
                 no llegamos. Falta algún partido — agregá otra foto.
               </div>
             )}
@@ -2232,7 +2234,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
               <div style={{background:`${Q.amber}12`,border:`1px solid ${Q.amber}55`,
                 borderRadius:10,padding:"9px 12px",margin:"8px 0",color:Q.amber,
                 fontSize:11,lineHeight:1.4,fontFamily:F_BODY}}>
-                ⚠️ Hay selecciones que no tenemos. Podés armar la combinada con
+                <Icon name="triangle-alert" size={13}/> Hay selecciones que no tenemos. Podés armar la combinada con
                 las {res.picks_ok} que sí, desde Prematch.
               </div>
             )}
@@ -2292,7 +2294,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                     border:"none",borderRadius:10,padding:"13px",color:inkOn(Q.green, Q.cyan),
                     fontWeight:800,fontSize:15,cursor:"pointer",marginBottom:8,
                     fontFamily:F_BODY}}>
-                  {generando?"Generando...":"🎟️ Generar mi código para jugar"}</button>
+                  {generando?"Generando...":<><Icon name="ticket" size={13}/> Generar mi código para jugar</>}</button>
 
                 {/* Descartar lo escaneado. Antes solo se podía salir
                     de la pantalla, y no era evidente qué pasaba con
@@ -2348,7 +2350,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
         )}
 
         <div style={{marginTop:14}}>
-          <QKBWeb rows={[[{label:"◀ Sports",action:"sports"}]]} onPress={onAction}/>
+          <QKBWeb rows={[[{icon:<Icon name="arrow-left" size={14}/>,label:"Sports",action:"sports"}]]} onPress={onAction}/>
         </div>
       </div>
 
@@ -2572,9 +2574,9 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
         body:JSON.stringify({actual:pass.actual, nueva:pass.nueva})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"No se pudo cambiar");
-      setMsg({text:"✅ Clave cambiada", ok:true});
+      setMsg({text:"Clave cambiada", ok:true});
       setPass({actual:"",nueva:"",repetir:""});
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -2588,8 +2590,9 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
     border:`1px solid ${Q.border}`,borderRadius:9,padding:"11px 13px",
     color:Q.text,fontSize:14,marginBottom:9,fontFamily:F_BODY};
 
-  const ICONO={deportivas:"⚽",casino:"🎰",casino_vivo:"🎥",
-    desafios:"🤝",carga:"💰",retiro:"💸"};
+  const ICONO={deportivas:<Icon name="trophy" size={13}/>,casino:<Icon name="spade" size={13}/>,
+    casino_vivo:<Video size={13}/>,desafios:<Handshake size={13}/>,
+    carga:<Icon name="wallet-cards" size={13}/>,retiro:"💸"};
 
   return(
     <div style={{position:"fixed",inset:0,zIndex:500,
@@ -2641,7 +2644,8 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
         {msg&&(
           <div style={{color:msg.ok?Q.green:Q.red,
             fontSize:12.5,marginBottom:12,textAlign:"center",
-            lineHeight:1.5,fontFamily:F_BODY}}>{msg.text}</div>
+            lineHeight:1.5,fontFamily:F_BODY}}>
+            <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>
         )}
 
         {vista==="cuenta"&&(
@@ -2790,14 +2794,14 @@ function BarraWeb({ vista, onNav, hayBoleto }){
   // van partidos en dos líneas: con seis botones en un teléfono,
   // una palabra entera desacomoda el resto.
   const IZQ = [
-    {k:"prematch",   l:"Deportes",       i:"⚽"},
-    {k:"vivo",       l:"En vivo",        i:"📡"},
-    {k:"casino",     l:"Casino",         i:"🎰"},
+    {k:"prematch",   l:"Deportes",       i:<Icon name="trophy" size={15}/>},
+    {k:"vivo",       l:"En vivo",        i:<Icon name="circle-dot" size={15}/>},
+    {k:"casino",     l:"Casino",         i:<Icon name="spade" size={15}/>},
   ];
   const DER = [
-    {k:"casinovivo", l:"Casino\nen vivo", i:"🎥"},
-    {k:"desafios",   l:"Desafíos",       i:"🤝"},
-    {k:"historial",  l:"Historial",      i:"📋"},
+    {k:"casinovivo", l:"Casino\nen vivo", i:<Video size={15}/>},
+    {k:"desafios",   l:"Desafíos",       i:<Handshake size={15}/>},
+    {k:"historial",  l:"Historial",      i:<Icon name="clipboard-list" size={15}/>},
   ];
 
   const Item = ({it}) => {
@@ -2807,7 +2811,7 @@ function BarraWeb({ vista, onNav, hayBoleto }){
         style={{flex:1,background:"transparent",border:"none",
           cursor:"pointer",display:"flex",flexDirection:"column",
           alignItems:"center",gap:2,padding:"7px 0",minWidth:0}}>
-        <span style={{fontSize:15,opacity:on?1:.5}}>{it.i}</span>
+        <span style={{color:on?Q.gold:Q.muted,opacity:on?1:.5}}>{it.i}</span>
         <span style={{color:on?Q.gold:Q.muted,fontSize:7.5,
           whiteSpace:"pre-line",
           fontWeight:on?700:400,lineHeight:1.15,textAlign:"center",
@@ -2841,7 +2845,7 @@ function BarraWeb({ vista, onNav, hayBoleto }){
             boxShadow:"0 6px 20px rgba(201,162,39,.45)",
             display:"flex",flexDirection:"column",alignItems:"center",
             justifyContent:"center",gap:1}}>
-          <span style={{fontSize:16}}>📸</span>
+          <Icon name="camera" size={16} color={inkOn(Q.gold,"#c9a227","#FFD54F")}/>
           <span style={{color:inkOn(Q.gold,"#c9a227","#FFD54F"),fontSize:7,fontWeight:900,
             letterSpacing:0.2,fontFamily:F_BODY}}>BEST</span>
         </button>
@@ -2912,7 +2916,7 @@ function CasinoWeb({ sesion, ancho, vivo }){
 
   if(!juegos.length) return(
     <div style={{padding:"40px 24px",textAlign:"center"}}>
-      <div style={{fontSize:38,marginBottom:12}}>🎰</div>
+      <div style={{marginBottom:12}}><Icon name="spade" size={38}/></div>
       <div style={{color:Q.muted,fontSize:13,lineHeight:1.6,
         fontFamily:F_BODY}}>
         El casino no está disponible por ahora.</div>
@@ -3090,7 +3094,7 @@ function DesafiosWeb({ sesion, ancho }){
   if(!uid) return(
     <div style={{padding:"50px 24px",textAlign:"center",maxWidth:440,
       margin:"0 auto"}}>
-      <div style={{fontSize:40,marginBottom:14}}>🤝</div>
+      <div style={{marginBottom:14}}><Handshake size={40}/></div>
       <div style={{color:Q.text,fontSize:19,fontWeight:700,marginBottom:9,
         fontFamily:F_BODY}}>Desafíos</div>
       <div style={{color:Q.muted,fontSize:13.5,lineHeight:1.6,
@@ -3108,7 +3112,7 @@ function DesafiosWeb({ sesion, ancho }){
   if(!cfg?.activo) return(
     <div style={{padding:"50px 24px",textAlign:"center",maxWidth:440,
       margin:"0 auto"}}>
-      <div style={{fontSize:40,marginBottom:14}}>🤝</div>
+      <div style={{marginBottom:14}}><Handshake size={40}/></div>
       <div style={{color:Q.text,fontSize:19,fontWeight:700,marginBottom:9,
         fontFamily:F_BODY}}>Desafíos</div>
       <div style={{color:Q.muted,fontSize:13.5,lineHeight:1.6,
@@ -3510,7 +3514,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
                 style={{width:"100%",marginTop:8,background:"none",
                   border:"none",cursor:"pointer",color:Q.muted,
                   fontSize:11.5,padding:"4px 0"}}>
-                💬 {a.comentarios>0
+                <Icon name="message-circle" size={11}/> {a.comentarios>0
                   ? `${a.comentarios} ${a.comentarios===1?"comentario":"comentarios"}`
                   : "Comentar"}</button>
 
@@ -3564,7 +3568,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
             <button onClick={()=>setVerCom(verCom===p.id?null:p.id)}
               style={{background:"none",border:"none",cursor:"pointer",
                 color:Q.muted,fontSize:13,padding:0,fontFamily:F_BODY}}>
-              💬 {p.comentarios>0?p.comentarios:""}</button>
+              <Icon name="message-circle" size={12}/> {p.comentarios>0?p.comentarios:""}</button>
             {!p.es_mio&&(
               <button onClick={()=>denunciar(p.id)}
                 style={{background:"none",border:"none",cursor:"pointer",
@@ -3683,10 +3687,10 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
           monto_aceptador:parseFloat(pido)||0})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo crear");
-      setMsg({text:"✅ "+(d.aviso||"Listo"), ok:true});
+      setMsg({text:d.aviso||"Listo", ok:true});
       setTitulo(""); setDesc(""); setPongo(""); setPido("");
       setTimeout(()=>onListo&&onListo(),1200);
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -3698,9 +3702,9 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
         body:JSON.stringify({user_id:user.id})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo");
-      setMsg({text:"✅ "+(d.aviso||"Aceptado"), ok:true});
+      setMsg({text:d.aviso||"Aceptado", ok:true});
       setTimeout(()=>onListo&&onListo(),1200);
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -3718,7 +3722,8 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
     <div>
       {msg&&<div style={{color:msg.ok?Q.green:Q.red,
         fontSize:13,marginBottom:12,textAlign:"center",lineHeight:1.5,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <div style={{color:Q.muted,fontSize:12.5,marginBottom:14,
         lineHeight:1.6,fontFamily:F_BODY}}>
@@ -4009,10 +4014,10 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo");
       setMsg({text: modo==="comprar"
-        ?`✅ Compraste ${n} IACOIN por ${d.pagaste.toLocaleString("es-AR")}`
-        :`✅ Vendiste ${n} IACOIN por ${d.recibiste.toLocaleString("es-AR")}`, ok:true});
+        ?`Compraste ${n} IACOIN por ${d.pagaste.toLocaleString("es-AR")}`
+        :`Vendiste ${n} IACOIN por ${d.recibiste.toLocaleString("es-AR")}`, ok:true});
       setCantidad(""); onCambio&&onCambio();
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -4068,7 +4073,8 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
 
       {msg&&<div style={{color:msg.ok?Q.green:Q.red,
         fontSize:13,marginBottom:12,textAlign:"center",lineHeight:1.5,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:5,
         fontFamily:F_BODY}}>Cuántos IACOIN</div>
@@ -4640,7 +4646,7 @@ export default function Web(){
             <button onClick={()=>setVerPerfil(true)} title="Mi cuenta"
               style={{background:"transparent",border:"none",
                 cursor:"pointer",padding:"7px 8px",fontSize:17,
-                lineHeight:1}}>👤</button>
+                lineHeight:1}}><Icon name="users" size={17} label="Mi cuenta"/></button>
             {/* Salir está en el perfil */}
           </div>
         ) : enTerminal ? (
@@ -4741,7 +4747,7 @@ export default function Web(){
           ) : (
             <div style={{padding:"50px 24px",textAlign:"center",
               maxWidth:420,margin:"0 auto"}}>
-              <div style={{fontSize:38,marginBottom:12}}>📋</div>
+              <div style={{marginBottom:12}}><Icon name="clipboard-list" size={38}/></div>
               <div style={{color:Q.muted,fontSize:13.5,lineHeight:1.6,
                 fontFamily:F_BODY}}>
                 Entrá a tu cuenta para ver tu historial.</div>
@@ -4967,7 +4973,7 @@ export default function Web(){
               padding:"9px 16px",color:Q.muted,fontSize:12.5,
               fontWeight:600,cursor:"pointer",marginBottom:14,
               marginLeft:8,fontFamily:F_BODY}}>
-            🛡️ Juego responsable</button>
+            <Icon name="shield-check" size={13}/> Juego responsable</button>
         )}
 
         <div>IAQP · Jugá con responsabilidad.<br/>
