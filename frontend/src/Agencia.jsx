@@ -50,7 +50,7 @@ class CazaError extends Component {
   }
 }
 
-import { oscuro as Q, F_BODY, RADII, SPACING, TEXT } from "./theme";
+import { oscuro as Q, F_BODY, RADII, SPACING, TEXT , ELEVATION } from "./theme";
 
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 
@@ -214,23 +214,36 @@ async function payBetslip(code, stake, token){
 }
 
 // ── DESIGN ────────────────────────────────────────────────────
-function GCard({ children, style={}, glow, onClick }){
+function GCard({ children, style={}, glow, onClick, level=1 }){
+  // `level` is what a card is sitting on, not how important it is.
+  //
+  // Level 1 sits on the page and keeps the prototype's panel treatment: an
+  // opaque surface, one hairline, and elevation. Level 2 sits inside another
+  // card or a sheet, where a second identical hairline separates without
+  // ranking — nest three of them and every box looks equally important. It
+  // steps the surface up to `raised` instead and drops the border, so depth
+  // is read from the surface rather than from yet another line.
+  //
+  // `glow` outranks both: a coloured border means this box needs attention.
+  // That is the one job a border does here that a surface cannot.
+  const raised = level >= 2;
   return(
     <div onClick={onClick} style={{
-      background:Q.glass, backdropFilter:"blur(20px)",
-      WebkitBackdropFilter:"blur(20px)",
-      border:`1px solid ${glow?glow+"44":Q.border}`,
-      borderRadius:RADII.lg,
-      boxShadow:`0 8px 32px rgba(0,0,0,0.5)${glow?`, 0 0 24px ${glow}22`:""}`,
-      // overflow visible: con "hidden" la tarjeta recortaba lo que
-      // excediera su alto y campos enteros quedaban invisibles sin
-      // ningún error. El borde redondeado igual se respeta.
+      background: raised ? Q.raised : Q.card,
+      border: glow ? `1px solid ${glow}44`
+        : raised ? "none" : `1px solid ${Q.border}`,
+      borderRadius: raised ? RADII.md : RADII.lg,
+      boxShadow: glow ? `${ELEVATION}, 0 0 24px ${glow}22`
+        : raised ? "none" : ELEVATION,
+      // overflow visible: con "hidden" la tarjeta recorta lo que exceda
+      // su alto y un campo entero puede quedar invisible sin ningún
+      // error. Ya pasó en Agencia y costó horas de diagnóstico.
       position:"relative", overflow:"visible", maxWidth:"100%", minWidth:0,
       cursor:onClick?"pointer":"default", ...style,
     }}>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:1,
+      {!raised&&<div style={{position:"absolute",top:0,left:0,right:0,height:1,
         background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)",
-        pointerEvents:"none"}}/>
+        pointerEvents:"none"}}/>}
       {children}
     </div>
   );

@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
-import { oscuro as Q, F_BODY, RADII, SPACING, TEXT } from "./theme";
+import { oscuro as Q, F_BODY, RADII, SPACING, TEXT , ELEVATION } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import PageHeader from "./PageHeader";
@@ -19,23 +19,36 @@ const { apiUrl: API } = getFrontendConfig();
 const adminHeaders = (key) => key ? {"X-Admin-Key": key} : {};
 
 // ── COMPONENTS ────────────────────────────────────────────────
-function GCard({ children, style={}, glow, onClick }){
+function GCard({ children, style={}, glow, onClick, level=1 }){
+  // `level` is what a card is sitting on, not how important it is.
+  //
+  // Level 1 sits on the page and keeps the prototype's panel treatment: an
+  // opaque surface, one hairline, and elevation. Level 2 sits inside another
+  // card or a sheet, where a second identical hairline separates without
+  // ranking — nest three of them and every box looks equally important. It
+  // steps the surface up to `raised` instead and drops the border, so depth
+  // is read from the surface rather than from yet another line.
+  //
+  // `glow` outranks both: a coloured border means this box needs attention.
+  // That is the one job a border does here that a surface cannot.
+  const raised = level >= 2;
   return(
     <div onClick={onClick} style={{
-      background:Q.glass, backdropFilter:"blur(20px)",
-      WebkitBackdropFilter:"blur(20px)",
-      border:`1px solid ${glow?glow+"44":Q.border}`,
-      borderRadius:RADII.lg,
-      boxShadow:`0 8px 32px rgba(0,0,0,0.5)${glow?`, 0 0 24px ${glow}22`:""}`,
+      background: raised ? Q.raised : Q.card,
+      border: glow ? `1px solid ${glow}44`
+        : raised ? "none" : `1px solid ${Q.border}`,
+      borderRadius: raised ? RADII.md : RADII.lg,
+      boxShadow: glow ? `${ELEVATION}, 0 0 24px ${glow}22`
+        : raised ? "none" : ELEVATION,
       // overflow visible: con "hidden" la tarjeta recorta lo que exceda
       // su alto y un campo entero puede quedar invisible sin ningún
       // error. Ya pasó en Agencia y costó horas de diagnóstico.
       position:"relative", overflow:"visible",
       cursor:onClick?"pointer":"default", ...style,
     }}>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:1,
+      {!raised&&<div style={{position:"absolute",top:0,left:0,right:0,height:1,
         background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)",
-        pointerEvents:"none"}}/>
+        pointerEvents:"none"}}/>}
       {children}
     </div>
   );
@@ -2351,17 +2364,17 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
 
             {/* Rendimiento */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
-              <GCard style={{padding:"12px",textAlign:"center"}}>
+              <GCard level={2} style={{padding:"12px",textAlign:"center"}}>
                 <div style={{color:Q.cyan,fontWeight:700,fontSize:14,
                   fontFamily:F_BODY}}>{ars(f.rendimiento.apostado)}</div>
                 <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
               </GCard>
-              <GCard style={{padding:"12px",textAlign:"center"}}>
+              <GCard level={2} style={{padding:"12px",textAlign:"center"}}>
                 <div style={{color:Q.violet2,fontWeight:700,fontSize:14,
                   fontFamily:F_BODY}}>{ars(f.rendimiento.ganado)}</div>
                 <div style={{color:Q.muted,fontSize:12}}>Ganado</div>
               </GCard>
-              <GCard style={{padding:"12px",textAlign:"center"}}>
+              <GCard level={2} style={{padding:"12px",textAlign:"center"}}>
                 <div style={{color:f.rendimiento.neto_cliente>=0?Q.green:Q.red,
                   fontWeight:700,fontSize:14,fontFamily:F_BODY}}>
                   {ars(f.rendimiento.neto_cliente)}</div>
@@ -2428,7 +2441,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
             </div>
 
             {!f.apuestas?.length&&(
-              <GCard style={{padding:"16px 16px",marginBottom:12,
+              <GCard level={2} style={{padding:"16px 16px",marginBottom:12,
                 textAlign:"center"}}>
                 <div style={{color:Q.muted,fontSize:12}}>
                   Este cliente todavía no tiene apuestas.</div>
@@ -2445,7 +2458,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                 pending:"Reservada",paid:"Pagada",cashed_out:"Cash out",
                 cancelled:"Cancelada"}[st] || a.status || "—";
               return(
-                <GCard key={a.code} glow={null}
+                <GCard level={2} key={a.code} glow={null}
                   onClick={()=>setVerApuesta(a.code)}
                   style={{padding:"12px 12px",marginBottom:6,cursor:"pointer"}}>
                   <div style={{display:"flex",justifyContent:"space-between",
@@ -2477,7 +2490,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
 
             {/* Cargar / retirar */}
             {!f.bloqueado&&(
-              <GCard style={{padding:SPACING[16],marginBottom:12}}>
+              <GCard level={2} style={{padding:SPACING[16],marginBottom:12}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
                   fontFamily:F_BODY}}><Icon name="wallet-cards" size={14}/> Cargar / retirar</div>
                 <input value={monto} onChange={e=>setMonto(e.target.value)}
