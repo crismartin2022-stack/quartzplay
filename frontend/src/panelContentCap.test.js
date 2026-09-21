@@ -78,18 +78,24 @@ describe("below 1024px, the content stays capped at the original 620px, byte for
     );
   });
 
-  test("Admin's mobile content wrapper is unchanged", () => {
+  // odd/tasks/mobile-nav.md: the fixed bottom tab bar this 140px
+  // clearance was reserved for is gone (replaced by the hamburger's
+  // full-screen MobileTabMenu overlay, which reserves no permanent
+  // space), so the mobile wrapper drops back to the same 28px clearance
+  // Agencia's own mobile wrapper already used.
+  test("Admin's mobile content wrapper no longer reserves room for the removed fixed bottom bar", () => {
     const body = functionBody(ADMIN, "AdminPanel");
     expect(body).toMatch(
-      /\} : \{padding:"16px",maxWidth:620,margin:"0 auto",\s*\n\s*position:"relative",zIndex:1,\s*\n\s*paddingBottom:"calc\(140px \+ env\(safe-area-inset-bottom\)\)"\}\}>/
+      /\} : \{padding:"16px",maxWidth:620,margin:"0 auto",\s*\n\s*position:"relative",zIndex:1,[\s\S]*?paddingBottom:"calc\(28px \+ env\(safe-area-inset-bottom\)\)"\}\}>/
     );
+    expect(body).not.toMatch(/paddingBottom:"calc\(140px \+ env\(safe-area-inset-bottom\)\)"/);
   });
 
   test("positive control: the same Admin check fails against an altered mobile wrapper", () => {
     const body = functionBody(ADMIN, "AdminPanel");
-    const altered = body.replace('paddingBottom:"calc(140px + env(safe-area-inset-bottom))"}}>', 'paddingBottom:"40px"}}>');
+    const altered = body.replace('paddingBottom:"calc(28px + env(safe-area-inset-bottom))"}}>', 'paddingBottom:"40px"}}>');
     expect(altered).not.toMatch(
-      /\} : \{padding:"16px",maxWidth:620,margin:"0 auto",\s*\n\s*position:"relative",zIndex:1,\s*\n\s*paddingBottom:"calc\(140px \+ env\(safe-area-inset-bottom\)\)"\}\}>/
+      /\} : \{padding:"16px",maxWidth:620,margin:"0 auto",\s*\n\s*position:"relative",zIndex:1,[\s\S]*?paddingBottom:"calc\(28px \+ env\(safe-area-inset-bottom\)\)"\}\}>/
     );
   });
 });

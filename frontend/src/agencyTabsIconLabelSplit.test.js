@@ -71,11 +71,26 @@ describe("agency's TABS array separates the icon from the label", () => {
   });
 });
 
+// odd/tasks/mobile-nav.md: AgenciaPanel's mobile tab strip (the button
+// this describe block used to check) is gone, replaced by a hamburger
+// button that opens MobileTabMenu.jsx — a component shared with
+// Admin's panel. The icon/label split this file is about now needs
+// checking in both surviving renderers: AgenciaPanel's desktop sidebar
+// button, and MobileTabMenu's shared button.
 describe("the button renders the icon with a gap before the label", () => {
-  test("AgenciaPanel's tab button places t.i and a spaced t.l, not t.l alone", () => {
+  test("AgenciaPanel's desktop sidebar button places t.i and t.l in separate spans, not packed together", () => {
     const start = AGENCIA.indexOf("function AgenciaPanel");
     const end = AGENCIA.indexOf("\nfunction ", start + 1);
     const body = AGENCIA.slice(start, end);
-    expect(body).toMatch(/\{t\.i\}<span style=\{\{marginLeft:SPACING\[8\]\}\}>\{t\.l\}<\/span>/);
+    expect(body).toMatch(/<span style=\{\{fontSize:17,position:"relative",[\s\S]*?\}\}>\{t\.i\}<\/span>/);
+    expect(body).toMatch(/<span style=\{\{color:tab===t\.k\?Q\.cyan:Q\.muted,fontSize:TEXT\[12\],[\s\S]*?\}\}>\{t\.l\}<\/span>/);
+  });
+
+  test("MobileTabMenu's shared button places t.i and t.l in separate spans, not packed together", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const MENU = fs.readFileSync(path.resolve(__dirname, "MobileTabMenu.jsx"), "utf8");
+    expect(MENU).toMatch(/<span style=\{\{fontSize:17,[\s\S]*?\}\}>\{t\.i\}<\/span>/);
+    expect(MENU).toMatch(/<span style=\{\{flex:1,minWidth:0,[\s\S]*?\}\}>\{t\.l\}<\/span>/);
   });
 });

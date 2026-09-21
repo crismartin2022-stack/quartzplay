@@ -9,6 +9,7 @@ import PageHeader from "./PageHeader";
 import LineaTiempo from "./LineaTiempo";
 import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon, Bell, Moon, Scale } from "lucide-react";
 import { useDesktopShellWidth } from "./desktopShellLayout";
+import MobileTabMenu from "./MobileTabMenu";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -3072,14 +3073,18 @@ function Clientes({ agencia, onSesionExpirada }){
   useEffect(()=>{ buscar(""); // eslint-disable-next-line
   },[]);
 
-  // `sel` used to swap the whole screen for <FichaCliente/> via an early
-  // return, which threw away the list (and the search text) the moment
-  // it closed. FichaCliente now draws itself as a fixed-position sheet
-  // with its own backdrop and close button, so it renders as an overlay
-  // on top of the list below instead — closing it needs no re-render of
-  // the list. Same reasoning for `alta`: it now sits inline above the
-  // search bar, like AltaCliente's admin counterpart, instead of
-  // replacing the screen.
+  // Deliberate exception to the sheet/modal convention used everywhere
+  // else in this file (and to admin's own FichaCliente, which genuinely
+  // is a short sheet and stays one). This detail view is dense — the
+  // cash desk, the stats row, the header actions and two logs — and a
+  // modal squeezed all of it into one narrow column. A full view gives
+  // it the width it needs, the way it worked before it was briefly
+  // converted to a modal; a modal is right for a short detail, not a
+  // workspace. `buscar(q)` on the way back re-fetches the list with
+  // whatever search text was active.
+  if(sel) return <FichaCliente agencia={agencia} user={sel}
+    onVolver={()=>{setSel(null);buscar(q);}} onSesionExpirada={onSesionExpirada}/>;
+
   return(
     <div>
       <PageHeader icon={<Icon name="users"/>} title="Clientes"
@@ -3163,9 +3168,6 @@ function Clientes({ agencia, onSesionExpirada }){
 
       {verBloqueos&&<BloqueosRama agencia={agencia}
         onCerrar={()=>setVerBloqueos(false)} onSesionExpirada={onSesionExpirada}/>}
-
-      {sel&&<FichaCliente agencia={agencia} user={sel}
-        onVolver={()=>{setSel(null);buscar(q);}} onSesionExpirada={onSesionExpirada}/>}
     </div>
   );
 }
@@ -3519,19 +3521,14 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
   const tipoTxt={carga:"Carga",retiro:"Retiro",pago_premio:"Premio pagado",ajuste:"Ajuste"};
   const tipoColor={carga:Q.green,retiro:Q.amber,pago_premio:Q.violet2,ajuste:Q.muted};
 
-  // Used to render as the whole screen in place of the client list, which
-  // threw the list (and the search box) away the moment it closed. It now
-  // draws itself as a fixed-position sheet, same convention as
-  // BloqueosRama and admin's own FichaCliente, so it opens as an overlay
-  // and the list underneath stays untouched.
+  // Deliberate exception: this renders as a full view, not the
+  // fixed-position sheet the rest of this file (and admin's own
+  // FichaCliente) uses. A modal squeezed the cash desk, the stats row,
+  // the header actions and two logs into one narrow column — too dense
+  // a detail view for that width. The caller (`Clientes`) opens this
+  // with an early return, same as before the sheet conversion.
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",
-      zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}
-      onClick={onVolver}>
-    <div onClick={e=>e.stopPropagation()} style={{background:Q.deep,
-      borderTopLeftRadius:20,borderTopRightRadius:20,width:"100%",maxWidth:620,
-      maxHeight:"90vh",overflowY:"auto",padding:SPACING[20],
-      border:`1px solid ${Q.border}`,borderBottom:"none"}}>
+    <div>
       {/* Account actions moved up next to Volver, small and right-aligned,
           the way the original reference had them — instead of their own
           card near the bottom. The row wraps on a narrow phone rather
@@ -3848,7 +3845,6 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
           </div>
         </div>
       ))}
-    </div>
     </div>
   );
 }
@@ -6845,40 +6841,61 @@ function Config({ agencia }){
     <div>
       <PageHeader icon={<Icon name="sliders-horizontal"/>} title="Config"
         description="Los datos de tu agencia, tu contraseña, Telegram y el test de impresora."/>
-      <GCard style={{padding:SPACING[20],marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:14,
-          fontFamily:F_BODY}}>Datos de la agencia</div>
-        {[["Nombre",agencia.name||"—"],["Código",agencia.code||"—"],
-          ["Dirección",agencia.address||"Sin cargar"],
-          ["Teléfono",agencia.phone||"Sin cargar"],
-        ].map(([l,v])=>(
-          <div key={l} style={{display:"flex",justifyContent:"space-between",
-            padding:"8px 0",borderBottom:`1px solid ${Q.dim}`}}>
-            <span style={{color:Q.muted,fontSize:12}}>{l}</span>
-            <span style={{color:Q.text,fontSize:12}}>{v}</span>
+      {/* Auto-fit two-up on desktop, one column below the breakpoint —
+          no separate desktop check needed, the min column width alone
+          decides how many fit. None of these four cards is tall or
+          form-heavy enough to need the full row to itself: the password
+          form is only two inputs and a button, same footprint as the
+          other three.
+          `min(360px,100%)` instead of a bare 360px: the content column
+          is only maxWidth:620 minus 24px of padding on a phone, which is
+          narrower than 360px on most handsets (a 375px iPhone leaves
+          351px) — a bare minmax(360px,1fr) track does not shrink below
+          its floor just because the container is narrower, so it forced
+          the grid wider than the viewport and produced exactly the
+          horizontal scroll odd/tasks/mobile-nav.md's mobile pass was
+          checking for. Capping the floor at the container's own 100%
+          removes that overflow and is identical to the plain 360px on
+          desktop, where the column is always wider than that. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(min(360px,100%),1fr))",
+        gap:SPACING[16]}}>
+        <GCard style={{padding:SPACING[20]}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:14,
+            fontFamily:F_BODY}}>Datos de la agencia</div>
+          {[["Nombre",agencia.name||"—"],["Código",agencia.code||"—"],
+            ["Dirección",agencia.address||"Sin cargar"],
+            ["Teléfono",agencia.phone||"Sin cargar"],
+          ].map(([l,v])=>(
+            <div key={l} style={{display:"flex",justifyContent:"space-between",
+              padding:"8px 0",borderBottom:`1px solid ${Q.dim}`}}>
+              <span style={{color:Q.muted,fontSize:12}}>{l}</span>
+              <span style={{color:Q.text,fontSize:12}}>{v}</span>
+            </div>
+          ))}
+        </GCard>
+
+        <CambiarMiPassword agencia={agencia}/>
+
+        <ConectarTelegramAgencia agencia={agencia}/>
+
+        <GCard style={{padding:SPACING[20]}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:8,
+            fontFamily:F_BODY}}>Test de impresora</div>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:14}}>
+            Imprime un ticket de prueba para verificar la conexión
           </div>
-        ))}
-      </GCard>
-      <CambiarMiPassword agencia={agencia}/>
-
-      <ConectarTelegramAgencia agencia={agencia}/>
-
-      <GCard style={{padding:SPACING[20]}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:8,
-          fontFamily:F_BODY}}>Test de impresora</div>
-        <div style={{color:Q.muted,fontSize:12,marginBottom:14}}>
-          Imprime un ticket de prueba para verificar la conexión
-        </div>
-        <Btn label={testDone?"Reimprimir test":"IMPRIMIR TICKET TEST"}
-          onClick={()=>{
-            const ok = printTicket({
-              code:"QP-TEST",user:"Test",created_at:nowStr(),expires_at:expires24(),
-              picks:[{home:"River",away:"Boca",sel:"River gana",odd:1.55,sport:"TEST"}],
-              stake:10000,odd_total:1.55,potential_win:15500,agencia:agencia.code,
-            },"apuesta");
-            if(ok) setTestDone(true);
-          }} color={Q.violet} full/>
-      </GCard>
+          <Btn label={testDone?"Reimprimir test":"IMPRIMIR TICKET TEST"}
+            onClick={()=>{
+              const ok = printTicket({
+                code:"QP-TEST",user:"Test",created_at:nowStr(),expires_at:expires24(),
+                picks:[{home:"River",away:"Boca",sel:"River gana",odd:1.55,sport:"TEST"}],
+                stake:10000,odd_total:1.55,potential_win:15500,agencia:agencia.code,
+              },"apuesta");
+              if(ok) setTestDone(true);
+            }} color={Q.violet} full/>
+        </GCard>
+      </div>
     </div>
   );
 }
@@ -8152,6 +8169,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   const [tab,setTab]=useState("codigo");
   const [saldoCC,setSaldoCC]=useState(null);
   const [verSaldo,setVerSaldo]=useState(false);
+  const [menuOpen,setMenuOpen]=useState(false);
   // At 1024px and up (the prototype's own breakpoint) the tab row becomes
   // a sidebar; below it nothing changes — see odd/tasks/desktop-shell.md.
   const isDesktop=useDesktopShellWidth();
@@ -8242,6 +8260,15 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12],minWidth:0}}>
+          {/* Mobile only: opens MobileTabMenu, the megamenu that replaces
+              the horizontal tab strip below 1024px. */}
+          {!isDesktop&&(
+            <button onClick={()=>setMenuOpen(true)} aria-label="Abrir menú" style={{
+              background:"transparent",border:"none",color:Q.text,
+              cursor:"pointer",padding:SPACING[4],display:"flex",flexShrink:0}}>
+              <Icon name="menu" size={22}/>
+            </button>
+          )}
           <QPLogo size={isDesktop?40:16}/>
           {isDesktop&&<span style={{color:Q.dim,fontSize:TEXT[20],
             fontWeight:300,lineHeight:1,fontFamily:F_BODY}}>|</span>}
@@ -8249,31 +8276,43 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             whiteSpace:"nowrap",fontFamily:F_BODY}}>Panel de Agencia</span>}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
+          {/* Saldo stays visible on a phone — it's the number the agency
+              checks constantly — but shrinks so it stops competing with
+              the hamburger and Salir for the same crowded line. The
+              agency name/code that used to sit here on mobile moved to
+              the top of MobileTabMenu instead. */}
           <button onClick={()=>setVerSaldo(true)} style={{
             background:`${(saldoCC??0)>=0?Q.green:Q.red}18`,
             border:`1px solid ${(saldoCC??0)>=0?Q.green:Q.red}66`,
-            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",
+            borderRadius:RADII.md,padding:isDesktop?"8px 16px":"4px 12px",
+            cursor:"pointer",
             display:"flex",alignItems:"baseline",gap:SPACING[8],
             whiteSpace:"nowrap"}}>
             <span style={{color:Q.muted,fontSize:TEXT[12],textTransform:"uppercase",
               letterSpacing:1,fontFamily:F_BODY}}>Saldo</span>
             <span style={{color:(saldoCC??0)>=0?Q.green:Q.red,fontWeight:800,
-              fontSize:TEXT[20],fontFamily:F_MONO,
+              fontSize:isDesktop?TEXT[20]:TEXT[14],fontFamily:F_MONO,
               fontVariantNumeric:"tabular-nums"}}>
               {saldoCC==null?"...":ars(saldoCC)}</span>
           </button>
-          <div style={{textAlign:"right"}}>
-            <div style={{color:Q.text,fontSize:12,fontWeight:600,
-              fontFamily:F_BODY}}>{agencia.name}</div>
-            <div style={{color:Q.muted,fontSize:12}}>{agencia.code}</div>
-          </div>
+          {isDesktop&&(
+            <div style={{textAlign:"right"}}>
+              <div style={{color:Q.text,fontSize:12,fontWeight:600,
+                fontFamily:F_BODY}}>{agencia.name}</div>
+              <div style={{color:Q.muted,fontSize:12}}>{agencia.code}</div>
+            </div>
+          )}
           <button onClick={onLogout} style={{background:"transparent",
             border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"4px 12px",
             color:Q.muted,fontSize:12,cursor:"pointer"}}>Salir</button>
         </div>
       </div>
 
-      <div style={isDesktop ? {
+      {/* Below 1024px this sidebar is gone entirely, replaced by the
+          hamburger's MobileTabMenu overlay — see odd/tasks/mobile-nav.md.
+          Desktop keeps exactly the sidebar it already had. */}
+      {isDesktop&&(
+      <div style={{
         // Deliberately matching Admin.jsx's literal sidebar background,
         // not the Q.deep token: parity with admin's near-black desktop
         // sidebar, keep this in sync if admin's value changes.
@@ -8284,10 +8323,8 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         overflowY:"auto",flexShrink:0,zIndex:40,
         gridColumn:"1",gridRow:"1 / span 2",position:"sticky",top:0,
         alignSelf:"start",width:264,height:"100dvh",
-      } : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
-        padding:"8px 12px",display:"flex",gap:SPACING[4],overflowX:"auto",
-        flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"}}>
-        {isDesktop ? TAB_GROUPS.flatMap((group,gi)=>{
+      }}>
+        {TAB_GROUPS.flatMap((group,gi)=>{
           const groupTabs = group.keys.map(k=>TABS.find(t=>t.k===k)).filter(Boolean);
           if(groupTabs.length===0) return [];
           return [
@@ -8298,7 +8335,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
               textTransform:"uppercase",letterSpacing:1,fontFamily:F_BODY,
             }}>{group.label}</div>,
             ...groupTabs.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
+          <button key={t.k} onClick={()=>setTab(t.k)} style={{
             minWidth:0,
             background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
             border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
@@ -8310,24 +8347,17 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             display:"flex",flexDirection:"row",alignItems:"center",
             justifyContent:"flex-start",gap:SPACING[12],
             textAlign:"left",overflow:"visible",
-          } : {
-            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
-            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,
-            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
-            fontFamily:F_BODY,
-            position:"relative",
           }}>
             {/* Same treatment as admin's sidebar, down to the icon's glow
                 and the uppercase label: two panels of one product should
                 not have two different menus. */}
-            <span style={isDesktop ? {fontSize:17,position:"relative",
-              filter:tab===t.k?`drop-shadow(0 0 6px ${Q.cyan})`:"none"} : undefined}>{t.i}</span>
-            <span style={isDesktop ? {color:tab===t.k?Q.cyan:Q.muted,fontSize:TEXT[12],
+            <span style={{fontSize:17,position:"relative",
+              filter:tab===t.k?`drop-shadow(0 0 6px ${Q.cyan})`:"none"}}>{t.i}</span>
+            <span style={{color:tab===t.k?Q.cyan:Q.muted,fontSize:TEXT[12],
               fontWeight:tab===t.k?700:400,maxWidth:"100%",
               overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
               fontFamily:F_BODY,letterSpacing:0.3,
-              textTransform:"uppercase"} : {marginLeft:SPACING[8]}}>{t.l}</span>
+              textTransform:"uppercase"}}>{t.l}</span>
             {t.k==="mensajes"&&msgPendientes>0&&(
               <span style={{position:"absolute",top:-4,right:-4,
                 background:Q.red,color:"#fff",borderRadius:RADII.md,
@@ -8340,39 +8370,22 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
           </button>
             )),
           ];
-        }) : TABS.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
-            minWidth:0,
-            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
-            borderRadius:RADII.md,cursor:"pointer",
-            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
-            fontFamily:F_BODY,
-            position:"relative",
-            width:"100%",minHeight:44,padding:"0 12px",flexShrink:0,
-            display:"flex",alignItems:"center",justifyContent:"flex-start",
-            textAlign:"left",
-          } : {
-            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
-            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,
-            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
-            fontFamily:F_BODY,
-            position:"relative",
-          }}>
-            {t.i}<span style={{marginLeft:SPACING[8]}}>{t.l}</span>
-            {t.k==="mensajes"&&msgPendientes>0&&(
-              <span style={{position:"absolute",top:-4,right:-4,
-                background:Q.red,color:"#fff",borderRadius:RADII.md,
-                minWidth:16,height:16,fontSize:12,fontWeight:800,
-                display:"flex",alignItems:"center",
-                justifyContent:"center",padding:"0 4px",lineHeight:1,
-                fontFamily:F_BODY}}>
-                {msgPendientes>9?"9+":msgPendientes}</span>
-            )}
-          </button>
-        ))}
+        })}
       </div>
+      )}
+
+      <MobileTabMenu open={menuOpen} onClose={()=>setMenuOpen(false)}
+        groups={TAB_GROUPS} tabs={TABS} activeTab={tab} onSelect={setTab}
+        badges={{mensajes:msgPendientes}}
+        topContent={
+          <div style={{marginBottom:SPACING[16],paddingBottom:SPACING[16],
+            borderBottom:`1px solid ${Q.border}`}}>
+            <div style={{color:Q.text,fontWeight:700,fontSize:TEXT[16],
+              fontFamily:F_BODY}}>{agencia.name}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>{agencia.code}</div>
+          </div>
+        }/>
 
       <div style={isDesktop ? {flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
         WebkitOverflowScrolling:"touch",position:"relative",zIndex:1,

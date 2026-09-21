@@ -36,16 +36,20 @@ describe("the desktop sidebar button matches Admin's edge safety", () => {
     expect(body).toMatch(/minWidth:0,\s*\n\s*background:tab===t\.k/);
   });
 
-  test("Agencia's desktop button now has minWidth:0 too", () => {
+  // odd/tasks/mobile-nav.md: this button now renders inside an
+  // `{isDesktop&&(...)}` block — the sidebar's whole container no
+  // longer mounts at all below 1024px, so the button's own style has no
+  // mobile alternative left to branch on with a ternary.
+  test("Agencia's desktop button still has minWidth:0", () => {
     const body = functionBody(AGENCIA, "AgenciaPanel");
-    expect(body).toMatch(/style=\{isDesktop \? \{\s*\n\s*minWidth:0,/);
+    expect(body).toMatch(/<button key=\{t\.k\} onClick=\{\(\)=>setTab\(t\.k\)\} style=\{\{\s*\n\s*minWidth:0,/);
   });
 
   test("Agencia's desktop inactive border is transparent, matching Admin's, not Q.border", () => {
     const body = functionBody(AGENCIA, "AgenciaPanel");
     const desktopButton = body.slice(
-      body.indexOf('style={isDesktop ? {\n            minWidth:0'),
-      body.indexOf('} : {', body.indexOf('style={isDesktop ? {\n            minWidth:0'))
+      body.indexOf('<button key={t.k} onClick={()=>setTab(t.k)} style={{\n            minWidth:0'),
+      body.indexOf('}}>', body.indexOf('<button key={t.k} onClick={()=>setTab(t.k)} style={{\n            minWidth:0'))
     );
     expect(desktopButton).toMatch(/border:`1px solid \$\{tab===t\.k\?Q\.violet:"transparent"\}`/);
   });
@@ -78,17 +82,21 @@ describe("below 1024px, the mobile styles this task touches are byte-for-byte un
     );
   });
 
-  test("the mobile nav button style (border colour Q.border, no minWidth) is unchanged", () => {
+  // odd/tasks/mobile-nav.md: the horizontal tab strip these two mobile
+  // styles belonged to is gone, replaced by the hamburger's
+  // MobileTabMenu overlay — see agenciaDesktopSidebar.test.js, which
+  // guards the replacement.
+  test("the old mobile nav button style (border colour Q.border, no minWidth) no longer appears", () => {
     const body = functionBody(AGENCIA, "AgenciaPanel");
-    expect(body).toMatch(
-      /\} : \{\s*\n\s*background:tab===t\.k\?`linear-gradient\(135deg,\$\{Q\.violet\}44,\$\{Q\.cyan\}22\)`:"transparent",\s*\n\s*border:`1px solid \$\{tab===t\.k\?Q\.violet:Q\.border\}`,\s*\n\s*borderRadius:RADII\.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,/
+    expect(body).not.toMatch(
+      /border:`1px solid \$\{tab===t\.k\?Q\.violet:Q\.border\}`,\s*\n\s*borderRadius:RADII\.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,/
     );
   });
 
-  test("the mobile nav container style (24/12 padding on desktop only, 8/12 on mobile) is unchanged", () => {
+  test("the old mobile nav container style (8/12 padding, overflow-x) no longer appears", () => {
     const body = functionBody(AGENCIA, "AgenciaPanel");
-    expect(body).toMatch(
-      /\} : \{background:Q\.deep,borderBottom:`1px solid \$\{Q\.border\}`,\s*\n\s*padding:"8px 12px",display:"flex",gap:SPACING\[4\],overflowX:"auto",\s*\n\s*flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"\}\}>/
+    expect(body).not.toMatch(
+      /padding:"8px 12px",display:"flex",gap:SPACING\[4\],overflowX:"auto",\s*\n\s*flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"/
     );
   });
 });
