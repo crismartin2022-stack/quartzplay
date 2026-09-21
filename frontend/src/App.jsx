@@ -2675,6 +2675,7 @@ const ICONOS = {
   mybets:  <><path d="M4 8h16v3a2 2 0 000 4v3H4v-3a2 2 0 000-4z"/><path d="M12 8v10" strokeDasharray="2 2"/></>,
   home:    <><path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-4v-6h-6v6H5a1 1 0 01-1-1z"/></>,
   cuenta:  <><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/></>,
+  ayuda:   <><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.6 2.6 0 1 1 4 2.2c-.9.6-1.5 1-1.5 2.3"/><path d="M12 16h.01"/></>,
   camara:  <><path d="M3 8.5A1.5 1.5 0 014.5 7h2L8 5h8l1.5 2h2A1.5 1.5 0 0121 8.5v9a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 17.5z"/><circle cx="12" cy="13" r="3.5"/></>,
 };
 
@@ -2842,43 +2843,24 @@ function CodigoReserva({ code, compacto=false, vence=null }){
 
 // Botón flotante de ayuda. Va abajo a la izquierda para no chocar
 // con el boleto ni con la barra de navegación.
-function BotonAyuda({ userId, origen }){
-  const [abierto,setAbierto]=useState(false);
-  if(!userId) return null;
+// Controlado: la barra inferior es la única que abre el chat de ayuda
+// (T5, se retira la burbuja flotante); este componente ya no guarda su
+// propio estado, solo dibuja el modal cuando el padre dice que está abierto.
+function BotonAyuda({ userId, origen, abierto, onCerrar }){
+  if(!userId || !abierto) return null;
   return(
-    <>
-      {/* Abajo a la derecha y por encima de todo. Antes se calculaba
-          contra la ventana y en Telegram, que tiene su propia altura
-          de vista, quedaba fuera de pantalla. */}
-      {!abierto&&(
-        <button onClick={()=>setAbierto(true)} aria-label="Ayuda"
-          style={{
-            position:"fixed", right:14,
-            bottom:"calc(84px + env(safe-area-inset-bottom))",
-            zIndex:150,
-            height:40, borderRadius:20, padding:"0 15px",
-            background:`linear-gradient(135deg,${Q.violet},${Q.violet2||Q.cyan})`,
-            border:"none", boxShadow:"0 4px 16px rgba(0,0,0,.45)",
-            cursor:"pointer", fontSize:13, fontWeight:700, color:inkOn(Q.violet, Q.violet2||Q.cyan),
-            display:"flex", alignItems:"center", gap:6,
-            fontFamily:F_BODY}}>
-          <Icon name="message-circle" size={13}/> Ayuda</button>
-      )}
-      {abierto&&(
-        <div onClick={()=>setAbierto(false)} style={{position:"fixed",
-          inset:0,zIndex:200,background:"rgba(2,2,8,.9)",display:"flex",
-          alignItems:"flex-end",justifyContent:"center"}}>
-          <div onClick={e=>e.stopPropagation()} style={{width:"100%",
-            maxWidth:520,height:"78dvh",background:Q.void||"#050510",
-            borderTop:`1px solid ${Q.border}`,
-            borderRadius:"16px 16px 0 0",padding:14,
-            display:"flex",flexDirection:"column"}}>
-            <ChatSoporte userId={userId} origen={origen}
-              onCerrar={()=>setAbierto(false)}/>
-          </div>
-        </div>
-      )}
-    </>
+    <div onClick={onCerrar} style={{position:"fixed",
+      inset:0,zIndex:200,background:"rgba(2,2,8,.9)",display:"flex",
+      alignItems:"flex-end",justifyContent:"center"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",
+        maxWidth:520,height:"78dvh",background:Q.void||"#050510",
+        borderTop:`1px solid ${Q.border}`,
+        borderRadius:"16px 16px 0 0",padding:14,
+        display:"flex",flexDirection:"column"}}>
+        <ChatSoporte userId={userId} origen={origen}
+          onCerrar={onCerrar}/>
+      </div>
+    </div>
   );
 }
 
@@ -5320,14 +5302,16 @@ function BarraSuperior({ user, onNav }){
 // ── Barra inferior: 4 accesos + Bet Best al centro ────────────
 // Bet Best es la funcion insignia (foto del boleto -> mejor cuota),
 // asi que se lleva el unico boton elevado y el unico dorado macizo.
-function BarraInferior({ actual, onNav }){
+function BarraInferior({ actual, onNav, onAyuda }){
   const items = [
     {k:"prematch", l:"Deportes"},
     {k:"builder",  l:"Builder"},
     {k:"desafios", l:"Desafíos"},
     {k:"mybets",   l:"Boletos"},
+    {k:"ayuda",    l:"Ayuda"},
+    {k:"cuenta",   l:"Perfil"},
   ];
-  const izq = items.slice(0,2), der = items.slice(2);
+  const izq = items.slice(0,3), der = items.slice(3);
   const activoBB = actual==="mejorar";
 
   // Medidas tomadas del prototipo (html/styles.css:465-570). El botón de
@@ -5337,7 +5321,7 @@ function BarraInferior({ actual, onNav }){
   const Item = ({it}) => {
     const on = actual===it.k;
     return(
-      <button onClick={()=>onNav(it.k)} style={{background:"transparent",
+      <button onClick={()=>it.k==="ayuda"?onAyuda():onNav(it.k)} style={{background:"transparent",
         border:"none",cursor:"pointer",minWidth:0,minHeight:62,padding:"0 2px",
         display:"grid",placeItems:"center",alignContent:"center",gap:3,
         textAlign:"center",position:"relative"}}>
@@ -5355,7 +5339,7 @@ function BarraInferior({ actual, onNav }){
     <div style={{flexShrink:0,background:Q.deep,borderTop:`1px solid ${Q.border}`,
       height:"calc(68px + env(safe-area-inset-bottom))",
       padding:"5px 8px env(safe-area-inset-bottom)",
-      display:"grid",gridTemplateColumns:"repeat(5,1fr)"}}>
+      display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
       {izq.map(it=><Item key={it.k} it={it}/>)}
 
       {/* Bet Best — la función insignia se lleva el único botón elevado. */}
@@ -6468,6 +6452,9 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
 
 export default function QuartzSports(){
   const [screen,setScreen]=useState("home");
+  // Ayuda ahora vive en la barra inferior (T5): el padre guarda si el
+  // chat está abierto, la barra lo abre, BotonAyuda solo dibuja el modal.
+  const [ayudaAbierto,setAyudaAbierto]=useState(false);
   // Si llegó por un enlace compartido, se cuenta la visita para que
   // le paguen al que lo compartió.
   useEffect(()=>{ registrarVisitaCompartida(); },[]);
@@ -6743,12 +6730,14 @@ export default function QuartzSports(){
 
       {/* Barra inferior fija */}
       <BarraInferior actual={
-        ["prematch","builder","combo","mybets","mejorar"].includes(screen)?screen
-          :(screen==="live"?"prematch":"")
-      } onNav={setScreen}/>
+        ayudaAbierto ? "ayuda"
+          : ["prematch","builder","combo","mybets","mejorar","desafios","cuenta"].includes(screen)?screen
+            :(screen==="live"?"prematch":"")
+      } onNav={setScreen} onAyuda={()=>setAyudaAbierto(true)}/>
 
       {/* Ayuda: disponible en cualquier pantalla */}
-      <BotonAyuda userId={user?.id} origen="app"/>
+      <BotonAyuda userId={user?.id} origen="app" abierto={ayudaAbierto}
+        onCerrar={()=>setAyudaAbierto(false)}/>
     </div>
   );
 }
