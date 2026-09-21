@@ -2841,8 +2841,28 @@ function CodigoReserva({ code, compacto=false, vence=null }){
   );
 }
 
-// Botón flotante de ayuda. Va abajo a la izquierda para no chocar
-// con el boleto ni con la barra de navegación.
+// Burbuja flotante del boleto en armado. builderPicks vive en el
+// componente raíz, no en ScreenBuilder, así que sobrevive a la
+// navegación; lo único que faltaba era mostrarlo (T6). Toma el lugar que
+// deja libre la burbuja de Ayuda al mudarse a la barra inferior (T5), así
+// que las dos nunca compiten por el mismo rincón.
+function BurbujaBetslip({ count, onAbrir }){
+  return(
+    <button onClick={onAbrir} aria-label="Ver mi apuesta"
+      style={{
+        position:"fixed", right:14,
+        bottom:"calc(84px + env(safe-area-inset-bottom))",
+        zIndex:150,
+        height:40, borderRadius:20, padding:"0 15px",
+        background:`linear-gradient(135deg,${Q.violet},${Q.violet2||Q.cyan})`,
+        border:"none", boxShadow:"0 4px 16px rgba(0,0,0,.45)",
+        cursor:"pointer", fontSize:13, fontWeight:700, color:inkOn(Q.violet, Q.violet2||Q.cyan),
+        display:"flex", alignItems:"center", gap:6,
+        fontFamily:F_BODY}}>
+      <Icon name="ticket" size={13}/> {count} {count===1?"pick":"picks"}</button>
+  );
+}
+
 // Controlado: la barra inferior es la única que abre el chat de ayuda
 // (T5, se retira la burbuja flotante); este componente ya no guarda su
 // propio estado, solo dibuja el modal cuando el padre dice que está abierto.
@@ -6738,6 +6758,11 @@ export default function QuartzSports(){
       {/* Ayuda: disponible en cualquier pantalla */}
       <BotonAyuda userId={user?.id} origen="app" abierto={ayudaAbierto}
         onCerrar={()=>setAyudaAbierto(false)}/>
+
+      {/* Boleto en armado: no en casino, no en builder (ya lo está viendo) */}
+      {builderPicks.length>0 && !["casino","casinovivo","builder"].includes(screen) && (
+        <BurbujaBetslip count={builderPicks.length} onAbrir={()=>setScreen("builder")}/>
+      )}
     </div>
   );
 }
