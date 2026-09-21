@@ -1482,29 +1482,43 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
           mostly cards. The rows sit straight on the page background,
           separated by a hairline instead, and the type goes up a step
           since there is no card padding fighting it for room. */}
+      {/* Cards mean you can go in, rows mean it already happened. Agencias
+          hoy opens into an agency on click — an entity list — so it gets
+          the same card grid TabUsuarios uses. Últimos movimientos is a
+          log of what already happened, read in time order and not
+          clicked, so it stays as rows. Do not re-merge these two
+          styles: they were identical before and read as one list. */}
       <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
         textTransform:"uppercase",marginBottom:SPACING[12],
         fontFamily:F_BODY}}><Store size={13}/> Agencias hoy</div>
       {ags.length===0&&<div style={{color:Q.muted,fontSize:12,marginBottom:SPACING[24],
         fontFamily:F_BODY}}>Sin agencias</div>}
-      {ags.map((a,i)=>(
-        <div key={a.code} onClick={()=>onIr&&onIr("agencias")}
-          style={{display:"flex",justifyContent:"space-between",cursor:"pointer",
-          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
-          borderBottom:i<ags.length-1?`1px solid ${Q.border}55`:"none"}}>
-          <div style={{minWidth:0,flex:1}}>
-            <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
-              fontFamily:F_BODY}}>{a.name} ›</div>
-            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
-              fontFamily:F_BODY}}>{a.code} · {a.tickets_hoy} tickets hoy</div>
-          </div>
-          <div style={{color:Q.green,fontWeight:700,fontSize:TEXT[16],flexShrink:0,
-            fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(a.cobrado_hoy)}</div>
-        </div>
-      ))}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",
+        gap:SPACING[12]}}>
+        {ags.map(a=>(
+          <GCard key={a.code} onClick={()=>onIr&&onIr("agencias")}
+            style={{padding:SPACING[12],cursor:"pointer"}}>
+            <div style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",gap:SPACING[8]}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
+                  fontFamily:F_BODY}}>{a.name}</div>
+                <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                  fontFamily:F_BODY}}>{a.code} · {a.tickets_hoy} tickets hoy</div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{color:Q.green,fontWeight:700,fontSize:TEXT[16],
+                  fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(a.cobrado_hoy)}</div>
+                <span style={{color:Q.muted,fontSize:16}}>›</span>
+              </div>
+            </div>
+          </GCard>
+        ))}
+      </div>
 
       <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
-        textTransform:"uppercase",marginTop:SPACING[24],marginBottom:SPACING[12],
+        textTransform:"uppercase",marginTop:SPACING[32],marginBottom:SPACING[12],
         fontFamily:F_BODY}}><Banknote size={13}/> Últimos movimientos</div>
       {movs.length===0&&<div style={{color:Q.muted,fontSize:12,
         fontFamily:F_BODY}}>Sin movimientos</div>}
@@ -1515,8 +1529,12 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
           <div style={{minWidth:0,flex:1}}>
             <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:600,fontSize:TEXT[15],
               fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</div>
+            {/* m.usuario can be absent (e.g. an agency-level movement with
+                no specific user attached) — was rendered as a bare
+                " · · " with the field silently empty. Drop the separator
+                when there is no value instead of always printing it. */}
             <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
-              fontFamily:F_BODY}}>{m.agencia} · {m.usuario} · {m.fecha}</div>
+              fontFamily:F_BODY}}>{m.agencia}{m.usuario?` · ${m.usuario}`:""} · {m.fecha}</div>
           </div>
           <div style={{color:m.tipo==="retiro"||m.tipo==="pago_premio"?Q.amber:Q.green,
             fontWeight:700,fontSize:TEXT[16],flexShrink:0,
