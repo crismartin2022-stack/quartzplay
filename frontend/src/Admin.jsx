@@ -2739,31 +2739,12 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
               color:msg.ok?Q.green:Q.red,
               fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
-            {/* Apuestas */}
-            <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
-              fontFamily:F_BODY}}>
-              Últimas apuestas ({f.apuestas.length})</div>
-            {f.apuestas.length===0&&<div style={{color:Q.muted,fontSize:12,
-              fontFamily:F_BODY}}>Todavía no apostó</div>}
-            {f.apuestas.map((b,i)=>{
-              const e=estadoBet[(b.status||"").toLowerCase()]||{t:b.status,c:Q.muted};
-              return(
-                <div key={i} style={{display:"flex",justifyContent:"space-between",
-                  alignItems:"center",padding:"8px 0",
-                  borderBottom:i<f.apuestas.length-1?`1px solid ${Q.dim}`:"none"}}>
-                  <div style={{minWidth:0,flex:1}}>
-                    <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                      fontFamily:F_BODY}}>{b.code}</div>
-                    <div style={{color:Q.muted,fontSize:12}}>
-                      {ars(b.stake)} · {fmt(b.odd)}x · {b.fecha}</div>
-                  </div>
-                  <span style={{background:`${e.c}22`,border:`1px solid ${e.c}`,
-                    borderRadius:RADII.xl,padding:"4px 8px",fontSize:12,fontWeight:700,
-                    color:e.c,flexShrink:0,
-                    fontFamily:F_BODY}}>{e.t}</span>
-                </div>
-              );
-            })}
+            {/* The bets list that used to sit here rendered `f.apuestas`
+                a second time, unclickable, under the heading "Últimas
+                apuestas". The richer list above it — clickable rows with a
+                "ver las N" toggle — already shows the same array, and this
+                copy read `f.apuestas.length` with no guard, so a response
+                without `apuestas` took the whole sheet down with it. */}
           </div>
         )}
       </div>
