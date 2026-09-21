@@ -127,9 +127,62 @@ the admin looks at most.
       see report for the exact Spanish copy.
       Tests: 828/828 passed (51 suites, up from 813/50 — T1 added its own
       suite). Build: `Compiled successfully`.
-- [ ] **T3** — Admin: 7 replacements, 3 additions, `global` untouched.
-- [ ] **T4** — A guard that every tab component's opening view renders
+- [x] **T3** — Admin: 7 replacements, 3 additions, `global` untouched.
+      `frontend/src/Admin.jsx`. Commit `708c7b2`.
+      Replaced: `eventos`, `agencias` (4-button action), `influencers`
+      (`+ Nuevo` action), `usuarios`/`Clientes` (700/16 normalized,
+      `+ Nuevo cliente` action, header on the list view only —
+      `if(sel) return <FichaCliente/>` left untouched), `diag`
+      (`↻ Actualizar` action), `config` (800/18 normalized, existing
+      description kept verbatim), `billetera` (header lives in `TabPSP`,
+      edited there, not in the bare-delegate `TabBilletera`; 800/17
+      normalized; `if(!cfg) return "Cargando..."` left untouched).
+      Added: `cierre` (opening `return(`, ahead of its `vista` tab
+      strip), `combos` (on the `lista` return only — `crear`/`escanear`
+      early returns left untouched), `chat`/`PanelComunicacion` (titled
+      "Comunicación", not "Consultas": `ChatOperador`, one of its three
+      sub-views, already hand-rolls its own "Consultas" sub-header, so
+      reusing that word for the page header would show it twice
+      stacked when the Asistente segment is open).
+      `global` verified untouched: no `<PageHeader` between `TabGlobal`'s
+      definition and the next component's.
+      Fixed-height compensation: `PanelComunicacion`'s new header sits
+      above three descendants with `height:"calc(100dvh - 210px)"` chat
+      viewports (`TabSoporte`, `TabMensajes`, `ChatOperador`) that did
+      not have to budget for it before. Raised to `calc(100dvh - 270px)`
+      (~60px: this repo has no renderer to measure the header block's
+      exact height, so the added offset is a reasoned estimate — title
+      line + 4px gap + 18px description line (12px, lineHeight 1.5) +
+      16px block margin ≈ 57px, rounded up for safety — flagged for a
+      manual phone check before release, unlike T2's `MensajesAgencia`
+      compensation, which had an exact spacing-token-only delta).
+      8 descriptions written: see report for the exact Spanish copy.
+      Tests: 866/866 passed (52 suites). Build: `Compiled successfully`.
+- [x] **T4** — A guard that every tab component's opening view renders
       `<PageHeader`, `global` excepted by name.
+      `frontend/src/tabsRenderPageHeader.test.js`. Commit `<T4-hash>`.
+      Reads both dispatch lists from source (`Agencia.jsx` bounded by
+      `{tab==="codigo"` / `</CazaError>`, `Admin.jsx` bounded by
+      `{tab==="global"   &&<TabGlobal` / the sidebar layout marker that
+      follows it) — 18 + 11 = 29 tabs, asserted as a count. For each
+      component, isolates its top-level function body and asserts it
+      contains `<PageHeader`, following one level of bare delegation
+      when it does not (`TabBilletera` -> `TabPSP`) but only when the
+      body has exactly one `return <Component/>` total, so a genuine
+      early sub-view return (`TabUsuarios`/`FichaCliente`) is never
+      mistaken for a delegate. `global` is asserted by name to be the
+      one tab whose body does *not* render `<PageHeader`. Four synthetic
+      positive-control cases (with header, without, bare delegate,
+      early-return non-delegate) prove the matcher itself works before
+      trusting it against the real files.
+      Bite test: removed `eventos`' `<PageHeader` line, ran the suite —
+      `Admin.jsx eventos -> TabEventos` failed as expected (`Expected:
+      true, Received: false`), everything else stayed green; restored,
+      full suite green again.
+      Tests: 866/866 passed (52 suites, up from 828/51 before T3+T4 —
+      +34 new guard tests, +4 elsewhere from a `test.each` over all test
+      files in `testsStayInRepo.test.js` picking up the new file).
+      Build: `Compiled successfully`.
 
       **T4 was respecified after T2.** It first read "a guard that no tab
       still hand-rolls the `fontWeight:700,fontSize:15` title pattern".
@@ -151,17 +204,20 @@ the admin looks at most.
       view renders the component.
 
 Delivery: T1+T2 in one PR, T3+T4 in the next. The two files are large enough
-that one PR would pass the review budget. T1+T2 are done; T3+T4 are a
-separate unit, not started.
+that one PR would pass the review budget. All four tasks are done; T3+T4 are
+committed on `feat/quartzplay-admin-headers`, not pushed or opened as a PR.
 
 ## Acceptance
 
 - Every tab still reachable and rendering; no duplicated title anywhere.
-  (T2: verified by reading each replaced/added return block; no renderer
+  (T2/T3: verified by reading each replaced/added return block; no renderer
   available in this repo, so this is a structural/source check, not a
-  screenshot.)
-- `global` visibly unchanged. (T3, not yet done.)
-- Chat viewport height unchanged on `mensajes`. Done — see T2 note above.
-- Existing tests still pass; T1 and T4 add their own. T1's test added;
-  T4 not yet done.
-- `CI=true ... npm run build` → `Compiled successfully`. Confirmed for T1+T2.
+  screenshot. One near-duplicate caught and avoided in T3: see the `chat`
+  note above.)
+- `global` visibly unchanged. Done — see T3 note above.
+- Chat viewport height unchanged on `mensajes` (T2) and on `soporte`,
+  `mensajes`-thread and `asistente` inside admin `chat` (T3, estimated
+  offset — see T3 note above, recommend a manual phone check).
+- Existing tests still pass; T1 and T4 add their own. Both added.
+- `CI=true ... npm run build` → `Compiled successfully`. Confirmed for all
+  four tasks.
