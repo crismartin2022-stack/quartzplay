@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
-import { oscuro as Q, F_BODY, RADII, SPACING } from "./theme";
+import { oscuro as Q, F_BODY, RADII, SPACING, TEXT } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import { Zap, Gift, Handshake, Video, ArrowLeftRight, Ban, Banknote, Bell, Bot, Building2, Calendar, CalendarDays, CircleOff, Coins, Dices, Disc, Eye, Flame, FlaskConical, Gamepad2, GitBranch, Globe, Hand, Headphones, Image as ImageIcon, Inbox, Key, Link, Lock, Mail, Megaphone, MessageSquare, Monitor, PartyPopper, PenLine, Pencil, Plug, Printer, RefreshCw, Rocket, RotateCcw, Save, Scale, Shield, Smartphone, Star, Stethoscope, Store, Target, Trash2, TrendingDown, Volume2, VolumeX, Wrench } from "lucide-react";
@@ -6886,6 +6886,18 @@ const TABS=[
   {k:"config",   i:<Icon name="sliders-horizontal" size={17}/>, l:"Config"},
   {k:"diag",     i:<Stethoscope size={17}/>, l:"Diag"},
   {k:"chat",     i:<Icon name="message-circle" size={17}/>, l:"Consultas"},
+];
+
+// Desktop-only grouping of AdminPanel's TABS for the sidebar menu.
+// Approved grouping: odd/tasks/sidebar-groups.md. Every key here must
+// also be a key in TABS above (sidebarGroupKeysMatchTabs.test.js guards
+// that pairing). Below 1024px the fixed bottom bar still renders straight
+// from the flat TABS array, unaffected by this grouping.
+const TAB_GROUPS = [
+  { label: "Operación", keys: ["global", "eventos", "combos"] },
+  { label: "Red", keys: ["agencias", "influencers", "usuarios"] },
+  { label: "Dinero", keys: ["billetera", "cierre"] },
+  { label: "Sistema", keys: ["config", "diag", "chat"] },
 ];
 
 // Agrupa el asistente y los mensajes con agencias en una sola
@@ -14368,23 +14380,56 @@ function AdminPanel({ adminKey, onLogout }){
         paddingBottom:"env(safe-area-inset-bottom)",zIndex:50}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        {TABS.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
-            minWidth:0,
-            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
-            borderRadius:RADII.md,
-            padding:"0 12px",minHeight:44,cursor:"pointer",
-            display:"flex",flexDirection:"row",alignItems:"center",
-            justifyContent:"flex-start",gap:SPACING[12],
-            position:"relative",overflow:"visible",width:"100%",flexShrink:0,
-          } : {
+        {isDesktop ? TAB_GROUPS.flatMap((group,gi)=>{
+          const groupTabs = group.keys.map(k=>TABS.find(t=>t.k===k)).filter(Boolean);
+          if(groupTabs.length===0) return [];
+          return [
+            <div key={`group-${group.label}`} style={{
+              marginTop:gi===0?0:SPACING[16],
+              padding:"0 12px",
+              color:Q.dim,fontSize:TEXT[12],fontWeight:700,
+              textTransform:"uppercase",letterSpacing:1,fontFamily:F_BODY,
+            }}>{group.label}</div>,
+            ...groupTabs.map(t=>(
+              <button key={t.k} onClick={()=>setTab(t.k)} style={{
+                minWidth:0,
+                background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
+                border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
+                borderRadius:RADII.md,
+                padding:"0 12px",minHeight:44,cursor:"pointer",
+                display:"flex",flexDirection:"row",alignItems:"center",
+                justifyContent:"flex-start",gap:SPACING[12],
+                position:"relative",overflow:"visible",width:"100%",flexShrink:0,
+              }}>
+                <span style={{fontSize:17,position:"relative",
+                  filter:tab===t.k?`drop-shadow(0 0 6px ${Q.cyan})`:"none"}}>
+                  {t.i}
+                  {t.k==="config"&&alertasRiesgo>0&&(
+                    <span style={{position:"absolute",top:-3,right:-8,
+                      background:Q.red,color:"#fff",borderRadius:RADII.md,
+                      minWidth:15,height:15,fontSize:12,fontWeight:800,
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      padding:"0 4px",lineHeight:1,
+                      fontFamily:F_BODY}}>
+                      {alertasRiesgo>99?"99+":alertasRiesgo}</span>
+                  )}
+                </span>
+                <span style={{color:tab===t.k?Q.cyan:Q.muted,fontSize:12,
+                  fontWeight:tab===t.k?700:400,maxWidth:"100%",
+                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+                  fontFamily:F_BODY,letterSpacing:0.3,
+                  textTransform:"uppercase"}}>{t.l}</span>
+              </button>
+            )),
+          ];
+        }) : TABS.map(t=>(
+          <button key={t.k} onClick={()=>setTab(t.k)} style={{
             minWidth:0,background:"transparent",border:"none",
             padding:"8px 4px 8px",cursor:"pointer",
             display:"flex",flexDirection:"column",alignItems:"center",gap:SPACING[4],
             position:"relative",overflow:"visible",
           }}>
-            {!isDesktop&&tab===t.k&&<div style={{position:"absolute",top:0,left:"20%",right:"20%",
+            {tab===t.k&&<div style={{position:"absolute",top:0,left:"20%",right:"20%",
               height:2,background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},transparent)`,
               borderRadius:RADII.sm}}/>}
             <span style={{fontSize:17,position:"relative",
