@@ -140,3 +140,36 @@ export function inkOn(...background){
 // become Poppins, with the same system fallback the screens used before.
 export const F_NUM = "'Poppins',system-ui,sans-serif";
 export const F_BODY = "'Poppins',system-ui,sans-serif";
+
+// ═══════════════════════════════════════════════════════════════
+// SCALES — the prototype's own steps, so later passes have somewhere to
+// point. Nothing in the six screens reads these yet: this is additive,
+// not a migration. Each is a plain object keyed by its own value, so a
+// call site reads as `fontSize:TEXT[13]` or `padding:SPACING[16]` — the
+// key doubles as the allow-list of steps a later pass may choose from.
+//
+// `SPACING` is the prototype's 4px grid, copied from `html/styles.css`
+// (`--space-1` through `--space-10`; the prototype's own naming skips
+// `--space-7` and `--space-9`, so this does too).
+export const SPACING = {
+  4: 4, 8: 8, 12: 12, 16: 16, 20: 20, 24: 24, 32: 32, 40: 40,
+};
+
+// `RADII` keeps the prototype's own names (`--radius-sm/md/lg/xl`) since
+// they already exist there. `full` has no counterpart in the prototype —
+// it is the conventional pill/circle value CSS `border-radius` treats as
+// "as round as this box allows", not a fifth step on the same ramp.
+export const RADII = {
+  sm: 6, md: 10, lg: 14, xl: 20, full: 9999,
+};
+
+// `TEXT` is read from `html/styles.css`, not invented: every literal,
+// fixed `font-size` value the stylesheet actually applies at least once,
+// excluding the icon-hiding `font-size: 0` and the fluid `clamp(...)`
+// declarations (a range, not a step). It does not include `--text-display`
+// (56px): that token is declared in the prototype's `:root` but never
+// applied to anything, so it is not a size the prototype uses.
+export const TEXT = {
+  10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16,
+  20: 20, 21: 21, 28: 28, 30: 30, 32: 32,
+};
