@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, Component } from "react";
 import { getFrontendConfig } from "./config";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
-import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon } from "lucide-react";
+import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon, Bell, Moon } from "lucide-react";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
