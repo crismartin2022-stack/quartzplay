@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./fonts.css";
+import "./base.css";
 import App from "./App";
 import Agencia from "./Agencia";
 import Admin from "./Admin";
