@@ -19,7 +19,7 @@
 import { useState, useEffect, useRef } from "react";
 import Rueda3D from "./Rueda3D";
 import { getFrontendConfig } from "./config";
-import { oscuro as Q, F_NUM, F_BODY, inkOn } from "./theme";
+import { oscuro as Q, F_NUM, F_BODY, inkOn, RADII } from "./theme";
 import BrandMark from "./BrandMark";
 
 const { iaqpUrl: IAQP } = getFrontendConfig();
@@ -101,7 +101,7 @@ function Crupier({ nombre, hablando }){
   },[clave]);
 
   return(
-    <div style={{width:92,height:118,borderRadius:12,overflow:"hidden",
+    <div style={{width:92,height:118,borderRadius:RADII.lg,overflow:"hidden",
       flexShrink:0,background:Q.inset,position:"relative",
       border:`1px solid ${hablando?Q.gold:Q.border}`,
       boxShadow:hablando?`0 0 16px ${Q.gold}44`:"none",transition:"all .3s"}}>
@@ -123,7 +123,7 @@ function Crupier({ nombre, hablando }){
           transform:"translateX(-50%)",display:"flex",gap:2,
           alignItems:"flex-end",height:11}}>
           {[0,1,2].map(i=>(
-            <span key={i} style={{width:3,background:Q.gold,borderRadius:2,
+            <span key={i} style={{width:3,background:Q.gold,borderRadius:RADII.sm,
               height:"100%",animation:`qpOnda .6s ${i*0.15}s infinite`}}/>
           ))}
         </div>
@@ -237,7 +237,7 @@ export default function Casino(){
 
   const Ficha=({monto})=>(
     <span style={{position:"absolute",top:-6,right:-6,minWidth:19,height:19,
-      padding:"0 3px",borderRadius:10,background:Q.gold,color:inkOn(Q.gold),
+      padding:"0 3px",borderRadius:RADII.md,background:Q.gold,color:inkOn(Q.gold),
       fontSize:12,fontWeight:700,fontFamily:F_BODY,display:"flex",
       alignItems:"center",justifyContent:"center",border:`2px solid ${Q.pano}`}}>
       {monto>=100000?`${Math.round(monto/100000)}k`:Math.round(monto/100)}
@@ -249,7 +249,7 @@ export default function Casino(){
     const gana=ultimo===n && mesa?.estado==="resuelta";
     return(
       <button onClick={()=>poner("pleno",n)} style={{position:"relative",
-        height:34,border:"1px solid rgba(255,255,255,.16)",borderRadius:3,
+        height:34,border:"1px solid rgba(255,255,255,.16)",borderRadius:RADII.sm,
         background:c==="rojo"?Q.rojo:Q.negro,color:"#fff",padding:0,
         fontFamily:F_NUM,fontSize:15,fontWeight:700,
         cursor:abierta?"pointer":"default",
@@ -263,7 +263,7 @@ export default function Casino(){
     const p=puesto(tipo,valor);
     return(
       <button onClick={()=>poner(tipo,valor)} style={{position:"relative",
-        height:alto,border:"1px solid rgba(255,255,255,.16)",borderRadius:3,
+        height:alto,border:"1px solid rgba(255,255,255,.16)",borderRadius:RADII.sm,
         background:fondo||"rgba(0,0,0,.18)",color:"#fff",fontSize:12,
         fontWeight:700,fontFamily:F_BODY,padding:0,
         cursor:abierta?"pointer":"default"}}>
@@ -303,7 +303,7 @@ export default function Casino(){
 
         <div style={{display:"flex",gap:12,marginBottom:12,
           background:Q.surface,border:`1px solid ${Q.border}`,
-          borderRadius:14,padding:12}}>
+          borderRadius:RADII.lg,padding:12}}>
           <div>
             <Crupier nombre={mesa?.crupier} hablando={hablando}/>
             <div style={{fontSize:12,color:Q.muted,textAlign:"center",
@@ -316,7 +316,7 @@ export default function Casino(){
 
         <div style={{display:"flex",alignItems:"center",gap:12,
           background:Q.surface,border:`1px solid ${Q.border}`,
-          borderRadius:12,padding:"11px 14px",marginBottom:12}}>
+          borderRadius:RADII.lg,padding:"11px 14px",marginBottom:12}}>
           <div style={{flex:1}}>
             <div style={{fontSize:12,color:Q.muted}}>
               {mesa?.estado==="abierta" ? "Hagan juego"
@@ -331,7 +331,7 @@ export default function Casino(){
           <div style={{display:"flex",gap:3,flexWrap:"wrap",
             justifyContent:"flex-end",maxWidth:150}}>
             {(mesa?.ultimos_numeros||[]).slice(-6).map((n,i)=>(
-              <span key={i} style={{width:21,height:21,borderRadius:4,
+              <span key={i} style={{width:21,height:21,borderRadius:RADII.sm,
                 display:"flex",alignItems:"center",justifyContent:"center",
                 fontSize:12,fontWeight:700,fontFamily:F_NUM,color:"#fff",
                 background:colorDe(n)==="rojo"?Q.rojo
@@ -342,17 +342,17 @@ export default function Casino(){
 
         {aviso&&(
           <div style={{background:`${Q.gold}1A`,border:`1px solid ${Q.gold}`,
-            borderRadius:9,padding:"9px 12px",marginBottom:12,
+            borderRadius:RADII.md,padding:"9px 12px",marginBottom:12,
             fontSize:12.5}}>{aviso}</div>
         )}
 
         {/* PAÑO */}
         <div style={{background:Q.pano,border:"2px solid #063A26",
-          borderRadius:10,padding:9,marginBottom:12}}>
+          borderRadius:RADII.md,padding:9,marginBottom:12}}>
 
           <button onClick={()=>poner("pleno",0)} style={{width:"100%",
             height:36,marginBottom:6,background:Q.verde,
-            border:"1px solid rgba(255,255,255,.16)",borderRadius:3,
+            border:"1px solid rgba(255,255,255,.16)",borderRadius:RADII.sm,
             color:"#fff",fontFamily:F_NUM,fontSize:18,fontWeight:700,
             cursor:abierta?"pointer":"default",position:"relative"}}>
             0{puesto("pleno",0)>0&&<Ficha monto={puesto("pleno",0)}/>}
@@ -391,7 +391,7 @@ export default function Casino(){
         <div style={{display:"flex",gap:7,marginBottom:10}}>
           {FICHAS.map(f=>(
             <button key={f} onClick={()=>setFicha(f)} style={{flex:1,
-              padding:"11px 4px",borderRadius:9,cursor:"pointer",
+              padding:"11px 4px",borderRadius:RADII.md,cursor:"pointer",
               background:ficha===f?Q.gold:Q.inset,
               border:`1px solid ${ficha===f?Q.gold:Q.border}`,
               color:ficha===f?inkOn(Q.gold):Q.muted,fontWeight:700,
@@ -403,7 +403,7 @@ export default function Casino(){
           <div style={{marginBottom:12}}>
             <button onClick={confirmar} style={{width:"100%",
               background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
-              border:"none",borderRadius:10,padding:14,color:inkOn(Q.violet, Q.violet2),
+              border:"none",borderRadius:RADII.md,padding:14,color:inkOn(Q.violet, Q.violet2),
               fontSize:14,fontWeight:700,cursor:"pointer"}}>
               Confirmar {pendientes.length} · {plata(total)}</button>
             <button onClick={()=>setPendientes([])} style={{width:"100%",
@@ -413,7 +413,7 @@ export default function Casino(){
         )}
 
         <div style={{background:Q.surface,border:`1px solid ${Q.border}`,
-          borderRadius:12,overflow:"hidden"}}>
+          borderRadius:RADII.lg,overflow:"hidden"}}>
           <div style={{maxHeight:170,overflowY:"auto",padding:"12px 14px"}}>
             {!chat.length&&(
               <div style={{color:Q.dim,fontSize:12}}>
@@ -434,10 +434,10 @@ export default function Casino(){
               onKeyDown={e=>e.key==="Enter"&&enviarChat()}
               placeholder="Escribí a la mesa…" aria-label="Mensaje"
               style={{flex:1,background:Q.inset,border:`1px solid ${Q.border}`,
-                borderRadius:8,padding:"10px 12px",color:Q.text,fontSize:13,
+                borderRadius:RADII.md,padding:"10px 12px",color:Q.text,fontSize:13,
                 outline:"none"}}/>
             <button onClick={enviarChat} style={{background:Q.violet,
-              border:"none",borderRadius:8,padding:"0 16px",color:inkOn(Q.violet),
+              border:"none",borderRadius:RADII.md,padding:"0 16px",color:inkOn(Q.violet),
               fontWeight:700,fontSize:13,cursor:"pointer"}}>Enviar</button>
           </div>
         </div>

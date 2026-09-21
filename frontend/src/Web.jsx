@@ -16,7 +16,7 @@ import {
   estadoDeAcciones, stakeValido, mensajeDeDetalle, cuerpoDeApuesta,
   hasIdentity,
 } from "./betBestActions";
-import { oscuro as Q, F_NUM, F_BODY, inkOn } from "./theme";
+import { oscuro as Q, F_NUM, F_BODY, inkOn, RADII } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot from "./Mascot";
 import Icon from "./Icon";
@@ -108,7 +108,7 @@ function BarraProb({ odds }){
   const pct=inv.map(x=>Math.round(x/suma*100));
   const cols=[Q.violet,Q.dim,Q.violet2];
   return(
-    <div style={{display:"flex",height:3,borderRadius:2,overflow:"hidden",
+    <div style={{display:"flex",height:3,borderRadius:RADII.sm,overflow:"hidden",
       background:Q.inset,marginTop:6}}>
       {pct.map((p,i)=>(
         <div key={i} style={{width:`${p}%`,background:cols[i]||Q.dim}}/>
@@ -164,11 +164,11 @@ function Bandera({ sportKey, size=18 }){
   const b=banderaDe(sportKey);
   const alto=Math.round(size*0.68);
   if(!b) return(
-    <div style={{width:size,height:alto,borderRadius:2,flexShrink:0,
+    <div style={{width:size,height:alto,borderRadius:RADII.sm,flexShrink:0,
       background:hashColor(sportKey),opacity:.8}}/>
   );
   return(
-    <div aria-hidden="true" style={{width:size,height:alto,borderRadius:2,
+    <div aria-hidden="true" style={{width:size,height:alto,borderRadius:RADII.sm,
       overflow:"hidden",flexShrink:0,display:"flex",
       flexDirection:b.v?"row":"column",
       boxShadow:"0 0 0 1px rgba(255,255,255,.12) inset"}}>
@@ -239,7 +239,7 @@ function Carrusel(){
   const idx = total ? i%total : 0;
 
   return(
-    <div style={{position:"relative",overflow:"hidden",borderRadius:12,
+    <div style={{position:"relative",overflow:"hidden",borderRadius:RADII.lg,
       marginBottom:14,height:200}}>
       {usarBanners ? (
         <a href={banners[idx].link||"#"} style={{display:"block",height:"100%"}}>
@@ -286,7 +286,7 @@ function Carrusel(){
         <div style={{position:"absolute",bottom:14,right:22,display:"flex",gap:6}}>
           {Array.from({length:total},(_,k)=>(
             <button key={k} onClick={()=>setI(k)} aria-label={`Ir al banner ${k+1}`}
-              style={{width:k===idx?20:7,height:7,borderRadius:4,border:"none",
+              style={{width:k===idx?20:7,height:7,borderRadius:RADII.sm,border:"none",
                 padding:0,cursor:"pointer",transition:"width .2s",
                 background:k===idx?Q.goldBg:ov(.4)}}/>
           ))}
@@ -462,7 +462,7 @@ function FilaPartido({ ev, deporte, picks, onToggle, ancho, vivo }){
         <div style={{textAlign:"right"}}>
           {nMercados>0&&(
             <button onClick={()=>setAbierto(a=>!a)} style={{background:"transparent",
-              border:`1px solid ${abierto?Q.violet:Q.border}`,borderRadius:7,
+              border:`1px solid ${abierto?Q.violet:Q.border}`,borderRadius:RADII.sm,
               padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:600,
               color:abierto?Q.text:Q.cyan,fontFamily:F_BODY,whiteSpace:"nowrap"}}>
               {abierto?"Cerrar":`+${nMercados} mercados`}</button>
@@ -473,7 +473,7 @@ function FilaPartido({ ev, deporte, picks, onToggle, ancho, vivo }){
       {!ancho&&nMercados>0&&(
         <button onClick={()=>setAbierto(a=>!a)} style={{gridColumn:"1 / -1",
           marginTop:9,background:"transparent",
-          border:`1px solid ${abierto?Q.violet:Q.border}`,borderRadius:7,
+          border:`1px solid ${abierto?Q.violet:Q.border}`,borderRadius:RADII.sm,
           padding:"9px",cursor:"pointer",fontSize:12,fontWeight:600,
           color:abierto?Q.text:Q.cyan,fontFamily:F_BODY}}>
           {abierto?"Cerrar mercados":`Ver ${nMercados} mercados · Bet Builder`}</button>
@@ -498,7 +498,7 @@ function BotonCuota({ ev, op, deporte, picks, onToggle, market }){
     <button onClick={()=>onToggle(ev,op.label,op.val,deporte,market||"h2h")} style={{
       background:sel?Q.violet:Q.inset,
       border:`1px solid ${sel?Q.violet:Q.border}`,
-      borderRadius:7,padding:"7px 4px",cursor:"pointer",textAlign:"center",
+      borderRadius:RADII.sm,padding:"7px 4px",cursor:"pointer",textAlign:"center",
       fontFamily:F_BODY,transition:"all .13s",minWidth:0}}>
       <div style={{fontSize:12,fontWeight:600,letterSpacing:.8,
         color:sel?inkOn(Q.violet):Q.dim,whiteSpace:"nowrap",overflow:"hidden",
@@ -620,7 +620,7 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
             {emitidos.length===1&&(
               <img alt="Código QR del boleto"
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(sl.code)}`}
-                style={{width:150,height:150,marginTop:12,borderRadius:8,
+                style={{width:150,height:150,marginTop:12,borderRadius:RADII.md,
                   background:"#fff",padding:8}}/>
             )}
             <div style={{marginTop:8,fontSize:12,color:Q.muted}}>
@@ -642,7 +642,7 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
             repetir la misma apuesta con otro monto. */}
         <button onClick={()=>setEmitidos(null)} style={{width:"100%",
           marginTop:16,background:`${Q.violet}22`,
-          border:`1px solid ${Q.violet}`,borderRadius:8,padding:"12px",
+          border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"12px",
           color:Q.cyan,fontSize:13.5,fontWeight:700,cursor:"pointer",
           fontFamily:F_BODY}}>
           🔁 Mantener selecciones ({picks.length})</button>
@@ -658,13 +658,13 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
       <div style={{..._phead(),color:Q.text,display:"flex",alignItems:"center",gap:9}}>
         <span style={{background:picks.length?Q.goldBg:Q.border,
           color:picks.length?inkOn(Q.goldBg):Q.muted,fontSize:12,fontWeight:700,
-          borderRadius:4,padding:"1px 7px",fontFamily:F_BODY}}>{picks.length}</span>
+          borderRadius:RADII.sm,padding:"1px 7px",fontFamily:F_BODY}}>{picks.length}</span>
         Tu boleto
       </div>
 
       {mismoPartido&&(
         <div style={{margin:"11px 14px 0",background:`${Q.violet}1A`,
-          border:`1px solid ${Q.violet}`,borderRadius:8,padding:"9px 11px",
+          border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"9px 11px",
           fontSize:12,color:Q.text,lineHeight:1.45}}>
           <b>Bet Builder</b> · combinada del mismo partido. La cuota ya
           incluye el margen de correlación.</div>
@@ -675,7 +675,7 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
         {[["multiple","Múltiple"],["simple","Simple"]].map(([k,l])=>(
           <button key={k} onClick={()=>setModo(k)} style={{flex:1,
             background:modo===k?Q.violet:Q.inset,
-            border:`1px solid ${modo===k?Q.violet:Q.border}`,borderRadius:7,
+            border:`1px solid ${modo===k?Q.violet:Q.border}`,borderRadius:RADII.sm,
             padding:"8px",cursor:"pointer",fontSize:12.5,fontWeight:700,
             color:modo===k?inkOn(Q.violet):Q.muted,fontFamily:F_BODY}}>{l}</button>
         ))}
@@ -697,7 +697,7 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
               <button key={k} onClick={()=>generarCombo&&generarCombo(k)}
                 disabled={genProc}
                 style={{flex:1,background:Q.inset,
-                  border:`1px solid ${Q.border}`,borderRadius:9,
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                   padding:"10px 4px",cursor:"pointer",color:Q.cyan,
                   fontSize:12,fontFamily:F_BODY,textTransform:"capitalize"}}>
                 {genProc?"…":`${ic} ${k}`}</button>
@@ -731,7 +731,7 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
         <div style={{padding:14}}>
           {err&&(
             <div style={{background:`${Q.red}1A`,border:`1px solid ${Q.red}`,
-              borderRadius:8,padding:"8px 11px",marginBottom:11,fontSize:12}}>{err}</div>
+              borderRadius:RADII.md,padding:"8px 11px",marginBottom:11,fontSize:12}}>{err}</div>
           )}
 
           <label style={{display:"block",fontSize:12,letterSpacing:1.3,
@@ -741,7 +741,7 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
             onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
             aria-label="Importe a apostar"
             style={{width:"100%",background:Q.inset,border:`1px solid ${Q.border}`,
-              borderRadius:8,padding:"11px 13px",color:Q.text,fontFamily:F_NUM,
+              borderRadius:RADII.md,padding:"11px 13px",color:Q.text,fontFamily:F_NUM,
               fontSize:20,fontWeight:600}}/>
 
           <div style={{display:"flex",justifyContent:"space-between",
@@ -805,7 +805,7 @@ function BotonAyuda({ userId, origen, abierto:abiertoFuera, onCerrar }){
         <button onClick={()=>setAbierto(true)} aria-label="Ayuda"
           style={{position:"fixed",right:16,
             bottom:"calc(20px + env(safe-area-inset-bottom))",zIndex:150,
-            height:42,borderRadius:21,padding:"0 17px",
+            height:42,borderRadius:RADII.xl,padding:"0 17px",
             background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
             border:"none",boxShadow:"0 4px 16px rgba(0,0,0,.45)",
             cursor:"pointer",fontSize:13.5,fontWeight:700,color:inkOn(Q.violet, Q.cyan),
@@ -969,7 +969,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
           tiene por qué esperar a que la IA lo mande. */}
       {contacto&&(contacto.whatsapp||contacto.telegram)&&(
         <div style={{background:`${Q.gold}12`,border:`1px solid ${Q.gold}44`,
-          borderRadius:10,padding:"10px 12px",marginBottom:9}}>
+          borderRadius:RADII.md,padding:"10px 12px",marginBottom:9}}>
           <div style={{color:Q.gold,fontSize:12,fontWeight:700,
             marginBottom:6}}>
             {derivado?"Tu consulta necesita a una persona"
@@ -987,14 +987,14 @@ function ChatSoporte({ userId, origen, onCerrar }){
               <a href={`https://wa.me/${contacto.whatsapp.replace(/\D/g,"")}`}
                 target="_blank" rel="noreferrer"
                 style={{background:"#25D36622",border:"1px solid #25D366",
-                  borderRadius:8,padding:"7px 13px",color:"#25D366",
+                  borderRadius:RADII.md,padding:"7px 13px",color:"#25D366",
                   fontSize:12,fontWeight:700,textDecoration:"none"}}>
                 WhatsApp</a>
             )}
             {contacto.telegram&&(
               <a href={contacto.telegram} target="_blank" rel="noreferrer"
                 style={{background:"#2AABEE22",border:"1px solid #2AABEE",
-                  borderRadius:8,padding:"7px 13px",color:"#2AABEE",
+                  borderRadius:RADII.md,padding:"7px 13px",color:"#2AABEE",
                   fontSize:12,fontWeight:700,textDecoration:"none"}}>
                 Telegram</a>
             )}
@@ -1019,7 +1019,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
                 :(m.error?`${Q.red}14`:ov(0.05)),
               border:`1px solid ${m.autor==="cliente"?Q.violet
                 :(m.error?`${Q.red}55`:Q.border)}`,
-              borderRadius:12,padding:"9px 12px",
+              borderRadius:RADII.lg,padding:"9px 12px",
               color:m.error?Q.red:Q.text,fontSize:12.5,lineHeight:1.55,
               whiteSpace:"pre-wrap"}}>
               {AUTOR[m.autor]&&m.autor!=="ia"&&(
@@ -1042,11 +1042,11 @@ function ChatSoporte({ userId, origen, onCerrar }){
           onKeyDown={e=>e.key==="Enter"&&enviar()}
           placeholder="Escribí tu consulta…"
           style={{flex:1,minWidth:0,background:ov(0.05),
-            border:`1px solid ${Q.border}`,borderRadius:10,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"11px 13px",color:Q.text,fontSize:14}}/>
         <button onClick={enviar} disabled={proc||!texto.trim()}
           style={{background:texto.trim()?Q.violet:ov(0.05),border:"none",
-            borderRadius:10,padding:"0 17px",
+            borderRadius:RADII.md,padding:"0 17px",
             cursor:texto.trim()?"pointer":"default",
             color:texto.trim()?inkOn(Q.violet):Q.dim,fontSize:14,fontWeight:700,
             flexShrink:0}}>↑</button>
@@ -1076,7 +1076,7 @@ class CazaError extends Component {
           {this.state.msg.slice(0,180)}</div>
         <button onClick={()=>this.setState({roto:false,msg:""})}
           style={{marginTop:12,background:"transparent",
-            border:"1px solid #2A2F45",borderRadius:8,padding:"8px 16px",
+            border:"1px solid #2A2F45",borderRadius:RADII.md,padding:"8px 16px",
             color:"#8A8FA8",fontSize:12,cursor:"pointer"}}>
           Reintentar</button>
       </div>
@@ -1249,7 +1249,7 @@ function BotonCompartir({ picks, odd, code, refCode, compacto, userId }){
       <button onClick={compartir} style={{width:"100%",marginTop:9,
         background:premio?`${Q.gold}12`:"transparent",
         border:`1px solid ${premio?`${Q.gold}55`:Q.border}`,
-        borderRadius:10,padding:"11px",cursor:"pointer",
+        borderRadius:RADII.md,padding:"11px",cursor:"pointer",
         color:premio?Q.gold:Q.cyan,
         fontSize:13,fontWeight:600,display:"flex",alignItems:"center",
         justifyContent:"center",gap:7}}>
@@ -1289,7 +1289,7 @@ function ProbabilidadApuesta({ picks, stake, moneda }){
   return(
     <div onClick={()=>setAbierto(v=>!v)}
       style={{background:`${c}0F`,border:`1px solid ${c}44`,
-        borderRadius:10,padding:"11px 13px",marginBottom:10,
+        borderRadius:RADII.md,padding:"11px 13px",marginBottom:10,
         cursor:"pointer"}}>
       <div style={{display:"flex",justifyContent:"space-between",
         alignItems:"center",gap:8}}>
@@ -1403,7 +1403,7 @@ function PantallaTerminal({ codigo, onSeguir }){
 
         <button onClick={empezar} style={{width:"100%",marginTop:28,
           background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-          border:"none",borderRadius:12,padding:"17px",color:inkOn(Q.violet, Q.cyan),
+          border:"none",borderRadius:RADII.lg,padding:"17px",color:inkOn(Q.violet, Q.cyan),
           fontSize:16,fontWeight:800,cursor:"pointer",
           fontFamily:F_BODY}}>
           Empezar</button>
@@ -1518,12 +1518,12 @@ function JuegoResponsableWeb({ user, onCerrar }){
           <div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:14,
             lineHeight:1.55,padding:"11px 13px",
             background:`${Q.cyan}0D`,border:`1px solid ${Q.cyan}33`,
-            borderRadius:9,fontFamily:F_BODY}}>
+            borderRadius:RADII.md,fontFamily:F_BODY}}>
             <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>
         )}
 
         {d.autoexcluido&&(
-          <div style={{background:Q.card,border:`1px solid ${Q.red}55`,borderRadius:12,padding:16,marginBottom:14}}>
+          <div style={{background:Q.card,border:`1px solid ${Q.red}55`,borderRadius:RADII.lg,padding:16,marginBottom:14}}>
             <div style={{color:Q.red,fontWeight:700,fontSize:14,
               marginBottom:6,fontFamily:F_BODY}}>
               Tu cuenta está cerrada</div>
@@ -1549,7 +1549,7 @@ function JuegoResponsableWeb({ user, onCerrar }){
             {TIPOS.map(([tipo,label])=>{
               const l=(d.limites||[]).find(x=>x.tipo===tipo);
               return(
-                <div key={tipo} style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:12,padding:14,marginBottom:9}}>
+                <div key={tipo} style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:RADII.lg,padding:14,marginBottom:9}}>
                   <div style={{display:"flex",
                     justifyContent:"space-between",alignItems:"center"}}>
                     <div style={{minWidth:0,flex:1}}>
@@ -1571,7 +1571,7 @@ function JuegoResponsableWeb({ user, onCerrar }){
                         setEditando(editando===tipo?null:tipo);
                         setValor(l?String(l.monto):""); }}
                       style={{background:`${Q.violet}22`,
-                        border:`1px solid ${Q.violet}66`,borderRadius:8,
+                        border:`1px solid ${Q.violet}66`,borderRadius:RADII.md,
                         padding:"7px 13px",color:Q.cyan,fontSize:12,
                         cursor:"pointer",flexShrink:0}}>
                       {l?"Cambiar":"Poner"}</button>
@@ -1586,7 +1586,7 @@ function JuegoResponsableWeb({ user, onCerrar }){
                         placeholder="Monto por día"
                         style={{width:"100%",
                           background:"rgba(255,255,255,0.05)",
-                          border:`1px solid ${Q.border}`,borderRadius:9,
+                          border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                           padding:"12px",color:Q.text,fontSize:17,
                           fontWeight:700,textAlign:"center",
                           marginBottom:8,
@@ -1596,7 +1596,7 @@ function JuegoResponsableWeb({ user, onCerrar }){
                           disabled={proc||!valor}
                           style={{flex:1,background:`${Q.green}18`,
                             border:`1px solid ${Q.green}66`,
-                            borderRadius:8,padding:"11px",color:Q.green,
+                            borderRadius:RADII.md,padding:"11px",color:Q.green,
                             fontSize:12.5,fontWeight:700,
                             cursor:"pointer"}}>Guardar</button>
                         {l&&(
@@ -1604,7 +1604,7 @@ function JuegoResponsableWeb({ user, onCerrar }){
                             disabled={proc}
                             style={{background:"transparent",
                               border:`1px solid ${Q.border}`,
-                              borderRadius:8,padding:"11px 15px",
+                              borderRadius:RADII.md,padding:"11px 15px",
                               color:Q.muted,fontSize:12.5,
                               cursor:"pointer"}}>Quitar</button>
                         )}
@@ -1622,12 +1622,12 @@ function JuegoResponsableWeb({ user, onCerrar }){
             {!verExcluir ? (
               <button onClick={()=>setVerExcluir(true)}
                 style={{width:"100%",background:"transparent",
-                  border:`1px solid ${Q.border}`,borderRadius:10,
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                   padding:"13px",color:Q.muted,fontSize:13,
                   cursor:"pointer",fontFamily:F_BODY}}>
                 Quiero cerrar mi cuenta por un tiempo</button>
             ) : (
-              <div style={{background:Q.card,border:`1px solid ${Q.red}55`,borderRadius:12,padding:16}}>
+              <div style={{background:Q.card,border:`1px solid ${Q.red}55`,borderRadius:RADII.lg,padding:16}}>
                 <div style={{color:Q.text,fontSize:13.5,fontWeight:700,
                   marginBottom:6,fontFamily:F_BODY}}>
                   Cerrar mi cuenta</div>
@@ -1645,7 +1645,7 @@ function JuegoResponsableWeb({ user, onCerrar }){
                     style={{width:"100%",
                       background:k==="permanente"?`${Q.red}14`:"transparent",
                       border:`1px solid ${k==="permanente"?Q.red:Q.border}`,
-                      borderRadius:9,padding:"12px",marginBottom:7,
+                      borderRadius:RADII.md,padding:"12px",marginBottom:7,
                       color:k==="permanente"?Q.red:Q.text,fontSize:13,
                       cursor:"pointer",
                       fontFamily:F_BODY}}>{l}</button>
@@ -1688,7 +1688,7 @@ function QKBWeb({ rows, onPress }){
               flex:1,
               background:btn.primary?`linear-gradient(135deg,${btn.color||Q.violet},${btn.color2||Q.cyan})`:ov(0.04),
               border:`1px solid ${btn.primary?(btn.color||Q.violet)+"88":Q.border}`,
-              borderRadius:10, padding:"11px 6px", cursor:"pointer",
+              borderRadius:RADII.md, padding:"11px 6px", cursor:"pointer",
               color:btn.primary?inkOn(btn.color||Q.violet, btn.color2||Q.cyan):Q.text, fontSize:12, fontWeight:btn.primary?700:500,
               fontFamily:F_BODY,
               textTransform:btn.primary?"uppercase":"none",
@@ -1719,7 +1719,7 @@ function BotMsgWeb({ children, time="9:41" }){
           empujan toda la pantalla hacia la derecha. */}
       <div style={{flex:1,minWidth:0}}>
         <BrandMark size={11} style={{marginBottom:3}}/>
-        <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:12,padding:"14px"}}>
+        <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:RADII.lg,padding:"14px"}}>
           {children}
           <div style={{textAlign:"right",marginTop:6,color:Q.muted,fontSize:12,
             fontFamily:F_BODY}}>{time} ✓✓</div>
@@ -1779,7 +1779,7 @@ function CorregirPickWeb({ pick, onAplicar, onQuitar }){
           </div>
           {pick.candidatos.map((ev,ci)=>(
             <div key={ci} style={{background:`${Q.amber}0E`,
-              border:`1px solid ${Q.amber}44`,borderRadius:8,
+              border:`1px solid ${Q.amber}44`,borderRadius:RADII.md,
               padding:"8px 10px",marginBottom:6}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:5,
                 fontFamily:F_BODY}}>{ev.home} vs {ev.away}</div>
@@ -1787,7 +1787,7 @@ function CorregirPickWeb({ pick, onAplicar, onQuitar }){
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:ov(0.05),border:`1px solid ${Q.border}`,
-                    borderRadius:7,padding:"5px 9px",cursor:"pointer",
+                    borderRadius:RADII.sm,padding:"5px 9px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
@@ -1801,12 +1801,12 @@ function CorregirPickWeb({ pick, onAplicar, onQuitar }){
       <div style={{display:"flex",gap:5,marginBottom:8}}>
         <button onClick={()=>setModo("seleccion")} style={{flex:1,
           background:modo==="seleccion"?`${Q.violet}33`:ov(0.04),
-          border:`1px solid ${modo==="seleccion"?Q.violet:Q.border}`,borderRadius:7,
+          border:`1px solid ${modo==="seleccion"?Q.violet:Q.border}`,borderRadius:RADII.sm,
           padding:"6px",cursor:"pointer",color:modo==="seleccion"?Q.cyan:Q.muted,
           fontSize:12,fontWeight:700,fontFamily:F_BODY}}>Selección</button>
         <button onClick={()=>setModo("partido")} style={{flex:1,
           background:modo==="partido"?`${Q.violet}33`:ov(0.04),
-          border:`1px solid ${modo==="partido"?Q.violet:Q.border}`,borderRadius:7,
+          border:`1px solid ${modo==="partido"?Q.violet:Q.border}`,borderRadius:RADII.sm,
           padding:"6px",cursor:"pointer",color:modo==="partido"?Q.cyan:Q.muted,
           fontSize:12,fontWeight:700,fontFamily:F_BODY}}>Otro partido</button>
       </div>
@@ -1819,7 +1819,7 @@ function CorregirPickWeb({ pick, onAplicar, onQuitar }){
             <button key={k} onClick={()=>elegirOpcion(op)} style={{width:"100%",
               display:"flex",justifyContent:"space-between",alignItems:"center",
               background:ov(0.04),border:`1px solid ${Q.border}`,
-              borderRadius:7,padding:"8px 10px",marginBottom:4,cursor:"pointer"}}>
+              borderRadius:RADII.sm,padding:"8px 10px",marginBottom:4,cursor:"pointer"}}>
               <span style={{color:Q.text,fontSize:12,
                 fontFamily:F_BODY}}>{op.sel}</span>
               <span style={{color:Q.cyan,fontWeight:700,fontSize:12,
@@ -1836,23 +1836,23 @@ function CorregirPickWeb({ pick, onAplicar, onQuitar }){
               onKeyDown={e=>e.key==="Enter"&&buscarEventos()}
               placeholder="Equipo..."
               style={{flex:1,background:ov(0.05),
-                border:`1px solid ${Q.border}`,borderRadius:7,padding:"8px 10px",
+                border:`1px solid ${Q.border}`,borderRadius:RADII.sm,padding:"8px 10px",
                 color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
             <button onClick={buscarEventos} style={{background:`${Q.violet}33`,
-              border:`1px solid ${Q.violet}`,borderRadius:7,padding:"0 12px",
+              border:`1px solid ${Q.violet}`,borderRadius:RADII.sm,padding:"0 12px",
               cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
               fontFamily:F_BODY}}>{buscando?"...":"Ir"}</button>
           </div>
           {encontrados.map((ev,k)=>(
             <div key={k} style={{background:ov(0.03),
-              border:`1px solid ${Q.dim}`,borderRadius:7,padding:"7px 9px",marginBottom:5}}>
+              border:`1px solid ${Q.dim}`,borderRadius:RADII.sm,padding:"7px 9px",marginBottom:5}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:5,
                 fontFamily:F_BODY}}>{ev.home} vs {ev.away}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:ov(0.05),border:`1px solid ${Q.border}`,
-                    borderRadius:6,padding:"4px 8px",cursor:"pointer",
+                    borderRadius:RADII.sm,padding:"4px 8px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
@@ -1867,10 +1867,10 @@ function CorregirPickWeb({ pick, onAplicar, onQuitar }){
         <input value={ajuste} onChange={e=>setAjuste(e.target.value)}
           placeholder="Cuota a mano" inputMode="decimal"
           style={{flex:1,background:ov(0.05),
-            border:`1px solid ${Q.border}`,borderRadius:7,padding:"7px 9px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.sm,padding:"7px 9px",
             color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
         <button onClick={onQuitar} style={{background:`${Q.pink}18`,
-          border:`1px solid ${Q.pink}`,borderRadius:7,padding:"7px 11px",
+          border:`1px solid ${Q.pink}`,borderRadius:RADII.sm,padding:"7px 11px",
           cursor:"pointer",color:Q.pink,fontSize:12,fontWeight:700,
           fontFamily:F_BODY}}>Quitar</button>
       </div>
@@ -2086,7 +2086,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
     <div style={{background:Q.void,minHeight:"100%",padding:"14px 12px"}}>
       {/* Panel limpio: en el navegador el escáner no se presenta como un
           chat de bot, sino como una pantalla propia con dos opciones. */}
-      <div style={{border:`1px solid ${Q.border}`,borderRadius:16,
+      <div style={{border:`1px solid ${Q.border}`,borderRadius:RADII.lg,
         padding:"16px 14px",background:"rgba(255,255,255,.03)"}}>
         <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
           fontFamily:F_NUM}}>Escanear y mejorar</div>
@@ -2101,7 +2101,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
             {imagenes.map((im,i)=>(
               <div key={i} style={{position:"relative"}}>
                 <img src={im.preview} alt={"f"+i} style={{width:60,height:60,
-                  objectFit:"cover",borderRadius:7,border:`1px solid ${Q.border}`}}/>
+                  objectFit:"cover",borderRadius:RADII.sm,border:`1px solid ${Q.border}`}}/>
                 <button onClick={()=>quitarImagen(i)} style={{position:"absolute",
                   top:-5,right:-5,width:18,height:18,borderRadius:"50%",
                   background:Q.pink,border:"none",color:inkOn(Q.pink),fontSize:12,
@@ -2115,14 +2115,14 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
           <button onClick={()=>{ if(!requireIdentity()) return;
             setCamaraAbierta(true); }} style={{flex:1,
             background:"transparent",border:`2px dashed ${Q.border}`,
-            borderRadius:12,padding:"18px 10px",textAlign:"center",
+            borderRadius:RADII.lg,padding:"18px 10px",textAlign:"center",
             cursor:"pointer"}}>
             <div style={{marginBottom:5}}><Icon name="camera" size={26}/></div>
             <div style={{color:Q.text,fontWeight:700,fontSize:12,
               fontFamily:F_BODY}}>Cámara</div>
           </button>
           <label onClick={e=>{ if(!requireIdentity()) e.preventDefault(); }}
-            style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:12,
+            style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:RADII.lg,
             padding:"18px 10px",textAlign:"center",cursor:"pointer"}}>
             <input type="file" accept="image/*" multiple onChange={elegir}
               style={{display:"none"}}/>
@@ -2143,7 +2143,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
           <button onClick={analizar} disabled={analizando} style={{width:"100%",
             background:analizando?ov(0.06)
               :`linear-gradient(135deg,${Q.cyan},${Q.violet})`,
-            border:"none",borderRadius:10,padding:"12px",marginBottom:4,
+            border:"none",borderRadius:RADII.md,padding:"12px",marginBottom:4,
             cursor:analizando?"wait":"pointer",color:analizando?Q.muted:inkOn(Q.cyan, Q.violet),
             fontWeight:700,fontSize:13,fontFamily:F_BODY}}>
             {analizando?"Leyendo...":<><Icon name="search" size={13}/>{` Analizar ${imagenes.length} foto${imagenes.length>1?"s":""}`}</>}</button>
@@ -2167,7 +2167,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
             </div>
             {res.faltan_picks&&(
               <div style={{background:`${Q.red}12`,border:`1px solid ${Q.red}66`,
-                borderRadius:9,padding:"9px 11px",marginBottom:10,color:Q.red,
+                borderRadius:RADII.md,padding:"9px 11px",marginBottom:10,color:Q.red,
                 fontSize:12,lineHeight:1.4,fontFamily:F_BODY}}>
                 <Icon name="triangle-alert" size={13}/> El cupón marca cuota {fmt(res.total_odd_cupon)} pero con lo leído
                 no llegamos. Falta algún partido — agregá otra foto.
@@ -2177,7 +2177,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                 de corregir ya está en cada uno, y repetir la
                 advertencia agrega ruido sin agregar información. */}
             <div style={{background:`${Q.amber}12`,
-              border:`1px solid ${Q.amber}44`,borderRadius:9,
+              border:`1px solid ${Q.amber}44`,borderRadius:RADII.md,
               padding:"9px 11px",marginBottom:10,color:Q.amber,
               fontSize:12,lineHeight:1.45,
               fontFamily:F_BODY}}>
@@ -2208,7 +2208,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                     )}
                   </div>
                   <span style={{background:`${est.c}22`,border:`1px solid ${est.c}`,
-                    borderRadius:16,padding:"1px 7px",fontSize:12,fontWeight:700,
+                    borderRadius:RADII.lg,padding:"1px 7px",fontSize:12,fontWeight:700,
                     color:est.c,flexShrink:0,whiteSpace:"nowrap",
                     fontFamily:F_BODY}}>{est.t}</span>
                 </div>
@@ -2221,7 +2221,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                 </div>
                 <button onClick={()=>setCorrigiendo(corrigiendo===i?null:i)} style={{
                   background:corrigiendo===i?`${Q.cyan}22`:"transparent",
-                  border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:8,
+                  border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:RADII.md,
                   padding:"5px 10px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
                   fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                   {corrigiendo===i?"✕ Cerrar":"✏️ Está mal"}</button>
@@ -2236,7 +2236,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
 
             {res.picks_ok<res.picks_total&&(
               <div style={{background:`${Q.amber}12`,border:`1px solid ${Q.amber}55`,
-                borderRadius:10,padding:"9px 12px",margin:"8px 0",color:Q.amber,
+                borderRadius:RADII.md,padding:"9px 12px",margin:"8px 0",color:Q.amber,
                 fontSize:12,lineHeight:1.4,fontFamily:F_BODY}}>
                 <Icon name="triangle-alert" size={13}/> Hay selecciones que no tenemos. Podés armar la combinada con
                 las {res.picks_ok} que sí, desde Prematch.
@@ -2245,7 +2245,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
 
             {!estado.puedeJugar&&!boleto&&(
               <div style={{background:`${Q.red}12`,border:`1px solid ${Q.red}66`,
-                borderRadius:10,padding:"12px 14px",marginTop:6,color:Q.red,
+                borderRadius:RADII.md,padding:"12px 14px",marginTop:6,color:Q.red,
                 fontSize:12,lineHeight:1.5,textAlign:"center",
                 fontFamily:F_BODY}}>
                 {estado.mensaje}
@@ -2253,7 +2253,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
             )}
 
             {estado.puedeJugar&&!boleto&&!apuestaOk&&(
-              <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:12,padding:14,marginTop:6}}>
+              <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:RADII.lg,padding:14,marginTop:6}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
                   <span style={{color:Q.muted,fontSize:12,
                     fontFamily:F_BODY}}>Nuestra cuota total</span>
@@ -2276,7 +2276,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                     min="1" value={stakeTexto}
                     onChange={e=>setStakeTexto(e.target.value)}
                     placeholder="Ej: 2000" style={{width:"100%",background:Q.inset,
-                      border:`1px solid ${Q.border}`,borderRadius:9,
+                      border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                       padding:"11px 13px",color:Q.text,fontSize:15,
                       fontFamily:F_NUM}}/>
                 </div>
@@ -2287,7 +2287,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                 <button onClick={apostar} disabled={apostando} style={{width:"100%",
                   background:apostando?ov(0.06)
                     :`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
-                  border:"none",borderRadius:10,padding:"13px",
+                  border:"none",borderRadius:RADII.md,padding:"13px",
                   color:apostando?Q.muted:inkOn(Q.violet, Q.violet2),fontWeight:800,fontSize:15,
                   cursor:apostando?"wait":"pointer",marginBottom:8,
                   fontFamily:F_BODY}}>
@@ -2295,7 +2295,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
 
                 <button onClick={generarBoleto} disabled={generando}
                   style={{width:"100%",background:`linear-gradient(135deg,${Q.green},${Q.cyan})`,
-                    border:"none",borderRadius:10,padding:"13px",color:inkOn(Q.green, Q.cyan),
+                    border:"none",borderRadius:RADII.md,padding:"13px",color:inkOn(Q.green, Q.cyan),
                     fontWeight:800,fontSize:15,cursor:"pointer",marginBottom:8,
                     fontFamily:F_BODY}}>
                   {generando?"Generando...":<><Icon name="ticket" size={13}/> Generar mi código para jugar</>}</button>
@@ -2309,7 +2309,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                     }
                   }} disabled={generando}
                   style={{width:"100%",background:"transparent",
-                    border:`1px solid ${Q.border}`,borderRadius:10,
+                    border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                     padding:"11px",color:Q.muted,fontSize:13,
                     cursor:"pointer",marginBottom:8,
                     fontFamily:F_BODY}}>
@@ -2321,7 +2321,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
             )}
 
             {apuestaOk&&(
-              <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:12,padding:18,marginTop:6,textAlign:"center"}}>
+              <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:RADII.lg,padding:18,marginTop:6,textAlign:"center"}}>
                 <div style={{color:Q.green,fontWeight:800,fontSize:14,
                   marginBottom:8,fontFamily:F_BODY}}>Apuesta confirmada</div>
                 <div style={{color:Q.text,fontSize:13,marginBottom:4,
@@ -2332,7 +2332,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
             )}
 
             {boleto&&(
-              <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:12,padding:18,marginTop:6,textAlign:"center"}}>
+              <div style={{background:Q.card,border:`1px solid ${Q.border}`,borderRadius:RADII.lg,padding:18,marginTop:6,textAlign:"center"}}>
                 <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
                   letterSpacing:1,marginBottom:8,
                   fontFamily:F_BODY}}>Tu código de jugada</div>
@@ -2378,7 +2378,7 @@ function ModalNoSesion({ onCerrar, onIngresar, refCode }){
       background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",
       justifyContent:"center",padding:20}}>
       <div onClick={e=>e.stopPropagation()} style={{background:Q.surface,
-        border:`1px solid ${Q.border}`,borderRadius:14,width:"100%",
+        border:`1px solid ${Q.border}`,borderRadius:RADII.lg,width:"100%",
         maxWidth:380,padding:18,textAlign:"center"}}>
         <div style={{color:Q.text,fontWeight:800,fontSize:16,marginBottom:8,
           fontFamily:F_BODY}}>Necesitás una cuenta para apostar</div>
@@ -2389,7 +2389,7 @@ function ModalNoSesion({ onCerrar, onIngresar, refCode }){
 
         <button onClick={onIngresar} style={{width:"100%",
           background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
-          border:"none",borderRadius:10,padding:"13px",color:inkOn(Q.violet, Q.violet2),
+          border:"none",borderRadius:RADII.md,padding:"13px",color:inkOn(Q.violet, Q.violet2),
           fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10,
           fontFamily:F_BODY}}>
           Iniciar sesión</button>
@@ -2470,7 +2470,7 @@ function CampanaWeb({ sesion }){
         🔔
         {sinLeer>0&&(
           <span style={{position:"absolute",top:2,right:2,
-            minWidth:15,height:15,borderRadius:8,background:Q.red,
+            minWidth:15,height:15,borderRadius:RADII.md,background:Q.red,
             color:inkOn(Q.red),fontSize:12,fontWeight:800,
             display:"flex",alignItems:"center",
             justifyContent:"center",padding:"0 3px",
@@ -2486,7 +2486,7 @@ function CampanaWeb({ sesion }){
             style={{position:"absolute",top:60,right:12,left:12,
               maxWidth:400,marginLeft:"auto",maxHeight:"70vh",
               overflowY:"auto",background:Q.card,
-              border:`1px solid ${Q.border}`,borderRadius:13,
+              border:`1px solid ${Q.border}`,borderRadius:RADII.lg,
               padding:"14px 16px",
               boxShadow:"0 12px 40px rgba(0,0,0,.6)"}}>
             <div style={{display:"flex",
@@ -2591,7 +2591,7 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:9,padding:"11px 13px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"11px 13px",
     color:Q.text,fontSize:14,marginBottom:9,fontFamily:F_BODY};
 
   const ICONO={deportivas:<Icon name="trophy" size={13}/>,casino:<Icon name="spade" size={13}/>,
@@ -2613,7 +2613,7 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
         </div>
 
         <div style={{background:`linear-gradient(135deg,${Q.violet}22,${Q.cyan}11)`,
-          border:`1px solid ${Q.violet}55`,borderRadius:12,
+          border:`1px solid ${Q.violet}55`,borderRadius:RADII.lg,
           padding:"15px 17px",marginBottom:14}}>
           <div style={{color:Q.muted,fontSize:12,letterSpacing:0.6,
             fontFamily:F_BODY}}>SALDO DISPONIBLE</div>
@@ -2638,7 +2638,7 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
             <button key={k} onClick={()=>setVista(k)}
               style={{background:vista===k?`${Q.violet}33`:"transparent",
                 border:`1px solid ${vista===k?Q.violet:Q.border}`,
-                borderRadius:9,padding:"9px 15px",cursor:"pointer",
+                borderRadius:RADII.md,padding:"9px 15px",cursor:"pointer",
                 color:vista===k?Q.cyan:Q.muted,fontSize:13,
                 fontWeight:vista===k?700:400,whiteSpace:"nowrap",
                 fontFamily:F_BODY}}>{l}</button>
@@ -2672,7 +2672,7 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
 
             <button onClick={salir}
               style={{width:"100%",marginTop:20,background:"transparent",
-                border:`1px solid ${Q.red}55`,borderRadius:11,
+                border:`1px solid ${Q.red}55`,borderRadius:RADII.md,
                 padding:"14px",color:Q.red,fontSize:14,fontWeight:700,
                 cursor:"pointer",fontFamily:F_BODY}}>
               Cerrar sesión</button>
@@ -2690,7 +2690,7 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
               <>
                 <div style={{display:"flex",gap:10,marginBottom:14,
                   padding:"12px 14px",background:Q.card,
-                  border:`1px solid ${Q.border}`,borderRadius:11}}>
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md}}>
                   <div style={{flex:1}}>
                     <div style={{color:Q.muted,fontSize:12,
                       fontFamily:F_BODY}}>Apostado</div>
@@ -2781,7 +2781,7 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
             <button onClick={cambiarPass} disabled={proc}
               style={{width:"100%",marginTop:6,
                 background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-                border:"none",borderRadius:11,padding:"14px",
+                border:"none",borderRadius:RADII.md,padding:"14px",
                 color:inkOn(Q.violet, Q.cyan),fontSize:14,fontWeight:800,
                 cursor:"pointer",fontFamily:F_BODY}}>
               {proc?"Cambiando…":"Cambiar clave"}</button>
@@ -2933,7 +2933,7 @@ function CasinoWeb({ sesion, ancho, vivo }){
         onChange={e=>{ setBusq(e.target.value); setPagina(1); }}
         placeholder="Buscar juego…"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:10,
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,
           padding:"11px 13px",color:Q.text,fontSize:14,marginBottom:10,
           fontFamily:F_BODY}}/>
 
@@ -2943,7 +2943,7 @@ function CasinoWeb({ sesion, ancho, vivo }){
           <button onClick={()=>{ setMarca(null); setPagina(1); }}
             style={{background:!marca?`${Q.violet}33`:"transparent",
               border:`1px solid ${!marca?Q.violet:Q.border}`,
-              borderRadius:8,padding:"7px 13px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"7px 13px",cursor:"pointer",
               color:!marca?Q.cyan:Q.muted,fontSize:12,
               whiteSpace:"nowrap",flexShrink:0,
               fontFamily:F_BODY}}>Todos</button>
@@ -2956,7 +2956,7 @@ function CasinoWeb({ sesion, ancho, vivo }){
               <button key={m} onClick={()=>{ setMarca(m); setPagina(1); }}
                 style={{background:on?col:"rgba(255,255,255,0.05)",
                   border:`1px solid ${on?col:Q.border}`,
-                  borderRadius:9,padding:logo?"6px 13px":"9px 15px",
+                  borderRadius:RADII.md,padding:logo?"6px 13px":"9px 15px",
                   cursor:"pointer",display:"flex",alignItems:"center",
                   gap:7,color:on?"#fff":Q.muted,fontSize:12.5,
                   fontWeight:on?700:500,
@@ -2994,7 +2994,7 @@ function CasinoWeb({ sesion, ancho, vivo }){
           <div key={j.id} onClick={()=>abrir(j)}
             style={{cursor:"pointer",opacity:abriendo===j.id?0.5:1}}>
             <div style={{position:"relative",paddingTop:"100%",
-              borderRadius:10,overflow:"hidden",
+              borderRadius:RADII.md,overflow:"hidden",
               background:"rgba(255,255,255,0.05)"}}>
               {/* Las imágenes vienen del servidor del proveedor. Si
                   no cargan, en vez de un recuadro vacío se muestra el
@@ -3039,7 +3039,7 @@ function CasinoWeb({ sesion, ancho, vivo }){
       {visibles.length<filtrados.length&&(
         <button onClick={()=>setPagina(p=>p+1)}
           style={{width:"100%",marginTop:14,background:"transparent",
-            border:`1px solid ${Q.border}`,borderRadius:10,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"12px",color:Q.muted,fontSize:13,cursor:"pointer",
             fontFamily:F_BODY}}>
           Ver más ({(filtrados.length-visibles.length).toLocaleString("es-AR")} restantes)</button>
@@ -3132,7 +3132,7 @@ function DesafiosWeb({ sesion, ancho }){
       padding:"16px 14px 40px"}}>
       <div onClick={()=>setTab("iacoin")}
         style={{background:`linear-gradient(135deg,${Q.violet}22,${Q.cyan}11)`,
-          border:`1px solid ${Q.violet}55`,borderRadius:12,
+          border:`1px solid ${Q.violet}55`,borderRadius:RADII.lg,
           padding:"14px 16px",marginBottom:14,cursor:"pointer",
           display:"flex",justifyContent:"space-between",
           alignItems:"center"}}>
@@ -3147,7 +3147,7 @@ function DesafiosWeb({ sesion, ancho }){
               marginLeft:6,fontFamily:F_BODY}}>IACOIN</span></div>
         </div>
         <span style={{background:`${Q.cyan}22`,
-          border:`1px solid ${Q.cyan}66`,borderRadius:9,
+          border:`1px solid ${Q.cyan}66`,borderRadius:RADII.md,
           padding:"10px 16px",color:Q.cyan,fontSize:13,fontWeight:700,
           fontFamily:F_BODY}}>Comprar</span>
       </div>
@@ -3159,7 +3159,7 @@ function DesafiosWeb({ sesion, ancho }){
           <button key={k} onClick={()=>setTab(k)}
             style={{background:tab===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${tab===k?Q.violet:Q.border}`,
-              borderRadius:9,padding:"9px 15px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"9px 15px",cursor:"pointer",
               color:tab===k?Q.cyan:Q.muted,fontSize:13,
               fontWeight:tab===k?700:400,whiteSpace:"nowrap",
               fontFamily:F_BODY}}>{l}</button>
@@ -3235,11 +3235,11 @@ function ComentariosDesafio({ desafioId, user, onNuevo }){
           placeholder="Decí algo…"
           onKeyDown={e=>{ if(e.key==="Enter") enviar(); }}
           style={{flex:1,background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:8,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"8px 11px",color:Q.text,fontSize:12,minWidth:0}}/>
         <button onClick={enviar} disabled={proc||!texto.trim()}
           style={{background:`${Q.violet}33`,
-            border:`1px solid ${Q.violet}`,borderRadius:8,
+            border:`1px solid ${Q.violet}`,borderRadius:RADII.md,
             padding:"8px 13px",color:Q.cyan,fontSize:12,
             cursor:"pointer",flexShrink:0}}>→</button>
       </div>
@@ -3273,7 +3273,7 @@ function PulsoDesafiosWeb({ user, onVerMias }){
       {p.mis_tomados>0&&(
         <div onClick={onVerMias}
           style={{background:`linear-gradient(135deg,${Q.gold}22,${Q.violet}11)`,
-            border:`1px solid ${Q.gold}66`,borderRadius:11,
+            border:`1px solid ${Q.gold}66`,borderRadius:RADII.md,
             padding:"12px 14px",marginBottom:10,cursor:"pointer"}}>
           <div style={{color:Q.gold,fontSize:13,fontWeight:800,
             fontFamily:F_BODY}}>
@@ -3288,7 +3288,7 @@ function PulsoDesafiosWeb({ user, onVerMias }){
 
       <div style={{display:"flex",gap:7,marginBottom:10}}>
         <div style={{flex:1,background:"rgba(255,255,255,0.04)",
-          border:`1px solid ${Q.border}`,borderRadius:10,
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,
           padding:"9px 11px"}}>
           <div style={{color:p.conectados>0?Q.green:Q.dim,fontWeight:800,
             fontSize:17,fontFamily:F_BODY,
@@ -3302,7 +3302,7 @@ function PulsoDesafiosWeb({ user, onVerMias }){
             fontFamily:F_BODY}}>conectados</div>
         </div>
         <div style={{flex:1,background:"rgba(255,255,255,0.04)",
-          border:`1px solid ${Q.border}`,borderRadius:10,
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,
           padding:"9px 11px"}}>
           <div style={{color:Q.cyan,fontWeight:800,fontSize:17,
             fontFamily:F_BODY}}>{p.abiertos}</div>
@@ -3310,7 +3310,7 @@ function PulsoDesafiosWeb({ user, onVerMias }){
             fontFamily:F_BODY}}>esperando</div>
         </div>
         <div style={{flex:1,background:"rgba(255,255,255,0.04)",
-          border:`1px solid ${Q.border}`,borderRadius:10,
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,
           padding:"9px 11px"}}>
           <div style={{color:Q.gold,fontWeight:800,fontSize:17,
             fontFamily:F_BODY}}>{p.tomados_hoy}</div>
@@ -3321,7 +3321,7 @@ function PulsoDesafiosWeb({ user, onVerMias }){
 
       {p.actividad.length>0&&(
         <div style={{background:"rgba(255,255,255,0.03)",
-          border:`1px solid ${Q.border}`,borderRadius:11,
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,
           padding:"11px 13px"}}>
           <div style={{color:Q.muted,fontSize:12,letterSpacing:0.6,
             marginBottom:7,fontFamily:F_BODY}}>
@@ -3438,14 +3438,14 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
         <textarea value={texto} onChange={e=>setTexto(e.target.value)}
           placeholder="¿Qué vas a jugar hoy?" rows={2}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:10,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"11px 13px",color:Q.text,fontSize:14,resize:"none",
             fontFamily:F_BODY}}/>
         {texto.trim()&&(
           <button onClick={publicar} disabled={proc}
             style={{width:"100%",marginTop:7,
               background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-              border:"none",borderRadius:9,padding:"11px",color:inkOn(Q.violet, Q.cyan),
+              border:"none",borderRadius:RADII.md,padding:"11px",color:inkOn(Q.violet, Q.cyan),
               fontSize:13.5,fontWeight:700,cursor:"pointer",
               fontFamily:F_BODY}}>
             {proc?"Publicando…":"Publicar"}</button>
@@ -3458,7 +3458,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
             marginBottom:9,fontFamily:F_BODY}}>DESAFÍOS ESPERANDO</div>
           {abiertos.map(a=>(
             <div key={a.id} style={{background:Q.card,
-              border:`1px solid ${Q.gold}44`,borderRadius:12,
+              border:`1px solid ${Q.gold}44`,borderRadius:RADII.lg,
               padding:15,marginBottom:10}}>
               <div style={{color:Q.text,fontSize:14.5,fontWeight:600,
                 lineHeight:1.4,fontFamily:F_BODY}}>{a.titulo}</div>
@@ -3497,14 +3497,14 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
               {a.es_mio ? (
                 <div style={{marginTop:9,padding:"10px",textAlign:"center",
                   background:"rgba(255,255,255,0.03)",
-                  border:`1px dashed ${Q.border}`,borderRadius:9,
+                  border:`1px dashed ${Q.border}`,borderRadius:RADII.md,
                   color:Q.muted,fontSize:12,lineHeight:1.45}}>
                   Es tuyo · esperando que alguien lo tome</div>
               ) : (
               <button onClick={()=>aceptar(a.id)}
                 style={{width:"100%",marginTop:11,
                   background:`linear-gradient(135deg,${Q.gold},#c9a227)`,
-                  border:"none",borderRadius:10,padding:"12px",
+                  border:"none",borderRadius:RADII.md,padding:"12px",
                   color:inkOn(Q.gold, "#c9a227"),fontSize:14,fontWeight:800,
                   cursor:"pointer",fontFamily:F_BODY}}>
                 Aceptar el desafío</button>
@@ -3548,7 +3548,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
 
       {(posts||[]).map(p=>(
         <div key={p.id} style={{background:Q.card,
-          border:`1px solid ${Q.border}`,borderRadius:12,
+          border:`1px solid ${Q.border}`,borderRadius:RADII.lg,
           padding:15,marginBottom:10}}>
           <div style={{display:"flex",justifyContent:"space-between",
             alignItems:"baseline",marginBottom:6}}>
@@ -3641,12 +3641,12 @@ function ComentariosWeb({ postId, user, onNuevo }){
           placeholder="Comentar…"
           onKeyDown={e=>{ if(e.key==="Enter") enviar(); }}
           style={{flex:1,background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:8,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"9px 12px",color:Q.text,fontSize:13,minWidth:0,
             fontFamily:F_BODY}}/>
         <button onClick={enviar} disabled={proc||!texto.trim()}
           style={{background:`${Q.violet}33`,
-            border:`1px solid ${Q.violet}`,borderRadius:8,
+            border:`1px solid ${Q.violet}`,borderRadius:RADII.md,
             padding:"9px 15px",color:Q.cyan,fontSize:13,
             cursor:"pointer",flexShrink:0,fontFamily:F_BODY}}>→</button>
       </div>
@@ -3714,7 +3714,7 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:10,padding:"12px 14px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 14px",
     color:Q.text,fontSize:14.5,marginBottom:11,fontFamily:F_BODY};
 
   const nPongo=parseFloat(pongo)||0;
@@ -3770,7 +3770,7 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
 
       {pozo>0&&(
         <div style={{background:Q.card,border:`1px solid ${Q.border}`,
-          borderRadius:11,padding:15,marginBottom:14}}>
+          borderRadius:RADII.md,padding:15,marginBottom:14}}>
           <div style={{display:"flex",justifyContent:"space-between",
             fontSize:13,padding:"3px 0",fontFamily:F_BODY}}>
             <span style={{color:Q.muted}}>Pozo</span>
@@ -3797,7 +3797,7 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
 
       {coincidencias.length>0&&(
         <div style={{background:Q.card,border:`1px solid ${Q.gold}55`,
-          borderRadius:11,padding:15,marginBottom:14}}>
+          borderRadius:RADII.md,padding:15,marginBottom:14}}>
           <div style={{color:Q.gold,fontSize:13,fontWeight:700,
             marginBottom:8,fontFamily:F_BODY}}>
             Ya hay alguien esperando</div>
@@ -3816,7 +3816,7 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
                 vos {c.vos_ponés.toLocaleString("es-AR")}</div>
               <button onClick={()=>aceptarExistente(c.id)} disabled={proc}
                 style={{width:"100%",marginTop:7,background:`${Q.gold}22`,
-                  border:`1px solid ${Q.gold}`,borderRadius:9,
+                  border:`1px solid ${Q.gold}`,borderRadius:RADII.md,
                   padding:"10px",color:Q.gold,fontSize:13,fontWeight:700,
                   cursor:"pointer",fontFamily:F_BODY}}>
                 Tomar este</button>
@@ -3831,7 +3831,7 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
           background:(!titulo.trim()||!nPongo||!nPido)
             ?"rgba(255,255,255,0.06)"
             :`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-          border:"none",borderRadius:11,padding:"15px",
+          border:"none",borderRadius:RADII.md,padding:"15px",
           color:(!titulo.trim()||!nPongo||!nPido)?Q.dim:inkOn(Q.violet, Q.cyan),
           fontSize:15,fontWeight:800,cursor:proc?"default":"pointer",
           fontFamily:F_BODY}}>
@@ -3909,7 +3909,7 @@ function MisDesafiosWeb({ user, onCambio }){
         const e=ETIQUETA[d.estado]||{t:d.estado,c:Q.muted};
         return(
           <div key={d.id} style={{background:Q.card,
-            border:`1px solid ${Q.border}`,borderRadius:12,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.lg,
             padding:15,marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",
               alignItems:"flex-start",gap:10}}>
@@ -3922,7 +3922,7 @@ function MisDesafiosWeb({ user, onCambio }){
                   {d.rival&&` · contra ${d.rival}`} · {d.hace}</div>
               </div>
               <span style={{background:`${e.c}22`,
-                border:`1px solid ${e.c}66`,borderRadius:14,
+                border:`1px solid ${e.c}66`,borderRadius:RADII.lg,
                 padding:"3px 10px",fontSize:12,color:e.c,flexShrink:0,
                 whiteSpace:"nowrap",fontWeight:700,
                 fontFamily:F_BODY}}>{e.t}</span>
@@ -3931,7 +3931,7 @@ function MisDesafiosWeb({ user, onCambio }){
             {d.estado==="abierta"&&(
               <button onClick={()=>cancelar(d.id)}
                 style={{width:"100%",marginTop:11,background:"transparent",
-                  border:`1px solid ${Q.border}`,borderRadius:9,
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                   padding:"10px",color:Q.muted,fontSize:13,
                   cursor:"pointer",fontFamily:F_BODY}}>
                 Cancelar y recuperar mi saldo</button>
@@ -3948,19 +3948,19 @@ function MisDesafiosWeb({ user, onCambio }){
                   <button onClick={()=>declarar(d.id,
                       d.soy_creador?"creador":"aceptador")}
                     style={{flex:1,background:`${Q.green}18`,
-                      border:`1px solid ${Q.green}66`,borderRadius:9,
+                      border:`1px solid ${Q.green}66`,borderRadius:RADII.md,
                       padding:"10px",color:Q.green,fontSize:13,
                       fontWeight:700,cursor:"pointer",
                       fontFamily:F_BODY}}>Gané yo</button>
                   <button onClick={()=>declarar(d.id,
                       d.soy_creador?"aceptador":"creador")}
                     style={{flex:1,background:"transparent",
-                      border:`1px solid ${Q.border}`,borderRadius:9,
+                      border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                       padding:"10px",color:Q.muted,fontSize:13,
                       cursor:"pointer",fontFamily:F_BODY}}>Ganó él</button>
                   <button onClick={()=>declarar(d.id,"empate")}
                     style={{background:"transparent",
-                      border:`1px solid ${Q.border}`,borderRadius:9,
+                      border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                       padding:"10px 14px",color:Q.muted,fontSize:13,
                       cursor:"pointer",fontFamily:F_BODY}}>Empate</button>
                 </div>
@@ -3970,7 +3970,7 @@ function MisDesafiosWeb({ user, onCambio }){
             {d.disputa&&d.disputa_estado==="abierta"&&(
               <div style={{marginTop:11,padding:"11px 13px",
                 background:`${Q.gold}12`,border:`1px solid ${Q.gold}44`,
-                borderRadius:9,color:Q.gold,fontSize:12,lineHeight:1.55,
+                borderRadius:RADII.md,color:Q.gold,fontSize:12,lineHeight:1.55,
                 fontFamily:F_BODY}}>
                 No coincidieron. Lo está revisando nuestro equipo y te
                 avisamos. Tu saldo sigue retenido.</div>
@@ -4040,7 +4040,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
   return(
     <div>
       <div style={{background:Q.card,border:`1px solid ${Q.gold}44`,
-        borderRadius:12,padding:17,marginBottom:14}}>
+        borderRadius:RADII.lg,padding:17,marginBottom:14}}>
         <div style={{color:Q.muted,fontSize:12,letterSpacing:0.5,
           marginBottom:9,fontFamily:F_BODY}}>COTIZACIÓN</div>
         <div style={{display:"flex",gap:16}}>
@@ -4070,7 +4070,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
             style={{flex:1,
               background:modo===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${modo===k?Q.violet:Q.border}`,
-              borderRadius:10,padding:"11px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"11px",cursor:"pointer",
               color:modo===k?Q.cyan:Q.muted,fontSize:14,
               fontWeight:modo===k?700:400,
               fontFamily:F_BODY}}>{l}</button>
@@ -4088,7 +4088,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
         onChange={e=>setCantidad(e.target.value.replace(/[^\d.]/g,""))}
         placeholder="0"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:11,padding:"15px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"15px",
           color:Q.text,fontSize:23,fontWeight:700,textAlign:"center",
           marginBottom:11,fontFamily:F_NUM}}/>
 
@@ -4096,7 +4096,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
         {[10,50,100,500].map(v=>(
           <button key={v} onClick={()=>setCantidad(String(v))}
             style={{flex:1,background:"rgba(255,255,255,0.04)",
-              border:`1px solid ${Q.border}`,borderRadius:8,
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,
               padding:"9px 4px",cursor:"pointer",color:Q.muted,
               fontSize:12.5,fontFamily:F_BODY}}>{v}</button>
         ))}
@@ -4104,7 +4104,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
 
       {n>0&&(
         <div style={{background:Q.card,border:`1px solid ${Q.border}`,
-          borderRadius:11,padding:15,marginBottom:14}}>
+          borderRadius:RADII.md,padding:15,marginBottom:14}}>
           <div style={{display:"flex",justifyContent:"space-between",
             fontSize:14,fontFamily:F_BODY}}>
             <span style={{color:Q.muted}}>
@@ -4127,7 +4127,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
         style={{width:"100%",
           background:!n?"rgba(255,255,255,0.06)"
             :`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-          border:"none",borderRadius:11,padding:"15px",
+          border:"none",borderRadius:RADII.md,padding:"15px",
           color:!n?Q.dim:inkOn(Q.violet, Q.cyan),fontSize:15,fontWeight:800,
           cursor:proc?"default":"pointer",fontFamily:F_BODY}}>
         {proc?"Procesando…":(modo==="comprar"?"Comprar IACOIN":"Vender IACOIN")}
@@ -4135,7 +4135,7 @@ function PanelIacoinWeb({ user, saldo, onCambio }){
 
       {(saldo?.movimientos||[]).length>0&&(
         <div style={{background:Q.card,border:`1px solid ${Q.border}`,
-          borderRadius:11,padding:15,marginTop:16}}>
+          borderRadius:RADII.md,padding:15,marginTop:16}}>
           <div style={{color:Q.muted,fontSize:12,letterSpacing:0.5,
             marginBottom:9,fontFamily:F_BODY}}>ÚLTIMOS MOVIMIENTOS</div>
           {saldo.movimientos.map((m,i)=>(
@@ -4197,7 +4197,7 @@ function AvisosBanner({ destino, agenciaCode }){
 
   return(
     <div style={{background:`${c}12`,border:`1px solid ${c}44`,
-      borderRadius:10,padding:"10px 12px",marginBottom:10,
+      borderRadius:RADII.md,padding:"10px 12px",marginBottom:10,
       display:"flex",alignItems:"flex-start",gap:9}}>
       <div style={{minWidth:0,flex:1}}>
         <div style={{color:c,fontWeight:700,fontSize:12}}>{a.titulo}</div>
@@ -4210,7 +4210,7 @@ function AvisosBanner({ destino, agenciaCode }){
         {visibles.length>1&&(
           <div style={{display:"flex",gap:3}}>
             {visibles.map((_,k)=>(
-              <span key={k} style={{width:5,height:5,borderRadius:3,
+              <span key={k} style={{width:5,height:5,borderRadius:RADII.sm,
                 background:k===i?c:Q.border}}/>
             ))}
           </div>
@@ -4272,17 +4272,17 @@ function Ingresar({ onEntro, onCerrar }){
             onKeyDown={e=>e.key==="Enter"&&entrar()}
             placeholder="Usuario" aria-label="Usuario" autoCapitalize="none"
             style={{width:"100%",background:Q.inset,
-              border:`1px solid ${Q.border}`,borderRadius:8,
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,
               padding:"11px 13px",color:Q.text,fontSize:15,marginBottom:9}}/>
           <input value={clave} onChange={e=>setClave(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&entrar()}
             type="password" placeholder="Clave" aria-label="Clave"
             style={{width:"100%",background:Q.inset,
-              border:`1px solid ${Q.border}`,borderRadius:8,
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,
               padding:"11px 13px",color:Q.text,fontSize:15,marginBottom:12}}/>
 
           {err&&<div style={{background:`${Q.red}1A`,
-            border:`1px solid ${Q.red}`,borderRadius:8,padding:"9px 11px",
+            border:`1px solid ${Q.red}`,borderRadius:RADII.md,padding:"9px 11px",
             marginBottom:11,fontSize:12.5}}>{err}</div>}
 
           <button onClick={entrar} disabled={proc} style={_btnPrim()}>
@@ -4337,7 +4337,7 @@ function ConsultarBoleto({ onCerrar }){
             onKeyDown={e=>e.key==="Enter"&&buscar()}
             placeholder="QP-12345" aria-label="Código del boleto"
             style={{width:"100%",background:Q.inset,border:`1px solid ${Q.border}`,
-              borderRadius:8,padding:"12px 14px",color:Q.text,fontFamily:F_NUM,
+              borderRadius:RADII.md,padding:"12px 14px",color:Q.text,fontFamily:F_NUM,
               fontSize:22,fontWeight:600,letterSpacing:1.5,textAlign:"center"}}/>
           <button onClick={buscar} disabled={busca} style={{..._btnPrim(),marginTop:11}}>
             {busca?"Buscando…":"Buscar"}</button>
@@ -4374,12 +4374,12 @@ function ConsultarBoleto({ onCerrar }){
 
 // ── Estilos compartidos ───────────────────────────────────────
 const _panel=()=>({background:Q.surface,border:`1px solid ${Q.border}`,
-  borderRadius:10,overflow:"hidden"});
+  borderRadius:RADII.md,overflow:"hidden"});
 const _phead=()=>({padding:"11px 14px",fontFamily:F_NUM,fontSize:15,fontWeight:600,
   letterSpacing:".08em",textTransform:"uppercase",color:Q.muted,
   borderBottom:`1px solid ${Q.border}`});
 const _btnPrim=()=>({width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
-  border:"none",borderRadius:8,padding:"13px",color:inkOn(Q.violet, Q.violet2),fontSize:14,
+  border:"none",borderRadius:RADII.md,padding:"13px",color:inkOn(Q.violet, Q.violet2),fontSize:14,
   fontWeight:700,cursor:"pointer",fontFamily:F_BODY});
 const _btnGhost=()=>({width:"100%",background:"transparent",border:"none",
   color:Q.muted,fontSize:12.5,padding:"8px",cursor:"pointer",fontFamily:F_BODY});
@@ -4663,14 +4663,14 @@ export default function Web(){
             fontFamily:F_BODY}}>Modo mostrador</span>
         ) : (
           <button onClick={()=>setLogin(true)} style={{background:"transparent",
-            border:`1px solid ${Q.violet}`,borderRadius:7,padding:"8px 15px",
+            border:`1px solid ${Q.violet}`,borderRadius:RADII.sm,padding:"8px 15px",
             color:Q.cyan,fontSize:12.5,fontWeight:700,cursor:"pointer",
             whiteSpace:"nowrap"}}>Ingresar</button>
         )}
 
         {ancho&&(
           <button onClick={()=>setConsultar(true)} style={{background:"transparent",
-            border:`1px solid ${Q.border}`,borderRadius:7,padding:"8px 14px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.sm,padding:"8px 14px",
             color:Q.muted,fontSize:12.5,fontWeight:600,cursor:"pointer",
             whiteSpace:"nowrap"}}>Consultar boleto</button>
         )}
@@ -4930,12 +4930,12 @@ export default function Web(){
           left:12,right:12,
           // Arriba de la barra de navegación, no encima
           bottom:"calc(76px + env(safe-area-inset-bottom))",
-          zIndex:150,border:"none",borderRadius:11,cursor:"pointer",
+          zIndex:150,border:"none",borderRadius:RADII.md,cursor:"pointer",
           padding:"13px 16px",display:"flex",alignItems:"center",gap:12,
           background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
           boxShadow:"0 8px 28px rgba(0,0,0,.55)",fontFamily:F_BODY}}>
           <span style={{background:Q.goldBg,color:inkOn(Q.goldBg),fontSize:12,
-            fontWeight:700,borderRadius:5,padding:"2px 8px"}}>{picks.length}</span>
+            fontWeight:700,borderRadius:RADII.sm,padding:"2px 8px"}}>{picks.length}</span>
           <span style={{color:inkOn(Q.violet,Q.violet2),fontWeight:700,fontSize:13.5,flex:1,
             textAlign:"left"}}>Ver mi boleto</span>
           <span style={{fontFamily:F_NUM,fontSize:21,fontWeight:700,
@@ -4965,7 +4965,7 @@ export default function Web(){
         marginBottom:!ancho&&picks.length?70:0,padding:"22px 18px",
         textAlign:"center",color:Q.dim,fontSize:12,lineHeight:1.7}}>
         <button onClick={()=>setConsultar(true)} style={{background:"transparent",
-          border:`1px solid ${Q.border}`,borderRadius:7,padding:"9px 16px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.sm,padding:"9px 16px",
           color:Q.muted,fontSize:12.5,fontWeight:600,cursor:"pointer",
           marginBottom:14,fontFamily:F_BODY}}>Consultar un boleto</button>
 
@@ -4975,7 +4975,7 @@ export default function Web(){
         {sesion?.user?.id&&(
           <button onClick={()=>setVerJR(true)}
             style={{background:"transparent",
-              border:`1px solid ${Q.border}`,borderRadius:7,
+              border:`1px solid ${Q.border}`,borderRadius:RADII.sm,
               padding:"9px 16px",color:Q.muted,fontSize:12.5,
               fontWeight:600,cursor:"pointer",marginBottom:14,
               marginLeft:8,fontFamily:F_BODY}}>
@@ -5005,7 +5005,7 @@ export default function Web(){
 function chip(activo){
   return {display:"flex",alignItems:"center",gap:7,flexShrink:0,
     background:activo?`linear-gradient(135deg,${Q.violet},${Q.violet2})`:Q.surface,
-    border:`1px solid ${activo?"transparent":Q.border}`,borderRadius:999,
+    border:`1px solid ${activo?"transparent":Q.border}`,borderRadius:RADII.full,
     padding:"8px 15px",fontSize:12.5,fontWeight:600,cursor:"pointer",
     color:activo?inkOn(Q.violet, Q.violet2):Q.muted,whiteSpace:"nowrap",fontFamily:F_BODY};
 }
