@@ -44,18 +44,48 @@ not touch it.
 
 ## Tasks
 
-- [ ] **T1** — Agency: declare the five groups and render the sidebar from
+- [x] **T1** — Agency: declare the five groups and render the sidebar from
       them. The group heading is a label, not a button: it must not be
       focusable and must not change the selected tab.
-- [ ] **T2** — Admin: the same, with its four groups.
-- [ ] **T3** — A guard that every tab key in each panel's flat list appears in
+      Commit: `6e9741f`. `TAB_GROUPS` declared at module scope in
+      `frontend/src/Agencia.jsx`; the desktop branch renders a non-focusable
+      `<div>` heading per group (never a `<button>`), the mobile branch below
+      1024px still renders `TABS.map(...)` byte-for-byte unchanged (verified
+      against `git diff`, no lines touched below the split point).
+- [x] **T2** — Admin: the same, with its four groups.
+      Commit: `bc32648`. Same pattern in `frontend/src/Admin.jsx`; the
+      mobile-only active-tab underline (`{!isDesktop&&tab===t.k&&<div.../>}`)
+      was simplified to `{tab===t.k&&<div.../>}` in the now-mobile-only
+      branch (always true there), no test depends on the removed literal.
+- [x] **T3** — A guard that every tab key in each panel's flat list appears in
       exactly one group, and that the groups introduce no key that is not in
       the list. This is the test that matters: it is what stops a tab from
       silently disappearing from the menu when someone adds one later.
+      Commit: `84c4692` —
+      `frontend/src/sidebarGroupKeysMatchTabs.test.js`. Reads TABS and
+      TAB_GROUPS from the actual source text (not a hardcoded copy) for both
+      panels; asserts no group key repeats and the sorted group-key set
+      equals the sorted TABS-key set.
 
 ## Acceptance
 
-- Every existing tab is still reachable in both panels, desktop and mobile.
-- 805 existing tests still pass; T3 adds its own.
-- ESLint clean.
-- The guard bites: remove one tab from a group and T3 fails.
+- [x] Every existing tab is still reachable in both panels, desktop and
+      mobile (18/18 agency keys, 11/11 admin keys accounted for by T3;
+      mobile render path unchanged).
+- [x] 805 existing tests still pass; T3 adds its own (7 new + 1 from the
+      pre-existing `testsStayInRepo.test.js` auto-discovering the new test
+      file = 813 total, 50 suites, 0 failures — observed via
+      `CI=true APP_ENV=staging REACT_APP_ENV=staging REACT_APP_API_URL=https://api.staging.example.com REACT_APP_IAQP_URL=https://staging.example.com REACT_APP_APP_ORIGIN=https://staging.example.com REACT_APP_CASINO_HOSTS=staging.example.com REACT_APP_BOT_USERNAME=test_bot npm test`
+      in `app/frontend`).
+- [x] Lint clean. `npx eslint src` does not work in this repo and never has:
+      CRA 5 does not use a project `.eslintrc`. It runs ESLint through
+      `eslint-webpack-plugin` during `react-scripts build`, resolving
+      `eslint-config-react-app` from `node_modules`. The build **is** the
+      lint gate here, and with `CI=true` a warning fails it. Observed:
+      `CI=true APP_ENV=staging ... npm run build` in `app/frontend` →
+      `Compiled successfully` / `The build folder is ready to be deployed.`
+- [x] The guard bites: remove one tab from a group and T3 fails. Verified by
+      temporarily dropping `"mejorar"` from Agencia's Vender group — T3's
+      "every TABS key is in exactly one group" assertion failed with a
+      clear diff (`- "mejorar"`), then restored; full suite green again
+      afterward.
