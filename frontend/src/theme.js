@@ -144,6 +144,19 @@ export function inkOn(...background){
 // single-family design and the condensed face (`Barlow Condensed`) was
 // never part of the brand; both the number/title face and the body face
 // become Poppins, with the same system fallback the screens used before.
+// `F_MONO` is for a figure being composed or counted, not merely printed:
+// the amount on a cash keypad, a POS key, a code being read back. It is the
+// platform's own monospace stack, so it costs no bytes and is present
+// everywhere. Paired with `font-variant-numeric: tabular-nums`, the digits
+// stop shifting width as a number changes, which is what makes an amount
+// readable while it is being typed.
+//
+// Not to be confused with `F_NUM` below, which is currently the same family
+// as `F_BODY` — a numeric token that exists by name only, the same way
+// `dark`, `surface` and `card` all held one colour before `raised` arrived.
+export const F_MONO =
+  "ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace";
+
 export const F_NUM = "'Poppins',system-ui,sans-serif";
 export const F_BODY = "'Poppins',system-ui,sans-serif";
 

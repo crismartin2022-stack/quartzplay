@@ -74,7 +74,16 @@ describe("an outline button is a surface, not a frame", () => {
     expect(sources[name]).toMatch(/border:outline&&!disabled\?"none"/);
   });
 
+  // The surface has to be a step ABOVE whatever the button is sitting on,
+  // not a fixed colour. `Q.raised` was fixed, and inside a card that was
+  // itself raised the button and its container came out the same shade —
+  // the owner reported the button had vanished into the card. A
+  // translucent white overlay steps up from any surface underneath.
   test.each(PANELS)("%s gives an outline button a surface to sit on", (name) => {
-    expect(sources[name]).toMatch(/outline\?Q\.raised:/);
+    expect(sources[name]).toMatch(/outline\?"rgba\(255,255,255,0\.06\)":/);
+  });
+
+  test.each(PANELS)("%s does not pin that surface to one fixed colour", (name) => {
+    expect(sources[name]).not.toMatch(/outline\?Q\.raised:/);
   });
 });

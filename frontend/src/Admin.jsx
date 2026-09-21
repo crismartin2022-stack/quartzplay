@@ -4,10 +4,11 @@
 import { useState, useRef, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
-import { oscuro as Q, F_BODY, RADII, SPACING, TEXT , ELEVATION } from "./theme";
+import { oscuro as Q, F_BODY, F_MONO, RADII, SPACING, TEXT , ELEVATION } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import PageHeader from "./PageHeader";
+import LineaTiempo from "./LineaTiempo";
 import { Zap, Gift, Handshake, Video, ArrowLeftRight, Ban, Banknote, Bell, Bot, Building2, Calendar, CalendarDays, CircleOff, Coins, Dices, Disc, Eye, Flame, FlaskConical, Gamepad2, GitBranch, Globe, Hand, Headphones, Image as ImageIcon, Inbox, Key, Link, Lock, Mail, Megaphone, MessageSquare, Monitor, PartyPopper, PenLine, Pencil, Plug, Printer, RefreshCw, Rocket, RotateCcw, Save, Scale, Shield, Smartphone, Star, Stethoscope, Store, Target, Trash2, TrendingDown, Volume2, VolumeX, Wrench } from "lucide-react";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 
@@ -85,7 +86,7 @@ function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=fa
       // whole complaint. A secondary action reads perfectly well as a
       // raised surface with a coloured label: the colour still says what
       // kind of action it is, without drawing a frame around it.
-      background:disabled?"rgba(255,255,255,0.04)":outline?Q.raised:`linear-gradient(135deg,${color},${color}CC)`,
+      background:disabled?"rgba(255,255,255,0.04)":outline?"rgba(255,255,255,0.06)":`linear-gradient(135deg,${color},${color}CC)`,
       border:outline&&!disabled?"none":`1px solid ${disabled?Q.dim:color}`, borderRadius:RADII.md,
       color:disabled?Q.muted:outline?color:"#fff",
       fontSize:fs, fontWeight:700, cursor:disabled?"not-allowed":"pointer",
@@ -294,6 +295,27 @@ function TabCierre({ adminKey, onNoAutorizado }){
   },[vista,desde,hasta,filtroAg]);
 
   useEffect(()=>{ if(vista==="combos") cargarCombos(); // eslint-disable-next-line
+  },[vista,desde,hasta,filtroAg]);
+
+  // Serie de apostado para el resumen: el cierre es, ante todo, un
+  // período de tiempo, y el resumen ya lo describe con totales fijos.
+  // Una línea de tendencia sobre ese mismo rango le da al total algo
+  // que un número solo no puede: si el período mejoró o empeoró.
+  const [serie,setSerie]=useState(null);
+  const [cargSerie,setCargSerie]=useState(false);
+
+  const cargarSerie=async()=>{
+    setCargSerie(true);
+    try{
+      const q=`metrica=apostado&desde=${desde}&hasta=${hasta}`+(filtroAg?`&agencia=${filtroAg}`:"");
+      const r=await fetch(`${API}/api/admin/serie?${q}`,
+        {headers:adminHeaders(adminKey)});
+      if(r.status===401){ onNoAutorizado(); return; }
+      if(r.ok) setSerie((await r.json()).puntos||[]);
+    }catch(e){}
+    setCargSerie(false);
+  };
+  useEffect(()=>{ if(vista==="resumen") cargarSerie(); // eslint-disable-next-line
   },[vista,desde,hasta,filtroAg]);
   const [clientesF,setClientesF]=useState([]);     // clientes de la agencia elegida
   const [filtroCli,setFiltroCli]=useState("");     // cliente elegido ("" = todos)
@@ -803,6 +825,26 @@ function TabCierre({ adminKey, onNoAutorizado }){
 
       {data&&(
         <div>
+          {/* Cierre is, above all, a time window: the totals below fix one
+              number per figure, but say nothing about whether the period
+              trended up or down within itself. The chart reads the exact
+              desde/hasta already chosen above, no second date control. */}
+          <GCard style={{padding:SPACING[16],marginBottom:12}}>
+            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
+              letterSpacing:1,marginBottom:2,fontFamily:F_BODY}}>Apostado deportivo por día</div>
+            {/* The /serie endpoint sums sports only (_calcular_ggr) — the
+                casino/ruleta cascade above is not groupable by day cheaply
+                yet. Labelling this the same as the total above it, or
+                omitting the difference, would read as a wrong total. */}
+            <div style={{color:Q.dim,fontSize:12,marginBottom:8,
+              fontFamily:F_BODY}}>Serie solo deportivas; el total de arriba incluye casino.</div>
+            {cargSerie&&serie===null
+              ? <div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:SPACING[20],
+                  fontFamily:F_BODY}}>Cargando tendencia...</div>
+              : <LineaTiempo puntos={serie||[]} color={Q.cyan} formato={ars}
+                  etiqueta="Apostado deportivo por día"/>}
+          </GCard>
+
           <GCard style={{padding:SPACING[16],marginBottom:12,
             background:`linear-gradient(135deg,${Q.violet}12,${Q.cyan}06)`}}>
             <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
@@ -1270,6 +1312,15 @@ function TabCierre({ adminKey, onNoAutorizado }){
   );
 }
 
+// TabGlobal has no other date state to reuse — every other tab already
+// carries a desde/hasta the chart can read, but this one is a snapshot
+// dashboard. So this is the one screen where the chart needs its own
+// period selector rather than reusing a control that doesn't exist yet.
+const RANGOS_GLOBAL = [
+  ["semana","Semana"],["mes","Mes"],["trimestre","Trimestre"],
+  ["semestre","Semestre"],["año","Año"],["custom","Personalizado"],
+];
+
 function TabGlobal({ adminKey, onNoAutorizado, onIr }){
   const [r,setR]=useState(null);
   const [ags,setAgs]=useState([]);
@@ -1290,6 +1341,41 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
     }catch(e){ setErr("Sin conexión con el servidor"); }
   })(); // eslint-disable-next-line
   },[]);
+
+  // Período de la tendencia: no hay "últimas 24h" a propósito — el dueño
+  // la descartó y, de todos modos, un cubo por día no puede servirla.
+  const [periodo,setPeriodo]=useState("mes");
+  const [customDesde,setCustomDesde]=useState(()=>{
+    const d=new Date(); d.setMonth(d.getMonth()-1); return d.toISOString().slice(0,10);
+  });
+  const [customHasta,setCustomHasta]=useState(()=>new Date().toISOString().slice(0,10));
+  const [serieG,setSerieG]=useState(null);
+  const [cargSerieG,setCargSerieG]=useState(false);
+
+  const rangoDe=(tipo)=>{
+    const hoy=new Date(); let d=new Date();
+    if(tipo==="semana") d.setDate(hoy.getDate()-7);
+    else if(tipo==="mes") d.setMonth(hoy.getMonth()-1);
+    else if(tipo==="trimestre") d.setMonth(hoy.getMonth()-3);
+    else if(tipo==="semestre") d.setMonth(hoy.getMonth()-6);
+    else if(tipo==="año") d.setFullYear(hoy.getFullYear()-1);
+    const iso=x=>x.toISOString().slice(0,10);
+    return [iso(d),iso(hoy)];
+  };
+  const [desdeG,hastaG]=periodo==="custom"?[customDesde,customHasta]:rangoDe(periodo);
+
+  const cargarSerieG=async()=>{
+    setCargSerieG(true);
+    try{
+      const q=`metrica=neto_caja&desde=${desdeG}&hasta=${hastaG}`;
+      const r=await fetch(`${API}/api/admin/serie?${q}`,{headers:adminHeaders(adminKey)});
+      if(r.status===401){ onNoAutorizado(); return; }
+      if(r.ok) setSerieG((await r.json()).puntos||[]);
+    }catch(e){}
+    setCargSerieG(false);
+  };
+  useEffect(()=>{ cargarSerieG(); // eslint-disable-next-line
+  },[desdeG,hastaG]);
 
   const tipoTxt={carga:"Carga",retiro:"Retiro",pago_premio:"Premio",ajuste:"Ajuste"};
   const tipoColor={carga:Q.green,retiro:Q.amber,pago_premio:Q.violet2,ajuste:Q.muted};
@@ -1327,14 +1413,56 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
         </div>
       </GCard>
 
+      {/* The only KPI here with a trend worth seeing: this is the tab an
+          admin opens to judge how the business is doing, not just today's
+          snapshot, so it earns the one period selector this screen has. */}
+      <GCard style={{padding:SPACING[16],marginBottom:12}}>
+        <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
+          marginBottom:10,fontFamily:F_BODY}}>Neto en caja por día</div>
+        <div style={{display:"flex",gap:SPACING[8],marginBottom:12,flexWrap:"wrap"}}>
+          {RANGOS_GLOBAL.map(([k,l])=>(
+            <button key={k} onClick={()=>setPeriodo(k)} style={{flex:"1 1 auto",
+              background:periodo===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
+              border:`1px solid ${periodo===k?Q.violet:Q.border}`,borderRadius:RADII.md,
+              padding:"8px",cursor:"pointer",color:periodo===k?Q.cyan:Q.muted,
+              fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
+          ))}
+        </div>
+        {periodo==="custom"&&(
+          <div style={{display:"flex",gap:SPACING[8],marginBottom:12,alignItems:"center"}}>
+            <input type="date" value={customDesde} onChange={e=>setCustomDesde(e.target.value)}
+              style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
+                borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:13,
+                fontFamily:F_BODY}}/>
+            <span style={{color:Q.muted}}>→</span>
+            <input type="date" value={customHasta} onChange={e=>setCustomHasta(e.target.value)}
+              style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
+                borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:13,
+                fontFamily:F_BODY}}/>
+          </div>
+        )}
+        {cargSerieG&&serieG===null
+          ? <div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:SPACING[20],
+              fontFamily:F_BODY}}>Cargando tendencia...</div>
+          : <LineaTiempo puntos={serieG||[]} color={Q.green} formato={ars}
+              etiqueta="Neto en caja por día"/>}
+      </GCard>
+
+      {/* Small single-figure stats used to sit in a `flex:1` row: with
+          only one of the two present it stretched to the full content
+          width to say one number. An auto-fit grid gives two columns
+          when both stats exist and lets a lone one settle at a sane
+          card width instead of the whole row. */}
       {(r.boletos_pendientes>0||r.sin_liquidar>0)&&(
-        <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
-          {r.boletos_pendientes>0&&<GCard style={{padding:SPACING[12],flex:1,textAlign:"center"}}>
+        <div style={{display:"grid",
+          gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",
+          gap:SPACING[12],marginBottom:12}}>
+          {r.boletos_pendientes>0&&<GCard style={{padding:SPACING[12],textAlign:"center"}}>
             <div style={{color:Q.amber,fontWeight:700,fontSize:18,
               fontFamily:F_BODY}}>{r.boletos_pendientes}</div>
             <div style={{color:Q.muted,fontSize:12}}>boletos sin cobrar</div>
           </GCard>}
-          {r.sin_liquidar>0&&<GCard style={{padding:SPACING[12],flex:1,textAlign:"center"}}>
+          {r.sin_liquidar>0&&<GCard style={{padding:SPACING[12],textAlign:"center"}}>
             <div style={{color:Q.cyan,fontWeight:700,fontSize:18,
               fontFamily:F_BODY}}>{r.sin_liquidar}</div>
             <div style={{color:Q.muted,fontSize:12}}>sin liquidar</div>
@@ -1342,48 +1470,52 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
         </div>
       )}
 
-      <GCard style={{padding:SPACING[16],marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
-          fontFamily:F_BODY}}><Store size={13}/> Agencias hoy</div>
-        {ags.length===0&&<div style={{color:Q.muted,fontSize:12,
-          fontFamily:F_BODY}}>Sin agencias</div>}
-        {ags.map((a,i)=>(
-          <div key={a.code} onClick={()=>onIr&&onIr("agencias")}
-            style={{display:"flex",justifyContent:"space-between",cursor:"pointer",
-            alignItems:"center",padding:"8px 0",
-            borderBottom:i<ags.length-1?`1px solid ${Q.dim}`:"none"}}>
-            <div>
-              <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                fontFamily:F_BODY}}>{a.name} ›</div>
-              <div style={{color:Q.muted,fontSize:12}}>{a.code} · {a.tickets_hoy} tickets hoy</div>
-            </div>
-            <div style={{color:Q.green,fontWeight:700,fontSize:13,
-              fontFamily:F_BODY}}>{ars(a.cobrado_hoy)}</div>
+      {/* No GCard here on purpose: a rounded box per row-list is one
+          more block for the eye to parse on a screen that is already
+          mostly cards. The rows sit straight on the page background,
+          separated by a hairline instead, and the type goes up a step
+          since there is no card padding fighting it for room. */}
+      <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+        textTransform:"uppercase",marginBottom:SPACING[12],
+        fontFamily:F_BODY}}><Store size={13}/> Agencias hoy</div>
+      {ags.length===0&&<div style={{color:Q.muted,fontSize:12,marginBottom:SPACING[24],
+        fontFamily:F_BODY}}>Sin agencias</div>}
+      {ags.map((a,i)=>(
+        <div key={a.code} onClick={()=>onIr&&onIr("agencias")}
+          style={{display:"flex",justifyContent:"space-between",cursor:"pointer",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<ags.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
+              fontFamily:F_BODY}}>{a.name} ›</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>{a.code} · {a.tickets_hoy} tickets hoy</div>
           </div>
-        ))}
-      </GCard>
+          <div style={{color:Q.green,fontWeight:700,fontSize:TEXT[16],flexShrink:0,
+            fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(a.cobrado_hoy)}</div>
+        </div>
+      ))}
 
-      <GCard style={{padding:SPACING[16]}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
-          fontFamily:F_BODY}}><Banknote size={13}/> Últimos movimientos</div>
-        {movs.length===0&&<div style={{color:Q.muted,fontSize:12,
-          fontFamily:F_BODY}}>Sin movimientos</div>}
-        {movs.map((m,i)=>(
-          <div key={i} style={{display:"flex",justifyContent:"space-between",
-            alignItems:"center",padding:"8px 0",
-            borderBottom:i<movs.length-1?`1px solid ${Q.dim}`:"none"}}>
-            <div style={{minWidth:0,flex:1}}>
-              <span style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
-                fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</span>
-              <span style={{color:Q.muted,fontSize:12}}> · {m.agencia} · {m.usuario}</span>
-              <div style={{color:Q.dim,fontSize:12}}>{m.fecha}</div>
-            </div>
-            <div style={{color:m.tipo==="retiro"||m.tipo==="pago_premio"?Q.amber:Q.green,
-              fontWeight:700,fontSize:13,flexShrink:0,
-              fontFamily:F_BODY}}>{ars(m.monto)}</div>
+      <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+        textTransform:"uppercase",marginTop:SPACING[24],marginBottom:SPACING[12],
+        fontFamily:F_BODY}}><Banknote size={13}/> Últimos movimientos</div>
+      {movs.length===0&&<div style={{color:Q.muted,fontSize:12,
+        fontFamily:F_BODY}}>Sin movimientos</div>}
+      {movs.map((m,i)=>(
+        <div key={i} style={{display:"flex",justifyContent:"space-between",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<movs.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:600,fontSize:TEXT[15],
+              fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>{m.agencia} · {m.usuario} · {m.fecha}</div>
           </div>
-        ))}
-      </GCard>
+          <div style={{color:m.tipo==="retiro"||m.tipo==="pago_premio"?Q.amber:Q.green,
+            fontWeight:700,fontSize:TEXT[16],flexShrink:0,
+            fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(m.monto)}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -2363,30 +2495,34 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
               </div>
               <div style={{marginTop:12,paddingTop:SPACING[12],borderTop:`1px solid ${Q.dim}`,
                 display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{color:Q.muted,fontSize:12,
-                  fontFamily:F_BODY}}>Saldo actual</span>
+                <span style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+                  gap:SPACING[4],fontFamily:F_BODY}}><Icon name="wallet-cards" size={13}/> Saldo actual</span>
                 <span style={{color:Q.green,fontWeight:900,fontSize:24,
                   fontFamily:F_BODY}}>{ars(f.saldo)}</span>
               </div>
             </GCard>
 
-            {/* Rendimiento */}
+            {/* Rendimiento — an icon per figure so this reads as three
+                distinct metrics at a glance, not a row of plain numbers. */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
               <GCard level={2} style={{padding:"12px",textAlign:"center"}}>
                 <div style={{color:Q.cyan,fontWeight:700,fontSize:14,
                   fontFamily:F_BODY}}>{ars(f.rendimiento.apostado)}</div>
-                <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
+                <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+                  justifyContent:"center",gap:SPACING[4]}}><Icon name="ticket" size={12}/> Apostado</div>
               </GCard>
               <GCard level={2} style={{padding:"12px",textAlign:"center"}}>
                 <div style={{color:Q.violet2,fontWeight:700,fontSize:14,
                   fontFamily:F_BODY}}>{ars(f.rendimiento.ganado)}</div>
-                <div style={{color:Q.muted,fontSize:12}}>Ganado</div>
+                <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+                  justifyContent:"center",gap:SPACING[4]}}><Icon name="trophy" size={12}/> Ganado</div>
               </GCard>
               <GCard level={2} style={{padding:"12px",textAlign:"center"}}>
                 <div style={{color:f.rendimiento.neto_cliente>=0?Q.green:Q.red,
                   fontWeight:700,fontSize:14,fontFamily:F_BODY}}>
                   {ars(f.rendimiento.neto_cliente)}</div>
-                <div style={{color:Q.muted,fontSize:12}}>Neto</div>
+                <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+                  justifyContent:"center",gap:SPACING[4]}}><Scale size={12}/> Neto</div>
               </GCard>
             </div>
             <div style={{display:"flex",gap:SPACING[8],marginBottom:14,
@@ -2514,10 +2650,10 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                     color:Q.text,fontSize:14,marginBottom:10,
                     fontFamily:F_BODY}}/>
                 <div style={{display:"flex",gap:SPACING[8]}}>
-                  <Btn label="− Retirar" onClick={()=>mover(-1)} color={Q.amber}
-                    outline full disabled={operando}/>
                   <Btn label="+ Cargar" onClick={()=>mover(1)} color={Q.green}
                     full disabled={operando}/>
+                  <Btn label="− Retirar" onClick={()=>mover(-1)} color={Q.amber}
+                    outline full disabled={operando}/>
                 </div>
               </GCard>
             )}
@@ -2531,12 +2667,12 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                     Bloqueado por {f.bloqueado_por||"—"}
                     {f.bloqueado_motivo?` · ${f.bloqueado_motivo}`:""}</div>
                   {/* Unblocking, resetting the password and reassigning the agency are independent one-tap actions, so they share a line */}
-                  <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-                    <div style={{flex:"1 1 auto",minWidth:170}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+                    <div>
                       <Btn label="Desbloquear cliente" onClick={toggleBloqueo}
                         color={Q.green} full disabled={operando}/>
                     </div>
-                    <div style={{flex:"1 1 auto",minWidth:190}}>
+                    <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                         color={Q.amber} outline full/>
                     </div>
@@ -2567,8 +2703,8 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                   </div>
                   <div style={{height:8}}/>
                   {/* Reset and agency reassignment are unrelated to this confirmation, so they get their own line below it */}
-                  <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-                    <div style={{flex:"1 1 auto",minWidth:190}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+                    <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                         color={Q.amber} outline full/>
                     </div>
@@ -2580,12 +2716,12 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
               ):(
                 <div>
                   {/* Blocking is destructive but is still a quick account action like the other two, so it shares the line too — flagged in the change report */}
-                  <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-                    <div style={{flex:"1 1 auto",minWidth:170}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+                    <div>
                       <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
                         color={Q.red} outline full disabled={operando}/>
                     </div>
-                    <div style={{flex:"1 1 auto",minWidth:190}}>
+                    <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                         color={Q.amber} outline full/>
                     </div>
@@ -2603,31 +2739,12 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
               color:msg.ok?Q.green:Q.red,
               fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
-            {/* Apuestas */}
-            <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
-              fontFamily:F_BODY}}>
-              Últimas apuestas ({f.apuestas.length})</div>
-            {f.apuestas.length===0&&<div style={{color:Q.muted,fontSize:12,
-              fontFamily:F_BODY}}>Todavía no apostó</div>}
-            {f.apuestas.map((b,i)=>{
-              const e=estadoBet[(b.status||"").toLowerCase()]||{t:b.status,c:Q.muted};
-              return(
-                <div key={i} style={{display:"flex",justifyContent:"space-between",
-                  alignItems:"center",padding:"8px 0",
-                  borderBottom:i<f.apuestas.length-1?`1px solid ${Q.dim}`:"none"}}>
-                  <div style={{minWidth:0,flex:1}}>
-                    <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                      fontFamily:F_BODY}}>{b.code}</div>
-                    <div style={{color:Q.muted,fontSize:12}}>
-                      {ars(b.stake)} · {fmt(b.odd)}x · {b.fecha}</div>
-                  </div>
-                  <span style={{background:`${e.c}22`,border:`1px solid ${e.c}`,
-                    borderRadius:RADII.xl,padding:"4px 8px",fontSize:12,fontWeight:700,
-                    color:e.c,flexShrink:0,
-                    fontFamily:F_BODY}}>{e.t}</span>
-                </div>
-              );
-            })}
+            {/* The bets list that used to sit here rendered `f.apuestas`
+                a second time, unclickable, under the heading "Últimas
+                apuestas". The richer list above it — clickable rows with a
+                "ver las N" toggle — already shows the same array, and this
+                copy read `f.apuestas.length` with no guard, so a response
+                without `apuestas` took the whole sheet down with it. */}
           </div>
         )}
       </div>
@@ -4248,16 +4365,16 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
                 ))}
               </div>
               {/* Settling, resetting and configuring are independent one-tap actions on this account, so they share a line */}
-              <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-                <div style={{flex:"1 1 auto",minWidth:170}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+                <div>
                   <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
                     color={Q.gold} full disabled={proc}/>
                 </div>
-                <div style={{flex:"1 1 auto",minWidth:190}}>
+                <div>
                   <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                     color={Q.amber} outline full/>
                 </div>
-                <div style={{flex:"1 1 auto",minWidth:200}}>
+                <div>
                   <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
                     color={Q.violet} outline full/>
                 </div>
@@ -4502,7 +4619,7 @@ function AsignarAgenciaAdmin({ adminKey, userId, esDirecto, agenciaActual, onCam
   // Collapsed state renders as one flex item so it can sit in the same
   // row as the sibling account-action buttons instead of stacking below them.
   if(!abierto) return(
-    <div style={{flex:"1 1 auto",minWidth:200}}>
+    <div>
       <Btn label={esDirecto?<><Link size={13}/> Vincular a una agencia</>:<><RefreshCw size={13}/> Cambiar de agencia</>}
         onClick={()=>setAbierto(true)} color={Q.cyan} outline full/>
     </div>
@@ -4951,8 +5068,8 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
               color:Q.text,fontSize:16,marginBottom:8,
               fontFamily:F_BODY}}/>
           <div style={{display:"flex",gap:SPACING[8]}}>
-            <Btn label="− Descontar" onClick={()=>cargarCC(-1)} color={Q.amber} outline full disabled={proc}/>
             <Btn label="+ Cargar" onClick={()=>cargarCC(1)} color={Q.green} full disabled={proc}/>
+            <Btn label="− Descontar" onClick={()=>cargarCC(-1)} color={Q.amber} outline full disabled={proc}/>
           </div>
         </div>
       )}
@@ -5373,10 +5490,13 @@ function TabUsuarios({ adminKey, onNoAutorizado }){
   useEffect(()=>{ buscar(""); // eslint-disable-next-line
   },[]);
 
-  if(sel) return <FichaCliente userId={sel} adminKey={adminKey}
-    onCerrar={()=>{setSel(null);buscar(query);}} onCambio={()=>buscar(query)}
-    onNoAutorizado={onNoAutorizado}/>;
-
+  // `sel` used to swap the whole screen for <FichaCliente/> via an early
+  // return, which threw away the list (and whatever the admin had typed
+  // in the search box) the moment it closed. FichaCliente already draws
+  // itself as a fixed-position sheet with its own backdrop and close
+  // button, so it renders as an overlay on top of the list below instead
+  // — closing it needs no re-render of the list, the search text was
+  // never touched.
   return(
     <div>
       <PageHeader icon={<Icon name="users"/>} title="Clientes"
@@ -5401,32 +5521,44 @@ function TabUsuarios({ adminKey, onNoAutorizado }){
         fontFamily:F_BODY}}>Buscando...</div>}
       {!cargando&&lista.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
         padding:SPACING[20],fontFamily:F_BODY}}>Sin clientes</div>}
-      {lista.map(u=>(
-        <GCard key={u.id} onClick={()=>setSel(u.id)}
-          style={{padding:"12px 12px",marginBottom:6,cursor:"pointer"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
-            <div style={{minWidth:0,flex:1}}>
-              <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                fontFamily:F_BODY}}>{u.nombre_completo||u.nombre||u.username}</div>
-              <div style={{color:Q.muted,fontSize:12}}>
-                {u.creado_por==="admin"?<><Icon name="landmark" size={11}/> Admin</>:<><Building2 size={11}/> {u.creado_por||"—"}</>}
-                {u.telefono?` · ${u.telefono}`:""}</div>
+      {/* A side-to-side stacked list read as a spreadsheet on desktop;
+          an auto-fit card grid gives each client room for name, agency
+          and balance without a horizontal scan, and still stacks to one
+          column on a phone with no breakpoint logic. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",
+        gap:SPACING[12]}}>
+        {lista.map(u=>(
+          <GCard key={u.id} onClick={()=>setSel(u.id)}
+            style={{padding:SPACING[12],cursor:"pointer"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{color:Q.text,fontWeight:700,fontSize:13,
+                  fontFamily:F_BODY}}>{u.nombre_completo||u.nombre||u.username}</div>
+                <div style={{color:Q.muted,fontSize:12}}>
+                  {u.creado_por==="admin"?<><Icon name="landmark" size={11}/> Admin</>:<><Building2 size={11}/> {u.creado_por||"—"}</>}
+                  {u.telefono?` · ${u.telefono}`:""}</div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                {/* La conversión de centavos a pesos la hace el backend.
+                    Acá se dividía otra vez, así que un saldo de 2.500 se
+                    mostraba como 25. La regla: convertir en un solo lado. */}
+                <div style={{color:(u.saldo!=null?u.saldo:u.balance||0)>=0?Q.green:Q.red,
+                  fontWeight:700,fontSize:TEXT[15],
+                  fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>
+                  {ars(u.saldo!=null?u.saldo:(u.balance||0))}</div>
+                <div style={{color:Q.muted,fontSize:12}}>saldo ›</div>
+              </div>
             </div>
-            <div style={{textAlign:"right",flexShrink:0}}>
-              {/* La conversión de centavos a pesos la hace el backend.
-                  Acá se dividía otra vez, así que un saldo de 2.500 se
-                  mostraba como 25. La regla: convertir en un solo lado. */}
-              <div style={{color:(u.saldo!=null?u.saldo:u.balance||0)>=0?Q.green:Q.red,
-                fontWeight:700,fontSize:14,
-                fontFamily:F_BODY}}>
-                {ars(u.saldo!=null?u.saldo:(u.balance||0))}</div>
-              <div style={{color:Q.muted,fontSize:12}}>saldo ›</div>
-            </div>
-          </div>
-        </GCard>
-      ))}
+          </GCard>
+        ))}
+      </div>
       {msg&&<div style={{fontSize:12,marginTop:8,color:Q.green,
         fontFamily:F_BODY}}>{msg}</div>}
+
+      {sel&&<FichaCliente userId={sel} adminKey={adminKey}
+        onCerrar={()=>{setSel(null);buscar(query);}} onCambio={()=>buscar(query)}
+        onNoAutorizado={onNoAutorizado}/>}
     </div>
   );
 }
@@ -14393,7 +14525,13 @@ function AdminPanel({ adminKey, onLogout }){
         justifyContent:"space-between",position:"sticky",top:0,zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        <QPLogo size={isDesktop?40:16}/>
+        <div style={{display:"flex",alignItems:"center",gap:SPACING[12],minWidth:0}}>
+          <QPLogo size={isDesktop?40:16}/>
+          {isDesktop&&<span style={{color:Q.dim,fontSize:TEXT[20],
+            fontWeight:300,lineHeight:1,fontFamily:F_BODY}}>|</span>}
+          {isDesktop&&<span style={{color:Q.muted,fontSize:TEXT[14],fontWeight:600,
+            whiteSpace:"nowrap",fontFamily:F_BODY}}>Panel Administrador</span>}
+        </div>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
           <HBadge label="ADMIN" color={Q.violet}/>
           <button onClick={onLogout} style={{background:"transparent",
