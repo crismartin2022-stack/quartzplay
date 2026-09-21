@@ -8,6 +8,7 @@ import { oscuro as Q, F_BODY, RADII, SPACING, TEXT , ELEVATION } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import PageHeader from "./PageHeader";
+import LineaTiempo from "./LineaTiempo";
 import { Zap, Gift, Handshake, Video, ArrowLeftRight, Ban, Banknote, Bell, Bot, Building2, Calendar, CalendarDays, CircleOff, Coins, Dices, Disc, Eye, Flame, FlaskConical, Gamepad2, GitBranch, Globe, Hand, Headphones, Image as ImageIcon, Inbox, Key, Link, Lock, Mail, Megaphone, MessageSquare, Monitor, PartyPopper, PenLine, Pencil, Plug, Printer, RefreshCw, Rocket, RotateCcw, Save, Scale, Shield, Smartphone, Star, Stethoscope, Store, Target, Trash2, TrendingDown, Volume2, VolumeX, Wrench } from "lucide-react";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 
@@ -294,6 +295,27 @@ function TabCierre({ adminKey, onNoAutorizado }){
   },[vista,desde,hasta,filtroAg]);
 
   useEffect(()=>{ if(vista==="combos") cargarCombos(); // eslint-disable-next-line
+  },[vista,desde,hasta,filtroAg]);
+
+  // Serie de apostado para el resumen: el cierre es, ante todo, un
+  // período de tiempo, y el resumen ya lo describe con totales fijos.
+  // Una línea de tendencia sobre ese mismo rango le da al total algo
+  // que un número solo no puede: si el período mejoró o empeoró.
+  const [serie,setSerie]=useState(null);
+  const [cargSerie,setCargSerie]=useState(false);
+
+  const cargarSerie=async()=>{
+    setCargSerie(true);
+    try{
+      const q=`metrica=apostado&desde=${desde}&hasta=${hasta}`+(filtroAg?`&agencia=${filtroAg}`:"");
+      const r=await fetch(`${API}/api/admin/serie?${q}`,
+        {headers:adminHeaders(adminKey)});
+      if(r.status===401){ onNoAutorizado(); return; }
+      if(r.ok) setSerie((await r.json()).puntos||[]);
+    }catch(e){}
+    setCargSerie(false);
+  };
+  useEffect(()=>{ if(vista==="resumen") cargarSerie(); // eslint-disable-next-line
   },[vista,desde,hasta,filtroAg]);
   const [clientesF,setClientesF]=useState([]);     // clientes de la agencia elegida
   const [filtroCli,setFiltroCli]=useState("");     // cliente elegido ("" = todos)
@@ -803,6 +825,26 @@ function TabCierre({ adminKey, onNoAutorizado }){
 
       {data&&(
         <div>
+          {/* Cierre is, above all, a time window: the totals below fix one
+              number per figure, but say nothing about whether the period
+              trended up or down within itself. The chart reads the exact
+              desde/hasta already chosen above, no second date control. */}
+          <GCard style={{padding:SPACING[16],marginBottom:12}}>
+            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
+              letterSpacing:1,marginBottom:2,fontFamily:F_BODY}}>Apostado deportivo por día</div>
+            {/* The /serie endpoint sums sports only (_calcular_ggr) — the
+                casino/ruleta cascade above is not groupable by day cheaply
+                yet. Labelling this the same as the total above it, or
+                omitting the difference, would read as a wrong total. */}
+            <div style={{color:Q.dim,fontSize:12,marginBottom:8,
+              fontFamily:F_BODY}}>Serie solo deportivas; el total de arriba incluye casino.</div>
+            {cargSerie&&serie===null
+              ? <div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:SPACING[20],
+                  fontFamily:F_BODY}}>Cargando tendencia...</div>
+              : <LineaTiempo puntos={serie||[]} color={Q.cyan} formato={ars}
+                  etiqueta="Apostado deportivo por día"/>}
+          </GCard>
+
           <GCard style={{padding:SPACING[16],marginBottom:12,
             background:`linear-gradient(135deg,${Q.violet}12,${Q.cyan}06)`}}>
             <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
@@ -1270,6 +1312,15 @@ function TabCierre({ adminKey, onNoAutorizado }){
   );
 }
 
+// TabGlobal has no other date state to reuse — every other tab already
+// carries a desde/hasta the chart can read, but this one is a snapshot
+// dashboard. So this is the one screen where the chart needs its own
+// period selector rather than reusing a control that doesn't exist yet.
+const RANGOS_GLOBAL = [
+  ["semana","Semana"],["mes","Mes"],["trimestre","Trimestre"],
+  ["semestre","Semestre"],["año","Año"],["custom","Personalizado"],
+];
+
 function TabGlobal({ adminKey, onNoAutorizado, onIr }){
   const [r,setR]=useState(null);
   const [ags,setAgs]=useState([]);
@@ -1290,6 +1341,41 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
     }catch(e){ setErr("Sin conexión con el servidor"); }
   })(); // eslint-disable-next-line
   },[]);
+
+  // Período de la tendencia: no hay "últimas 24h" a propósito — el dueño
+  // la descartó y, de todos modos, un cubo por día no puede servirla.
+  const [periodo,setPeriodo]=useState("mes");
+  const [customDesde,setCustomDesde]=useState(()=>{
+    const d=new Date(); d.setMonth(d.getMonth()-1); return d.toISOString().slice(0,10);
+  });
+  const [customHasta,setCustomHasta]=useState(()=>new Date().toISOString().slice(0,10));
+  const [serieG,setSerieG]=useState(null);
+  const [cargSerieG,setCargSerieG]=useState(false);
+
+  const rangoDe=(tipo)=>{
+    const hoy=new Date(); let d=new Date();
+    if(tipo==="semana") d.setDate(hoy.getDate()-7);
+    else if(tipo==="mes") d.setMonth(hoy.getMonth()-1);
+    else if(tipo==="trimestre") d.setMonth(hoy.getMonth()-3);
+    else if(tipo==="semestre") d.setMonth(hoy.getMonth()-6);
+    else if(tipo==="año") d.setFullYear(hoy.getFullYear()-1);
+    const iso=x=>x.toISOString().slice(0,10);
+    return [iso(d),iso(hoy)];
+  };
+  const [desdeG,hastaG]=periodo==="custom"?[customDesde,customHasta]:rangoDe(periodo);
+
+  const cargarSerieG=async()=>{
+    setCargSerieG(true);
+    try{
+      const q=`metrica=neto_caja&desde=${desdeG}&hasta=${hastaG}`;
+      const r=await fetch(`${API}/api/admin/serie?${q}`,{headers:adminHeaders(adminKey)});
+      if(r.status===401){ onNoAutorizado(); return; }
+      if(r.ok) setSerieG((await r.json()).puntos||[]);
+    }catch(e){}
+    setCargSerieG(false);
+  };
+  useEffect(()=>{ cargarSerieG(); // eslint-disable-next-line
+  },[desdeG,hastaG]);
 
   const tipoTxt={carga:"Carga",retiro:"Retiro",pago_premio:"Premio",ajuste:"Ajuste"};
   const tipoColor={carga:Q.green,retiro:Q.amber,pago_premio:Q.violet2,ajuste:Q.muted};
@@ -1325,6 +1411,41 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
           <span style={{color:Q.pink,fontSize:13,
             fontFamily:F_BODY}}>{ars(r.premios_hoy)}</span>
         </div>
+      </GCard>
+
+      {/* The only KPI here with a trend worth seeing: this is the tab an
+          admin opens to judge how the business is doing, not just today's
+          snapshot, so it earns the one period selector this screen has. */}
+      <GCard style={{padding:SPACING[16],marginBottom:12}}>
+        <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
+          marginBottom:10,fontFamily:F_BODY}}>Neto en caja por día</div>
+        <div style={{display:"flex",gap:SPACING[8],marginBottom:12,flexWrap:"wrap"}}>
+          {RANGOS_GLOBAL.map(([k,l])=>(
+            <button key={k} onClick={()=>setPeriodo(k)} style={{flex:"1 1 auto",
+              background:periodo===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
+              border:`1px solid ${periodo===k?Q.violet:Q.border}`,borderRadius:RADII.md,
+              padding:"8px",cursor:"pointer",color:periodo===k?Q.cyan:Q.muted,
+              fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
+          ))}
+        </div>
+        {periodo==="custom"&&(
+          <div style={{display:"flex",gap:SPACING[8],marginBottom:12,alignItems:"center"}}>
+            <input type="date" value={customDesde} onChange={e=>setCustomDesde(e.target.value)}
+              style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
+                borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:13,
+                fontFamily:F_BODY}}/>
+            <span style={{color:Q.muted}}>→</span>
+            <input type="date" value={customHasta} onChange={e=>setCustomHasta(e.target.value)}
+              style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
+                borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:13,
+                fontFamily:F_BODY}}/>
+          </div>
+        )}
+        {cargSerieG&&serieG===null
+          ? <div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:SPACING[20],
+              fontFamily:F_BODY}}>Cargando tendencia...</div>
+          : <LineaTiempo puntos={serieG||[]} color={Q.green} formato={ars}
+              etiqueta="Neto en caja por día"/>}
       </GCard>
 
       {(r.boletos_pendientes>0||r.sin_liquidar>0)&&(

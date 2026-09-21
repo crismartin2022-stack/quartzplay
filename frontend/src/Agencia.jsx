@@ -6,6 +6,7 @@ import { getFrontendConfig } from "./config";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import PageHeader from "./PageHeader";
+import LineaTiempo from "./LineaTiempo";
 import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon, Bell, Moon, Scale } from "lucide-react";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 
@@ -6055,12 +6056,31 @@ function Cierres({ agencia, onSesionExpirada }){
       if(r.ok) setApuestas((await r.json()).apuestas||[]);
     }catch(e){}
   };
+
+  // Serie de apostado para el resumen: el cierre ya describe el período
+  // con totales fijos, así que la línea de tendencia usa exactamente el
+  // mismo desde/hasta elegido arriba en vez de abrir un segundo control.
+  const [serie,setSerie]=useState(null);
+  const [cargSerie,setCargSerie]=useState(false);
+  const cargarSerie=async()=>{
+    setCargSerie(true);
+    try{
+      const q=`metrica=apostado&desde=${desde}&hasta=${hasta}`;
+      const r=await fetch(`${API_URL}/api/agencias/me/serie?${q}`,
+        {headers:authHeaders(agencia.token)});
+      if(r.status===401){ onSesionExpirada(); return; }
+      if(r.ok) setSerie((await r.json()).puntos||[]);
+    }catch(e){}
+    setCargSerie(false);
+  };
+
   useEffect(()=>{
     if(vista==="movs") cargarMovs();
     if(vista==="apuestas") cargarApuestas();
     if(vista==="combos") cargarCombos();
     if(vista==="impresiones") cargarImpresiones();
     if(vista==="caja") cargarCaja();
+    if(vista==="resumen") cargarSerie();
   // eslint-disable-next-line
   },[vista,desde,hasta,filtroCli]);
 
@@ -6406,6 +6426,25 @@ function Cierres({ agencia, onSesionExpirada }){
 
       {vista==="resumen"&&res&&(
         <div>
+          {/* El resumen ya fija los totales del período; la línea de
+              tendencia usa el mismo desde/hasta elegido arriba para
+              decir si ese período venía en subida o en baja. */}
+          <GCard style={{padding:SPACING[16],marginBottom:12}}>
+            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
+              letterSpacing:1,marginBottom:2,fontFamily:F_BODY}}>Apostado deportivo por día</div>
+            {/* El endpoint /serie suma solo deportivas — la cascada de
+                casino/ruleta del total de arriba no es agrupable por día
+                todavía. Sin esta nota, el número de la línea parecería
+                un total equivocado frente al de arriba. */}
+            <div style={{color:Q.dim,fontSize:12,marginBottom:8,
+              fontFamily:F_BODY}}>Serie solo deportivas; el total de arriba incluye casino.</div>
+            {cargSerie&&serie===null
+              ? <div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:SPACING[20],
+                  fontFamily:F_BODY}}>Cargando tendencia...</div>
+              : <LineaTiempo puntos={serie||[]} color={Q.cyan} formato={ars}
+                  etiqueta="Apostado deportivo por día"/>}
+          </GCard>
+
           {/* Resumen consolidado de la rama */}
           <GCard style={{padding:SPACING[16],marginBottom:12,
             background:`linear-gradient(135deg,${Q.green}12,${Q.violet}06)`}}>
