@@ -2790,14 +2790,14 @@ function BarraWeb({ vista, onNav, hayBoleto }){
   // van partidos en dos líneas: con seis botones en un teléfono,
   // una palabra entera desacomoda el resto.
   const IZQ = [
-    {k:"prematch",   l:"Deportes",       i:<Icon name="trophy" size={15}/>},
-    {k:"vivo",       l:"En vivo",        i:<Icon name="circle-dot" size={15}/>},
-    {k:"casino",     l:"Casino",         i:<Icon name="spade" size={15}/>},
+    {k:"prematch",   l:"Deportes",       i:<Icon name="trophy" size={18}/>},
+    {k:"vivo",       l:"En vivo",        i:<Icon name="circle-dot" size={18}/>},
+    {k:"casino",     l:"Casino",         i:<Icon name="spade" size={18}/>},
   ];
   const DER = [
-    {k:"casinovivo", l:"Casino\nen vivo", i:<Video size={15}/>},
-    {k:"desafios",   l:"Desafíos",       i:<Handshake size={15}/>},
-    {k:"historial",  l:"Historial",      i:<Icon name="clipboard-list" size={15}/>},
+    {k:"casinovivo", l:"Casino\nen vivo", i:<Video size={18}/>},
+    {k:"desafios",   l:"Desafíos",       i:<Handshake size={18}/>},
+    {k:"historial",  l:"Historial",      i:<Icon name="clipboard-list" size={18}/>},
   ];
 
   const Item = ({it}) => {
@@ -2808,7 +2808,7 @@ function BarraWeb({ vista, onNav, hayBoleto }){
           cursor:"pointer",display:"flex",flexDirection:"column",
           alignItems:"center",gap:SPACING[4],padding:"8px 0",minWidth:0}}>
         <span style={{color:on?Q.gold:Q.muted,opacity:on?1:.5}}>{it.i}</span>
-        <span style={{color:on?Q.gold:Q.muted,fontSize:12,
+        <span style={{color:on?Q.gold:Q.muted,fontSize:11,
           whiteSpace:"pre-line",
           fontWeight:on?700:400,lineHeight:1.15,textAlign:"center",
           fontFamily:F_BODY}}>{it.l}</span>
@@ -2841,8 +2841,8 @@ function BarraWeb({ vista, onNav, hayBoleto }){
             boxShadow:"0 6px 20px rgba(201,162,39,.45)",
             display:"flex",flexDirection:"column",alignItems:"center",
             justifyContent:"center",gap:SPACING[4]}}>
-          <Icon name="camera" size={16} color={inkOn(Q.gold,"#c9a227","#FFD54F")}/>
-          <span style={{color:inkOn(Q.gold,"#c9a227","#FFD54F"),fontSize:12,fontWeight:900,
+          <Icon name="camera" size={18} color={inkOn(Q.gold,"#c9a227","#FFD54F")}/>
+          <span style={{color:inkOn(Q.gold,"#c9a227","#FFD54F"),fontSize:11,fontWeight:900,
             letterSpacing:0.2,fontFamily:F_BODY}}>BEST</span>
         </button>
 
