@@ -14342,7 +14342,16 @@ function AdminPanel({ adminKey, onLogout }){
         </div>
       </div>
 
-      <div style={isDesktop ? {padding:"16px",maxWidth:1100,margin:"0 auto",
+      {/* `width:"100%"` is load-bearing, not redundant. This div is a direct
+          grid item, and a grid item with `margin:0 auto` has its auto margins
+          absorb the column's free space, which overrides the default stretch
+          and leaves the box sized to its own content. Admin's cards are
+          narrow, so the whole panel collapsed to about a third of the column
+          and read as a phone inside a desktop. Agencia never showed this
+          because its wrapper sits inside a scroll container, not in the grid.
+          With an explicit width the box fills the column, stops at 1100, and
+          the auto margins only centre what is left over. */}
+      <div style={isDesktop ? {padding:"16px",width:"100%",maxWidth:1100,margin:"0 auto",
         position:"relative",zIndex:1,paddingBottom:"40px",
         gridColumn:"2",gridRow:"2"} : {padding:"16px",maxWidth:620,margin:"0 auto",
         position:"relative",zIndex:1,
