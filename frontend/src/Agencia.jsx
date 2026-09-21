@@ -6394,7 +6394,7 @@ function Cierres({ agencia, onSesionExpirada }){
             <GCard glow={Q.gold} style={{padding:14,marginBottom:12}}>
               <div style={{color:Q.gold,fontWeight:700,fontSize:12.5,
                 marginBottom:8,fontFamily:F_BODY}}>
-                🎰 Casino y ruleta</div>
+                <Icon name="spade" size={13}/> Casino y ruleta</div>
               {[["Apostado",res.casino.apostado,Q.text],
                 ["Premios",res.casino.premios,Q.muted],
                 ["GGR",res.casino.ggr,res.casino.ggr>=0?Q.green:Q.red],
@@ -6734,10 +6734,10 @@ function CambiarMiPassword({ agencia, obligado=false, onListo }){
         body:JSON.stringify({nueva}),
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg({text:"✅ Contraseña actualizada", ok:true});
+      setMsg({text:"Contraseña actualizada", ok:true});
       setNueva(""); setRepetir("");
       if(onListo) setTimeout(onListo,800);
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -6763,7 +6763,7 @@ function CambiarMiPassword({ agencia, obligado=false, onListo }){
         color={obligado?Q.amber:Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
     </GCard>
   );
 }
@@ -6905,7 +6905,7 @@ function EnVivo({ agencia }){
 
       {!loading&&matches.length===0&&(
         <GCard style={{padding:24,textAlign:"center"}}>
-          <div style={{fontSize:32,marginBottom:8}}>⚽</div>
+          <div style={{marginBottom:8}}><Icon name="trophy" size={30}/></div>
           <div style={{color:Q.muted,fontSize:13,fontFamily:F_BODY}}>No hay partidos en vivo ahora</div>
           <div style={{color:Q.dim,fontSize:11,marginTop:4}}>Se actualiza cada 30 segundos</div>
         </GCard>
@@ -6913,7 +6913,7 @@ function EnVivo({ agencia }){
 
       {matches.length>0&&(()=>{
         const ligas = [...new Set(matches.map(m=>m.liga).filter(Boolean))]
-          .map(n=>({name:n, icon:"🔴", events:matches.filter(m=>m.liga===n)}));
+          .map(n=>({name:n, icon:<Icon name="circle-dot" size={11}/>, events:matches.filter(m=>m.liga===n)}));
         return ligas.length>1 ? (
           <FiltroEventos ligas={ligas} liga={ligaSel} setLiga={setLigaSel}
             busqueda={busq} setBusqueda={setBusq} total={matches.length}/>
@@ -7298,9 +7298,9 @@ function CrearInfluencerAgencia({ agencia, onListo, onSesionExpirada }){
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg({text:`✅ Creado: ${d.code} · código ${d.codigo_ref}`, ok:true});
+      setMsg({text:`Creado: ${d.code} · código ${d.codigo_ref}`, ok:true});
       setTimeout(onListo,900);
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
+    }catch(e){ setMsg({text:e.message, ok:false}); setProc(false); }
   };
 
   return(
@@ -7338,7 +7338,7 @@ function CrearInfluencerAgencia({ agencia, onListo, onSesionExpirada }){
       <Btn label={proc?"CREANDO...":"Crear influencer"} onClick={crear} color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
     </GCard>
   );
 }
@@ -7366,8 +7366,8 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
       });
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const j=await r.json();
-      setMsg({text:`✅ Liquidación generada · ${ars(j.comision)}`, ok:true});
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
+      setMsg({text:`Liquidación generada · ${ars(j.comision)}`, ok:true});
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7404,13 +7404,13 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
                   </div>
                 ))}
               </div>
-              <Btn label={proc?"...":"💵 Liquidar comisión"} onClick={liquidar}
+              <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
                 color={Q.gold} full disabled={proc}/>
               <div style={{height:8}}/>
               <Btn label="🔑 Resetear contraseña" onClick={()=>setResetOpen(true)}
                 color={Q.amber} outline full/>
               <div style={{height:8}}/>
-              <Btn label="⚙️ Configurar influencer" onClick={()=>setConfigOpen(v=>!v)}
+              <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
                 color={Q.violet} outline full/>
               {configOpen&&rep&&(
                 <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${Q.dim}`}}>
@@ -7422,7 +7422,7 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
               )}
               {msg&&<div style={{fontSize:12,marginTop:8,
                 color:msg.ok?Q.green:Q.red,
-                fontFamily:F_BODY}}>{msg.text}</div>}
+                fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
               {resetOpen&&<ResetPassword agencia={agencia} code={code}
                 nombre={rep?rep.name:code} onCerrar={()=>setResetOpen(false)}/>}
             </GCard>
@@ -7493,9 +7493,9 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
       let extra="";
       if(d.hijos_sobre_limite&&d.hijos_sobre_limite.length)
         extra=` ⚠️ ${d.hijos_sobre_limite.length} hija(s) quedaron con % mayor.`;
-      setMsg({text:"✅ Configuración guardada."+extra, ok:true});
+      setMsg({text:"Configuración guardada."+extra, ok:true});
       onCambio&&onCambio();
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7578,7 +7578,7 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
         color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
     </div>
   );
 }
@@ -7601,9 +7601,9 @@ function ResetPassword({ agencia, code, userId, nombre, esAdmin=false, onCerrar 
       const body = code ? {code,nueva} : {user_id:userId,nueva};
       const r=await fetch(url,{method:"POST",headers,body:JSON.stringify(body)});
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg({text:"✅ Contraseña reseteada. Deberá cambiarla en su próximo ingreso.", ok:true});
+      setMsg({text:"Contraseña reseteada. Deberá cambiarla en su próximo ingreso.", ok:true});
       setTimeout(onCerrar,1200);
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7635,7 +7635,7 @@ function ResetPassword({ agencia, code, userId, nombre, esAdmin=false, onCerrar 
         <Btn label={proc?"GUARDANDO...":"Resetear"} onClick={guardar} color={Q.amber} full disabled={proc}/>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
           color:msg.ok?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg.text}</div>}
+          fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
       </GCard>
     </div>
   );
@@ -7670,9 +7670,9 @@ function MisAgencias({ agencia, onSesionExpirada }){
       });
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg({text: bloquear_flag?"✅ Agencia bloqueada":"✅ Agencia desbloqueada", ok:true});
+      setMsg({text: bloquear_flag?"Agencia bloqueada":"Agencia desbloqueada", ok:true});
       setTimeout(()=>setMsg(null),2000); cargar();
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setTimeout(()=>setMsg(null),3000); }
+    }catch(e){ setMsg({text:e.message, ok:false}); setTimeout(()=>setMsg(null),3000); }
   };
 
   return(
@@ -7689,7 +7689,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
 
       {msg&&<div style={{fontSize:13,marginBottom:10,textAlign:"center",
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {!arbol&&<div style={{color:Q.muted,textAlign:"center",padding:20,
         fontFamily:F_BODY}}>Cargando...</div>}
@@ -7729,7 +7729,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
                 <button onClick={()=>setCcPara(a.code)} style={{background:`${Q.cyan}18`,
                   border:`1px solid ${Q.cyan}`,borderRadius:7,padding:"5px 10px",cursor:"pointer",
                   color:Q.cyan,fontSize:11,fontWeight:700,
-                  fontFamily:F_BODY}}>💰 Crédito</button>
+                  fontFamily:F_BODY}}><Icon name="wallet-cards" size={11}/> Crédito</button>
                 <button onClick={()=>bloquear(a.code,!bloqueada)} style={{background:"transparent",
                   border:`1px solid ${bloqueada?Q.green:Q.red}`,borderRadius:7,padding:"5px 10px",
                   cursor:"pointer",color:bloqueada?Q.green:Q.red,fontSize:11,fontWeight:700,
@@ -7741,7 +7741,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
                 <button onClick={()=>setConfigPara(a)} style={{background:`${Q.violet}18`,
                   border:`1px solid ${Q.violet}`,borderRadius:7,padding:"5px 10px",cursor:"pointer",
                   color:Q.violet2,fontSize:11,fontWeight:700,
-                  fontFamily:F_BODY}}>⚙️ Config</button>
+                  fontFamily:F_BODY}}><Icon name="sliders-horizontal" size={11}/> Config</button>
               </div>
             </div>
           </GCard>
@@ -7761,7 +7761,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
             style={{padding:20,maxWidth:420,width:"100%",maxHeight:"90vh",overflowY:"auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:15,
-                fontFamily:F_BODY}}>⚙️ Configurar · {configPara.name}</div>
+                fontFamily:F_BODY}}><Icon name="sliders-horizontal" size={14}/> Configurar · {configPara.name}</div>
               <button onClick={()=>setConfigPara(null)} style={{background:"transparent",border:"none",
                 color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
             </div>
@@ -7794,9 +7794,9 @@ function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg({text:`✅ Creada: ${d.code||d.name||"sub-agencia"}`, ok:true});
+      setMsg({text:`Creada: ${d.code||d.name||"sub-agencia"}`, ok:true});
       setTimeout(onListo,900);
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
+    }catch(e){ setMsg({text:e.message, ok:false}); setProc(false); }
   };
 
   return(
@@ -7839,7 +7839,7 @@ function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
       <Btn label={proc?"CREANDO...":"Crear sub-agencia"} onClick={crear} color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
     </GCard>
   );
 }
@@ -7861,9 +7861,9 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
       });
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
-      setMsg({text: modo==="retirar"?"✅ Crédito retirado":"✅ Crédito cargado", ok:true});
+      setMsg({text: modo==="retirar"?"Crédito retirado":"Crédito cargado", ok:true});
       setTimeout(onListo,800);
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
+    }catch(e){ setMsg({text:e.message, ok:false}); setProc(false); }
   };
 
   return(
@@ -7873,12 +7873,12 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
         style={{padding:20,maxWidth:380,width:"100%"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:15,
-            fontFamily:F_BODY}}>💰 Crédito · {code}</div>
+            fontFamily:F_BODY}}><Icon name="wallet-cards" size={14}/> Crédito · {code}</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
         <div style={{display:"flex",gap:6,marginBottom:12}}>
-          {[["cargar","⬆ Cargar"],["retirar","⬇ Retirar"]].map(([k,l])=>(
+          {[["cargar",<><Icon name="arrow-up-right" size={12}/> Cargar</>],["retirar",<><Icon name="arrow-down-left" size={12}/> Retirar</>]].map(([k,l])=>(
             <button key={k} onClick={()=>setModo(k)} style={{flex:1,
               background:modo===k?`${Q.cyan}33`:"rgba(255,255,255,0.04)",
               border:`1px solid ${modo===k?Q.cyan:Q.border}`,borderRadius:9,
@@ -7899,7 +7899,7 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
         <Btn label={proc?"PROCESANDO...":(modo==="retirar"?"Retirar":"Cargar")} onClick={cargar} color={modo==="retirar"?Q.amber:Q.cyan} full disabled={proc}/>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
           color:msg.ok?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg.text}</div>}
+          fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
       </GCard>
     </div>
   );
@@ -7951,16 +7951,16 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
 
   const TABS=[
     {k:"codigo",   l:"Código / Bot"},
-    {k:"envivo",   l:"🔴 En Vivo"},
+    {k:"envivo",   l:<><Icon name="circle-dot" size={12}/> En Vivo</>},
     {k:"manual",   l:"Apuesta manual"},
-    {k:"combos",   l:"⚡ Combos IA"},
-    {k:"mejorar",  l:"📸 Mejorar"},
-    {k:"clientes", l:"👤 Clientes"},
+    {k:"combos",   l:<><Zap size={12}/> Combos IA</>},
+    {k:"mejorar",  l:<><Icon name="scan-line" size={12}/> Mejorar</>},
+    {k:"clientes", l:<><Icon name="users" size={12}/> Clientes</>},
     {k:"misagencias", l:"🏢 Mis agencias"},
     {k:"influencers", l:"🌟 Influencers"},
     {k:"historial",l:"Historial"},
-    {k:"cashout",  l:"💰 Cash out"},
-    {k:"bonos",    l:"🎁 Bonos"},
+    {k:"cashout",  l:<><Icon name="wallet-cards" size={12}/> Cash out</>},
+    {k:"bonos",    l:<><Gift size={12}/> Bonos</>},
     {k:"cierres",  l:"Cierres"},
     {k:"mensajes", l:"Mensajes"},
     {k:"terminales", l:"Terminales"},
@@ -8078,7 +8078,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             <div style={{display:"flex",justifyContent:"space-between",
               alignItems:"center",marginBottom:14}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:16,
-                fontFamily:F_BODY}}>💰 Mi saldo</div>
+                fontFamily:F_BODY}}><Icon name="wallet-cards" size={15}/> Mi saldo</div>
               <button onClick={()=>setVerSaldo(false)} style={{background:"transparent",
                 border:"none",color:Q.muted,fontSize:26,cursor:"pointer",lineHeight:1}}>×</button>
             </div>
@@ -8354,7 +8354,7 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
             style={{padding:"7px 12px",borderRadius:8,fontSize:12,cursor:"pointer",
               background:fondo.tipo==="imagen"?`${Q.cyan}33`:"rgba(255,255,255,0.05)",
               border:`1px solid ${fondo.tipo==="imagen"?Q.cyan:Q.border}`,
-              color:Q.text,fontFamily:F_BODY}}>📷 Mi foto</button>
+              color:Q.text,fontFamily:F_BODY}}><Icon name="camera" size={13}/> Mi foto</button>
           <input ref={fileRef} type="file" accept="image/*" onChange={subirImagen} style={{display:"none"}}/>
         </div>
         <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
@@ -8395,7 +8395,7 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
 
         <div style={{display:"flex",gap:8}}>
           <Btn label="📲 Compartir" onClick={compartir} color={Q.violet} full/>
-          <Btn label="⬇ Descargar" onClick={descargar} color={Q.gold} full/>
+          <Btn label={<><Icon name="arrow-down-left" size={13}/> Descargar</>} onClick={descargar} color={Q.gold} full/>
         </div>
         <div style={{color:Q.dim,fontSize:10,textAlign:"center",marginTop:8,
           fontFamily:F_BODY}}>
@@ -8436,7 +8436,7 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
       <GCard glow={Q.cyan} style={{padding:16,marginBottom:12,
         background:`linear-gradient(135deg,${Q.cyan}10,${Q.violet}06)`}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:6,
-          fontFamily:F_BODY}}>📸 Tu escáner de apuestas</div>
+          fontFamily:F_BODY}}><Icon name="scan-line" size={14}/> Tu escáner de apuestas</div>
         <div style={{color:Q.muted,fontSize:11,marginBottom:12,lineHeight:1.5,
           fontFamily:F_BODY}}>
           Compartí este link. Tus seguidores escanean su apuesta, se la mejoramos,
@@ -8497,7 +8497,7 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
                     {u.betslip?` · ${u.betslip}`:""}</div>
                 </div>
                 <span style={{color:u.jugo?Q.green:Q.muted,fontWeight:700,fontSize:11,
-                  fontFamily:F_BODY}}>{u.jugo?"✅ Jugó":"Escaneó"}</span>
+                  fontFamily:F_BODY}}>{u.jugo?<><Icon name="circle-check" size={11}/> Jugó</>:"Escaneó"}</span>
               </div>
             </GCard>
           ))}
@@ -8665,7 +8665,7 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
         Compartí estos combos con tu firma. Quien juegue por tu link suma a tu comisión.</div>
 
       <div style={{display:"flex",gap:6,marginBottom:12}}>
-        {[["activos","⚡ Activos",false],["histo","🕓 Historial",true]].map(([k,l,v])=>(
+        {[["activos",<><Zap size={12}/> Activos</>,false],["histo",<><Icon name="clock-3" size={12}/> Historial</>,true]].map(([k,l,v])=>(
           <button key={k} onClick={()=>setHisto(v)} style={{flex:1,
             background:histo===v?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"rgba(255,255,255,0.04)",
             border:`1px solid ${histo===v?Q.cyan:Q.border}`,borderRadius:9,padding:"8px",
@@ -8726,7 +8726,7 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
                     border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px",cursor:"pointer",
                     color:Q.muted,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
-                    {copiado===`ref${c.id}`?"✅ Copiado":`🎟️ Copiar tu código (${ref}) para agencia`}</button>
+                    {copiado===`ref${c.id}`?<><Icon name="circle-check" size={12}/> Copiado</>:<><Icon name="ticket" size={12}/> Copiar tu código ({ref}) para agencia</>}</button>
                   <div style={{height:1,background:Q.dim,margin:"4px 0"}}/>
                   <button onClick={()=>copiar(textoCombo(c,ref,linkTg),`txt${c.id}`)}
                     style={{background:`${Q.green}18`,border:`1px solid ${Q.green}`,borderRadius:9,
@@ -8849,7 +8849,7 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
                     border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px",cursor:"pointer",
                     color:Q.muted,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
-                    {copiado===`ref${c.id}`?"✅ Copiado":`🎟️ Copiar código (${codOut}) para agencia`}</button>
+                    {copiado===`ref${c.id}`?<><Icon name="circle-check" size={12}/> Copiado</>:<><Icon name="ticket" size={12}/> Copiar código ({codOut}) para agencia</>}</button>
                   <div style={{height:1,background:Q.dim,margin:"4px 0"}}/>
                   <button onClick={()=>copiar(textoCombo(c,ref,linkTg),`txt${c.id}`)}
                     style={{background:`${Q.green}18`,border:`1px solid ${Q.green}`,borderRadius:9,
@@ -8925,17 +8925,17 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
       if(r.status===401){ onSesionExpirada(); return; }
       if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`Error ${r.status}`); }
       const d=await r.json();
-      setMsg({text:"✅ Combo creado", ok:true});
+      setMsg({text:"Combo creado", ok:true});
       // Ofrecer editar la placa del combo recién creado
       setEditando({id:d.id, nombre, codigo, picks, odd_total:d.odd_total||oddTotal});
       setProc(false);
-    }catch(e){ setMsg({text:"⚠️ "+e.message, ok:false}); setProc(false); }
+    }catch(e){ setMsg({text:e.message, ok:false}); setProc(false); }
   };
 
   return(
     <GCard glow={Q.violet} style={{padding:16,marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
-        fontFamily:F_BODY}}>⚡ Nuevo combo · elegí de la oferta real</div>
+        fontFamily:F_BODY}}><Zap size={13}/> Nuevo combo · elegí de la oferta real</div>
       <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre del combo"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
           borderRadius:9,padding:"9px 12px",color:Q.text,fontSize:16,marginBottom:8,
@@ -8991,7 +8991,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
         color={Q.violet} full disabled={proc||picks.length===0}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}>{msg.text}</div>}
+        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {editando&&(
         <div style={{marginTop:12}}>
@@ -9009,7 +9009,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
       {/* Oferta de prematch para elegir */}
       <div style={{marginTop:16}}>
         <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
-          marginBottom:8,fontFamily:F_BODY}}>📋 Elegí partidos</div>
+          marginBottom:8,fontFamily:F_BODY}}><Icon name="clipboard-list" size={12}/> Elegí partidos</div>
         {!prematch&&<GCard style={{padding:20,textAlign:"center"}}>
           <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
             Cargando cuotas...</div></GCard>}
