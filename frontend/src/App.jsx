@@ -12,21 +12,6 @@ import Icon from "./Icon";
 // no live-feed mark, no handshake, no bolt, no gift.
 import { Video, Handshake, Zap, Gift, Image as ImageIcon, User, Flame, Coins, Link, Bell } from "lucide-react";
 
-// ═══════════════════════════════════════════════════════════════
-// IAQP SPORTS — Web App Telegram completa
-// Datos reales: The Odds API + Football API
-// Mercados expandidos: 1X2, O/U, BTTS, Handicap
-// Códigos QP desde la web
-// ═══════════════════════════════════════════════════════════════
-// ── Tema ──────────────────────────────────────────────────────
-// Un único tema. Los ~1000 usos de Q.algo siguen funcionando sin
-// tocarlos porque Q es la paleta oscura importada directamente.
-function aplicarTema(){
-  try{
-    document.body.style.background = Q.void;
-    document.body.style.color = Q.text;
-  }catch(e){}
-}
 
 // Superposiciones (hover, vidrio).
 function ov(a){
@@ -6602,7 +6587,6 @@ export default function QuartzSports(){
     setBetsARestaurar(previas);
     setScreen("prematch");
   };
-  aplicarTema();   // se aplica en cada render, antes de pintar los hijos
   const confirmBet=(bets,stake,odd)=>{
     setErrorGlobal("");
     setConfirmando({bets,stake,odd});

@@ -24,14 +24,6 @@ import { Handshake, Video } from "lucide-react";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 
-// Un único tema. Los ~1000 usos de Q.algo siguen funcionando sin
-// tocarlos porque Q es la paleta oscura importada directamente.
-function aplicarTema(){
-  try{
-    document.body.style.background = Q.void;
-    document.body.style.color = Q.text;
-  }catch(e){}
-}
 
 // Superposiciones (hover, vidrio).
 function ov(a){
@@ -4488,7 +4480,6 @@ export default function Web(){
   // ligas. Va DESPUÉS de declarar vista: antes reventaba al abrir.
   const esDeportes = vista==="prematch" || vista==="vivo";   // prematch | vivo
   const [boletoAbierto,setBoletoAbierto]=useState(false);
-  aplicarTema();
   const [ancho,setAncho]=useState(typeof window!=="undefined"?window.innerWidth>=1000:true);
 
   // Código de referido del enlace (?ref=CODIGO o ?scan=CODIGO). Sin esto,
