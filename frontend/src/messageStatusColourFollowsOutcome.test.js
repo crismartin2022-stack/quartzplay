@@ -72,6 +72,13 @@ test("sanity: msgColourExpr tells a fixed colour from an outcome-derived one", (
 const BOTH_OUTCOMES = {
   "App.jsx": ["JuegoResponsable", "MuroDesafios", "MisDesafios"],
   "Web.jsx": ["JuegoResponsableWeb", "MuroDesafiosWeb", "MisDesafiosWeb"],
+  "Agencia.jsx": [
+    "ProveedoresAgencia",
+    "ProductosRed",
+    "Terminales",
+    "DesafiosAgencia",
+    "MisCanales",
+  ],
 };
 
 for (const [file, names] of Object.entries(BOTH_OUTCOMES)) {

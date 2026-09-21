@@ -4501,7 +4501,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
 function ProveedoresAgencia({ agencia, onSesionExpirada }){
   const [d,setD]=useState(null);
   const [abierta,setAbierta]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [filtro,setFiltro]=useState("todos");
 
@@ -4520,7 +4520,7 @@ function ProveedoresAgencia({ agencia, onSesionExpirada }){
       motivo=window.prompt(`¿Por qué le quitás ${marca}?`);
       if(motivo===null) return;
     }
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/proveedores`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -4528,8 +4528,8 @@ function ProveedoresAgencia({ agencia, onSesionExpirada }){
         body:JSON.stringify({agencia_code:code, marca, activo, motivo})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||`Error ${r.status}`);
-      setMsg(activo?"✅ Habilitado":"✅ Quitado"); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:activo?"Habilitado":"Quitado", ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -4553,8 +4553,9 @@ function ProveedoresAgencia({ agencia, onSesionExpirada }){
         Podés quitárselos a tus subagencias. Los que vos no tengas
         aparecen como no disponibles.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:11.5,marginBottom:9,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:11.5,marginBottom:9,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {(d.mis_apagados||[]).length>0&&(
         <div style={{color:Q.amber,fontSize:10.5,marginBottom:10,
@@ -4645,7 +4646,7 @@ function ProveedoresAgencia({ agencia, onSesionExpirada }){
 
 function ProductosRed({ agencia, onSesionExpirada }){
   const [datos,setDatos]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [abierta,setAbierta]=useState(null);
 
@@ -4660,7 +4661,7 @@ function ProductosRed({ agencia, onSesionExpirada }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const cambiar=async(code,producto,activo)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/productos`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -4668,8 +4669,8 @@ function ProductosRed({ agencia, onSesionExpirada }){
         body:JSON.stringify({agencia_code:code,producto,activo})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg(activo?"✅ Habilitado":"✅ Quitado"); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:activo?"Habilitado":"Quitado", ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -4690,8 +4691,9 @@ function ProductosRed({ agencia, onSesionExpirada }){
           return c?`${c.icono} ${c.nombre}`:p;
         }).join(" · ")||"ninguno"}</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:11.5,marginBottom:8,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:11.5,marginBottom:8,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {datos.hijas.map(h=>(
         <div key={h.code} style={{marginBottom:7}}>
@@ -4764,7 +4766,7 @@ function Terminales({ agencia, onSesionExpirada }){
   const [lista,setLista]=useState(null);
   const [nombre,setNombre]=useState("");
   const [ubic,setUbic]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [verQR,setVerQR]=useState(null);
 
@@ -4779,8 +4781,8 @@ function Terminales({ agencia, onSesionExpirada }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const crear=async()=>{
-    if(!nombre.trim()){ setMsg("Poné un nombre"); return; }
-    setProc(true); setMsg("");
+    if(!nombre.trim()){ setMsg({text:"Poné un nombre", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/terminales`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -4788,8 +4790,8 @@ function Terminales({ agencia, onSesionExpirada }){
         body:JSON.stringify({nombre:nombre.trim(),ubicacion:ubic.trim()})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg("✅ Terminal creada"); setNombre(""); setUbic(""); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Terminal creada", ok:true}); setNombre(""); setUbic(""); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -4818,8 +4820,9 @@ function Terminales({ agencia, onSesionExpirada }){
         el boleto en su teléfono mientras espera, y llega al mostrador
         con el código listo.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <GCard style={{padding:14,marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:12.5,
@@ -5069,7 +5072,7 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
   const [rep,setRep]=useState(null);
   const [prods,setProds]=useState(null);
   const [cargando,setCargando]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const [cc,setCc]=useState(null);
@@ -5117,7 +5120,7 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
     /* eslint-disable-next-line */ },[]);
 
   const cambiar=async(code,activo)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/productos`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -5126,8 +5129,8 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
                              activo})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg(activo?"✅ Habilitado":"✅ Quitado"); cargarProds();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:activo?"Habilitado":"Quitado", ok:true}); cargarProds();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -5158,8 +5161,9 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
         </GCard>
       )}
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <div style={{display:"flex",gap:7,marginBottom:10}}>
         <input type="date" value={desde}
@@ -5328,7 +5332,7 @@ function MisCanales({ agencia, onSesionExpirada }){
   const [wa,setWa]=useState("");
   const [tg,setTg]=useState("");
   const [hor,setHor]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [abierto,setAbierto]=useState(false);
 
@@ -5343,7 +5347,7 @@ function MisCanales({ agencia, onSesionExpirada }){
   },[]);
 
   const guardar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API_URL}/api/agencias/me/contacto`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -5352,8 +5356,8 @@ function MisCanales({ agencia, onSesionExpirada }){
       if(r.status===401){ onSesionExpirada(); return; }
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg("✅ Guardado"); if(d.telegram_url) setTg(d.telegram_url);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Guardado", ok:true}); if(d.telegram_url) setTg(d.telegram_url);
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -5396,8 +5400,9 @@ function MisCanales({ agencia, onSesionExpirada }){
           <input value={hor} onChange={e=>setHor(e.target.value)}
             placeholder="Horario: lunes a sábado de 9 a 22" style={inp}/>
 
-          {msg&&<div style={{color:Q.muted,fontSize:11.5,marginBottom:8,
-            textAlign:"center"}}>{msg}</div>}
+          {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:11.5,marginBottom:8,
+            textAlign:"center"}}>
+            <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
           <Btn label={proc?"Guardando…":"Guardar"} onClick={guardar}
             color={Q.violet} full disabled={proc}/>
