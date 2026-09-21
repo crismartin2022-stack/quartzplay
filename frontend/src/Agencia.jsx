@@ -3065,17 +3065,23 @@ function Clientes({ agencia, onSesionExpirada }){
   useEffect(()=>{ buscar(""); // eslint-disable-next-line
   },[]);
 
-  if(sel) return <FichaCliente agencia={agencia} user={sel}
-    onVolver={()=>{setSel(null);buscar(q);}} onSesionExpirada={onSesionExpirada}/>;
-
-  if(alta) return <AltaCliente agencia={agencia}
-    onListo={(u)=>{setAlta(false);buscar("");if(u)setSel(u);}}
-    onCancel={()=>setAlta(false)} onSesionExpirada={onSesionExpirada}/>;
-
+  // `sel` used to swap the whole screen for <FichaCliente/> via an early
+  // return, which threw away the list (and the search text) the moment
+  // it closed. FichaCliente now draws itself as a fixed-position sheet
+  // with its own backdrop and close button, so it renders as an overlay
+  // on top of the list below instead — closing it needs no re-render of
+  // the list. Same reasoning for `alta`: it now sits inline above the
+  // search bar, like AltaCliente's admin counterpart, instead of
+  // replacing the screen.
   return(
     <div>
       <PageHeader icon={<Icon name="users"/>} title="Clientes"
         description="Buscá, dá de alta y administrá los clientes de tu agencia."/>
+
+      {alta&&<AltaCliente agencia={agencia}
+        onListo={(u)=>{setAlta(false);buscar("");if(u)setSel(u);}}
+        onCancel={()=>setAlta(false)} onSesionExpirada={onSesionExpirada}/>}
+
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:SPACING[8],
           background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
@@ -3107,43 +3113,52 @@ function Clientes({ agencia, onSesionExpirada }){
         </GCard>
       )}
 
-      {lista.map(u=>(
-        <GCard key={u.id} onClick={()=>setSel(u)}
-          style={{padding:"12px 16px",marginBottom:8,cursor:"pointer"}}>
-          <div style={{display:"flex",justifyContent:"space-between",
-            alignItems:"center",gap:SPACING[8]}}>
-            <div style={{minWidth:0,flex:1}}>
-              <div style={{display:"flex",alignItems:"center",gap:SPACING[8],marginBottom:2}}>
-                <span style={{color:Q.text,fontWeight:600,fontSize:14,
-                  fontFamily:F_BODY,overflow:"hidden",
-                  textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.nombre}</span>
-                {u.tiene_telegram&&<span style={{color:Q.cyan,fontSize:12}}><Send size={11}/></span>}
+      {/* A side-to-side stacked list read as a spreadsheet on desktop;
+          an auto-fit card grid gives each client room for name, contact
+          and balance without a horizontal scan, and still stacks to one
+          column on a phone with no breakpoint logic. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",
+        gap:SPACING[12]}}>
+        {lista.map(u=>(
+          <GCard key={u.id} onClick={()=>setSel(u)}
+            style={{padding:SPACING[12],cursor:"pointer"}}>
+            <div style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",gap:SPACING[8]}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:SPACING[8],marginBottom:2}}>
+                  <span style={{color:Q.text,fontWeight:600,fontSize:14,
+                    fontFamily:F_BODY,overflow:"hidden",
+                    textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.nombre}</span>
+                  {u.tiene_telegram&&<span style={{color:Q.cyan,fontSize:12}}><Send size={11}/></span>}
+                </div>
+                {/* El usuario con el que entra al sitio: el cajero lo
+                    necesita a mano cuando el cliente lo olvida. */}
+                {u.username&&!u.username.startsWith("loc_")&&(
+                  <div style={{color:Q.cyan,fontSize:12,marginTop:1,
+                    fontFamily:F_BODY}}>
+                    @{u.username}</div>
+                )}
+                <div style={{color:Q.muted,fontSize:12}}>
+                  {u.documento?`Doc ${u.documento}`:"Sin documento"}
+                  {u.telefono?` · ${u.telefono}`:""}
+                </div>
               </div>
-              {/* El usuario con el que entra al sitio: el cajero lo
-                  necesita a mano cuando el cliente lo olvida. */}
-              {u.username&&!u.username.startsWith("loc_")&&(
-                <div style={{color:Q.cyan,fontSize:12,marginTop:1,
-                  fontFamily:F_BODY}}>
-                  @{u.username}</div>
-              )}
-              <div style={{color:Q.muted,fontSize:12}}>
-                {u.documento?`Doc ${u.documento}`:"Sin documento"}
-                {u.telefono?` · ${u.telefono}`:""}
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{color:u.saldo>0?Q.green:Q.muted,fontWeight:700,fontSize:15,
+                  fontFamily:F_BODY}}>{ars(u.saldo)}</div>
+                <span style={{color:Q.muted,fontSize:16}}>›</span>
               </div>
             </div>
-            <div style={{textAlign:"right",flexShrink:0}}>
-              <div style={{color:u.saldo>0?Q.green:Q.muted,fontWeight:700,fontSize:15,
-                fontFamily:F_BODY}}>{ars(u.saldo)}</div>
-              <span style={{color:Q.muted,fontSize:16}}>›</span>
-            </div>
-          </div>
-        </GCard>
-      ))}
+          </GCard>
+        ))}
+      </div>
 
       {verBloqueos&&<BloqueosRama agencia={agencia}
         onCerrar={()=>setVerBloqueos(false)} onSesionExpirada={onSesionExpirada}/>}
 
-
+      {sel&&<FichaCliente agencia={agencia} user={sel}
+        onVolver={()=>{setSel(null);buscar(q);}} onSesionExpirada={onSesionExpirada}/>}
     </div>
   );
 }
@@ -3489,8 +3504,19 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
   const tipoTxt={carga:"Carga",retiro:"Retiro",pago_premio:"Premio pagado",ajuste:"Ajuste"};
   const tipoColor={carga:Q.green,retiro:Q.amber,pago_premio:Q.violet2,ajuste:Q.muted};
 
+  // Used to render as the whole screen in place of the client list, which
+  // threw the list (and the search box) away the moment it closed. It now
+  // draws itself as a fixed-position sheet, same convention as
+  // BloqueosRama and admin's own FichaCliente, so it opens as an overlay
+  // and the list underneath stays untouched.
   return(
-    <div>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",
+      zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}
+      onClick={onVolver}>
+    <div onClick={e=>e.stopPropagation()} style={{background:Q.deep,
+      borderTopLeftRadius:20,borderTopRightRadius:20,width:"100%",maxWidth:620,
+      maxHeight:"90vh",overflowY:"auto",padding:SPACING[20],
+      border:`1px solid ${Q.border}`,borderBottom:"none"}}>
       <button onClick={onVolver} style={{background:"transparent",border:"none",
         color:Q.muted,fontSize:22,cursor:"pointer",marginBottom:10,padding:0}}>‹ Volver</button>
 
@@ -3789,6 +3815,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
           </div>
         </GCard>
       ))}
+    </div>
     </div>
   );
 }
