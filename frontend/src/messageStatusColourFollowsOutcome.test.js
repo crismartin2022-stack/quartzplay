@@ -66,6 +66,15 @@ test("sanity: msgColourExpr tells a fixed colour from an outcome-derived one", (
   expect(msgColourExpr(derived)).toMatch(/^msg\.ok\s*\?/);
 });
 
+test("sanity: SETMSG_CALL_HAS_STATUS_GLYPH matches a glyph inside setMsg, not elsewhere", () => {
+  // Positive control: proves the scoped regex actually fires on the shape
+  // it exists to catch, and stays quiet on unrelated static copy (a toggle
+  // button label) that happens to carry the same glyphs.
+  expect('setMsg("✅ "+(d.aviso||"Aceptado"));').toMatch(SETMSG_CALL_HAS_STATUS_GLYPH);
+  expect('setMsg(`⚠️ ${e.message}`);').toMatch(SETMSG_CALL_HAS_STATUS_GLYPH);
+  expect('{activo?"✅ Activo":"⭕ Apagado"}</button>').not.toMatch(SETMSG_CALL_HAS_STATUS_GLYPH);
+});
+
 // Components whose message state is reachable from more than one outcome
 // (both a success setMsg and an error setMsg) and must therefore colour
 // itself from `msg.ok`, not from a fixed colour.
@@ -79,7 +88,50 @@ const BOTH_OUTCOMES = {
     "DesafiosAgencia",
     "MisCanales",
   ],
+  "Admin.jsx": [
+    "TabEventos",
+    "DesafiosConfig",
+    "IacoinPanel",
+    "DisputasPanel",
+    "ModeracionPanel",
+    "LogosCasino",
+    "ProveedoresCasino",
+    "Integraciones",
+    "RiesgoCasino",
+    "TabTester",
+    "TabResponsable",
+    "TabSuperBono",
+    "TabMonedas",
+    "TabRecompensas",
+    "TabProductosPermisos",
+    "TabMensajes",
+    "TabRiesgoSistema",
+    "TabFlash",
+    "TabMejora",
+    "TabBoost",
+    "TabBanners",
+    "TabRiesgo",
+  ],
 };
+
+// Admin.jsx also has toggle buttons that render a static "✅ Activo" /
+// "⭕ Apagado" label off a boolean flag (never off `msg`) — unrelated
+// decoration this change doesn't touch. The prefix-retirement check below
+// is scoped to `setMsg(...)` call arguments specifically, not the whole
+// component body, so it doesn't trip on those.
+//
+// Integraciones is the one deliberate exception even there: `sincronizar()`
+// reports a batch of per-integration results in one string, and each
+// item's own ✅/⚠️ is content — which integration worked and which didn't —
+// not decoration a single top-level colour could replace. Only the
+// batch-level colour (msg.ok = no failures) moved out of the text; the
+// per-item glyphs inside that one summary stay.
+const SETMSG_KEEPS_PREFIX_ON_PURPOSE = new Set(["Integraciones"]);
+
+// Matches a status glyph appearing inside a setMsg(...) call's own
+// argument — scoped narrower than the whole component body so it doesn't
+// false-positive on unrelated static UI copy.
+const SETMSG_CALL_HAS_STATUS_GLYPH = /setMsg\([^;]*?(?:✅|⚠️)/;
 
 for (const [file, names] of Object.entries(BOTH_OUTCOMES)) {
   describe(`${file}: components whose message carries both outcomes`, () => {
@@ -108,10 +160,12 @@ for (const [file, names] of Object.entries(BOTH_OUTCOMES)) {
       expect(body).not.toMatch(/setMsg\(""\)/);
     });
 
-    test.each(names)("%s no longer carries the ✅/⚠️ prefix in its own text — the colour and icon carry it now", (name) => {
-      const body = componentBody(source, name);
-      expect(body).not.toMatch(/✅/);
-      expect(body).not.toMatch(/⚠️/);
-    });
+    test.each(names.filter((n) => !SETMSG_KEEPS_PREFIX_ON_PURPOSE.has(n)))(
+      "%s no longer carries the ✅/⚠️ prefix inside a setMsg call — the colour and icon carry it now",
+      (name) => {
+        const body = componentBody(source, name);
+        expect(body).not.toMatch(SETMSG_CALL_HAS_STATUS_GLYPH);
+      }
+    );
   });
 }
