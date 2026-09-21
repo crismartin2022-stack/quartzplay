@@ -160,7 +160,7 @@ the admin looks at most.
       Tests: 866/866 passed (52 suites). Build: `Compiled successfully`.
 - [x] **T4** — A guard that every tab component's opening view renders
       `<PageHeader`, `global` excepted by name.
-      `frontend/src/tabsRenderPageHeader.test.js`. Commit `<T4-hash>`.
+      `frontend/src/tabsRenderPageHeader.test.js`. Commit `cae9f8d`.
       Reads both dispatch lists from source (`Agencia.jsx` bounded by
       `{tab==="codigo"` / `</CazaError>`, `Admin.jsx` bounded by
       `{tab==="global"   &&<TabGlobal` / the sidebar layout marker that
