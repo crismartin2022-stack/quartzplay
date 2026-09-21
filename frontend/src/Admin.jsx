@@ -12096,7 +12096,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
-        fontFamily:F_BODY}}>🛡️ Control de riesgo</div>
+        fontFamily:F_BODY}}><Icon name="shield-alert" size={14}/> Control de riesgo</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:14,lineHeight:1.55,
         fontFamily:F_BODY}}>
         Busca patrones de explotación: cuentas vinculadas apostando a
@@ -12135,7 +12135,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
 
       {vista==="alertas"&&(
       <div style={{display:"flex",gap:8,marginBottom:12}}>
-        <Btn label={escaneando?"Buscando…":"🔍 Escanear ahora"}
+        <Btn label={escaneando?"Buscando…":<><Icon name="search" size={13}/> Escanear ahora</>}
           onClick={escanear} color={Q.cyan} full disabled={escaneando}/>
         <Btn label={anaProc?"…":"🤖 Priorizar"} onClick={analizar}
           color={Q.violet} outline full disabled={anaProc}/>
@@ -12338,11 +12338,11 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                       <div style={{color:Q.amber,fontSize:11,lineHeight:1.5,
                         marginBottom:8,
                         fontFamily:F_BODY}}>
-                        ⚠️ {diag.alerta}</div>
+                        <Icon name="triangle-alert" size={12}/> {diag.alerta}</div>
                     ):(
                       <div style={{color:Q.green,fontSize:11,marginBottom:8,
                         fontFamily:F_BODY}}>
-                        ✅ Se registran {diag.ips_registradas.length} IP
+                        <Icon name="circle-check" size={12}/> Se registran {diag.ips_registradas.length} IP
                         distintas: el dato llega bien.</div>
                     )}
                     <div style={{color:Q.dim,fontSize:10,lineHeight:1.6,
@@ -12526,7 +12526,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
             que sepa nada de fútbol para verlo.</div>
 
           <div style={{display:"flex",gap:8}}>
-            <Btn label={cuotas?.cargando?"Revisando…":"🔍 Revisar ahora"}
+            <Btn label={cuotas?.cargando?"Revisando…":<><Icon name="search" size={13}/> Revisar ahora</>}
               onClick={auditarCuotas} color={Q.cyan} full
               disabled={cuotas?.cargando}/>
             {cuotas?.problemas?.some(p=>p.severidad==="critica")&&(
@@ -13141,7 +13141,7 @@ function TabFlash({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
-        fontFamily:F_BODY}}>⚡ Combo flash</div>
+        fontFamily:F_BODY}}><Zap size={14}/> Combo flash</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:14,lineHeight:1.55,
         fontFamily:F_BODY}}>
         La combinada que solo existe en el chat de Telegram, con un extra
@@ -13314,7 +13314,7 @@ function TabMejora({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
-        fontFamily:F_BODY}}>📸 Bet Best</div>
+        fontFamily:F_BODY}}><Icon name="scan-line" size={14}/> Bet Best</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:14,lineHeight:1.55,
         fontFamily:F_BODY}}>
         Cuánto se puede subir sobre la cuota del proveedor para igualar el
@@ -13510,7 +13510,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
             {ars(cfg.pagado_historico)}</b></div>
       )}
 
-      <Btn label={simProc?"Calculando…":"🔍 Simular con mis datos"}
+      <Btn label={simProc?"Calculando…":<><Icon name="search" size={13}/> Simular con mis datos</>}
         onClick={simular} color={Q.cyan} outline full disabled={simProc}/>
 
       {sim&&(
@@ -13858,7 +13858,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
-        fontFamily:F_BODY}}>🛡️ Riesgo por evento</div>
+        fontFamily:F_BODY}}><Icon name="shield-alert" size={14}/> Riesgo por evento</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:16,
         fontFamily:F_BODY}}>
         Cuánto habría que pagar si gana cada resultado, sumando los boletos
@@ -14071,10 +14071,10 @@ function TabLimites({ adminKey, onNoAutorizado }){
       });
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
-      if(r.ok&&d.ok){ setMsg({text:`✅ Guardado${d.aplicado_a?` (${d.aplicado_a} agencias)`:""}`,ok:true});
+      if(r.ok&&d.ok){ setMsg({text:`Guardado${d.aplicado_a?` (${d.aplicado_a} agencias)`:""}`,ok:true});
         setForm(f=>({...f,monto_min:"",monto_max:"",pago_max:""})); cargar(); }
-      else setMsg({text:"⚠️ "+(d.detail||"Error"),ok:false});
-    }catch(e){ setMsg({text:"⚠️ Error",ok:false}); }
+      else setMsg({text:(d.detail||"Error"),ok:false});
+    }catch(e){ setMsg({text:"Error",ok:false}); }
     setProc(false);
   };
 
@@ -14092,7 +14092,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
-        fontFamily:F_BODY}}>🎚️ Límites de apuestas</div>
+        fontFamily:F_BODY}}><Icon name="sliders-horizontal" size={14}/> Límites de apuestas</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:16,
         fontFamily:F_BODY}}>
         Monto mínimo, máximo y pago máximo. Aplicá a toda la red, a una rama
@@ -14187,7 +14187,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
           {proc?"Guardando...":"Guardar límite"}</button>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
           color:msg.ok?Q.green:Q.red,
-          fontFamily:F_BODY}}>{msg.text}</div>}
+          fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
       </GCard>
 
       <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
