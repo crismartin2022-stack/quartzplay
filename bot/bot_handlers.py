@@ -151,7 +151,7 @@ async def cmd_start(u: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"Tocá el botón para abrir la app: apostá, mirá tus combos, "
         f"tu saldo y todo desde un solo lugar.",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🎯 Abrir QuartzPlay",
+            [InlineKeyboardButton("Abrir iaqp",
                 web_app=WebAppInfo(url=_web_app_url()))],
         ]),
     )
