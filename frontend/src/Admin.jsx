@@ -186,7 +186,7 @@ function AdminLogin({ onLogin }){
         backgroundSize:"28px 28px"}}/>
       <div style={{width:"100%",maxWidth:360,position:"relative",zIndex:1}}>
         <div style={{textAlign:"center",marginBottom:32}}>
-          <QPLogo size={26}/>
+          <QPLogo size={44}/>
           <div style={{color:Q.muted,fontSize:12,marginTop:8,
             fontFamily:F_BODY}}>Panel Administrador</div>
         </div>
@@ -14319,13 +14319,13 @@ function AdminPanel({ adminKey, onLogout }){
 
       <div style={isDesktop ? {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"12px 16px",display:"flex",alignItems:"center",
-        justifyContent:"space-between",position:"sticky",top:0,zIndex:50,overflow:"hidden",
+        justifyContent:"space-between",position:"sticky",top:0,zIndex:50,overflow:"hidden",minHeight:64,
         gridColumn:"2",gridRow:"1"} : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"12px 16px",display:"flex",alignItems:"center",
         justifyContent:"space-between",position:"sticky",top:0,zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        <QPLogo size={16}/>
+        <QPLogo size={isDesktop?40:16}/>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
           <HBadge label="ADMIN" color={Q.violet}/>
           <button onClick={onLogout} style={{background:"transparent",
@@ -14334,7 +14334,7 @@ function AdminPanel({ adminKey, onLogout }){
         </div>
       </div>
 
-      <div style={isDesktop ? {padding:"16px",maxWidth:620,margin:"0 auto",
+      <div style={isDesktop ? {padding:"16px",maxWidth:1100,margin:"0 auto",
         position:"relative",zIndex:1,paddingBottom:"40px",
         gridColumn:"2",gridRow:"2"} : {padding:"16px",maxWidth:620,margin:"0 auto",
         position:"relative",zIndex:1,

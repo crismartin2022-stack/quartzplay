@@ -831,7 +831,7 @@ function LoginScreen({ onLogin }){
         backgroundSize:"28px 28px"}}/>
       <div style={{width:"100%",maxWidth:380,position:"relative",zIndex:1}}>
         <div style={{textAlign:"center",marginBottom:32}}>
-          <QPLogo size={28}/>
+          <QPLogo size={44}/>
           <div style={{color:Q.muted,fontSize:12,marginTop:8,
             fontFamily:F_BODY}}>Panel de Agencia Oficial</div>
         </div>
@@ -7959,24 +7959,24 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   },[]);
 
   const TABS=[
-    {k:"codigo",   l:"Código / Bot"},
-    {k:"envivo",   l:<><Icon name="circle-dot" size={12}/> En Vivo</>},
-    {k:"manual",   l:"Apuesta manual"},
-    {k:"combos",   l:<><Zap size={12}/> Combos IA</>},
-    {k:"mejorar",  l:<><Icon name="scan-line" size={12}/> Mejorar</>},
-    {k:"clientes", l:<><Icon name="users" size={12}/> Clientes</>},
-    {k:"misagencias", l:<><Building2 size={12}/> Mis agencias</>},
-    {k:"influencers", l:<><Star size={12}/> Influencers</>},
-    {k:"historial",l:"Historial"},
-    {k:"cashout",  l:<><Icon name="wallet-cards" size={12}/> Cash out</>},
-    {k:"bonos",    l:<><Gift size={12}/> Bonos</>},
-    {k:"cierres",  l:"Cierres"},
-    {k:"mensajes", l:"Mensajes"},
-    {k:"terminales", l:"Terminales"},
-    {k:"desafios", l:"Desafíos"},
-    {k:"asesor", l:"Asesor"},
-    {k:"soporte",  l:"Soporte"},
-    {k:"config",   l:"Config"},
+    {k:"codigo",   i:<Bot size={12}/>, l:"Código / Bot"},
+    {k:"envivo",   i:<Icon name="circle-dot" size={12}/>, l:"En Vivo"},
+    {k:"manual",   i:<Pencil size={12}/>, l:"Apuesta manual"},
+    {k:"combos",   i:<Zap size={12}/>, l:"Combos IA"},
+    {k:"mejorar",  i:<Icon name="scan-line" size={12}/>, l:"Mejorar"},
+    {k:"clientes", i:<Icon name="users" size={12}/>, l:"Clientes"},
+    {k:"misagencias", i:<Building2 size={12}/>, l:"Mis agencias"},
+    {k:"influencers", i:<Star size={12}/>, l:"Influencers"},
+    {k:"historial",i:<Icon name="clock-3" size={12}/>, l:"Historial"},
+    {k:"cashout",  i:<Icon name="wallet-cards" size={12}/>, l:"Cash out"},
+    {k:"bonos",    i:<Gift size={12}/>, l:"Bonos"},
+    {k:"cierres",  i:<Icon name="chart-no-axes-combined" size={12}/>, l:"Cierres"},
+    {k:"mensajes", i:<Icon name="message-circle" size={12}/>, l:"Mensajes"},
+    {k:"terminales", i:<Monitor size={12}/>, l:"Terminales"},
+    {k:"desafios", i:<Icon name="trophy" size={12}/>, l:"Desafíos"},
+    {k:"asesor", i:<Handshake size={12}/>, l:"Asesor"},
+    {k:"soporte",  i:<Headphones size={12}/>, l:"Soporte"},
+    {k:"config",   i:<Icon name="sliders-horizontal" size={12}/>, l:"Config"},
   ].filter(t=>{
     const perm = agencia.permiso || "ambos";
     if(t.k==="misagencias") return perm==="crea_agencias"||perm==="ambos";
@@ -7998,13 +7998,13 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         backgroundSize:"28px 28px"}}/>
       <div style={isDesktop ? {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"12px 16px",display:"flex",alignItems:"center",flexShrink:0,
-        justifyContent:"space-between",zIndex:50,overflow:"hidden",
+        justifyContent:"space-between",zIndex:50,overflow:"hidden",minHeight:64,
         gridColumn:"2",gridRow:"1"} : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"12px 16px",display:"flex",alignItems:"center",flexShrink:0,
         justifyContent:"space-between",zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        <QPLogo size={16}/>
+        <QPLogo size={isDesktop?40:16}/>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
           <button onClick={()=>setVerSaldo(true)} style={{
             background:`${(saldoCC??0)>=0?Q.green:Q.red}18`,
@@ -8039,8 +8039,9 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"}}>
         {TABS.map(t=>(
           <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
+            minWidth:0,
             background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
+            border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
             borderRadius:RADII.md,cursor:"pointer",
             color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
             fontFamily:F_BODY,
@@ -8056,7 +8057,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             fontFamily:F_BODY,
             position:"relative",
           }}>
-            {t.l}
+            {t.i}<span style={{marginLeft:SPACING[8]}}>{t.l}</span>
             {t.k==="mensajes"&&msgPendientes>0&&(
               <span style={{position:"absolute",top:-4,right:-4,
                 background:Q.red,color:"#fff",borderRadius:RADII.md,
@@ -8074,7 +8075,8 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         WebkitOverflowScrolling:"touch",position:"relative",zIndex:1,
         gridColumn:"2",gridRow:"2"} : {flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
         WebkitOverflowScrolling:"touch",position:"relative",zIndex:1}}>
-      <div style={{padding:"16px 12px",maxWidth:620,margin:"0 auto",
+      <div style={isDesktop ? {padding:"16px 12px",maxWidth:1100,margin:"0 auto",
+        paddingBottom:"calc(28px + env(safe-area-inset-bottom))"} : {padding:"16px 12px",maxWidth:620,margin:"0 auto",
         paddingBottom:"calc(28px + env(safe-area-inset-bottom))"}}>
         <CazaError>
         {/* Los avisos del admin: arriba de todo y en cualquier
