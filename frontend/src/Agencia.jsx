@@ -8155,7 +8155,11 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
       </div>
 
       <div style={isDesktop ? {
-        background:Q.deep,borderRight:`1px solid ${Q.border}`,
+        // Deliberately matching Admin.jsx's literal sidebar background,
+        // not the Q.deep token: parity with admin's near-black desktop
+        // sidebar, keep this in sync if admin's value changes.
+        background:"rgba(6,6,18,0.97)",backdropFilter:"blur(20px)",
+        borderRight:`1px solid ${Q.border}`,
         padding:`${SPACING[24]}px ${SPACING[12]}px`,display:"flex",
         flexDirection:"column",alignItems:"stretch",gap:SPACING[8],
         overflowY:"auto",flexShrink:0,zIndex:40,
