@@ -3788,35 +3788,40 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         nombre={user.nombre_completo||user.username||"el cliente"}
         onCerrar={()=>setResetOpen(false)}/>}
 
-      {/* Apuestas */}
+      {/* Apuestas and Movimientos are logs — read in time order, not
+          navigated into — so they get the row standard: off the rounded
+          GCard, on the page background, hairline separators. The whole
+          sheet scrolls as one, so raising row padding here does not
+          shrink a fixed-height viewport. */}
       {ficha&&ficha.apuestas.length>0&&(
-        <div style={{marginBottom:12}}>
-          <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-            fontFamily:F_BODY,marginBottom:8,marginLeft:4}}>
-            Últimas apuestas</div>
-          {ficha.apuestas.slice(0,10).map((b,i)=>{
+        <div style={{marginBottom:SPACING[24]}}>
+          <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+            textTransform:"uppercase",marginBottom:SPACING[12],
+            fontFamily:F_BODY}}>Últimas apuestas</div>
+          {ficha.apuestas.slice(0,10).map((b,i,arr)=>{
             const est={won:Q.green,ganada:Q.green,lost:Q.red,perdida:Q.red,
               pending:Q.amber,pendiente:Q.amber,active:Q.cyan}[(b.status||"").toLowerCase()]||Q.muted;
             return(
-              <GCard key={i} style={{padding:"8px 12px",marginBottom:5}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                      fontFamily:F_BODY}}>{b.code}</div>
-                    <div style={{color:Q.muted,fontSize:12}}>
-                      {ars(b.stake)} · {fmt(b.odd)}x · {b.fecha}</div>
-                  </div>
-                  <span style={{color:est,fontSize:12,fontWeight:700,
-                    fontFamily:F_BODY}}>{b.status}</span>
+              <div key={i} style={{display:"flex",justifyContent:"space-between",
+                alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+                borderBottom:i<arr.length-1?`1px solid ${Q.border}55`:"none"}}>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
+                    fontFamily:F_BODY}}>{b.code}</div>
+                  <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                    fontFamily:F_BODY}}>{ars(b.stake)} · {fmt(b.odd)}x · {b.fecha}</div>
                 </div>
-              </GCard>
+                <span style={{color:est,fontSize:TEXT[13],fontWeight:700,flexShrink:0,
+                  fontFamily:F_BODY}}>{b.status}</span>
+              </div>
             );
           })}
         </div>
       )}
 
-      <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-        fontFamily:F_BODY,marginBottom:8,marginLeft:4}}>
+      <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+        textTransform:"uppercase",marginBottom:SPACING[12],
+        fontFamily:F_BODY}}>
         Movimientos
       </div>
       {movs===null&&<div style={{color:Q.muted,textAlign:"center",padding:SPACING[12],
@@ -3828,19 +3833,20 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         </GCard>
       )}
       {(movs||[]).map((m,i)=>(
-        <GCard key={i} style={{padding:"12px 16px",marginBottom:6}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div>
-              <span style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
-                fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</span>
-              <div style={{color:Q.muted,fontSize:12}}>{m.fecha}{m.betslip?` · ${m.betslip}`:""}</div>
-            </div>
-            <div style={{color:m.tipo==="retiro"?Q.amber:Q.green,fontWeight:700,fontSize:14,
-              fontFamily:F_BODY}}>
-              {m.tipo==="retiro"?"-":"+"}{ars(m.monto)}
-            </div>
+        <div key={i} style={{display:"flex",justifyContent:"space-between",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<movs.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:600,fontSize:TEXT[15],
+              fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>{m.fecha}{m.betslip?` · ${m.betslip}`:""}</div>
           </div>
-        </GCard>
+          <div style={{color:m.tipo==="retiro"?Q.amber:Q.green,fontWeight:700,fontSize:TEXT[16],
+            flexShrink:0,fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>
+            {m.tipo==="retiro"?"-":"+"}{ars(m.monto)}
+          </div>
+        </div>
       ))}
     </div>
     </div>
@@ -5688,8 +5694,11 @@ function SaldoCC({ agencia, onSesionExpirada }){
         </div>
       </GCard>
 
-      <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-        fontFamily:F_BODY,marginBottom:8,marginLeft:4}}>
+      {/* A log read in time order, not navigated into: rows on the page
+          background instead of a GCard per movement. */}
+      <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+        textTransform:"uppercase",marginBottom:SPACING[12],
+        fontFamily:F_BODY}}>
         Movimientos</div>
       {data.movimientos.length===0&&(
         <GCard style={{padding:SPACING[20],textAlign:"center"}}>
@@ -5698,22 +5707,23 @@ function SaldoCC({ agencia, onSesionExpirada }){
         </GCard>
       )}
       {data.movimientos.map((m,i)=>(
-        <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{minWidth:0,flex:1}}>
-              <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
-                fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</div>
-              <div style={{color:Q.muted,fontSize:12}}>
-                {m.fecha}{m.detalle?` · ${m.detalle}`:""}</div>
-            </div>
-            <div style={{textAlign:"right",flexShrink:0}}>
-              <div style={{color:m.monto>=0?Q.green:Q.amber,fontWeight:700,fontSize:14,
-                fontFamily:F_BODY}}>
-                {m.monto>=0?"+":""}{ars(m.monto)}</div>
-              <div style={{color:Q.dim,fontSize:12}}>saldo {ars(m.saldo)}</div>
-            </div>
+        <div key={i} style={{display:"flex",justifyContent:"space-between",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<data.movimientos.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:600,fontSize:TEXT[15],
+              fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>
+              {m.fecha}{m.detalle?` · ${m.detalle}`:""}</div>
           </div>
-        </GCard>
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <div style={{color:m.monto>=0?Q.green:Q.amber,fontWeight:700,fontSize:TEXT[16],
+              fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>
+              {m.monto>=0?"+":""}{ars(m.monto)}</div>
+            <div style={{color:Q.dim,fontSize:12}}>saldo {ars(m.saldo)}</div>
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -5775,23 +5785,25 @@ function PSPAgencia({ agencia, onSesionExpirada }){
         <div style={{marginBottom:6}}><Icon name="landmark" size={26}/></div>
         <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
           Sin movimientos digitales</div></GCard>}
+      {/* A log read in time order, not navigated into: rows on the page
+          background instead of a GCard per movement. */}
       {lista.map((x,i)=>(
-        <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div>
-              <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                fontFamily:F_BODY}}>{x.cliente}</div>
-              <div style={{color:Q.dim,fontSize:12,fontFamily:F_BODY}}>
-                {x.fecha}</div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{color:Q.gold,fontWeight:700,fontSize:14,
-                fontFamily:F_BODY}}>{ars(x.monto)}</div>
-              <div style={{color:colores[x.estado]||Q.muted,fontSize:12,fontWeight:700,
-                fontFamily:F_BODY}}>{x.estado}</div>
-            </div>
+        <div key={i} style={{display:"flex",justifyContent:"space-between",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<lista.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+              fontFamily:F_BODY}}>{x.cliente}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,fontFamily:F_BODY}}>
+              {x.fecha}</div>
           </div>
-        </GCard>
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <div style={{color:Q.gold,fontWeight:700,fontSize:TEXT[16],
+              fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(x.monto)}</div>
+            <div style={{color:colores[x.estado]||Q.muted,fontSize:12,fontWeight:700,
+              fontFamily:F_BODY}}>{x.estado}</div>
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -5911,24 +5923,29 @@ function HistorialCashout({ agencia, onSesionExpirada }){
           <div style={{color:Q.muted,fontSize:13}}>Todavía no hay cash outs en tu rama</div>
         </GCard>
       )}
+      {/* A log read in time order, not navigated into: rows on the page
+          background instead of a GCard per cash-out. The status pill is
+          kept — it is a meaningful state badge, not card chrome. */}
       {items.map((c,i)=>(
-        <GCard key={c.code+i} style={{padding:"12px 16px",marginBottom:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-            <div style={{color:Q.cyan,fontWeight:700,fontSize:13,
+        <div key={c.code+i} style={{display:"flex",justifyContent:"space-between",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<items.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
               fontFamily:F_BODY}}>{c.code}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>{c.cliente} · {c.agencia} · {c.fecha}
+              {c.pagado_por?` · pagó ${c.pagado_por}`:""}</div>
+          </div>
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <div style={{color:Q.gold,fontWeight:700,fontSize:TEXT[16],
+              fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(c.valor)} {c.moneda}</div>
             <div style={{background:`${colores[c.estado]||Q.muted}22`,
               border:`1px solid ${colores[c.estado]||Q.muted}`,borderRadius:RADII.md,
-              padding:"4px 12px",color:colores[c.estado]||Q.muted,fontSize:12,fontWeight:700,
-              fontFamily:F_BODY}}>{rotulos[c.estado]||c.estado}</div>
+              padding:"4px 8px",color:colores[c.estado]||Q.muted,fontSize:12,fontWeight:700,
+              fontFamily:F_BODY,display:"inline-block",marginTop:2}}>{rotulos[c.estado]||c.estado}</div>
           </div>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
-            <span style={{color:Q.muted}}>{c.cliente} · {c.agencia}</span>
-            <span style={{color:Q.gold,fontWeight:700,
-              fontFamily:F_BODY}}>{ars(c.valor)} {c.moneda}</span>
-          </div>
-          <div style={{color:Q.dim,fontSize:12,marginTop:2}}>{c.fecha}
-            {c.pagado_por?` · pagó ${c.pagado_por}`:""}</div>
-        </GCard>
+        </div>
       ))}
     </div>
   );
@@ -6461,26 +6478,30 @@ function Cierres({ agencia, onSesionExpirada }){
 
           {caja&&!caja.error&&(caja.movimientos||[]).length>0&&(
             <>
-              <div style={{color:Q.muted,fontSize:12,margin:"14px 0 6px",
+              {/* A log read in time order, not navigated into. */}
+              <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+                textTransform:"uppercase",marginTop:SPACING[24],marginBottom:SPACING[12],
                 fontFamily:F_BODY}}>
                 Detalle ({caja.movimientos.length})</div>
-              {caja.movimientos.map((m,i)=>{
+              {caja.movimientos.map((m,i,arr)=>{
                 const esCarga=(m.tipo||"").startsWith("carga");
                 return(
                   <div key={i} style={{display:"flex",
                     justifyContent:"space-between",alignItems:"center",
-                    padding:"8px 4px",borderBottom:`1px solid ${Q.border}`,
-                    gap:SPACING[8]}}>
+                    padding:`${SPACING[16]}px 0`,
+                    borderBottom:i<arr.length-1?`1px solid ${Q.border}55`:"none",
+                    gap:SPACING[12]}}>
                     <div style={{minWidth:0,flex:1}}>
-                      <div style={{color:Q.text,fontSize:12,
+                      <div style={{color:Q.text,fontSize:TEXT[15],
                         overflow:"hidden",textOverflow:"ellipsis",
                         whiteSpace:"nowrap"}}>{m.cliente}</div>
-                      <div style={{color:Q.dim,fontSize:12}}>
+                      <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                        fontFamily:F_BODY}}>
                         {m.fecha} · {m.agencia} · {m.tipo}</div>
                     </div>
                     <div style={{color:esCarga?Q.green:Q.amber,fontWeight:700,
-                      fontSize:13,flexShrink:0,
-                      fontFamily:F_BODY}}>
+                      fontSize:TEXT[16],flexShrink:0,
+                      fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>
                       {esCarga?"+":"−"}{ars(m.monto)}</div>
                   </div>
                 );
@@ -6665,33 +6686,39 @@ function Cierres({ agencia, onSesionExpirada }){
 
       {vista==="digital"&&<PSPAgencia agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
 
+      {/* Movs, apuestas, combos and impresiones are all logs of what
+          already happened in the period, read in time order and not
+          navigated elsewhere — apuestas expands inline on click, it
+          does not open a new screen — so all four get the row
+          standard: off the GCard, hairline separators, bigger type. */}
       {vista==="movs"&&<>
         {movs===null&&<div style={{color:Q.muted,textAlign:"center",padding:SPACING[20],
           fontFamily:F_BODY}}>Cargando...</div>}
         {movs&&movs.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
           padding:SPACING[20],fontFamily:F_BODY}}>Sin movimientos</div>}
-        {(movs||[]).map((m,i)=>{
+        {(movs||[]).map((m,i,arr)=>{
           const tipoTxt={carga_admin:"Carga admin",retiro_admin:"Descuento admin",
             carga_cliente:"Crédito a cliente",retiro_cliente:"Retiro cliente",
             pago_premio:"Premio pagado",transferencia:"A sub-agencia",recibido:"Recibido",
             carga:"Carga cliente",retiro:"Retiro cliente"}[m.tipo]||m.tipo;
           const pos=m.monto>=0;
           return(
-            <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{minWidth:0,flex:1}}>
-                  <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                    fontFamily:F_BODY}}>{tipoTxt}
-                    {m.origen==="cliente"&&m.cliente?<span style={{color:Q.cyan}}> · {m.cliente}</span>:null}</div>
-                  <div style={{color:Q.muted,fontSize:12}}>{m.agencia} · {m.fecha}</div>
-                </div>
-                <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{color:pos?Q.green:Q.amber,fontWeight:700,fontSize:14,
-                    fontFamily:F_BODY}}>{pos?"+":""}{ars(m.monto)}</div>
-                  {m.saldo!=null&&<div style={{color:Q.dim,fontSize:12}}>saldo {ars(m.saldo)}</div>}
-                </div>
+            <div key={i} style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+              borderBottom:i<arr.length-1?`1px solid ${Q.border}55`:"none"}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+                  fontFamily:F_BODY}}>{tipoTxt}
+                  {m.origen==="cliente"&&m.cliente?<span style={{color:Q.cyan}}> · {m.cliente}</span>:null}</div>
+                <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                  fontFamily:F_BODY}}>{m.agencia} · {m.fecha}</div>
               </div>
-            </GCard>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{color:pos?Q.green:Q.amber,fontWeight:700,fontSize:TEXT[16],
+                  fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{pos?"+":""}{ars(m.monto)}</div>
+                {m.saldo!=null&&<div style={{color:Q.dim,fontSize:12}}>saldo {ars(m.saldo)}</div>}
+              </div>
+            </div>
           );
         })}
       </>}
@@ -6701,24 +6728,26 @@ function Cierres({ agencia, onSesionExpirada }){
           fontFamily:F_BODY}}>Cargando...</div>}
         {apuestas&&apuestas.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
           padding:SPACING[20],fontFamily:F_BODY}}>Sin apuestas</div>}
-        {(apuestas||[]).map((a,i)=>{
+        {(apuestas||[]).map((a,i,arr)=>{
           const col={won:Q.green,ganada:Q.green,lost:Q.red,perdida:Q.red,
             pending:Q.amber,pendiente:Q.amber,active:Q.cyan,paid:Q.green}[(a.status||"").toLowerCase()]||Q.muted;
           const abierta=apAbierta===a.code;
           return(
-            <GCard key={i} style={{padding:"12px 12px",marginBottom:6,cursor:"pointer"}}
+            <div key={i} style={{padding:`${SPACING[16]}px 0`,cursor:"pointer",
+              borderBottom:i<arr.length-1?`1px solid ${Q.border}55`:"none"}}
               onClick={()=>setApAbierta(abierta?null:a.code)}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[12]}}>
                 <div style={{minWidth:0,flex:1}}>
-                  <div style={{color:Q.text,fontWeight:700,fontSize:12,
+                  <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
                     fontFamily:F_BODY}}>{a.code}
                     <span style={{color:Q.cyan,fontWeight:400}}> · {a.cliente}</span></div>
-                  <div style={{color:Q.muted,fontSize:12}}>{a.agencia} · {a.fecha} · {a.picks.length} sel.</div>
+                  <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                    fontFamily:F_BODY}}>{a.agencia} · {a.fecha} · {a.picks.length} sel.</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{color:col,fontWeight:700,fontSize:12,
+                  <div style={{color:col,fontWeight:700,fontSize:TEXT[13],
                     fontFamily:F_BODY}}>{a.status}</div>
-                  <div style={{color:Q.muted,fontSize:12}}>{ars(a.stake)} · {fmt(a.odd)}x</div>
+                  <div style={{color:Q.muted,fontSize:12,marginTop:2}}>{ars(a.stake)} · {fmt(a.odd)}x</div>
                 </div>
               </div>
               {abierta&&(
@@ -6745,7 +6774,7 @@ function Cierres({ agencia, onSesionExpirada }){
                     fontFamily:F_BODY}}>Sin detalle</div>}
                 </div>
               )}
-            </GCard>
+            </div>
           );
         })}
       </>}
@@ -6756,26 +6785,27 @@ function Cierres({ agencia, onSesionExpirada }){
         {combos&&combos.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
           padding:SPACING[20],fontFamily:F_BODY}}>Sin combos en el período</div>}
         {(combos||[]).map((c,i)=>(
-          <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
-              <div style={{minWidth:0,flex:1}}>
-                <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                  fontFamily:F_BODY}}>{c.nombre||"Combo"}
-                  {c.es_ia
-                    ?<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
-                        borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
-                        color:Q.violet2,marginLeft:6}}><Bot size={12}/> IA</span>
-                    :<span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,
-                        borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
-                        color:Q.cyan,marginLeft:6}}><PenLine size={12}/> Manual</span>}
-                  {!c.visible&&<span style={{color:Q.muted,fontSize:12,marginLeft:5}}>oculto</span>}
-                </div>
-                <div style={{color:Q.muted,fontSize:12}}>{c.creado_por||c.origen} · {c.fecha}</div>
+          <div key={i} style={{display:"flex",justifyContent:"space-between",
+            alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[8],
+            borderBottom:i<combos.length-1?`1px solid ${Q.border}55`:"none"}}>
+            <div style={{minWidth:0,flex:1}}>
+              <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+                fontFamily:F_BODY}}>{c.nombre||"Combo"}
+                {c.es_ia
+                  ?<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
+                      borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
+                      color:Q.violet2,marginLeft:6}}><Bot size={12}/> IA</span>
+                  :<span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,
+                      borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
+                      color:Q.cyan,marginLeft:6}}><PenLine size={12}/> Manual</span>}
+                {!c.visible&&<span style={{color:Q.muted,fontSize:12,marginLeft:5}}>oculto</span>}
               </div>
-              <div style={{color:Q.green,fontWeight:700,fontSize:14,flexShrink:0,
-                fontFamily:F_BODY}}>{fmt(c.odd)}x</div>
+              <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                fontFamily:F_BODY}}>{c.creado_por||c.origen} · {c.fecha}</div>
             </div>
-          </GCard>
+            <div style={{color:Q.green,fontWeight:700,fontSize:TEXT[16],flexShrink:0,
+              fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{fmt(c.odd)}x</div>
+          </div>
         ))}
       </>}
 
@@ -6787,17 +6817,18 @@ function Cierres({ agencia, onSesionExpirada }){
         {(impresiones||[]).map((im,i)=>{
           const tipoTxt={ticket:"Ticket",apuesta:"Apuesta",cobro:"Cobro",cierre:"Cierre de caja",combo:"Combo"}[im.tipo]||im.tipo;
           return(
-            <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{minWidth:0,flex:1}}>
-                  <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                    fontFamily:F_BODY}}>{tipoTxt}
-                    {im.referencia?<span style={{color:Q.cyan,fontWeight:400}}> · {im.referencia}</span>:null}</div>
-                  <div style={{color:Q.muted,fontSize:12}}>{im.agencia} · por {im.quien} · {im.fecha}</div>
-                </div>
-                <Printer size={16}/>
+            <div key={i} style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+              borderBottom:i<impresiones.length-1?`1px solid ${Q.border}55`:"none"}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+                  fontFamily:F_BODY}}>{tipoTxt}
+                  {im.referencia?<span style={{color:Q.cyan,fontWeight:400}}> · {im.referencia}</span>:null}</div>
+                <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                  fontFamily:F_BODY}}>{im.agencia} · por {im.quien} · {im.fecha}</div>
               </div>
-            </GCard>
+              <Printer size={16}/>
+            </div>
           );
         })}
       </>}
@@ -7348,27 +7379,34 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
             {data.influencers.length===0&&<div style={{color:Q.muted,fontSize:12,
               textAlign:"center",padding:SPACING[20],fontFamily:F_BODY}}>
               No tenés influencers todavía</div>}
-            {data.influencers.map(inf=>(
-              <GCard key={inf.code} onClick={()=>setSel(inf.code)}
-                style={{padding:"12px 12px",marginBottom:6,cursor:"pointer"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
-                  <div style={{minWidth:0,flex:1}}>
-                    <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                      fontFamily:F_BODY}}>{inf.name}
-                      <span style={{color:Q.muted,fontWeight:400,fontSize:12}}> · {inf.codigo_ref}</span></div>
-                    <div style={{color:Q.muted,fontSize:12}}>
-                      {inf.combos} combos · {inf.jugadas} jugadas</div>
-                    {inf.parent_name&&<div style={{color:Q.violet2,fontSize:12,marginTop:1}}>
-                      <Building2 size={11}/> {inf.parent_name}</div>}
+            {/* Navigates into DetalleInfluencerAgencia on click — an
+                entity list, same criterion as TabUsuarios and Agencias
+                hoy — so it gets the auto-fit card grid, not stacked rows. */}
+            <div style={{display:"grid",
+              gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",
+              gap:SPACING[12]}}>
+              {data.influencers.map(inf=>(
+                <GCard key={inf.code} onClick={()=>setSel(inf.code)}
+                  style={{padding:SPACING[12],cursor:"pointer"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
+                    <div style={{minWidth:0,flex:1}}>
+                      <div style={{color:Q.text,fontWeight:700,fontSize:13,
+                        fontFamily:F_BODY}}>{inf.name}
+                        <span style={{color:Q.muted,fontWeight:400,fontSize:12}}> · {inf.codigo_ref}</span></div>
+                      <div style={{color:Q.muted,fontSize:12}}>
+                        {inf.combos} combos · {inf.jugadas} jugadas</div>
+                      {inf.parent_name&&<div style={{color:Q.violet2,fontSize:12,marginTop:1}}>
+                        <Building2 size={11}/> {inf.parent_name}</div>}
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{color:Q.gold,fontWeight:700,fontSize:14,
+                        fontFamily:F_BODY}}>{ars(inf.comision)}</div>
+                      <div style={{color:Q.muted,fontSize:12}}>comisión ›</div>
+                    </div>
                   </div>
-                  <div style={{textAlign:"right",flexShrink:0}}>
-                    <div style={{color:Q.gold,fontWeight:700,fontSize:14,
-                      fontFamily:F_BODY}}>{ars(inf.comision)}</div>
-                    <div style={{color:Q.muted,fontSize:12}}>comisión ›</div>
-                  </div>
-                </div>
-              </GCard>
-            ))}
+                </GCard>
+              ))}
+            </div>
           </div>
         )}
       </>}
@@ -7391,19 +7429,21 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
             {costos.detalle.length===0&&<div style={{color:Q.muted,fontSize:12,
               textAlign:"center",padding:SPACING[20],fontFamily:F_BODY}}>
               Sin jugadas con influencer en el período</div>}
+            {/* A log read in time order, not navigated into. */}
             {costos.detalle.map((d,i)=>(
-              <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
-                  <div style={{minWidth:0,flex:1}}>
-                    <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                      fontFamily:F_BODY}}>{d.influencer}</div>
-                    <div style={{color:Q.muted,fontSize:12}}>
-                      en {d.agencia} · {d.jugadas} jugadas · {ars(d.apostado)}</div>
-                  </div>
-                  <div style={{color:Q.gold,fontWeight:700,fontSize:14,flexShrink:0,
-                    fontFamily:F_BODY}}>−{ars(d.comision)}</div>
+              <div key={i} style={{display:"flex",justifyContent:"space-between",
+                alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+                borderBottom:i<costos.detalle.length-1?`1px solid ${Q.border}55`:"none"}}>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+                    fontFamily:F_BODY}}>{d.influencer}</div>
+                  <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                    fontFamily:F_BODY}}>
+                    en {d.agencia} · {d.jugadas} jugadas · {ars(d.apostado)}</div>
                 </div>
-              </GCard>
+                <div style={{color:Q.gold,fontWeight:700,fontSize:TEXT[16],flexShrink:0,
+                  fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>−{ars(d.comision)}</div>
+              </div>
             ))}
           </div>
         )}
@@ -7430,23 +7470,26 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
             </div>
             {escaneos.detalle.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
               padding:SPACING[20],fontFamily:F_BODY}}>Sin escaneos en el período</div>}
-            {escaneos.detalle.map(d=>(
-              <GCard key={d.code} style={{padding:"12px 12px",marginBottom:6}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
-                  <div style={{minWidth:0,flex:1}}>
-                    <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                      fontFamily:F_BODY}}>{d.name}
-                      <span style={{color:Q.muted,fontWeight:400,fontSize:12}}> · {d.codigo_ref}</span></div>
-                    <div style={{color:Q.muted,fontSize:12}}>
-                      {d.escaneos} escaneos · {d.jugadas} jugaron · cuota {fmt(d.cuota_prom)}x</div>
-                  </div>
-                  <div style={{textAlign:"right",flexShrink:0}}>
-                    <div style={{color:d.conversion>=30?Q.green:d.conversion>=10?Q.gold:Q.muted,
-                      fontWeight:700,fontSize:16,fontFamily:F_BODY}}>{d.conversion}%</div>
-                    <div style={{color:Q.muted,fontSize:12}}>conversión</div>
-                  </div>
+            {/* A log read in time order, not navigated into. */}
+            {escaneos.detalle.map((d,i)=>(
+              <div key={d.code} style={{display:"flex",justifyContent:"space-between",
+                alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+                borderBottom:i<escaneos.detalle.length-1?`1px solid ${Q.border}55`:"none"}}>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+                    fontFamily:F_BODY}}>{d.name}
+                    <span style={{color:Q.muted,fontWeight:400,fontSize:12}}> · {d.codigo_ref}</span></div>
+                  <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                    fontFamily:F_BODY}}>
+                    {d.escaneos} escaneos · {d.jugadas} jugaron · cuota {fmt(d.cuota_prom)}x</div>
                 </div>
-              </GCard>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{color:d.conversion>=30?Q.green:d.conversion>=10?Q.gold:Q.muted,
+                    fontWeight:700,fontSize:TEXT[16],fontFamily:F_MONO,
+                    fontVariantNumeric:"tabular-nums"}}>{d.conversion}%</div>
+                  <div style={{color:Q.muted,fontSize:12}}>conversión</div>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -7609,33 +7652,39 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
               {resetOpen&&<ResetPassword agencia={agencia} code={code}
                 nombre={rep?rep.name:code} onCerrar={()=>setResetOpen(false)}/>}
             </GCard>
-            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-              marginBottom:8,fontFamily:F_BODY}}>Combos ({d.combos.length})</div>
-            {d.combos.map(c=>(
-              <GCard key={c.id} style={{padding:"8px 12px",marginBottom:5}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                    fontFamily:F_BODY}}>{c.nombre}
-                    {c.codigo&&<span style={{color:Q.cyan,fontSize:12}}> · {c.codigo}</span>}</div>
-                  <div style={{color:Q.green,fontWeight:700,fontSize:13,
-                    fontFamily:F_BODY}}>{fmt(c.odd)}x</div>
-                </div>
-              </GCard>
+            {/* Combos and Jugadas are logs of what already happened, read
+                in time order and not navigated into — the row standard,
+                off the GCard, applies to both. */}
+            <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+              textTransform:"uppercase",marginBottom:SPACING[12],
+              fontFamily:F_BODY}}>Combos ({d.combos.length})</div>
+            {d.combos.map((c,i)=>(
+              <div key={c.id} style={{display:"flex",justifyContent:"space-between",
+                alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+                borderBottom:i<d.combos.length-1?`1px solid ${Q.border}55`:"none"}}>
+                <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
+                  fontFamily:F_BODY}}>{c.nombre}
+                  {c.codigo&&<span style={{color:Q.cyan,fontSize:12}}> · {c.codigo}</span>}</div>
+                <div style={{color:Q.green,fontWeight:700,fontSize:TEXT[16],flexShrink:0,
+                  fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{fmt(c.odd)}x</div>
+              </div>
             ))}
-            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-              margin:"12px 0 8px",fontFamily:F_BODY}}>Jugadas ({d.jugadas.length})</div>
+            <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+              textTransform:"uppercase",marginTop:SPACING[24],marginBottom:SPACING[12],
+              fontFamily:F_BODY}}>Jugadas ({d.jugadas.length})</div>
             {d.jugadas.length===0&&<div style={{color:Q.muted,fontSize:12,
               fontFamily:F_BODY}}>Sin jugadas en el período</div>}
             {d.jugadas.map((j,i)=>(
               <div key={i} style={{display:"flex",justifyContent:"space-between",
-                alignItems:"center",padding:"8px 0",
-                borderBottom:i<d.jugadas.length-1?`1px solid ${Q.dim}`:"none"}}>
+                alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+                borderBottom:i<d.jugadas.length-1?`1px solid ${Q.border}55`:"none"}}>
                 <div style={{minWidth:0,flex:1}}>
-                  <div style={{color:Q.text,fontSize:12,fontWeight:600,
+                  <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
                     fontFamily:F_BODY}}>{j.code}</div>
-                  <div style={{color:Q.muted,fontSize:12}}>{j.cliente} · {ars(j.stake)} · {fmt(j.odd)}x</div>
+                  <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                    fontFamily:F_BODY}}>{j.cliente} · {ars(j.stake)} · {fmt(j.odd)}x</div>
                 </div>
-                <span style={{color:Q.muted,fontSize:12,flexShrink:0}}>{j.status}</span>
+                <span style={{color:Q.muted,fontSize:TEXT[13],flexShrink:0}}>{j.status}</span>
               </div>
             ))}
           </div>
