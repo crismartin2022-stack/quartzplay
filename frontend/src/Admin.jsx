@@ -549,7 +549,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
             fontFamily:F_BODY}}>
           <option value="">— Todos los clientes de {filtroAg} —</option>
           {clientesF.map(c=>(
-            <option key={c.id} value={c.id}>👤 {c.nombre}</option>
+            <option key={c.id} value={c.id}>{c.nombre}</option>
           ))}
         </select>
       )}
@@ -1744,7 +1744,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
           border:`1px solid ${infCode?Q.violet:Q.border}`,borderRadius:RADII.md,padding:"12px 12px",
           color:infCode?Q.text:Q.muted,fontSize:14,marginBottom:8,
           fontFamily:F_BODY}}>
-        <option value="">🌟 Asignar a influencer (opcional)</option>
+        <option value="">Asignar a influencer (opcional)</option>
         {infList.map(inf=>(
           <option key={inf.code} value={inf.code}>{inf.name} · {inf.codigo_ref}</option>
         ))}

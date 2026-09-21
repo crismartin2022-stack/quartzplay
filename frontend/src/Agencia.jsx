@@ -2498,7 +2498,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
           border:`1px solid ${infCode?Q.violet:Q.border}`,borderRadius:RADII.md,padding:"12px 16px",
           color:infCode?Q.text:Q.muted,fontSize:15,marginBottom:10,
           fontFamily:F_BODY}}>
-        <option value="">🌟 Asignar a influencer (opcional)</option>
+        <option value="">Asignar a influencer (opcional)</option>
         {infList.map(inf=>(
           <option key={inf.code} value={inf.code}>{inf.name} · {inf.codigo_ref}</option>
         ))}
@@ -6237,7 +6237,7 @@ function Cierres({ agencia, onSesionExpirada }){
             fontFamily:F_BODY}}>
           <option value="">— Toda la rama —</option>
           {clientesR.map(c=>(
-            <option key={c.id} value={c.id}>👤 {c.nombre} ({c.agencia})</option>
+            <option key={c.id} value={c.id}>{c.nombre} ({c.agencia})</option>
           ))}
         </select>
       )}
