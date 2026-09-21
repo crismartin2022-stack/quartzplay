@@ -41,6 +41,54 @@ const sources = Object.fromEntries(
   SCREENS.map((name) => [name, fs.readFileSync(path.join(SRC, name), "utf8")])
 );
 
+// ── The one exception, named rather than hidden ────────────────────────
+//
+// `BarraWeb` is the public site's bottom tab bar: six labels plus Bet
+// Best, all competing for one phone's width. Its labels sit at 11px.
+//
+// That is below the floor above, deliberately and only here. A tab-bar
+// label is not body text: it is two words, always in the same position,
+// under an icon that already carries the meaning, and the reader has seen
+// it every session. Platform tab bars set theirs lower still. Everywhere
+// else on these six screens the 12px floor stands unchanged.
+//
+// It is carved out instead of lowering the floor, and it keeps a floor of
+// its own, so the exception cannot quietly spread.
+//
+// The cut runs from `function BarraWeb(` to the next top-level `function`,
+// so anything written between the two would be exempted with it. Today
+// that gap is blank. Put new code somewhere else, or move the bar.
+function splitOutBottomBar(source) {
+  const start = source.indexOf("function BarraWeb(");
+  if (start === -1) return { rest: source, bottomBar: "" };
+  const end = source.indexOf("\nfunction ", start + 1);
+  const stop = end === -1 ? source.length : end;
+  return { rest: source.slice(0, start) + source.slice(stop), bottomBar: source.slice(start, stop) };
+}
+
+const bottomBar = splitOutBottomBar(sources["Web.jsx"]).bottomBar;
+sources["Web.jsx"] = splitOutBottomBar(sources["Web.jsx"]).rest;
+
+describe("the site's bottom tab bar keeps a floor of its own", () => {
+  test("the bar was actually found and read", () => {
+    // Without this, a renamed component would silently exempt nothing —
+    // or, worse, exempt the whole file by matching nothing and leaving
+    // `rest` untouched while the assertion below passes on an empty string.
+    expect(bottomBar).toContain("function BarraWeb(");
+    expect(literalFontSizes(bottomBar).length).toBeGreaterThan(0);
+  });
+
+  test("it declares no fontSize under 11", () => {
+    const offenders = literalFontSizes(bottomBar).filter((value) => value < 11);
+    expect(offenders).toEqual([]);
+  });
+
+  test("the exception does not leak: the rest of Web.jsx still holds 12", () => {
+    const offenders = literalFontSizes(sources["Web.jsx"]).filter((value) => value < 12);
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("the matcher can see font sizes at all", () => {
   // A positive control: a matcher that finds nothing passes the "no size
   // below 12" assertion for a reason that proves nothing. Each screen is
