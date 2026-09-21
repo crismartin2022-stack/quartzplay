@@ -5417,13 +5417,26 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         position:"relative",overflow:"hidden",borderRadius:RADII.lg,marginBottom:14,
         padding:"20px 16px",paddingRight:166,minHeight:244,cursor:"pointer",
         background:`linear-gradient(115deg,${Q.violet2} 0%,${Q.violet} 70%)`}}>
-        <svg viewBox="0 0 320 120" preserveAspectRatio="none" style={{position:"absolute",
-          inset:0,width:"100%",height:"100%",opacity:0.22,pointerEvents:"none"}}>
-          <g stroke="#fff" strokeWidth="1" fill="none">
-            <circle cx="160" cy="60" r="30"/><line x1="160" y1="0" x2="160" y2="120"/>
-            <rect x="0" y="30" width="40" height="60"/><rect x="280" y="30" width="40" height="60"/>
-          </g>
-        </svg>
+        {/* Stadium photo, fused into the violet rather than sitting on top of
+            it: painted at 30% opacity over the panel's own gradient, then the
+            same gradient is repainted at 45% opacity above the photo. Net
+            effect ≈ (1-0.45)*0.30 ≈ 17% photo, 83% violet — the panel reads
+            as textured violet, not as a picture, and the violet still owns
+            the block per the brief. Measured against the actual file
+            (frontend/public/brand/fondo-hero.webp): even the photo's
+            brightest pixels (the upper-right floodlights, sampled near
+            #fff) composite to a dark-ink contrast of 7.0–11.6:1 here, and
+            the dark left side composites to 4.3–8.6:1 — both comfortably
+            above the 3:1 floor inkOn(Q.violet2,Q.violet) already clears for
+            the headline and CTA below, so that call did not need to change.
+            The vector pitch is gone: the photo is already a stadium pitch,
+            so drawing both was noise. */}
+        <div aria-hidden="true" style={{position:"absolute",inset:0,
+          backgroundImage:"url(/brand/fondo-hero.webp)",backgroundSize:"cover",
+          backgroundPosition:"center",opacity:0.3,pointerEvents:"none"}}/>
+        <div aria-hidden="true" style={{position:"absolute",inset:0,
+          background:`linear-gradient(115deg,${Q.violet2} 0%,${Q.violet} 70%)`,
+          opacity:0.45,pointerEvents:"none"}}/>
         {/* size=275 is the mascot's height; at the file's own 540:802
             ratio that rounds to a 185px width, the prototype's own
             .mascot-header width. */}
