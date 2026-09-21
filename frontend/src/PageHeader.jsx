@@ -20,7 +20,7 @@ import { oscuro as Q, F_BODY, TEXT, SPACING } from "./theme";
 // real data ("Agencia FAR", "51 agencias", "Control de red"). A screen
 // with nothing true to put there simply does not pass one.
 export default function PageHeader({ icon, title, description, action, eyebrow }){
-  const renderedIcon = isValidElement(icon) ? cloneElement(icon, { size: TEXT[15] }) : icon;
+  const renderedIcon = isValidElement(icon) ? cloneElement(icon, { size: TEXT[20] }) : icon;
 
   return (
     <div style={{marginBottom:SPACING[16]}}>
@@ -32,13 +32,13 @@ export default function PageHeader({ icon, title, description, action, eyebrow }
       )}
       <div style={{display:"flex",justifyContent:"space-between",
         alignItems:"center",gap:SPACING[8],marginBottom:SPACING[4]}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:TEXT[15],fontFamily:F_BODY}}>
+        <div style={{color:Q.text,fontWeight:700,fontSize:TEXT[20],fontFamily:F_BODY}}>
           {renderedIcon}{renderedIcon?" ":null}{title}
         </div>
         {action&&<div style={{flexShrink:0}}>{action}</div>}
       </div>
       {description&&(
-        <div style={{color:Q.muted,fontSize:TEXT[12],lineHeight:1.5,fontFamily:F_BODY}}>
+        <div style={{color:Q.muted,fontSize:TEXT[13],lineHeight:1.5,fontFamily:F_BODY}}>
           {description}
         </div>
       )}
