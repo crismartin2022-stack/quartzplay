@@ -8,6 +8,7 @@ import { oscuro as Q, F_BODY, RADII, SPACING } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import { Zap, Gift, Handshake, Video, ArrowLeftRight, Ban, Banknote, Bell, Bot, Building2, Calendar, CalendarDays, CircleOff, Coins, Dices, Disc, Eye, Flame, FlaskConical, Gamepad2, GitBranch, Globe, Hand, Headphones, Image as ImageIcon, Inbox, Key, Link, Lock, Mail, Megaphone, MessageSquare, Monitor, PartyPopper, PenLine, Pencil, Plug, Printer, RefreshCw, Rocket, RotateCcw, Save, Scale, Shield, Smartphone, Star, Stethoscope, Store, Target, Trash2, TrendingDown, Volume2, VolumeX, Wrench } from "lucide-react";
+import { useDesktopShellWidth } from "./desktopShellLayout";
 
 const ars  = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt  = n => Number(n||0).toFixed(2);
@@ -14275,6 +14276,9 @@ function TabLimites({ adminKey, onNoAutorizado }){
 
 function AdminPanel({ adminKey, onLogout }){
   const [tab,setTab]=useState("global");
+  // At 1024px and up (the prototype's own breakpoint) the tab bar becomes
+  // a sidebar; below it nothing changes — see odd/tasks/desktop-shell.md.
+  const isDesktop=useDesktopShellWidth();
   // Alertas de riesgo abiertas, para el indicador de la pestaña Config.
   // Se refresca cada 2 minutos: si algo crítico aparece, se ve sin
   // tener que entrar a buscarlo.
@@ -14302,13 +14306,21 @@ function AdminPanel({ adminKey, onLogout }){
     return()=>{ vivo=false; clearInterval(t); };
   },[adminKey]);
   return(
-    <div style={{background:Q.void,minHeight:"100vh",
+    <div style={isDesktop ? {
+      background:Q.void,minHeight:"100vh",
+      fontFamily:"system-ui,-apple-system,sans-serif",
+      display:"grid",gridTemplateColumns:"264px minmax(0,1fr)",
+      gridTemplateRows:"auto 1fr",maxWidth:1600,margin:"0 auto",
+    } : {background:Q.void,minHeight:"100vh",
       fontFamily:"system-ui,-apple-system,sans-serif"}}>
       <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
 
-      <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
+      <div style={isDesktop ? {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
+        padding:"12px 16px",display:"flex",alignItems:"center",
+        justifyContent:"space-between",position:"sticky",top:0,zIndex:50,overflow:"hidden",
+        gridColumn:"2",gridRow:"1"} : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"12px 16px",display:"flex",alignItems:"center",
         justifyContent:"space-between",position:"sticky",top:0,zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
@@ -14322,7 +14334,9 @@ function AdminPanel({ adminKey, onLogout }){
         </div>
       </div>
 
-      <div style={{padding:"16px",maxWidth:620,margin:"0 auto",
+      <div style={isDesktop ? {padding:"16px",maxWidth:620,margin:"0 auto",
+        position:"relative",zIndex:1,paddingBottom:"40px",
+        gridColumn:"2",gridRow:"2"} : {padding:"16px",maxWidth:620,margin:"0 auto",
         position:"relative",zIndex:1,
         paddingBottom:"calc(140px + env(safe-area-inset-bottom))"}}>
         {tab==="global"   &&<TabGlobal   adminKey={adminKey} onNoAutorizado={onLogout} onIr={setTab}/>}
@@ -14338,7 +14352,15 @@ function AdminPanel({ adminKey, onLogout }){
         {tab==="chat"     &&<PanelComunicacion adminKey={adminKey} onNoAutorizado={onLogout}/>}
       </div>
 
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",
+      <div style={isDesktop ? {
+        gridColumn:"1",gridRow:"1 / span 2",position:"sticky",top:0,
+        alignSelf:"start",width:264,height:"100vh",
+        background:"rgba(6,6,18,0.97)",backdropFilter:"blur(20px)",
+        borderRight:`1px solid ${Q.border}`,
+        display:"flex",flexDirection:"column",alignItems:"stretch",
+        gap:SPACING[4],padding:`${SPACING[24]}px ${SPACING[12]}px`,
+        overflowY:"auto",zIndex:50,
+      } : {position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",
         width:"100%",maxWidth:620,background:"rgba(6,6,18,0.97)",
         backdropFilter:"blur(20px)",borderTop:`1px solid ${Q.border}`,
         // 11 pestañas: con 5 columnas queda una sola en la última fila
@@ -14347,13 +14369,22 @@ function AdminPanel({ adminKey, onLogout }){
         <div style={{position:"absolute",top:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
         {TABS.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={{
+          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
+            minWidth:0,
+            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
+            border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
+            borderRadius:RADII.md,
+            padding:"0 12px",minHeight:44,cursor:"pointer",
+            display:"flex",flexDirection:"row",alignItems:"center",
+            justifyContent:"flex-start",gap:SPACING[12],
+            position:"relative",overflow:"visible",width:"100%",flexShrink:0,
+          } : {
             minWidth:0,background:"transparent",border:"none",
             padding:"8px 4px 8px",cursor:"pointer",
             display:"flex",flexDirection:"column",alignItems:"center",gap:SPACING[4],
             position:"relative",overflow:"visible",
           }}>
-            {tab===t.k&&<div style={{position:"absolute",top:0,left:"20%",right:"20%",
+            {!isDesktop&&tab===t.k&&<div style={{position:"absolute",top:0,left:"20%",right:"20%",
               height:2,background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},transparent)`,
               borderRadius:RADII.sm}}/>}
             <span style={{fontSize:17,position:"relative",

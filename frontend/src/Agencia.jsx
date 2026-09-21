@@ -6,6 +6,7 @@ import { getFrontendConfig } from "./config";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon, Bell, Moon } from "lucide-react";
+import { useDesktopShellWidth } from "./desktopShellLayout";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -7914,6 +7915,9 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   const [tab,setTab]=useState("codigo");
   const [saldoCC,setSaldoCC]=useState(null);
   const [verSaldo,setVerSaldo]=useState(false);
+  // At 1024px and up (the prototype's own breakpoint) the tab row becomes
+  // a sidebar; below it nothing changes — see odd/tasks/desktop-shell.md.
+  const isDesktop=useDesktopShellWidth();
   // Mensajes del admin sin leer, para el punto en la pestaña.
   // Sin esto un mensaje quedaba invisible hasta que entraban a mirar.
   const [msgPendientes,setMsgPendientes]=useState(0);
@@ -7981,13 +7985,21 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   });
 
   return(
-    <div style={{background:Q.void,height:"100dvh",
+    <div style={isDesktop ? {
+      background:Q.void,height:"100dvh",overflow:"hidden",
+      fontFamily:"system-ui,-apple-system,sans-serif",
+      display:"grid",gridTemplateColumns:"264px minmax(0,1fr)",
+      gridTemplateRows:"auto 1fr",maxWidth:1600,margin:"0 auto",
+    } : {background:Q.void,height:"100dvh",
       display:"flex",flexDirection:"column",overflow:"hidden",
       fontFamily:"system-ui,-apple-system,sans-serif"}}>
       <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
-      <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
+      <div style={isDesktop ? {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
+        padding:"12px 16px",display:"flex",alignItems:"center",flexShrink:0,
+        justifyContent:"space-between",zIndex:50,overflow:"hidden",
+        gridColumn:"2",gridRow:"1"} : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"12px 16px",display:"flex",alignItems:"center",flexShrink:0,
         justifyContent:"space-between",zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
@@ -8015,11 +8027,28 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         </div>
       </div>
 
-      <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
+      <div style={isDesktop ? {
+        background:Q.deep,borderRight:`1px solid ${Q.border}`,
+        padding:`${SPACING[24]}px ${SPACING[12]}px`,display:"flex",
+        flexDirection:"column",alignItems:"stretch",gap:SPACING[8],
+        overflowY:"auto",flexShrink:0,zIndex:40,
+        gridColumn:"1",gridRow:"1 / span 2",position:"sticky",top:0,
+        alignSelf:"start",width:264,height:"100dvh",
+      } : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"8px 12px",display:"flex",gap:SPACING[4],overflowX:"auto",
         flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"}}>
         {TABS.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={{
+          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
+            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
+            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
+            borderRadius:RADII.md,cursor:"pointer",
+            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
+            fontFamily:F_BODY,
+            position:"relative",
+            width:"100%",minHeight:44,padding:"0 12px",flexShrink:0,
+            display:"flex",alignItems:"center",justifyContent:"flex-start",
+            textAlign:"left",
+          } : {
             background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
             border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
             borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,
@@ -8041,7 +8070,9 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         ))}
       </div>
 
-      <div style={{flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
+      <div style={isDesktop ? {flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
+        WebkitOverflowScrolling:"touch",position:"relative",zIndex:1,
+        gridColumn:"2",gridRow:"2"} : {flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
         WebkitOverflowScrolling:"touch",position:"relative",zIndex:1}}>
       <div style={{padding:"16px 12px",maxWidth:620,margin:"0 auto",
         paddingBottom:"calc(28px + env(safe-area-inset-bottom))"}}>
