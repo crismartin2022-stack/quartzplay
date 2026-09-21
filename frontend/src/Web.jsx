@@ -5005,7 +5005,7 @@ export default function Web(){
 function chip(activo){
   return {display:"flex",alignItems:"center",gap:7,flexShrink:0,
     background:activo?`linear-gradient(135deg,${Q.violet},${Q.violet2})`:Q.surface,
-    border:`1px solid ${activo?"transparent":Q.border}`,borderRadius:RADII.xl,
+    border:`1px solid ${activo?"transparent":Q.border}`,borderRadius:RADII.full,
     padding:"8px 15px",fontSize:12.5,fontWeight:600,cursor:"pointer",
     color:activo?inkOn(Q.violet, Q.violet2):Q.muted,whiteSpace:"nowrap",fontFamily:F_BODY};
 }
