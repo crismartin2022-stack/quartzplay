@@ -2659,7 +2659,10 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
             )}
 
             {/* Bloqueo */}
-            <GCard glow={f.bloqueado?null:Q.red} style={{padding:SPACING[16],marginBottom:12}}>
+            {/* Glow follows the client's blocked state, not a button's
+                colour — a blocked account is the alarm-worthy state, not
+                a normal one. */}
+            <GCard glow={f.bloqueado?Q.red:null} style={{padding:SPACING[16],marginBottom:12}}>
               {f.bloqueado?(
                 <div>
                   <div style={{color:Q.muted,fontSize:12,marginBottom:8,
@@ -2674,7 +2677,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                     </div>
                     <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                        color={Q.amber} outline full/>
+                        color={Q.amber} full/>
                     </div>
                     <AsignarAgenciaAdmin adminKey={adminKey} userId={userId}
                       esDirecto={f.es_directo} agenciaActual={f.agencia}
@@ -2696,6 +2699,8 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                       color:Q.text,fontSize:14,marginBottom:10,
                       fontFamily:F_BODY}}/>
                   <div style={{display:"flex",gap:SPACING[8]}}>
+                    {/* Cancelar stays outline: it is the quiet half of this
+                        confirm pair, next to a filled "Sí, bloquear". */}
                     <Btn label="Cancelar" onClick={()=>{setConfirmBloq(false);setMotivo("");}}
                       outline color={Q.muted} full/>
                     <Btn label="Sí, bloquear" onClick={toggleBloqueo} color={Q.red}
@@ -2706,7 +2711,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
                     <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                        color={Q.amber} outline full/>
+                        color={Q.amber} full/>
                     </div>
                     <AsignarAgenciaAdmin adminKey={adminKey} userId={userId}
                       esDirecto={f.es_directo} agenciaActual={f.agencia}
@@ -2719,11 +2724,11 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
                     <div>
                       <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
-                        color={Q.red} outline full disabled={operando}/>
+                        color={Q.red} full disabled={operando}/>
                     </div>
                     <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                        color={Q.amber} outline full/>
+                        color={Q.amber} full/>
                     </div>
                     <AsignarAgenciaAdmin adminKey={adminKey} userId={userId}
                       esDirecto={f.es_directo} agenciaActual={f.agencia}
@@ -4372,11 +4377,11 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
                 </div>
                 <div>
                   <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                    color={Q.amber} outline full/>
+                    color={Q.amber} full/>
                 </div>
                 <div>
                   <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
-                    color={Q.violet} outline full/>
+                    color={Q.violet} full/>
                 </div>
               </div>
               {configOpen&&d.reporte&&(

@@ -3352,7 +3352,7 @@ function OtorgarBonoCliente({ agencia, userId }){
   if(!abierto) return(
     <>
       <div style={{height:8}}/>
-      <Btn label={<><Gift size={13}/> Otorgar bono</>} onClick={()=>setAbierto(true)} color={Q.gold} outline full/>
+      <Btn label={<><Gift size={13}/> Otorgar bono</>} onClick={()=>setAbierto(true)} color={Q.gold} full/>
     </>
   );
 
@@ -3638,7 +3638,9 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
 
       {/* Bloqueo */}
       {ficha&&(
-        <GCard glow={ficha.bloqueado?null:Q.red} style={{padding:SPACING[16],marginBottom:12}}>
+        // Glow follows the client's blocked state, not a button's colour —
+        // a blocked account is the alarm-worthy state, not a normal one.
+        <GCard glow={ficha.bloqueado?Q.red:null} style={{padding:SPACING[16],marginBottom:12}}>
           {ficha.bloqueado?(
             /* Unblocking, resetting the password and linking Telegram are independent one-tap actions, so they share a line */
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
@@ -3648,11 +3650,11 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
               </div>
               <div>
                 <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                  color={Q.amber} outline full/>
+                  color={Q.amber} full/>
               </div>
               <div>
                 <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
-                  color={Q.cyan} outline full disabled={tgProc}/>
+                  color={Q.cyan} full disabled={tgProc}/>
               </div>
             </div>
           ):confirmBloq?(
@@ -3669,6 +3671,8 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
                   color:Q.text,fontSize:14,marginBottom:10,
                   fontFamily:F_BODY}}/>
               <div style={{display:"flex",gap:SPACING[8]}}>
+                {/* Cancelar stays outline: it is the quiet half of this
+                    confirm pair, next to a filled "Sí, bloquear". */}
                 <Btn label="Cancelar" onClick={()=>{setConfirmBloq(false);setMotivo("");}}
                   outline color={Q.muted} full/>
                 <Btn label="Sí, bloquear" onClick={toggleBloqueo} color={Q.red}
@@ -3679,11 +3683,11 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
                 <div>
                   <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                    color={Q.amber} outline full/>
+                    color={Q.amber} full/>
                 </div>
                 <div>
                   <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
-                    color={Q.cyan} outline full disabled={tgProc}/>
+                    color={Q.cyan} full disabled={tgProc}/>
                 </div>
               </div>
             </div>
@@ -3692,15 +3696,15 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
               <div>
                 <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
-                  color={Q.red} outline full disabled={proc}/>
+                  color={Q.red} full disabled={proc}/>
               </div>
               <div>
                 <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                  color={Q.amber} outline full/>
+                  color={Q.amber} full/>
               </div>
               <div>
                 <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
-                  color={Q.cyan} outline full disabled={tgProc}/>
+                  color={Q.cyan} full disabled={tgProc}/>
               </div>
             </div>
           )}
@@ -7518,11 +7522,11 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
                 </div>
                 <div>
                   <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                    color={Q.amber} outline full/>
+                    color={Q.amber} full/>
                 </div>
                 <div>
                   <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
-                    color={Q.violet} outline full/>
+                    color={Q.violet} full/>
                 </div>
               </div>
               {configOpen&&rep&&(
