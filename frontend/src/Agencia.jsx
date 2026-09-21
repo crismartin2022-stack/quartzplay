@@ -6846,9 +6846,19 @@ function Config({ agencia }){
           decides how many fit. None of these four cards is tall or
           form-heavy enough to need the full row to itself: the password
           form is only two inputs and a button, same footprint as the
-          other three. */}
+          other three.
+          `min(360px,100%)` instead of a bare 360px: the content column
+          is only maxWidth:620 minus 24px of padding on a phone, which is
+          narrower than 360px on most handsets (a 375px iPhone leaves
+          351px) — a bare minmax(360px,1fr) track does not shrink below
+          its floor just because the container is narrower, so it forced
+          the grid wider than the viewport and produced exactly the
+          horizontal scroll odd/tasks/mobile-nav.md's mobile pass was
+          checking for. Capping the floor at the container's own 100%
+          removes that overflow and is identical to the plain 360px on
+          desktop, where the column is always wider than that. */}
       <div style={{display:"grid",
-        gridTemplateColumns:"repeat(auto-fit,minmax(360px,1fr))",
+        gridTemplateColumns:"repeat(auto-fit,minmax(min(360px,100%),1fr))",
         gap:SPACING[16]}}>
         <GCard style={{padding:SPACING[20]}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:14,

@@ -14543,7 +14543,7 @@ function AdminPanel({ adminKey, onLogout }){
       fontFamily:"system-ui,-apple-system,sans-serif",
       display:"grid",gridTemplateColumns:"264px minmax(0,1fr)",
       gridTemplateRows:"auto 1fr",maxWidth:1600,margin:"0 auto",
-    } : {background:Q.void,minHeight:"100vh",
+    } : {background:Q.void,minHeight:"100vh",overflowX:"hidden",
       fontFamily:"system-ui,-apple-system,sans-serif"}}>
       <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
