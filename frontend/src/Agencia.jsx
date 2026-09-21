@@ -831,7 +831,7 @@ function LoginScreen({ onLogin }){
         backgroundSize:"28px 28px"}}/>
       <div style={{width:"100%",maxWidth:380,position:"relative",zIndex:1}}>
         <div style={{textAlign:"center",marginBottom:32}}>
-          <QPLogo size={28}/>
+          <QPLogo size={44}/>
           <div style={{color:Q.muted,fontSize:12,marginTop:8,
             fontFamily:F_BODY}}>Panel de Agencia Oficial</div>
         </div>
@@ -8004,7 +8004,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         justifyContent:"space-between",zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        <QPLogo size={16}/>
+        <QPLogo size={isDesktop?40:16}/>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
           <button onClick={()=>setVerSaldo(true)} style={{
             background:`${(saldoCC??0)>=0?Q.green:Q.red}18`,
