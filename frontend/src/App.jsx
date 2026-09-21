@@ -3175,7 +3175,7 @@ function HistorialJuegos({ user, onCerrar }){
   const ICONO={deportivas:<Icon name="trophy" size={13}/>,casino:<Icon name="spade" size={13}/>,
     casino_vivo:<Video size={13}/>,desafios:<Handshake size={13}/>};
   const NOMBRE={deportivas:"Deportiva",casino:"Casino",
-    casino_vivo:"En vivo",desafios:"Desafío"};
+    casino_vivo:"Casino en Vivo",desafios:"Desafío"};
 
   const movs=(d?.movimientos||[]).filter(m=>
     filtro==="" || m.tipo===filtro ||
@@ -5498,51 +5498,98 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         </GCard>
       )}
 
-      {/* Casino: no entra en la barra de abajo, así que va acá.
-          Los dos degradés eran hex escritos a mano (#7B1FA2/#4A148C y
-          #B71C1C/#7F0000); ahora salen de los acentos de marca, y el ink
-          lo decide inkOn en vez de un "#fff" fijo. Violeta para Casino
-          (el mismo par que usa el avatar de la barra superior); rosa/rojo
-          hacia dorado para En vivo — el mismo acento que ya usa "EN VIVO"
-          en este archivo, hacia el color de atención de la marca, para que
-          las dos tarjetas sean distinguibles entre sí y no un violeta
-          repetido dos veces. */}
-      <div style={{display:"flex",gap:SPACING[8],marginBottom:16}}>
-        <div onClick={()=>onNav("casino")} style={{flex:1,
-          cursor:"pointer",borderRadius:RADII.lg,padding:"16px 12px",
-          background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`}}>
-          <Icon name="spade" size={24} color={inkOn(Q.violet,Q.violet2)} style={{marginBottom:3}}/>
-          <div style={{color:inkOn(Q.violet,Q.violet2),fontWeight:800,fontSize:14,
-            fontFamily:F_BODY}}>Casino</div>
-          <div style={{color:inkOn(Q.violet,Q.violet2),opacity:.72,fontSize:12,
-            marginTop:2,lineHeight:1.35,
-            fontFamily:F_BODY}}>
-            Tragamonedas y mesas</div>
+      {/* Casino, Casino en Vivo y Desafíos: ninguno entra en la barra de
+          abajo, así que van acá, los tres en una sola fila. Cada tarjeta
+          lleva su propio arte (frontend/public/brand/*.webp) como fondo en
+          vez del degradé a mano de antes. Dos capas van encima del arte:
+          - un tinte de marca en `background:` (backtick, interpola Q, sigue
+            pinneado por screenHomeIconsAndAccents.test.js a un degradé de
+            dos tokens Q — nada de hex — para que Casino y Casino en Vivo
+            sigan siendo reconocibles por su propio acento y distinguibles
+            entre sí);
+          - un scrim oscuro real en una segunda capa (comilla simple, sin
+            interpolar, así el test de arriba no la toca) que va de
+            transparente arriba a casi negro abajo, donde se apoyan el
+            título y el subtítulo — necesario porque el arte en sí no es
+            uniformemente oscuro (frontend/public/brand/*.webp miden hasta
+            luminancia 255 en sus brillos).
+          El ink de cada tarjeta ahora se pide contra ese scrim oscuro
+          (inkOn(Q.void,Q.dark), ambos casi negros) en vez de contra el
+          viejo degradé claro, porque el texto ya no se apoya sobre el
+          degradé sino sobre el scrim.
+          En una fila las tres a la vez no entran legibles en un teléfono:
+          en vez de partirlas en dos filas (que ya no sería "una fila"),
+          la fila hace scroll horizontal y cada tarjeta mantiene su ancho
+          fijo (152px, el mismo orden de magnitud que las dos tarjetas de
+          antes) en vez de encogerse a un tercio del ancho. */}
+      <div style={{display:"flex",gap:SPACING[8],marginBottom:16,
+        overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:SPACING[4],
+        scrollSnapType:"x proximity"}}>
+        <div onClick={()=>onNav("casino")} style={{position:"relative",overflow:"hidden",
+          flexShrink:0,width:152,height:168,cursor:"pointer",borderRadius:RADII.lg,
+          scrollSnapAlign:"start",
+          backgroundImage:"url(/brand/slot.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,opacity:0.32}}/>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
+          <div style={{position:"relative",height:"100%",display:"flex",
+            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
+            <Icon name="spade" size={24} color={inkOn(Q.void,Q.dark)}/>
+            <div>
+              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
+                fontFamily:F_BODY}}>Casino</div>
+              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
+                marginTop:2,lineHeight:1.35,
+                fontFamily:F_BODY}}>
+                Tragamonedas y mesas</div>
+            </div>
+          </div>
         </div>
-        <div onClick={()=>onNav("casinovivo")} style={{flex:1,
-          cursor:"pointer",borderRadius:RADII.lg,padding:"16px 12px",
-          background:`linear-gradient(135deg,${Q.pink},${Q.gold})`}}>
-          <Video size={24} color={inkOn(Q.pink,Q.gold)} style={{marginBottom:3}} aria-hidden="true"/>
-          <div style={{color:inkOn(Q.pink,Q.gold),fontWeight:800,fontSize:14,
-            fontFamily:F_BODY}}>En vivo</div>
-          <div style={{color:inkOn(Q.pink,Q.gold),opacity:.72,fontSize:12,
-            marginTop:2,lineHeight:1.35,
-            fontFamily:F_BODY}}>
-            Mesas con crupier</div>
+        {/* Bug fix, not only a rename: this card already navigates to
+            "casinovivo" — onNav("casinovivo") below — but its label said
+            "En vivo", which reads as the sportsbook's live-betting section
+            (App.jsx's own ScreenLive/BarraInferior "live" tab), not this
+            live-dealer casino screen. Renamed here and in HistorialJuegos'
+            NOMBRE.casino_vivo, the only other place in this file that
+            labels this same casino_vivo destination. */}
+        <div onClick={()=>onNav("casinovivo")} style={{position:"relative",overflow:"hidden",
+          flexShrink:0,width:152,height:168,cursor:"pointer",borderRadius:RADII.lg,
+          scrollSnapAlign:"start",
+          backgroundImage:"url(/brand/live-casino.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:`linear-gradient(135deg,${Q.pink},${Q.gold})`,opacity:0.32}}/>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
+          <div style={{position:"relative",height:"100%",display:"flex",
+            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
+            <Video size={24} color={inkOn(Q.void,Q.dark)} aria-hidden="true"/>
+            <div>
+              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
+                fontFamily:F_BODY}}>Casino en Vivo</div>
+              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
+                marginTop:2,lineHeight:1.35,
+                fontFamily:F_BODY}}>
+                Mesas con crupier</div>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div style={{marginBottom:16}}>
-        <div onClick={()=>onNav("desafios")} style={{
-          cursor:"pointer",borderRadius:RADII.lg,padding:"16px 12px",
-          background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`}}>
-          <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
-            <Handshake size={22} color={inkOn(Q.violet,Q.cyan)} aria-hidden="true"/>
-            <div style={{minWidth:0}}>
-              <div style={{color:inkOn(Q.violet,Q.cyan),fontWeight:800,fontSize:14,
+        <div onClick={()=>onNav("desafios")} style={{position:"relative",overflow:"hidden",
+          flexShrink:0,width:152,height:168,cursor:"pointer",borderRadius:RADII.lg,
+          scrollSnapAlign:"start",
+          backgroundImage:"url(/brand/desafios.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,opacity:0.32}}/>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
+          <div style={{position:"relative",height:"100%",display:"flex",
+            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
+            <Handshake size={22} color={inkOn(Q.void,Q.dark)} aria-hidden="true"/>
+            <div>
+              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
                 fontFamily:F_BODY}}>Desafíos</div>
-              <div style={{color:inkOn(Q.violet,Q.cyan),opacity:.75,fontSize:12,
-                marginTop:1,lineHeight:1.35,
+              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
+                marginTop:2,lineHeight:1.35,
                 fontFamily:F_BODY}}>
                 Apostá contra otros jugadores</div>
             </div>
