@@ -9,6 +9,7 @@ import PageHeader from "./PageHeader";
 import LineaTiempo from "./LineaTiempo";
 import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon, Bell, Moon, Scale } from "lucide-react";
 import { useDesktopShellWidth } from "./desktopShellLayout";
+import MobileTabMenu from "./MobileTabMenu";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -8158,6 +8159,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   const [tab,setTab]=useState("codigo");
   const [saldoCC,setSaldoCC]=useState(null);
   const [verSaldo,setVerSaldo]=useState(false);
+  const [menuOpen,setMenuOpen]=useState(false);
   // At 1024px and up (the prototype's own breakpoint) the tab row becomes
   // a sidebar; below it nothing changes — see odd/tasks/desktop-shell.md.
   const isDesktop=useDesktopShellWidth();
@@ -8248,6 +8250,15 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12],minWidth:0}}>
+          {/* Mobile only: opens MobileTabMenu, the megamenu that replaces
+              the horizontal tab strip below 1024px. */}
+          {!isDesktop&&(
+            <button onClick={()=>setMenuOpen(true)} aria-label="Abrir menú" style={{
+              background:"transparent",border:"none",color:Q.text,
+              cursor:"pointer",padding:SPACING[4],display:"flex",flexShrink:0}}>
+              <Icon name="menu" size={22}/>
+            </button>
+          )}
           <QPLogo size={isDesktop?40:16}/>
           {isDesktop&&<span style={{color:Q.dim,fontSize:TEXT[20],
             fontWeight:300,lineHeight:1,fontFamily:F_BODY}}>|</span>}
@@ -8255,31 +8266,43 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             whiteSpace:"nowrap",fontFamily:F_BODY}}>Panel de Agencia</span>}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
+          {/* Saldo stays visible on a phone — it's the number the agency
+              checks constantly — but shrinks so it stops competing with
+              the hamburger and Salir for the same crowded line. The
+              agency name/code that used to sit here on mobile moved to
+              the top of MobileTabMenu instead. */}
           <button onClick={()=>setVerSaldo(true)} style={{
             background:`${(saldoCC??0)>=0?Q.green:Q.red}18`,
             border:`1px solid ${(saldoCC??0)>=0?Q.green:Q.red}66`,
-            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",
+            borderRadius:RADII.md,padding:isDesktop?"8px 16px":"4px 12px",
+            cursor:"pointer",
             display:"flex",alignItems:"baseline",gap:SPACING[8],
             whiteSpace:"nowrap"}}>
             <span style={{color:Q.muted,fontSize:TEXT[12],textTransform:"uppercase",
               letterSpacing:1,fontFamily:F_BODY}}>Saldo</span>
             <span style={{color:(saldoCC??0)>=0?Q.green:Q.red,fontWeight:800,
-              fontSize:TEXT[20],fontFamily:F_MONO,
+              fontSize:isDesktop?TEXT[20]:TEXT[14],fontFamily:F_MONO,
               fontVariantNumeric:"tabular-nums"}}>
               {saldoCC==null?"...":ars(saldoCC)}</span>
           </button>
-          <div style={{textAlign:"right"}}>
-            <div style={{color:Q.text,fontSize:12,fontWeight:600,
-              fontFamily:F_BODY}}>{agencia.name}</div>
-            <div style={{color:Q.muted,fontSize:12}}>{agencia.code}</div>
-          </div>
+          {isDesktop&&(
+            <div style={{textAlign:"right"}}>
+              <div style={{color:Q.text,fontSize:12,fontWeight:600,
+                fontFamily:F_BODY}}>{agencia.name}</div>
+              <div style={{color:Q.muted,fontSize:12}}>{agencia.code}</div>
+            </div>
+          )}
           <button onClick={onLogout} style={{background:"transparent",
             border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"4px 12px",
             color:Q.muted,fontSize:12,cursor:"pointer"}}>Salir</button>
         </div>
       </div>
 
-      <div style={isDesktop ? {
+      {/* Below 1024px this sidebar is gone entirely, replaced by the
+          hamburger's MobileTabMenu overlay — see odd/tasks/mobile-nav.md.
+          Desktop keeps exactly the sidebar it already had. */}
+      {isDesktop&&(
+      <div style={{
         // Deliberately matching Admin.jsx's literal sidebar background,
         // not the Q.deep token: parity with admin's near-black desktop
         // sidebar, keep this in sync if admin's value changes.
@@ -8290,10 +8313,8 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         overflowY:"auto",flexShrink:0,zIndex:40,
         gridColumn:"1",gridRow:"1 / span 2",position:"sticky",top:0,
         alignSelf:"start",width:264,height:"100dvh",
-      } : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
-        padding:"8px 12px",display:"flex",gap:SPACING[4],overflowX:"auto",
-        flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"}}>
-        {isDesktop ? TAB_GROUPS.flatMap((group,gi)=>{
+      }}>
+        {TAB_GROUPS.flatMap((group,gi)=>{
           const groupTabs = group.keys.map(k=>TABS.find(t=>t.k===k)).filter(Boolean);
           if(groupTabs.length===0) return [];
           return [
@@ -8304,7 +8325,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
               textTransform:"uppercase",letterSpacing:1,fontFamily:F_BODY,
             }}>{group.label}</div>,
             ...groupTabs.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
+          <button key={t.k} onClick={()=>setTab(t.k)} style={{
             minWidth:0,
             background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
             border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
@@ -8316,24 +8337,17 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             display:"flex",flexDirection:"row",alignItems:"center",
             justifyContent:"flex-start",gap:SPACING[12],
             textAlign:"left",overflow:"visible",
-          } : {
-            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
-            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,
-            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
-            fontFamily:F_BODY,
-            position:"relative",
           }}>
             {/* Same treatment as admin's sidebar, down to the icon's glow
                 and the uppercase label: two panels of one product should
                 not have two different menus. */}
-            <span style={isDesktop ? {fontSize:17,position:"relative",
-              filter:tab===t.k?`drop-shadow(0 0 6px ${Q.cyan})`:"none"} : undefined}>{t.i}</span>
-            <span style={isDesktop ? {color:tab===t.k?Q.cyan:Q.muted,fontSize:TEXT[12],
+            <span style={{fontSize:17,position:"relative",
+              filter:tab===t.k?`drop-shadow(0 0 6px ${Q.cyan})`:"none"}}>{t.i}</span>
+            <span style={{color:tab===t.k?Q.cyan:Q.muted,fontSize:TEXT[12],
               fontWeight:tab===t.k?700:400,maxWidth:"100%",
               overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
               fontFamily:F_BODY,letterSpacing:0.3,
-              textTransform:"uppercase"} : {marginLeft:SPACING[8]}}>{t.l}</span>
+              textTransform:"uppercase"}}>{t.l}</span>
             {t.k==="mensajes"&&msgPendientes>0&&(
               <span style={{position:"absolute",top:-4,right:-4,
                 background:Q.red,color:"#fff",borderRadius:RADII.md,
@@ -8346,39 +8360,22 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
           </button>
             )),
           ];
-        }) : TABS.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
-            minWidth:0,
-            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
-            borderRadius:RADII.md,cursor:"pointer",
-            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
-            fontFamily:F_BODY,
-            position:"relative",
-            width:"100%",minHeight:44,padding:"0 12px",flexShrink:0,
-            display:"flex",alignItems:"center",justifyContent:"flex-start",
-            textAlign:"left",
-          } : {
-            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
-            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,
-            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
-            fontFamily:F_BODY,
-            position:"relative",
-          }}>
-            {t.i}<span style={{marginLeft:SPACING[8]}}>{t.l}</span>
-            {t.k==="mensajes"&&msgPendientes>0&&(
-              <span style={{position:"absolute",top:-4,right:-4,
-                background:Q.red,color:"#fff",borderRadius:RADII.md,
-                minWidth:16,height:16,fontSize:12,fontWeight:800,
-                display:"flex",alignItems:"center",
-                justifyContent:"center",padding:"0 4px",lineHeight:1,
-                fontFamily:F_BODY}}>
-                {msgPendientes>9?"9+":msgPendientes}</span>
-            )}
-          </button>
-        ))}
+        })}
       </div>
+      )}
+
+      <MobileTabMenu open={menuOpen} onClose={()=>setMenuOpen(false)}
+        groups={TAB_GROUPS} tabs={TABS} activeTab={tab} onSelect={setTab}
+        badges={{mensajes:msgPendientes}}
+        topContent={
+          <div style={{marginBottom:SPACING[16],paddingBottom:SPACING[16],
+            borderBottom:`1px solid ${Q.border}`}}>
+            <div style={{color:Q.text,fontWeight:700,fontSize:TEXT[16],
+              fontFamily:F_BODY}}>{agencia.name}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>{agencia.code}</div>
+          </div>
+        }/>
 
       <div style={isDesktop ? {flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
         WebkitOverflowScrolling:"touch",position:"relative",zIndex:1,

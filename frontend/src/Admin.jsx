@@ -11,6 +11,7 @@ import PageHeader from "./PageHeader";
 import LineaTiempo from "./LineaTiempo";
 import { Zap, Gift, Handshake, Video, ArrowLeftRight, Ban, Banknote, Bell, Bot, Building2, Calendar, CalendarDays, CircleOff, Coins, Dices, Disc, Eye, Flame, FlaskConical, Gamepad2, GitBranch, Globe, Hand, Headphones, Image as ImageIcon, Inbox, Key, Link, Lock, Mail, Megaphone, MessageSquare, Monitor, PartyPopper, PenLine, Pencil, Plug, Printer, RefreshCw, Rocket, RotateCcw, Save, Scale, Shield, Smartphone, Star, Stethoscope, Store, Target, Trash2, TrendingDown, Volume2, VolumeX, Wrench } from "lucide-react";
 import { useDesktopShellWidth } from "./desktopShellLayout";
+import MobileTabMenu from "./MobileTabMenu";
 
 const ars  = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt  = n => Number(n||0).toFixed(2);
@@ -14509,6 +14510,7 @@ function AdminPanel({ adminKey, onLogout }){
   // At 1024px and up (the prototype's own breakpoint) the tab bar becomes
   // a sidebar; below it nothing changes — see odd/tasks/desktop-shell.md.
   const isDesktop=useDesktopShellWidth();
+  const [menuOpen,setMenuOpen]=useState(false);
   // Alertas de riesgo abiertas, para el indicador de la pestaña Config.
   // Se refresca cada 2 minutos: si algo crítico aparece, se ve sin
   // tener que entrar a buscarlo.
@@ -14556,6 +14558,15 @@ function AdminPanel({ adminKey, onLogout }){
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12],minWidth:0}}>
+          {/* Mobile only: opens MobileTabMenu, the megamenu that replaces
+              the fixed bottom tab bar below 1024px. */}
+          {!isDesktop&&(
+            <button onClick={()=>setMenuOpen(true)} aria-label="Abrir menú" style={{
+              background:"transparent",border:"none",color:Q.text,
+              cursor:"pointer",padding:SPACING[4],display:"flex",flexShrink:0}}>
+              <Icon name="menu" size={22}/>
+            </button>
+          )}
           <QPLogo size={isDesktop?40:16}/>
           {isDesktop&&<span style={{color:Q.dim,fontSize:TEXT[20],
             fontWeight:300,lineHeight:1,fontFamily:F_BODY}}>|</span>}
@@ -14583,7 +14594,10 @@ function AdminPanel({ adminKey, onLogout }){
         position:"relative",zIndex:1,paddingBottom:"40px",
         gridColumn:"2",gridRow:"2"} : {padding:"16px",maxWidth:620,margin:"0 auto",
         position:"relative",zIndex:1,
-        paddingBottom:"calc(140px + env(safe-area-inset-bottom))"}}>
+        // No longer reserving room for a fixed bottom tab bar — the
+        // megamenu behind the header's hamburger replaced it, and it is
+        // an overlay, not a persistent fixed element.
+        paddingBottom:"calc(28px + env(safe-area-inset-bottom))"}}>
         {tab==="global"   &&<TabGlobal   adminKey={adminKey} onNoAutorizado={onLogout} onIr={setTab}/>}
         {tab==="cierre"   &&<TabCierre   adminKey={adminKey} onNoAutorizado={onLogout}/>}
         {tab==="combos"   &&<TabCombos   adminKey={adminKey} onNoAutorizado={onLogout}/>}
@@ -14597,7 +14611,11 @@ function AdminPanel({ adminKey, onLogout }){
         {tab==="chat"     &&<PanelComunicacion adminKey={adminKey} onNoAutorizado={onLogout}/>}
       </div>
 
-      <div style={isDesktop ? {
+      {/* Below 1024px this sidebar is gone entirely, replaced by the
+          hamburger's MobileTabMenu overlay — same treatment as Agencia's
+          panel. Desktop keeps exactly the sidebar it already had. */}
+      {isDesktop&&(
+      <div style={{
         gridColumn:"1",gridRow:"1 / span 2",position:"sticky",top:0,
         alignSelf:"start",width:264,height:"100vh",
         background:"rgba(6,6,18,0.97)",backdropFilter:"blur(20px)",
@@ -14605,15 +14623,10 @@ function AdminPanel({ adminKey, onLogout }){
         display:"flex",flexDirection:"column",alignItems:"stretch",
         gap:SPACING[4],padding:`${SPACING[24]}px ${SPACING[12]}px`,
         overflowY:"auto",zIndex:50,
-      } : {position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",
-        width:"100%",maxWidth:620,background:"rgba(6,6,18,0.97)",
-        backdropFilter:"blur(20px)",borderTop:`1px solid ${Q.border}`,
-        // 11 pestañas: con 5 columnas queda una sola en la última fila
-        display:"grid",gridTemplateColumns:"repeat(6,1fr)",
-        paddingBottom:"env(safe-area-inset-bottom)",zIndex:50}}>
+      }}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        {isDesktop ? TAB_GROUPS.flatMap((group,gi)=>{
+        {TAB_GROUPS.flatMap((group,gi)=>{
           const groupTabs = group.keys.map(k=>TABS.find(t=>t.k===k)).filter(Boolean);
           if(groupTabs.length===0) return [];
           return [
@@ -14655,37 +14668,13 @@ function AdminPanel({ adminKey, onLogout }){
               </button>
             )),
           ];
-        }) : TABS.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={{
-            minWidth:0,background:"transparent",border:"none",
-            padding:"8px 4px 8px",cursor:"pointer",
-            display:"flex",flexDirection:"column",alignItems:"center",gap:SPACING[4],
-            position:"relative",overflow:"visible",
-          }}>
-            {tab===t.k&&<div style={{position:"absolute",top:0,left:"20%",right:"20%",
-              height:2,background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},transparent)`,
-              borderRadius:RADII.sm}}/>}
-            <span style={{fontSize:17,position:"relative",
-              filter:tab===t.k?`drop-shadow(0 0 6px ${Q.cyan})`:"none"}}>
-              {t.i}
-              {t.k==="config"&&alertasRiesgo>0&&(
-                <span style={{position:"absolute",top:-3,right:-8,
-                  background:Q.red,color:"#fff",borderRadius:RADII.md,
-                  minWidth:15,height:15,fontSize:12,fontWeight:800,
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  padding:"0 4px",lineHeight:1,
-                  fontFamily:F_BODY}}>
-                  {alertasRiesgo>99?"99+":alertasRiesgo}</span>
-              )}
-            </span>
-            <span style={{color:tab===t.k?Q.cyan:Q.muted,fontSize:12,
-              fontWeight:tab===t.k?700:400,maxWidth:"100%",
-              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
-              fontFamily:F_BODY,letterSpacing:0.3,
-              textTransform:"uppercase"}}>{t.l}</span>
-          </button>
-        ))}
+        })}
       </div>
+      )}
+
+      <MobileTabMenu open={menuOpen} onClose={()=>setMenuOpen(false)}
+        groups={TAB_GROUPS} tabs={TABS} activeTab={tab} onSelect={setTab}
+        badges={{config:alertasRiesgo}}/>
     </div>
   );
 }
