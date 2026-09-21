@@ -18,7 +18,7 @@ const SRC = path.resolve(__dirname);
 const MAPPING = {
   void: "#060a14", deep: "#0b1120",
   dark: "#111a2e", surface: "#111a2e",
-  card: "#111a2e", inset: "#060a14",
+  card: "#111a2e", inset: "#060a14", raised: "#18243b",
   glass: "linear-gradient(160deg,rgba(154,108,255,0.06),rgba(198,175,255,0.03))",
   border: "#263550", text: "#f5f7fb",
   muted: "#9aa8c2", dim: "#63718a",
@@ -42,8 +42,8 @@ describe("theme module — one source of colour", () => {
     expect(themeModule.THEMES).toBeUndefined();
     expect(Object.keys(themeModule).sort()).toEqual(
       [
-        "F_BODY", "F_NUM", "INK_DARK", "INK_LIGHT", "RADII", "SPACING",
-        "TEXT", "inkOn", "oscuro",
+        "ELEVATION", "F_BODY", "F_NUM", "INK_DARK", "INK_LIGHT", "RADII",
+        "SPACING", "TEXT", "inkOn", "oscuro",
       ].sort()
     );
   });
@@ -114,7 +114,10 @@ const CONTRAST_THRESHOLD = 3.0;
 // clears the same floor as everything else, so it gets no exemption.
 const DIM_THRESHOLD = CONTRAST_THRESHOLD;
 
-const SURFACE_KEYS = ["void", "deep", "dark", "surface", "card", "inset"];
+// `raised` belongs here, not among the accents: it is the prototype's
+// --ink-700, the fourth step of the surface ramp, and nothing is ever
+// printed on it as if it were a brand colour.
+const SURFACE_KEYS = ["void", "deep", "dark", "surface", "card", "inset", "raised"];
 const FOREGROUND_KEYS = [
   "text", "muted", "green", "gold", "violet", "violet2",
   "cyan", "teal", "blue", "amber", "red", "pink",
