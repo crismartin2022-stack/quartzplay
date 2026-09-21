@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
-import { oscuro as Q, F_BODY } from "./theme";
+import { oscuro as Q, F_BODY, RADII } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import { Zap, Gift, Handshake, Video } from "lucide-react";
@@ -23,7 +23,7 @@ function GCard({ children, style={}, glow, onClick }){
       background:Q.glass, backdropFilter:"blur(20px)",
       WebkitBackdropFilter:"blur(20px)",
       border:`1px solid ${glow?glow+"44":Q.border}`,
-      borderRadius:16,
+      borderRadius:RADII.lg,
       boxShadow:`0 8px 32px rgba(0,0,0,0.5)${glow?`, 0 0 24px ${glow}22`:""}`,
       // overflow visible: con "hidden" la tarjeta recorta lo que exceda
       // su alto y un campo entero puede quedar invisible sin ningún
@@ -51,7 +51,7 @@ function HBadge({ label, color=Q.violet }){
   return(
     <span style={{
       background:`linear-gradient(135deg,${color}33,${color}11)`,
-      border:`1px solid ${color}66`, borderRadius:20,
+      border:`1px solid ${color}66`, borderRadius:RADII.xl,
       padding:"2px 10px", fontSize:12, fontWeight:700, color,
       letterSpacing:0.5, fontFamily:F_BODY,
     }}>{label}</span>
@@ -66,7 +66,7 @@ function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=fa
       height:h, width:full?"100%":"auto",
       padding:`0 ${size==="sm"?"10px":"16px"}`,
       background:disabled?"rgba(255,255,255,0.04)":outline?"transparent":`linear-gradient(135deg,${color},${color}CC)`,
-      border:`1px solid ${disabled?Q.dim:color}`, borderRadius:10,
+      border:`1px solid ${disabled?Q.dim:color}`, borderRadius:RADII.md,
       color:disabled?Q.muted:outline?color:"#fff",
       fontSize:fs, fontWeight:700, cursor:disabled?"not-allowed":"pointer",
       display:"flex", alignItems:"center", justifyContent:"center", gap:6,
@@ -105,7 +105,7 @@ function Input({ label, value, onChange, type="text", placeholder="" }){
       <input type={type} value={value} onChange={e=>onChange(e.target.value)}
         placeholder={placeholder}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:10,padding:"11px 14px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"11px 14px",
           color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
     </div>
   );
@@ -145,7 +145,7 @@ const MOCK = {
 function AvisoMock(){
   return(
     <div style={{background:`${Q.amber}12`,border:`1px solid ${Q.amber}55`,
-      borderRadius:10,padding:"8px 12px",marginBottom:12,
+      borderRadius:RADII.md,padding:"8px 12px",marginBottom:12,
       color:Q.amber,fontSize:12,fontFamily:F_BODY}}>
       Datos de ejemplo — esta sección todavía no está conectada a la base.
     </div>
@@ -199,7 +199,7 @@ function AdminLogin({ onLogin }){
             onKeyDown={e=>e.key==="Enter"&&login()}
             placeholder="••••••••"
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:10,padding:"12px 14px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 14px",
               color:Q.text,fontSize:16,marginBottom:14,
               fontFamily:F_BODY}}/>
           {err&&<div style={{color:Q.red,fontSize:12,marginBottom:10}}>{err}</div>}
@@ -453,7 +453,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
         {[["resumen","📊 Resumen"],["productos","🎰 Productos"],["liquidacion","💵 Liquidar"],["historial","📋 Historial"],["caja","🧾 Caja"],["movimientos","💸 Movs"],["apuestas","🎫 Apuestas"],["cashout","💰 Cash out"],["combos","⚡ Combos"]].map(([k,l])=>(
           <button key={k} onClick={()=>setVista(k)} style={{flex:1,
             background:vista===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-            border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:9,
+            border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:RADII.md,
             padding:"9px",cursor:"pointer",color:vista===k?Q.cyan:Q.muted,
             fontSize:13,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
@@ -463,12 +463,12 @@ function TabCierre({ adminKey, onNoAutorizado }){
       <input value={buscar} onChange={e=>setBuscar(e.target.value)}
         placeholder="🔍 Buscar agencia..."
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
           color:Q.text,fontSize:14,marginBottom:8,
           fontFamily:F_BODY}}/>
       <select value={filtroAg} onChange={e=>setFiltroAg(e.target.value)}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${filtroAg?Q.cyan:Q.border}`,borderRadius:9,padding:"10px 12px",
+          border:`1px solid ${filtroAg?Q.cyan:Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
           color:Q.text,fontSize:14,marginBottom:12,
           fontFamily:F_BODY}}>
         <option value="">— Todo el sistema —</option>
@@ -489,7 +489,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
       {filtroAg&&clientesF.length>0&&(
         <select value={filtroCli} onChange={e=>setFiltroCli(e.target.value)}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${filtroCli?Q.gold:Q.border}`,borderRadius:9,
+            border:`1px solid ${filtroCli?Q.gold:Q.border}`,borderRadius:RADII.md,
             padding:"9px 12px",color:Q.text,fontSize:14,marginBottom:12,
             fontFamily:F_BODY}}>
           <option value="">— Todos los clientes de {filtroAg} —</option>
@@ -509,7 +509,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
         {[["hoy","Hoy"],["semana","7 días"],["mes","30 días"]].map(([k,l])=>(
           <button key={k} onClick={()=>rango(k)} style={{flex:1,
             background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.border}`,
-            borderRadius:9,padding:"8px",cursor:"pointer",color:Q.cyan,
+            borderRadius:RADII.md,padding:"8px",cursor:"pointer",color:Q.cyan,
             fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
@@ -517,12 +517,12 @@ function TabCierre({ adminKey, onNoAutorizado }){
       <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
         <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:9,padding:"8px 10px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 10px",
             color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
         <span style={{color:Q.muted}}>→</span>
         <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:9,padding:"8px 10px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 10px",
             color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
       </div>
 
@@ -954,7 +954,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   <button key={k} onClick={()=>togglePeriodo(k)} style={{flex:1,
                     background:liqAuto.includes(k)?`${Q.green}22`:"rgba(255,255,255,0.04)",
                     border:`1px solid ${liqAuto.includes(k)?Q.green:Q.border}`,
-                    borderRadius:10,padding:"9px",cursor:"pointer",
+                    borderRadius:RADII.md,padding:"9px",cursor:"pointer",
                     color:liqAuto.includes(k)?Q.green:Q.muted,fontSize:12,fontWeight:700,
                     fontFamily:F_BODY}}>
                     {liqAuto.includes(k)?"✓ ":""}{l}</button>
@@ -1109,7 +1109,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   </div>
                   {a.picks.map((p,j)=>(
                     <div key={j} style={{background:"rgba(255,255,255,0.03)",
-                      borderRadius:8,padding:"8px 10px",marginBottom:5}}>
+                      borderRadius:RADII.md,padding:"8px 10px",marginBottom:5}}>
                       <div style={{color:Q.text,fontSize:12,fontWeight:600,
                         fontFamily:F_BODY}}>
                         {p.home||p.equipo_local||""}{(p.home||p.away)?" vs ":""}{p.away||p.equipo_visitante||""}</div>
@@ -1183,10 +1183,10 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   fontFamily:F_BODY}}>{c.nombre||"Combo"}
                   {c.es_ia
                     ?<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
-                        borderRadius:12,padding:"1px 7px",fontSize:12,fontWeight:700,
+                        borderRadius:RADII.lg,padding:"1px 7px",fontSize:12,fontWeight:700,
                         color:Q.violet2,marginLeft:6}}>🤖 IA</span>
                     :<span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,
-                        borderRadius:12,padding:"1px 7px",fontSize:12,fontWeight:700,
+                        borderRadius:RADII.lg,padding:"1px 7px",fontSize:12,fontWeight:700,
                         color:Q.cyan,marginLeft:6}}>✍️ Manual</span>}
                   {!c.visible&&<span style={{color:Q.muted,fontSize:12,marginLeft:5}}>oculto</span>}
                 </div>
@@ -1420,7 +1420,7 @@ function TabCombos({ adminKey, onNoAutorizado }){
                 {c.origen==="admin"?" Casa":" "+c.creado_por}</div>
             </div>
             <button onClick={()=>borrar(c.id)} style={{background:`${Q.red}18`,
-              border:`1px solid ${Q.red}`,borderRadius:8,padding:"5px 10px",
+              border:`1px solid ${Q.red}`,borderRadius:RADII.md,padding:"5px 10px",
               cursor:"pointer",color:Q.red,fontSize:12,fontWeight:700,flexShrink:0,
               fontFamily:F_BODY}}>Borrar</button>
           </div>
@@ -1530,7 +1530,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       <input value={nombre} onChange={e=>setNombre(e.target.value)}
         placeholder="Nombre del combo"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:10,padding:"11px 14px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"11px 14px",
           color:Q.text,fontSize:16,marginBottom:12,
           fontFamily:F_BODY}}/>
 
@@ -1541,7 +1541,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
           ["Agencias",destAg,setDestAg]].map(([l,v,sv])=>(
           <button key={l} onClick={()=>sv(!v)} style={{flex:1,
             background:v?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-            border:`1.5px solid ${v?Q.violet:Q.border}`,borderRadius:10,
+            border:`1.5px solid ${v?Q.violet:Q.border}`,borderRadius:RADII.md,
             padding:"10px",cursor:"pointer",color:v?Q.cyan:Q.muted,
             fontSize:12,fontWeight:v?700:400,
             fontFamily:F_BODY}}>{v?"✓ ":""}{l}</button>
@@ -1550,13 +1550,13 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       <input value={agencias} onChange={e=>setAgencias(e.target.value)}
         placeholder="Agencias (AGE001,AGE002) o vacío = todas"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:10,padding:"10px 12px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
           color:Q.text,fontSize:14,marginBottom:12,
           fontFamily:F_BODY}}/>
 
       <select value={infCode} onChange={e=>setInfCode(e.target.value)}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${infCode?Q.violet:Q.border}`,borderRadius:10,padding:"10px 12px",
+          border:`1px solid ${infCode?Q.violet:Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
           color:infCode?Q.text:Q.muted,fontSize:14,marginBottom:8,
           fontFamily:F_BODY}}>
         <option value="">🌟 Asignar a influencer (opcional)</option>
@@ -1567,14 +1567,14 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       {infCode&&<input value={codigoSalida} onChange={e=>setCodigoSalida(e.target.value.toUpperCase())}
         placeholder="Código de salida del combo (ej: COMBODELDIA)"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:10,padding:"10px 12px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
           color:Q.text,fontSize:14,marginBottom:12,
           fontFamily:F_BODY}}/>}
 
       {/* Compartir con agencias e influencers */}
       {(destinatarios.subs.length>0||destinatarios.influencers.length>0)&&(
         <div style={{background:"rgba(255,255,255,0.03)",border:`1px solid ${Q.border}`,
-          borderRadius:10,padding:12,marginBottom:12}}>
+          borderRadius:RADII.md,padding:12,marginBottom:12}}>
           <div style={{color:Q.violet,fontWeight:700,fontSize:12,marginBottom:8,
             fontFamily:F_BODY}}><Icon name="arrow-up-right" size={14}/> Compartir este combo</div>
 
@@ -1585,7 +1585,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                   fontFamily:F_BODY}}>🏢 Agencias</span>
                 <button onClick={()=>{setTodosSubs(v=>!v); if(!todosSubs)setDestSubs([]);}}
                   style={{background:todosSubs?`${Q.green}22`:"rgba(255,255,255,0.05)",
-                    border:`1px solid ${todosSubs?Q.green:Q.border}`,borderRadius:8,
+                    border:`1px solid ${todosSubs?Q.green:Q.border}`,borderRadius:RADII.md,
                     padding:"4px 10px",cursor:"pointer",color:todosSubs?Q.green:Q.muted,
                     fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                   {todosSubs?"✓ Todas":"Todas"}</button>
@@ -1594,7 +1594,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                 {destinatarios.subs.map(x=>(
                   <button key={x.code} onClick={()=>toggleDest(x.code,destSubs,setDestSubs)}
                     style={{background:destSubs.includes(x.code)?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-                      border:`1px solid ${destSubs.includes(x.code)?Q.violet:Q.border}`,borderRadius:8,
+                      border:`1px solid ${destSubs.includes(x.code)?Q.violet:Q.border}`,borderRadius:RADII.md,
                       padding:"6px 10px",cursor:"pointer",color:destSubs.includes(x.code)?Q.text:Q.muted,
                       fontSize:12,fontFamily:F_BODY}}>
                     {destSubs.includes(x.code)?"✓ ":""}{x.name}</button>
@@ -1610,7 +1610,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                   fontFamily:F_BODY}}>🌟 Influencers</span>
                 <button onClick={()=>{setTodosInfs(v=>!v); if(!todosInfs)setDestInfs([]);}}
                   style={{background:todosInfs?`${Q.green}22`:"rgba(255,255,255,0.05)",
-                    border:`1px solid ${todosInfs?Q.green:Q.border}`,borderRadius:8,
+                    border:`1px solid ${todosInfs?Q.green:Q.border}`,borderRadius:RADII.md,
                     padding:"4px 10px",cursor:"pointer",color:todosInfs?Q.green:Q.muted,
                     fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                   {todosInfs?"✓ Todos":"Todos"}</button>
@@ -1619,7 +1619,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                 {destinatarios.influencers.map(x=>(
                   <button key={x.code} onClick={()=>toggleDest(x.code,destInfs,setDestInfs)}
                     style={{background:destInfs.includes(x.code)?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-                      border:`1px solid ${destInfs.includes(x.code)?Q.violet:Q.border}`,borderRadius:8,
+                      border:`1px solid ${destInfs.includes(x.code)?Q.violet:Q.border}`,borderRadius:RADII.md,
                       padding:"6px 10px",cursor:"pointer",color:destInfs.includes(x.code)?Q.text:Q.muted,
                       fontSize:12,fontFamily:F_BODY}}>
                     {destInfs.includes(x.code)?"✓ ":""}{x.name}</button>
@@ -1632,7 +1632,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
 
       <div style={{display:"flex",alignItems:"center",gap:8,
         background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-        borderRadius:10,padding:"8px 12px",marginBottom:10}}>
+        borderRadius:RADII.md,padding:"8px 12px",marginBottom:10}}>
         <span><Icon name="search" size={14}/></span>
         <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
           placeholder="Buscar equipo..."
@@ -1661,7 +1661,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                       flex:1,minWidth:0,
                       background:tiene(ev,opt.l)?`${Q.cyan}33`:"rgba(255,255,255,0.04)",
                       border:`1.5px solid ${tiene(ev,opt.l)?Q.cyan:Q.border}`,
-                      borderRadius:8,padding:"6px 3px",cursor:"pointer",textAlign:"center"}}>
+                      borderRadius:RADII.md,padding:"6px 3px",cursor:"pointer",textAlign:"center"}}>
                       <div style={{color:Q.muted,fontSize:12,overflow:"hidden",
                         textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt.l}</div>
                       <div style={{color:tiene(ev,opt.l)?Q.cyan:Q.text,fontWeight:700,
@@ -1742,7 +1742,7 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
           </div>
           {pick.candidatos.map((ev,ci)=>(
             <div key={ci} style={{background:`${Q.amber}0E`,
-              border:`1px solid ${Q.amber}44`,borderRadius:8,
+              border:`1px solid ${Q.amber}44`,borderRadius:RADII.md,
               padding:"8px 10px",marginBottom:6}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:5,
                 fontFamily:F_BODY}}>{ev.home} vs {ev.away}</div>
@@ -1750,7 +1750,7 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-                    borderRadius:7,padding:"5px 9px",cursor:"pointer",
+                    borderRadius:RADII.sm,padding:"5px 9px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
@@ -1764,12 +1764,12 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
       <div style={{display:"flex",gap:6,marginBottom:10}}>
         <button onClick={()=>setModo("seleccion")} style={{flex:1,
           background:modo==="seleccion"?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-          border:`1px solid ${modo==="seleccion"?Q.violet:Q.border}`,borderRadius:8,
+          border:`1px solid ${modo==="seleccion"?Q.violet:Q.border}`,borderRadius:RADII.md,
           padding:"7px",cursor:"pointer",color:modo==="seleccion"?Q.cyan:Q.muted,
           fontSize:12,fontWeight:700,fontFamily:F_BODY}}>Selección</button>
         <button onClick={()=>setModo("partido")} style={{flex:1,
           background:modo==="partido"?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-          border:`1px solid ${modo==="partido"?Q.violet:Q.border}`,borderRadius:8,
+          border:`1px solid ${modo==="partido"?Q.violet:Q.border}`,borderRadius:RADII.md,
           padding:"7px",cursor:"pointer",color:modo==="partido"?Q.cyan:Q.muted,
           fontSize:12,fontWeight:700,fontFamily:F_BODY}}>Otro partido</button>
       </div>
@@ -1782,7 +1782,7 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
             <button key={k} onClick={()=>elegirOpcion(op)} style={{width:"100%",
               display:"flex",justifyContent:"space-between",alignItems:"center",
               background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.border}`,
-              borderRadius:8,padding:"9px 12px",marginBottom:5,cursor:"pointer"}}>
+              borderRadius:RADII.md,padding:"9px 12px",marginBottom:5,cursor:"pointer"}}>
               <span style={{color:Q.text,fontSize:12,
                 fontFamily:F_BODY}}>{op.sel}</span>
               <span style={{color:Q.cyan,fontWeight:700,fontSize:13,
@@ -1799,23 +1799,23 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
               onKeyDown={e=>e.key==="Enter"&&buscarEventos()}
               placeholder="Nombre del equipo..."
               style={{flex:1,background:"rgba(255,255,255,0.05)",
-                border:`1px solid ${Q.border}`,borderRadius:8,padding:"9px 12px",
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
                 color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
             <button onClick={buscarEventos} style={{background:`${Q.violet}33`,
-              border:`1px solid ${Q.violet}`,borderRadius:8,padding:"0 14px",
+              border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"0 14px",
               cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
               fontFamily:F_BODY}}>{buscando?"...":"Buscar"}</button>
           </div>
           {encontrados.map((ev,k)=>(
             <div key={k} style={{background:"rgba(255,255,255,0.03)",
-              border:`1px solid ${Q.dim}`,borderRadius:8,padding:"8px 10px",marginBottom:6}}>
+              border:`1px solid ${Q.dim}`,borderRadius:RADII.md,padding:"8px 10px",marginBottom:6}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:6,
                 fontFamily:F_BODY}}>{ev.home} vs {ev.away}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-                    borderRadius:7,padding:"5px 9px",cursor:"pointer",
+                    borderRadius:RADII.sm,padding:"5px 9px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
@@ -1830,10 +1830,10 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
         <input value={ajuste} onChange={e=>setAjuste(e.target.value)}
           placeholder="Cuota a mano (opcional)" inputMode="decimal"
           style={{flex:1,background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:8,padding:"8px 10px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 10px",
             color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
         <button onClick={onQuitar} style={{background:`${Q.red}18`,
-          border:`1px solid ${Q.red}`,borderRadius:8,padding:"8px 12px",
+          border:`1px solid ${Q.red}`,borderRadius:RADII.md,padding:"8px 12px",
           cursor:"pointer",color:Q.red,fontSize:12,fontWeight:700,
           fontFamily:F_BODY}}>Quitar</button>
       </div>
@@ -1936,7 +1936,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
           {imgs.map((im,i)=>(
             <div key={i} style={{position:"relative"}}>
               <img src={im.preview} alt={"f"+i} style={{width:64,height:64,
-                objectFit:"cover",borderRadius:8,border:`1px solid ${Q.border}`}}/>
+                objectFit:"cover",borderRadius:RADII.md,border:`1px solid ${Q.border}`}}/>
               <button onClick={()=>quitarImg(i)} style={{position:"absolute",
                 top:-6,right:-6,width:20,height:20,borderRadius:"50%",
                 background:Q.red,border:"none",color:"#fff",fontSize:12,
@@ -1948,13 +1948,13 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
       {!res&&(
         <div style={{display:"flex",gap:10,marginBottom:12}}>
           <button onClick={()=>setCamaraAbierta(true)} style={{flex:1,
-            background:"transparent",border:`2px dashed ${Q.border}`,borderRadius:12,
+            background:"transparent",border:`2px dashed ${Q.border}`,borderRadius:RADII.lg,
             padding:"22px 10px",textAlign:"center",cursor:"pointer"}}>
             <div style={{fontSize:26,marginBottom:5}}><Icon name="camera" size={26}/></div>
             <div style={{fontWeight:700,fontSize:12,color:Q.text,
               fontFamily:F_BODY}}>Cámara</div>
           </button>
-          <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:12,
+          <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:RADII.lg,
             padding:"22px 10px",textAlign:"center",cursor:"pointer"}}>
             <input type="file" accept="image/*" multiple onChange={elegir} style={{display:"none"}}/>
             <div style={{fontSize:26,marginBottom:5}}>🖼️</div>
@@ -2003,7 +2003,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
               </div>
               <button onClick={()=>setCorrigiendo(corrigiendo===i?null:i)} style={{
                 background:corrigiendo===i?`${Q.cyan}22`:"transparent",
-                border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:8,
+                border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:RADII.md,
                 padding:"5px 10px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
                 fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                 {corrigiendo===i?"✕ Cerrar":"✏️ Está mal / Corregir"}</button>
@@ -2020,7 +2020,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
               <input value={nombre} onChange={e=>setNombre(e.target.value)}
                 placeholder="Nombre del combo"
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
                   color:Q.text,fontSize:16,marginBottom:10,
                   fontFamily:F_BODY}}/>
 
@@ -2030,13 +2030,13 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
               <div style={{display:"flex",gap:6,marginBottom:10}}>
                 <button onClick={()=>setUsarAjustada(true)} style={{flex:1,
                   background:usarAjustada?`${Q.green}22`:"rgba(255,255,255,0.04)",
-                  border:`1.5px solid ${usarAjustada?Q.green:Q.border}`,borderRadius:9,
+                  border:`1.5px solid ${usarAjustada?Q.green:Q.border}`,borderRadius:RADII.md,
                   padding:"9px",cursor:"pointer",color:usarAjustada?Q.green:Q.muted,
                   fontSize:12,fontWeight:700,
                   fontFamily:F_BODY}}>Nuestra (ajustada)</button>
                 <button onClick={()=>setUsarAjustada(false)} style={{flex:1,
                   background:!usarAjustada?`${Q.amber}22`:"rgba(255,255,255,0.04)",
-                  border:`1.5px solid ${!usarAjustada?Q.amber:Q.border}`,borderRadius:9,
+                  border:`1.5px solid ${!usarAjustada?Q.amber:Q.border}`,borderRadius:RADII.md,
                   padding:"9px",cursor:"pointer",color:!usarAjustada?Q.amber:Q.muted,
                   fontSize:12,fontWeight:700,
                   fontFamily:F_BODY}}>Original</button>
@@ -2050,7 +2050,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                   ["Agencias",destAg,setDestAg]].map(([l,v,sv])=>(
                   <button key={l} onClick={()=>sv(!v)} style={{flex:1,
                     background:v?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-                    border:`1.5px solid ${v?Q.violet:Q.border}`,borderRadius:9,
+                    border:`1.5px solid ${v?Q.violet:Q.border}`,borderRadius:RADII.md,
                     padding:"9px",cursor:"pointer",color:v?Q.cyan:Q.muted,
                     fontSize:12,fontWeight:v?700:400,
                     fontFamily:F_BODY}}>{v?"✓ ":""}{l}</button>
@@ -2088,7 +2088,7 @@ function CodigoReserva({ code, compacto=false, vence=null }){
 
   return(
     <div style={{background:Q.inset||"rgba(255,255,255,0.04)",
-      border:`1px solid ${Q.gold}`,borderRadius:12,
+      border:`1px solid ${Q.gold}`,borderRadius:RADII.lg,
       padding:compacto?"10px 12px":"14px",marginTop:8,
       display:"flex",alignItems:"center",gap:12}}>
       <div style={{flex:1,minWidth:0}}>
@@ -2105,7 +2105,7 @@ function CodigoReserva({ code, compacto=false, vence=null }){
       </div>
       <img alt={`Código QR ${code}`} loading="lazy"
         src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=0&data=${encodeURIComponent(code)}`}
-        style={{width:compacto?64:84,height:compacto?64:84,borderRadius:8,
+        style={{width:compacto?64:84,height:compacto?64:84,borderRadius:RADII.md,
           background:"#fff",padding:5,flexShrink:0}}/>
     </div>
   );
@@ -2136,7 +2136,7 @@ function DetalleApuesta({ code, adminKey, onCerrar, onNoAutorizado }){
       justifyContent:"center",padding:16}}>
       <div onClick={e=>e.stopPropagation()} style={{width:"100%",
         maxWidth:420,maxHeight:"85vh",overflowY:"auto",background:Q.surface,
-        border:`1px solid ${Q.border}`,borderRadius:14,padding:16}}>
+        border:`1px solid ${Q.border}`,borderRadius:RADII.lg,padding:16}}>
 
         <div style={{display:"flex",justifyContent:"space-between",
           alignItems:"center",marginBottom:12}}>
@@ -2326,11 +2326,11 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                     Cliente desde {f.creado}</div>
                 </div>
                 {f.es_directo&&<span style={{background:`${Q.cyan}22`,
-                  border:`1px solid ${Q.cyan}`,borderRadius:20,padding:"3px 10px",
+                  border:`1px solid ${Q.cyan}`,borderRadius:RADII.xl,padding:"3px 10px",
                   fontSize:12,fontWeight:700,color:Q.cyan,
                   fontFamily:F_BODY}}>📱 DIRECTO</span>}
                 {f.bloqueado&&<span style={{background:`${Q.red}22`,
-                  border:`1px solid ${Q.red}`,borderRadius:20,padding:"3px 10px",
+                  border:`1px solid ${Q.red}`,borderRadius:RADII.xl,padding:"3px 10px",
                   fontSize:12,fontWeight:700,color:Q.red,
                   fontFamily:F_BODY}}>🔒 BLOQUEADO</span>}
               </div>
@@ -2477,13 +2477,13 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                 <input value={monto} onChange={e=>setMonto(e.target.value)}
                   placeholder="Monto ($)" inputMode="numeric"
                   style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                    border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+                    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
                     color:Q.text,fontSize:16,marginBottom:8,
                     fontFamily:F_BODY}}/>
                 <input value={detalle} onChange={e=>setDetalle(e.target.value)}
                   placeholder="Detalle (opcional)"
                   style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                    border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+                    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
                     color:Q.text,fontSize:14,marginBottom:10,
                     fontFamily:F_BODY}}/>
                 <div style={{display:"flex",gap:8}}>
@@ -2517,7 +2517,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                   <input value={motivo} onChange={e=>setMotivo(e.target.value)}
                     placeholder="Motivo del bloqueo"
                     style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                      border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+                      border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
                       color:Q.text,fontSize:14,marginBottom:10,
                       fontFamily:F_BODY}}/>
                   <div style={{display:"flex",gap:8}}>
@@ -2564,7 +2564,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                       {ars(b.stake)} · {fmt(b.odd)}x · {b.fecha}</div>
                   </div>
                   <span style={{background:`${e.c}22`,border:`1px solid ${e.c}`,
-                    borderRadius:20,padding:"2px 8px",fontSize:12,fontWeight:700,
+                    borderRadius:RADII.xl,padding:"2px 8px",fontSize:12,fontWeight:700,
                     color:e.c,flexShrink:0,
                     fontFamily:F_BODY}}>{e.t}</span>
                 </div>
@@ -2640,18 +2640,18 @@ function TabClientes({ adminKey, onNoAutorizado }){
         <input value={nombre} onChange={e=>setNombre(e.target.value)}
           placeholder="Nombre del cliente"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
             color:Q.text,fontSize:16,marginBottom:8,
             fontFamily:F_BODY}}/>
         <input value={tel} onChange={e=>setTel(e.target.value)}
           placeholder="Teléfono (opcional)"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
             color:Q.text,fontSize:16,marginBottom:8,
             fontFamily:F_BODY}}/>
         <select value={agNueva} onChange={e=>setAgNueva(e.target.value)}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
             color:agNueva?Q.text:Q.muted,fontSize:15,marginBottom:10,
             fontFamily:F_BODY}}>
           <option value="">Ubicar en agencia...</option>
@@ -2671,7 +2671,7 @@ function TabClientes({ adminKey, onNoAutorizado }){
       <div style={{display:"flex",gap:8,marginBottom:12}}>
         <select value={filtroAg} onChange={e=>setFiltroAg(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
             color:Q.text,fontSize:14,fontFamily:F_BODY}}>
           <option value="">Todas las agencias</option>
           {ags.map(a=>(
@@ -2679,7 +2679,7 @@ function TabClientes({ adminKey, onNoAutorizado }){
           ))}
         </select>
         <button onClick={cargar} style={{background:`${Q.violet}33`,
-          border:`1px solid ${Q.violet}`,borderRadius:9,padding:"0 16px",
+          border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"0 16px",
           cursor:"pointer",color:Q.cyan,fontSize:13,fontWeight:700,
           fontFamily:F_BODY}}><Icon name="search" size={14}/></button>
       </div>
@@ -2972,13 +2972,13 @@ function TabEventos({ adminKey, onNoAutorizado }){
         <input value={buscar} onChange={e=>setBuscar(e.target.value)}
           placeholder="Buscar equipo o partido…"
           style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${buscar?Q.cyan:Q.border}`,borderRadius:9,
+            border:`1px solid ${buscar?Q.cyan:Q.border}`,borderRadius:RADII.md,
             padding:"10px 12px",color:Q.text,fontSize:14,
             fontFamily:F_BODY}}/>
         {(buscar||fDeporte||fLiga)&&(
           <button onClick={()=>{setBuscar("");setFDeporte("");setFLiga("");}}
             style={{background:"transparent",border:`1px solid ${Q.border}`,
-              borderRadius:9,padding:"0 13px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"0 13px",cursor:"pointer",
               color:Q.muted,fontSize:12,flexShrink:0,
               fontFamily:F_BODY}}>Limpiar</button>
         )}
@@ -2989,7 +2989,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
           paddingBottom:3}}>
           <button onClick={()=>setFDeporte("")} style={{
             background:!fDeporte?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-            border:`1px solid ${!fDeporte?Q.violet:Q.border}`,borderRadius:8,
+            border:`1px solid ${!fDeporte?Q.violet:Q.border}`,borderRadius:RADII.md,
             padding:"7px 13px",cursor:"pointer",whiteSpace:"nowrap",
             color:!fDeporte?Q.cyan:Q.muted,fontSize:12,
             fontWeight:!fDeporte?700:400,
@@ -3000,7 +3000,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
               background:fDeporte===c.key?`${Q.violet}33`
                 :"rgba(255,255,255,0.04)",
               border:`1px solid ${fDeporte===c.key?Q.violet:Q.border}`,
-              borderRadius:8,padding:"7px 13px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"7px 13px",cursor:"pointer",
               whiteSpace:"nowrap",color:fDeporte===c.key?Q.cyan:Q.muted,
               fontSize:12,fontWeight:fDeporte===c.key?700:400,
               fontFamily:F_BODY}}>
@@ -3015,7 +3015,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
           completo son cientos y no sirve verlas todas juntas. */}
       <select value={fLiga} onChange={e=>setFLiga(e.target.value)}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${fLiga?Q.cyan:Q.border}`,borderRadius:9,
+          border:`1px solid ${fLiga?Q.cyan:Q.border}`,borderRadius:RADII.md,
           padding:"10px 12px",color:Q.text,fontSize:13,marginBottom:10,
           fontFamily:F_BODY}}>
         <option value="">Todas las ligas</option>
@@ -3028,13 +3028,13 @@ function TabEventos({ adminKey, onNoAutorizado }){
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         <button onClick={()=>setTipo("prematch")} style={{flex:1,
           background:tipo==="prematch"?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-          border:`1.5px solid ${tipo==="prematch"?Q.violet:Q.border}`,borderRadius:10,
+          border:`1.5px solid ${tipo==="prematch"?Q.violet:Q.border}`,borderRadius:RADII.md,
           padding:"10px",cursor:"pointer",color:tipo==="prematch"?Q.cyan:Q.muted,
           fontSize:13,fontWeight:700,fontFamily:F_BODY}}>
           Prematch</button>
         <button onClick={()=>setTipo("live")} style={{flex:1,
           background:tipo==="live"?`${Q.pink}33`:"rgba(255,255,255,0.04)",
-          border:`1.5px solid ${tipo==="live"?Q.pink:Q.border}`,borderRadius:10,
+          border:`1.5px solid ${tipo==="live"?Q.pink:Q.border}`,borderRadius:RADII.md,
           padding:"10px",cursor:"pointer",color:tipo==="live"?Q.pink:Q.muted,
           fontSize:13,fontWeight:700,fontFamily:F_BODY}}>
           <Icon name="circle-dot" size={13}/> En vivo</button>
@@ -3073,7 +3073,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
               </div>
               <button onClick={()=>quitar(b.id)} style={{
                 background:"transparent",border:`1px solid ${Q.green}66`,
-                borderRadius:7,padding:"5px 11px",cursor:"pointer",
+                borderRadius:RADII.sm,padding:"5px 11px",cursor:"pointer",
                 color:Q.green,fontSize:12,flexShrink:0,
                 fontFamily:F_BODY}}>Quitar</button>
             </div>
@@ -3105,7 +3105,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
               </div>
               <button onClick={()=>quitarAjuste(a.id)} style={{
                 background:"transparent",border:`1px solid ${Q.border}`,
-                borderRadius:7,padding:"5px 11px",cursor:"pointer",
+                borderRadius:RADII.sm,padding:"5px 11px",cursor:"pointer",
                 color:Q.muted,fontSize:12,flexShrink:0,
                 fontFamily:F_BODY}}>Quitar</button>
             </div>
@@ -3152,7 +3152,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
               <div style={{display:"flex",gap:6}}>
                 {[["1",ev.L],["X",ev.E],["2",ev.V]].map(([l,v])=>(
                   <div key={l} style={{flex:1,textAlign:"center",
-                    background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"6px 2px"}}>
+                    background:"rgba(255,255,255,0.04)",borderRadius:RADII.sm,padding:"6px 2px"}}>
                     <div style={{color:Q.muted,fontSize:12}}>{l}</div>
                     <div style={{color:v?Q.cyan:Q.dim,fontWeight:700,fontSize:13,
                       fontFamily:F_BODY}}>{v?fmt(v):"—"}</div>
@@ -3171,7 +3171,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                     {aju.mercado?` · ${aju.mercado}`:""}</div>
                   <button onClick={()=>quitarAjuste(aju.id)} style={{
                     background:"transparent",border:`1px solid ${Q.border}`,
-                    borderRadius:7,padding:"4px 10px",cursor:"pointer",
+                    borderRadius:RADII.sm,padding:"4px 10px",cursor:"pointer",
                     color:Q.muted,fontSize:12,flexShrink:0,
                     fontFamily:F_BODY}}>Quitar</button>
                 </div>
@@ -3210,7 +3210,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                           <button key={m} onClick={()=>quitar(mb.id)}
                             title="Tocá para habilitar"
                             style={{background:`${Q.red}18`,
-                              border:`1px solid ${Q.red}`,borderRadius:7,
+                              border:`1px solid ${Q.red}`,borderRadius:RADII.sm,
                               padding:"5px 10px",cursor:"pointer",
                               color:Q.red,fontSize:12,
                               fontFamily:F_BODY}}>
@@ -3220,7 +3220,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                             onClick={()=>bloquearMercado(ev,d.liga,m)}
                             title="Tocá para bloquear"
                             style={{background:"rgba(255,255,255,0.04)",
-                              border:`1px solid ${Q.border}`,borderRadius:7,
+                              border:`1px solid ${Q.border}`,borderRadius:RADII.sm,
                               padding:"5px 10px",cursor:"pointer",
                               color:Q.muted,fontSize:12,
                               fontFamily:F_BODY}}>
@@ -3243,7 +3243,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                     {bloq.motivo?` · ${bloq.motivo}`:""}</div>
                   <button onClick={()=>quitar(bloq.id)} style={{
                     background:"transparent",border:`1px solid ${Q.green}66`,
-                    borderRadius:7,padding:"4px 10px",cursor:"pointer",
+                    borderRadius:RADII.sm,padding:"4px 10px",cursor:"pointer",
                     color:Q.green,fontSize:12,flexShrink:0,
                     fontFamily:F_BODY}}>Habilitar</button>
                 </div>
@@ -3259,7 +3259,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                   });}}
                   disabled={!ev.event_id}
                   style={{width:"100%",marginTop:7,background:"transparent",
-                    border:`1px solid ${Q.border}`,borderRadius:7,
+                    border:`1px solid ${Q.border}`,borderRadius:RADII.sm,
                     padding:"6px",cursor:ev.event_id?"pointer":"not-allowed",
                     color:ev.event_id?Q.muted:Q.dim,fontSize:12,
                     fontFamily:F_BODY}}>
@@ -3279,7 +3279,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",
             maxWidth:420,maxHeight:"88dvh",overflowY:"auto",
             background:Q.deep||"#080814",border:`1px solid ${Q.border}`,
-            borderRadius:14,padding:16}}>
+            borderRadius:RADII.lg,padding:16}}>
 
             <div style={{display:"flex",justifyContent:"space-between",
               alignItems:"flex-start",marginBottom:12}}>
@@ -3306,7 +3306,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
 
             {expo&&!expo.cargando&&!expo.error&&expo.total>0&&(
               <div style={{background:`${Q.amber}0F`,
-                border:`1px solid ${Q.amber}55`,borderRadius:10,
+                border:`1px solid ${Q.amber}55`,borderRadius:RADII.md,
                 padding:12,marginBottom:14}}>
                 <div style={{display:"flex",justifyContent:"space-between",
                   alignItems:"baseline",marginBottom:8}}>
@@ -3404,7 +3404,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                     :"rgba(255,255,255,0.04)",
                   border:`1px solid ${(panel.accion||"bloquear")===k
                     ?Q.violet:Q.border}`,
-                  borderRadius:9,padding:"10px 6px",cursor:"pointer",
+                  borderRadius:RADII.md,padding:"10px 6px",cursor:"pointer",
                   color:(panel.accion||"bloquear")===k?Q.cyan:Q.muted,
                   fontSize:12,fontWeight:(panel.accion||"bloquear")===k?700:400,
                   fontFamily:F_BODY}}>{l}</button>
@@ -3423,7 +3423,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                       background:panel.ajuste_pct===v?`${Q.violet}33`
                         :"rgba(255,255,255,0.04)",
                       border:`1px solid ${panel.ajuste_pct===v?Q.violet:Q.border}`,
-                      borderRadius:8,padding:"9px 4px",cursor:"pointer",
+                      borderRadius:RADII.md,padding:"9px 4px",cursor:"pointer",
                       color:panel.ajuste_pct===v?Q.cyan:Q.muted,fontSize:12,
                       fontWeight:panel.ajuste_pct===v?700:400,
                       fontFamily:F_BODY}}>{v}%</button>
@@ -3440,7 +3440,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                     placeholder="1.50"
                     style={{flex:1,minWidth:0,
                       background:"rgba(255,255,255,0.05)",
-                      border:`1px solid ${Q.border}`,borderRadius:8,
+                      border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                       padding:"9px 11px",color:Q.text,fontSize:14,
                       fontWeight:700,textAlign:"center",
                       fontFamily:F_BODY}}/>
@@ -3465,7 +3465,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                   background:panel.objeto===k?`${Q.violet}33`
                     :"rgba(255,255,255,0.04)",
                   border:`1px solid ${panel.objeto===k?Q.violet:Q.border}`,
-                  borderRadius:8,padding:"9px 4px",cursor:"pointer",
+                  borderRadius:RADII.md,padding:"9px 4px",cursor:"pointer",
                   color:panel.objeto===k?Q.cyan:Q.muted,fontSize:12,
                   fontWeight:panel.objeto===k?700:400,
                   fontFamily:F_BODY}}>{l}</button>
@@ -3487,7 +3487,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                       style={{background:panel.mercado===m?`${Q.violet}33`
                         :"rgba(255,255,255,0.04)",
                       border:`1px solid ${panel.mercado===m?Q.violet:Q.border}`,
-                      borderRadius:7,padding:"6px 11px",cursor:"pointer",
+                      borderRadius:RADII.sm,padding:"6px 11px",cursor:"pointer",
                       color:panel.mercado===m?Q.cyan:Q.muted,fontSize:12,
                       fontFamily:F_BODY}}>{m}</button>
                   ))}
@@ -3506,7 +3506,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                   background:panel.alcance===k?`${Q.violet}33`
                     :"rgba(255,255,255,0.04)",
                   border:`1px solid ${panel.alcance===k?Q.violet:Q.border}`,
-                  borderRadius:8,padding:"9px 4px",cursor:"pointer",
+                  borderRadius:RADII.md,padding:"9px 4px",cursor:"pointer",
                   color:panel.alcance===k?Q.cyan:Q.muted,fontSize:12,
                   fontWeight:panel.alcance===k?700:400,
                   fontFamily:F_BODY}}>{l}</button>
@@ -3517,7 +3517,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
               <select value={panel.agencia_code}
                 onChange={e=>setPanel(p=>({...p,agencia_code:e.target.value}))}
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.border}`,borderRadius:8,
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                   padding:"9px 11px",color:Q.text,fontSize:13,marginBottom:12,
                   fontFamily:F_BODY}}>
                 <option value="">Elegí la agencia…</option>
@@ -3539,7 +3539,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                   background:panel.modo===k?`${Q.violet}33`
                     :"rgba(255,255,255,0.04)",
                   border:`1px solid ${panel.modo===k?Q.violet:Q.border}`,
-                  borderRadius:8,padding:"9px 4px",cursor:"pointer",
+                  borderRadius:RADII.md,padding:"9px 4px",cursor:"pointer",
                   color:panel.modo===k?Q.cyan:Q.muted,fontSize:12,
                   fontWeight:panel.modo===k?700:400,
                   fontFamily:F_BODY}}>{l}</button>
@@ -3550,12 +3550,12 @@ function TabEventos({ adminKey, onNoAutorizado }){
               onChange={e=>setPanel(p=>({...p,motivo:e.target.value}))}
               placeholder="Motivo (queda registrado)"
               style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                border:`1px solid ${Q.border}`,borderRadius:8,
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                 padding:"9px 11px",color:Q.text,fontSize:13,marginBottom:12,
                 fontFamily:F_BODY}}/>
 
             <div style={{background:`${Q.amber}12`,
-              border:`1px solid ${Q.amber}44`,borderRadius:8,
+              border:`1px solid ${Q.amber}44`,borderRadius:RADII.md,
               padding:"9px 11px",marginBottom:12,fontSize:12,
               color:Q.amber,lineHeight:1.5,
               fontFamily:F_BODY}}>
@@ -3805,7 +3805,7 @@ function ArbolVisual({ agencias, onElegir, onCerrar }){
       <button onClick={()=>onElegir(nodo.code)} style={{
         background:`${colorNivel(nodo.nivel||0)}18`,
         border:`1.5px solid ${colorNivel(nodo.nivel||0)}`,
-        borderRadius:10,padding:"8px 12px",cursor:"pointer",textAlign:"left",
+        borderRadius:RADII.md,padding:"8px 12px",cursor:"pointer",textAlign:"left",
         marginBottom:nodo.hijos.length?8:6,minWidth:150}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:12,
           fontFamily:F_BODY}}>{nodo.name}</div>
@@ -3834,7 +3834,7 @@ function ArbolVisual({ agencias, onElegir, onCerrar }){
       zIndex:210,display:"flex",alignItems:"flex-start",justifyContent:"center",
       padding:"40px 12px",overflowY:"auto"}} onClick={onCerrar}>
       <div onClick={e=>e.stopPropagation()} style={{background:Q.deep,
-        borderRadius:18,width:"100%",maxWidth:640,padding:20,
+        borderRadius:RADII.xl,width:"100%",maxWidth:640,padding:20,
         border:`1px solid ${Q.border}`}}>
         <div style={{display:"flex",justifyContent:"space-between",
           alignItems:"center",marginBottom:16}}>
@@ -3912,7 +3912,7 @@ function TabInfluencers({ adminKey, onNoAutorizado }){
         {[["reporte","🌟 Reporte"],["escaneos","📸 Escaneos"]].map(([k,l])=>(
           <button key={k} onClick={()=>setVista(k)} style={{flex:1,
             background:vista===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-            border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:9,
+            border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:RADII.md,
             padding:"9px",cursor:"pointer",color:vista===k?Q.cyan:Q.muted,
             fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
@@ -3921,12 +3921,12 @@ function TabInfluencers({ adminKey, onNoAutorizado }){
       <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
         <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:9,padding:"8px 10px",color:Q.text,fontSize:13,
+            borderRadius:RADII.md,padding:"8px 10px",color:Q.text,fontSize:13,
             fontFamily:F_BODY}}/>
         <span style={{color:Q.muted}}>→</span>
         <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:9,padding:"8px 10px",color:Q.text,fontSize:13,
+            borderRadius:RADII.md,padding:"8px 10px",color:Q.text,fontSize:13,
             fontFamily:F_BODY}}/>
       </div>
 
@@ -4066,7 +4066,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
           <input value={form[k]} type={k==="password"?"password":"text"}
             onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={ph}
             style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-              borderRadius:9,padding:"9px 12px",color:Q.text,fontSize:16,
+              borderRadius:RADII.md,padding:"9px 12px",color:Q.text,fontSize:16,
               fontFamily:F_BODY}}/>
         </div>
       ))}
@@ -4075,7 +4075,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
           fontFamily:F_BODY}}>Cuelga de (vacío = del admin)</div>
         <select value={form.parent_code} onChange={e=>setForm(f=>({...f,parent_code:e.target.value}))}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:9,padding:"10px 12px",color:form.parent_code?Q.text:Q.muted,fontSize:15,
+            borderRadius:RADII.md,padding:"10px 12px",color:form.parent_code?Q.text:Q.muted,fontSize:15,
             fontFamily:F_BODY}}>
           <option value="">— Del admin (raíz) —</option>
           {ags.map(a=>(
@@ -4088,7 +4088,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
           fontFamily:F_BODY}}>Dónde valen sus links</div>
         <select value={form.alcance} onChange={e=>setForm(f=>({...f,alcance:e.target.value}))}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:9,padding:"10px 12px",color:form.alcance?Q.text:Q.muted,fontSize:15,
+            borderRadius:RADII.md,padding:"10px 12px",color:form.alcance?Q.text:Q.muted,fontSize:15,
             fontFamily:F_BODY}}>
           <option value="">— Automático según agencia —</option>
           <option value="solo_agencia">Solo esa agencia</option>
@@ -4108,7 +4108,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
           <input value={form.pct_ggr} onChange={e=>setForm(f=>({...f,pct_ggr:e.target.value}))}
             placeholder="10" inputMode="decimal"
             style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-              borderRadius:9,padding:"9px 12px",color:Q.text,fontSize:16,
+              borderRadius:RADII.md,padding:"9px 12px",color:Q.text,fontSize:16,
               fontFamily:F_BODY}}/>
         </div>
         <div style={{flex:1}}>
@@ -4117,7 +4117,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
           <input value={form.pct_ventas} onChange={e=>setForm(f=>({...f,pct_ventas:e.target.value}))}
             placeholder="3" inputMode="decimal"
             style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-              borderRadius:9,padding:"9px 12px",color:Q.text,fontSize:16,
+              borderRadius:RADII.md,padding:"9px 12px",color:Q.text,fontSize:16,
               fontFamily:F_BODY}}/>
         </div>
       </div>
@@ -4448,12 +4448,12 @@ function AsignarAgenciaAdmin({ adminKey, userId, esDirecto, agenciaActual, onCam
 
   return(
     <div style={{marginTop:8,padding:12,background:`${Q.cyan}0C`,
-      border:`1px solid ${Q.cyan}55`,borderRadius:10}}>
+      border:`1px solid ${Q.cyan}55`,borderRadius:RADII.md}}>
       <div style={{color:Q.cyan,fontWeight:700,fontSize:13,marginBottom:8,
         fontFamily:F_BODY}}>Asignar agencia</div>
       <select value={sel} onChange={e=>setSel(e.target.value)}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-          borderRadius:9,padding:"10px",color:Q.text,fontSize:13,marginBottom:8,
+          borderRadius:RADII.md,padding:"10px",color:Q.text,fontSize:13,marginBottom:8,
           fontFamily:F_BODY}}>
         <option value="">— Dejar sin agencia (directo) —</option>
         {agencias.map(a=>(<option key={a.code} value={a.code}>{a.code} · {a.name}</option>))}
@@ -4509,12 +4509,12 @@ function ResetPasswordAdmin({ adminKey, code, userId, nombre, onCerrar }){
         <input type="password" value={nueva} onChange={e=>setNueva(e.target.value)}
           placeholder="Nueva contraseña (8+)"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:9,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:8,
+            borderRadius:RADII.md,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:8,
             fontFamily:F_BODY}}/>
         <input type="password" value={repetir} onChange={e=>setRepetir(e.target.value)}
           placeholder="Repetir contraseña"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:9,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:12,
+            borderRadius:RADII.md,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:12,
             fontFamily:F_BODY}}/>
         <Btn label={proc?"GUARDANDO...":"Resetear"} onClick={guardar} color={Q.amber} full disabled={proc}/>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
@@ -4570,7 +4570,7 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
   };
 
   const inpStyle={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
     color:Q.text,fontSize:15,marginBottom:8,fontFamily:F_BODY};
 
   return(
@@ -4772,12 +4772,12 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
           ["anular","🚫 Anular"]].map(([k,l])=>(
           <button key={k} onClick={()=>setVer(k)} style={{flex:1,
             background:ver===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-            border:`1px solid ${ver===k?Q.violet:Q.border}`,borderRadius:8,
+            border:`1px solid ${ver===k?Q.violet:Q.border}`,borderRadius:RADII.md,
             padding:"7px 4px",cursor:"pointer",color:ver===k?Q.cyan:Q.muted,
             fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
         <button onClick={()=>setResetOpen(true)} style={{flex:1,
-          background:`${Q.amber}18`,border:`1px solid ${Q.amber}`,borderRadius:8,
+          background:`${Q.amber}18`,border:`1px solid ${Q.amber}`,borderRadius:RADII.md,
           padding:"7px 4px",cursor:"pointer",color:Q.amber,
           fontSize:12,fontWeight:700,fontFamily:F_BODY}}>🔑 Clave</button>
       </div>
@@ -4795,7 +4795,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
             valida las dos condiciones aunque el botón esté visible.</div>
 
           <div style={{background:puedeAnular?`${Q.green}15`:"rgba(255,255,255,0.04)",
-            border:`1px solid ${puedeAnular?Q.green:Q.border}`,borderRadius:10,
+            border:`1px solid ${puedeAnular?Q.green:Q.border}`,borderRadius:RADII.md,
             padding:"12px 14px",marginBottom:12}}>
             <div style={{color:puedeAnular?Q.green:Q.muted,fontWeight:700,
               fontSize:12.5,fontFamily:F_BODY}}>
@@ -4806,7 +4806,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
 
           <button onClick={()=>setAnulaRama(v=>!v)} style={{width:"100%",
             background:anulaRama?`${Q.amber}18`:"rgba(255,255,255,0.04)",
-            border:`1px solid ${anulaRama?Q.amber:Q.border}`,borderRadius:9,
+            border:`1px solid ${anulaRama?Q.amber:Q.border}`,borderRadius:RADII.md,
             padding:"10px",cursor:"pointer",marginBottom:10,
             color:anulaRama?Q.amber:Q.muted,fontSize:12,fontWeight:700,
             fontFamily:F_BODY}}>
@@ -4817,12 +4817,12 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
           <div style={{display:"flex",gap:8}}>
             <button disabled={proc} onClick={()=>guardarPermisoAnular(true)}
               style={{flex:1,background:`${Q.green}18`,
-              border:`1px solid ${Q.green}`,borderRadius:9,padding:"11px",
+              border:`1px solid ${Q.green}`,borderRadius:RADII.md,padding:"11px",
               cursor:"pointer",color:Q.green,fontSize:12.5,fontWeight:700,
               fontFamily:F_BODY}}>Habilitar</button>
             <button disabled={proc} onClick={()=>guardarPermisoAnular(false)}
               style={{flex:1,background:`${Q.red}18`,
-              border:`1px solid ${Q.red}`,borderRadius:9,padding:"11px",
+              border:`1px solid ${Q.red}`,borderRadius:RADII.md,padding:"11px",
               cursor:"pointer",color:Q.red,fontSize:12.5,fontWeight:700,
               fontFamily:F_BODY}}>Quitar</button>
           </div>
@@ -4848,7 +4848,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
               tienen cash out.</div>
 
             <div style={{background:puedeCashout?`${Q.green}15`:"rgba(255,255,255,0.04)",
-              border:`1px solid ${puedeCashout?Q.green:Q.border}`,borderRadius:10,
+              border:`1px solid ${puedeCashout?Q.green:Q.border}`,borderRadius:RADII.md,
               padding:"12px 14px",marginBottom:12}}>
               <div style={{color:puedeCashout?Q.green:Q.muted,fontWeight:700,
                 fontSize:12.5,fontFamily:F_BODY}}>
@@ -4858,12 +4858,12 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
             <div style={{display:"flex",gap:8}}>
               <button disabled={proc} onClick={()=>guardarPermisoCashout(true)}
                 style={{flex:1,background:`${Q.green}18`,
-                border:`1px solid ${Q.green}`,borderRadius:9,padding:"11px",
+                border:`1px solid ${Q.green}`,borderRadius:RADII.md,padding:"11px",
                 cursor:"pointer",color:Q.green,fontSize:12.5,fontWeight:700,
                 fontFamily:F_BODY}}>Habilitar</button>
               <button disabled={proc} onClick={()=>guardarPermisoCashout(false)}
                 style={{flex:1,background:`${Q.red}18`,
-                border:`1px solid ${Q.red}`,borderRadius:9,padding:"11px",
+                border:`1px solid ${Q.red}`,borderRadius:RADII.md,padding:"11px",
                 cursor:"pointer",color:Q.red,fontSize:12.5,fontWeight:700,
                 fontFamily:F_BODY}}>Quitar</button>
             </div>
@@ -4885,7 +4885,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
           <input value={ccMonto} onChange={e=>setCcMonto(e.target.value)}
             placeholder="Monto" inputMode="numeric"
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
               color:Q.text,fontSize:16,marginBottom:8,
               fontFamily:F_BODY}}/>
           <div style={{display:"flex",gap:8}}>
@@ -5010,7 +5010,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
             fontFamily:F_BODY}}>% GGR</div>
           <input value={ggr} onChange={e=>setGgr(e.target.value)} inputMode="decimal"
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
               color:Q.text,fontSize:16,fontFamily:F_BODY}}/>
         </div>
         <div style={{flex:1}}>
@@ -5018,7 +5018,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
             fontFamily:F_BODY}}>% Ventas</div>
           <input value={ven} onChange={e=>setVen(e.target.value)} inputMode="decimal"
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
               color:Q.text,fontSize:16,fontFamily:F_BODY}}/>
         </div>
       </div>
@@ -5030,7 +5030,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
         <input value={pctDes} onChange={e=>setPctDes(e.target.value)}
           inputMode="decimal"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
             color:Q.text,fontSize:16,
             fontFamily:F_BODY}}/>
         <div style={{color:Q.dim,fontSize:12,marginTop:5,lineHeight:1.5,
@@ -5046,7 +5046,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
         <input value={ggrCas} onChange={e=>setGgrCas(e.target.value)}
           inputMode="decimal"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
             color:Q.text,fontSize:16,
             fontFamily:F_BODY}}/>
         <div style={{color:Q.dim,fontSize:12,marginTop:5,lineHeight:1.5,
@@ -5080,7 +5080,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
                   justifyContent:"space-between",alignItems:"center",
                   background:apagado?`${Q.red}10`:`${Q.green}10`,
                   border:`1px solid ${apagado?`${Q.red}44`:`${Q.green}44`}`,
-                  borderRadius:9,padding:"11px 13px",marginBottom:6,
+                  borderRadius:RADII.md,padding:"11px 13px",marginBottom:6,
                   cursor:"pointer",
                   fontFamily:F_BODY}}>
                 <span style={{color:apagado?Q.dim:Q.text,fontSize:13,
@@ -5138,25 +5138,25 @@ function CrearClienteAdmin({ adminKey, agencia, onListo, onCancel, onNoAutorizad
       <input value={nombre} onChange={e=>setNombre(e.target.value)}
         placeholder="Nombre del cliente"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
           color:Q.text,fontSize:16,marginBottom:8,
           fontFamily:F_BODY}}/>
       <input value={usuario} onChange={e=>setUsuario(e.target.value)}
         placeholder="Usuario para el sitio web"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
           color:Q.text,fontSize:16,marginBottom:8,
           fontFamily:F_BODY}}/>
       <input value={clave} onChange={e=>setClave(e.target.value)}
         placeholder="Clave (mínimo 6)"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
           color:Q.text,fontSize:16,marginBottom:8,
           fontFamily:F_BODY}}/>
       <input value={tel} onChange={e=>setTel(e.target.value)}
         placeholder="Teléfono (opcional)"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
           color:Q.text,fontSize:16,marginBottom:8,
           fontFamily:F_BODY}}/>
       <div style={{display:"flex",gap:8}}>
@@ -5209,7 +5209,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
           <input value={form[k]} type={k==="password"?"password":"text"}
             onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={ph}
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
               color:Q.text,fontSize:16,fontFamily:F_BODY}}/>
         </div>
       ))}
@@ -5219,7 +5219,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
         <select value={form.parent_code}
           onChange={e=>setForm(f=>({...f,parent_code:e.target.value}))}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
             color:form.parent_code?Q.text:Q.muted,fontSize:15,
             fontFamily:F_BODY}}>
           <option value="">— Raíz (del admin) —</option>
@@ -5235,7 +5235,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
           <input value={form.pct_ggr} onChange={e=>setForm(f=>({...f,pct_ggr:e.target.value}))}
             placeholder="15" inputMode="decimal"
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
               color:Q.text,fontSize:16,fontFamily:F_BODY}}/>
         </div>
         <div style={{flex:1}}>
@@ -5244,7 +5244,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
           <input value={form.pct_ventas} onChange={e=>setForm(f=>({...f,pct_ventas:e.target.value}))}
             placeholder="5" inputMode="decimal"
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
               color:Q.text,fontSize:16,fontFamily:F_BODY}}/>
         </div>
       </div>
@@ -5255,7 +5255,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
           <select value={form.moneda}
             onChange={e=>setForm(f=>({...f,moneda:e.target.value}))}
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
               color:Q.text,fontSize:15,fontFamily:F_BODY}}>
             {(monedas.length?monedas:[{codigo:"ARS",nombre:"Peso argentino"}]).map(m=>(
               <option key={m.codigo} value={m.codigo}>{m.codigo} — {m.nombre}</option>
@@ -5269,7 +5269,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
         <select value={form.permiso}
           onChange={e=>setForm(f=>({...f,permiso:e.target.value}))}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.violet}`,borderRadius:9,padding:"10px 12px",
+            border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"10px 12px",
             color:Q.text,fontSize:15,fontFamily:F_BODY}}>
           <option value="solo_agencia">Solo agencia (crea clientes)</option>
           <option value="crea_agencias">+ Crear sub-agencias</option>
@@ -5404,7 +5404,7 @@ function TabConfig({ adminKey, onNoAutorizado }){
         {subs.map(([k,l])=>(
           <button key={k} onClick={()=>setSub(k)} style={{
             background:sub===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-            border:`1px solid ${sub===k?Q.violet:Q.border}`,borderRadius:9,
+            border:`1px solid ${sub===k?Q.violet:Q.border}`,borderRadius:RADII.md,
             padding:"8px 14px",cursor:"pointer",color:sub===k?Q.violet2||Q.violet:Q.muted,
             fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
@@ -5578,7 +5578,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-    borderRadius:9,padding:"10px 12px",color:Q.text,fontSize:14,marginBottom:8,
+    borderRadius:RADII.md,padding:"10px 12px",color:Q.text,fontSize:14,marginBottom:8,
     fontFamily:F_BODY};
 
   return(
@@ -5592,7 +5592,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
           {[["bienvenida","🎉 Bienvenida"],["carga","💵 Por carga"]].map(([k,l])=>(
             <button key={k} onClick={()=>setForm(f=>({...f,tipo:k}))} style={{flex:1,
               background:form.tipo===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-              border:`1px solid ${form.tipo===k?Q.violet:Q.border}`,borderRadius:9,
+              border:`1px solid ${form.tipo===k?Q.violet:Q.border}`,borderRadius:RADII.md,
               padding:"9px 4px",cursor:"pointer",color:form.tipo===k?Q.violet2||Q.violet:Q.muted,
               fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
           ))}
@@ -5673,7 +5673,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
               <button key={l} onClick={()=>setForm(f=>({...f,
                   pct_paga_casa:String(c),pct_paga_agencia:String(a)}))}
                 style={{flex:1,background:"rgba(255,255,255,0.04)",
-                  border:`1px solid ${Q.border}`,borderRadius:7,
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.sm,
                   padding:"7px 4px",cursor:"pointer",color:Q.muted,
                   fontSize:12,
                   fontFamily:F_BODY}}>{l}</button>
@@ -5823,7 +5823,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                                    :[...act,String(i)];
                     return {...f,dias_semana:nuevo.sort().join(",")};
                   })} style={{flex:1,background:sel?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-                    border:`1px solid ${sel?Q.violet:Q.border}`,borderRadius:8,
+                    border:`1px solid ${sel?Q.violet:Q.border}`,borderRadius:RADII.md,
                     padding:"8px 2px",cursor:"pointer",fontSize:12,
                     fontWeight:sel?700:400,color:sel?Q.cyan:Q.muted,
                     fontFamily:F_BODY}}>{d}</button>
@@ -5852,18 +5852,18 @@ function TabBonos({ adminKey, onNoAutorizado }){
         </div>
 
         <button onClick={analizarRiesgo} disabled={analizando} style={{width:"100%",
-          background:`${Q.cyan}18`,border:`1px solid ${Q.cyan}`,borderRadius:9,padding:"10px",
+          background:`${Q.cyan}18`,border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"10px",
           color:Q.cyan,fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8,
           fontFamily:F_BODY}}>
           {analizando?"Analizando...":"🤖 Analizar riesgo con IA"}</button>
         {analisis&&(
-          <div style={{background:`${Q.cyan}0C`,border:`1px solid ${Q.cyan}44`,borderRadius:10,
+          <div style={{background:`${Q.cyan}0C`,border:`1px solid ${Q.cyan}44`,borderRadius:RADII.md,
             padding:"12px",marginBottom:10,color:Q.text,fontSize:12,lineHeight:1.6,
             whiteSpace:"pre-wrap",fontFamily:F_BODY}}>{analisis}</div>
         )}
         <button onClick={guardar} disabled={proc} style={{width:"100%",
           background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,border:"none",
-          borderRadius:10,padding:"12px",color:"#fff",fontWeight:700,fontSize:14,
+          borderRadius:RADII.md,padding:"12px",color:"#fff",fontWeight:700,fontSize:14,
           cursor:"pointer",fontFamily:F_BODY}}>
           {proc?"Guardando...":"Guardar bono"}</button>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
@@ -5889,14 +5889,14 @@ function TabBonos({ adminKey, onNoAutorizado }){
             </div>
             <div style={{display:"flex",gap:6}}>
               <button onClick={()=>toggleActivo(b)} style={{background:"transparent",
-                border:`1px solid ${b.activo?Q.green:Q.muted}`,borderRadius:8,padding:"5px 9px",
+                border:`1px solid ${b.activo?Q.green:Q.muted}`,borderRadius:RADII.md,padding:"5px 9px",
                 color:b.activo?Q.green:Q.muted,fontSize:12,cursor:"pointer"}}>
                 {b.activo?"Activo":"Inactivo"}</button>
               <button onClick={()=>resetear(b.id)} style={{background:"transparent",
-                border:`1px solid ${Q.cyan}55`,borderRadius:8,padding:"5px 9px",
+                border:`1px solid ${Q.cyan}55`,borderRadius:RADII.md,padding:"5px 9px",
                 color:Q.cyan,fontSize:12,cursor:"pointer"}}>🔄</button>
               <button onClick={()=>borrar(b.id)} style={{background:"transparent",
-                border:`1px solid ${Q.red}55`,borderRadius:8,padding:"5px 9px",
+                border:`1px solid ${Q.red}55`,borderRadius:RADII.md,padding:"5px 9px",
                 color:Q.red,fontSize:12,cursor:"pointer"}}>✕</button>
             </div>
           </div>
@@ -5906,7 +5906,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                 se podía asignar un bono y no revertirlo. */}
             {(b.asignaciones||[]).map((a,i)=>(
               <span key={i} style={{background:`${Q.violet}18`,border:`1px solid ${Q.violet}44`,
-                borderRadius:8,padding:"2px 4px 2px 8px",color:Q.violet2||Q.violet,fontSize:12,
+                borderRadius:RADII.md,padding:"2px 4px 2px 8px",color:Q.violet2||Q.violet,fontSize:12,
                 display:"inline-flex",alignItems:"center",gap:4,
                 fontFamily:F_BODY}}
                 title={a.agencia_nombre||a.agencia_code}>
@@ -5921,12 +5921,12 @@ function TabBonos({ adminKey, onNoAutorizado }){
               fontFamily:F_BODY}}>Sin asignar</span>}
           </div>
           {asignar.bono===b.id?(
-            <div style={{background:"rgba(255,255,255,0.03)",borderRadius:9,padding:10}}>
+            <div style={{background:"rgba(255,255,255,0.03)",borderRadius:RADII.md,padding:10}}>
               <div style={{display:"flex",gap:6,marginBottom:6}}>
                 {[["global","Red"],["rama","Rama"],["agencia","Agencia"]].map(([k,l])=>(
                   <button key={k} onClick={()=>setAsignar(a=>({...a,alcance:k}))} style={{flex:1,
                     background:asignar.alcance===k?`${Q.cyan}22`:"rgba(255,255,255,0.04)",
-                    border:`1px solid ${asignar.alcance===k?Q.cyan:Q.border}`,borderRadius:8,
+                    border:`1px solid ${asignar.alcance===k?Q.cyan:Q.border}`,borderRadius:RADII.md,
                     padding:"6px 4px",cursor:"pointer",color:asignar.alcance===k?Q.cyan:Q.muted,
                     fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
                 ))}
@@ -5941,16 +5941,16 @@ function TabBonos({ adminKey, onNoAutorizado }){
               <div style={{display:"flex",gap:6}}>
                 <button onClick={()=>setAsignar({bono:null,alcance:"global",code:""})}
                   style={{flex:1,background:"transparent",border:`1px solid ${Q.border}`,
-                    borderRadius:8,padding:"7px",color:Q.muted,fontSize:12,cursor:"pointer"}}>Cancelar</button>
+                    borderRadius:RADII.md,padding:"7px",color:Q.muted,fontSize:12,cursor:"pointer"}}>Cancelar</button>
                 <button onClick={hacerAsignar}
                   style={{flex:1,background:`${Q.cyan}33`,border:`1px solid ${Q.cyan}`,
-                    borderRadius:8,padding:"7px",color:Q.cyan,fontSize:12,fontWeight:700,cursor:"pointer"}}>Asignar</button>
+                    borderRadius:RADII.md,padding:"7px",color:Q.cyan,fontSize:12,fontWeight:700,cursor:"pointer"}}>Asignar</button>
               </div>
             </div>
           ):(
             <button onClick={()=>setAsignar({bono:b.id,alcance:"global",code:""})}
               style={{width:"100%",background:"transparent",border:`1px solid ${Q.border}`,
-                borderRadius:8,padding:"7px",color:Q.muted,fontSize:12,cursor:"pointer",
+                borderRadius:RADII.md,padding:"7px",color:Q.muted,fontSize:12,cursor:"pointer",
                 fontFamily:F_BODY}}>+ Asignar a agencias</button>
           )}
         </GCard>
@@ -6025,9 +6025,9 @@ function TabPSP({ adminKey, onNoAutorizado }){
           <span style={{color:Q.text,fontWeight:700,fontSize:14,
             fontFamily:F_BODY}}>PSP activa</span>
           <div onClick={()=>guardarCfg({activo:!cfg.activo})} style={{
-            width:48,height:26,borderRadius:13,background:cfg.activo?Q.green:Q.border,
+            width:48,height:26,borderRadius:RADII.lg,background:cfg.activo?Q.green:Q.border,
             position:"relative",transition:"all .2s",cursor:"pointer"}}>
-            <div style={{width:20,height:20,borderRadius:10,background:"#fff",position:"absolute",
+            <div style={{width:20,height:20,borderRadius:RADII.md,background:"#fff",position:"absolute",
               top:3,left:cfg.activo?25:3,transition:"all .2s"}}/>
           </div>
         </label>
@@ -6038,7 +6038,7 @@ function TabPSP({ adminKey, onNoAutorizado }){
           {[["manual","✋ Manual (aprobás vos)"],["automatico","⚡ Automático"]].map(([k,l])=>(
             <button key={k} onClick={()=>guardarCfg({retiro_modo:k})} style={{flex:1,
               background:cfg.retiro_modo===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-              border:`1px solid ${cfg.retiro_modo===k?Q.violet:Q.border}`,borderRadius:9,
+              border:`1px solid ${cfg.retiro_modo===k?Q.violet:Q.border}`,borderRadius:RADII.md,
               padding:"9px 4px",cursor:"pointer",color:cfg.retiro_modo===k?Q.violet2||Q.violet:Q.muted,
               fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
           ))}
@@ -6050,7 +6050,7 @@ function TabPSP({ adminKey, onNoAutorizado }){
           if(e.target.value&&!(cfg.ramas||[]).includes(e.target.value))
             guardarCfg({ramas:[...(cfg.ramas||[]),e.target.value]});
         }} style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px",color:Q.text,
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px",color:Q.text,
           fontSize:13,marginBottom:8,fontFamily:F_BODY}}>
           <option value="">+ Agregar rama...</option>
           {agencias.map(a=>(<option key={a.code} value={a.code}>{a.code} · {a.name}</option>))}
@@ -6060,7 +6060,7 @@ function TabPSP({ adminKey, onNoAutorizado }){
             fontFamily:F_BODY}}>Activa para todas las agencias</span>}
           {(cfg.ramas||[]).map(rc=>(
             <span key={rc} onClick={()=>guardarCfg({ramas:cfg.ramas.filter(x=>x!==rc)})}
-              style={{background:`${Q.violet}22`,border:`1px solid ${Q.violet}55`,borderRadius:8,
+              style={{background:`${Q.violet}22`,border:`1px solid ${Q.violet}55`,borderRadius:RADII.md,
               padding:"3px 10px",color:Q.violet2||Q.violet,fontSize:12,cursor:"pointer",
               fontFamily:F_BODY}}>{rc} ✕</span>
           ))}
@@ -6160,7 +6160,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
     fontFamily:F_BODY}}>Cargando...</div>;
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-    borderRadius:9,padding:"10px 12px",color:Q.text,fontSize:14,marginBottom:8,
+    borderRadius:RADII.md,padding:"10px 12px",color:Q.text,fontSize:14,marginBottom:8,
     fontFamily:F_BODY};
 
   return(
@@ -6178,8 +6178,8 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
           <span style={{color:Q.text,fontWeight:700,fontSize:14,
             fontFamily:F_BODY}}>Bet Builder activo</span>
           <div onClick={()=>setCfg({...cfg,activo:!cfg.activo})} style={{width:48,height:26,
-            borderRadius:13,background:cfg.activo?Q.green:Q.border,position:"relative",cursor:"pointer"}}>
-            <div style={{width:20,height:20,borderRadius:10,background:"#fff",position:"absolute",
+            borderRadius:RADII.lg,background:cfg.activo?Q.green:Q.border,position:"relative",cursor:"pointer"}}>
+            <div style={{width:20,height:20,borderRadius:RADII.md,background:"#fff",position:"absolute",
               top:3,left:cfg.activo?25:3,transition:"all .2s"}}/>
           </div>
         </label>
@@ -6203,7 +6203,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
                 const n={...cfg,ramas:cfg.ramas.filter(x=>x!==rc)};
                 setCfg(n); guardar(n);
               }}
-              style={{background:`${Q.violet}22`,border:`1px solid ${Q.violet}55`,borderRadius:8,
+              style={{background:`${Q.violet}22`,border:`1px solid ${Q.violet}55`,borderRadius:RADII.md,
               padding:"3px 10px",color:Q.violet2||Q.violet,fontSize:12,cursor:"pointer",
               fontFamily:F_BODY}}>{rc} ✕</span>
           ))}
@@ -6237,7 +6237,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
                 setCfg(n); guardar(n);
               }}
               style={{background:`${Q.red}18`,border:`1px solid ${Q.red}55`,
-              borderRadius:8,padding:"3px 10px",color:Q.red,fontSize:12,
+              borderRadius:RADII.md,padding:"3px 10px",color:Q.red,fontSize:12,
               cursor:"pointer",
               fontFamily:F_BODY}}>{rc} ✕</span>
           ))}
@@ -6278,7 +6278,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
           </div>
         </div>
 
-        <div style={{background:`${Q.gold}0C`,border:`1px solid ${Q.gold}44`,borderRadius:10,
+        <div style={{background:`${Q.gold}0C`,border:`1px solid ${Q.gold}44`,borderRadius:RADII.md,
           padding:"10px 12px",marginBottom:8}}>
           <div style={{color:Q.gold,fontSize:12,fontWeight:700,marginBottom:6,
             fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={14}/> Margen escalonado</div>
@@ -6308,16 +6308,16 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
         </div>
 
         <button onClick={analizar} disabled={analizando} style={{width:"100%",
-          background:`${Q.cyan}18`,border:`1px solid ${Q.cyan}`,borderRadius:9,padding:"10px",
+          background:`${Q.cyan}18`,border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"10px",
           color:Q.cyan,fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8,
           fontFamily:F_BODY}}>
           {analizando?"Analizando...":"🤖 Analizar riesgo con IA"}</button>
         {analisis&&<div style={{background:`${Q.cyan}0C`,border:`1px solid ${Q.cyan}44`,
-          borderRadius:10,padding:"12px",marginBottom:10,color:Q.text,fontSize:12,lineHeight:1.6,
+          borderRadius:RADII.md,padding:"12px",marginBottom:10,color:Q.text,fontSize:12,lineHeight:1.6,
           whiteSpace:"pre-wrap",fontFamily:F_BODY}}>{analisis}</div>}
 
         <button onClick={guardar} style={{width:"100%",
-          background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,border:"none",borderRadius:10,
+          background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,border:"none",borderRadius:RADII.md,
           padding:"12px",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",
           fontFamily:F_BODY}}>Guardar configuración</button>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
@@ -6342,7 +6342,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
             : <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                 {cfg.agencias_activas.map(a=>(
                   <span key={a.code} style={{background:`${Q.green}18`,
-                    border:`1px solid ${Q.green}55`,borderRadius:8,padding:"3px 9px",
+                    border:`1px solid ${Q.green}55`,borderRadius:RADII.md,padding:"3px 9px",
                     fontSize:12,color:Q.green,fontFamily:F_BODY}}>
                     {a.code} · {a.name}</span>
                 ))}
@@ -6649,7 +6649,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
             <Btn label={srCLoading?"Verificando...":<><Icon name="wallet-cards" size={13}/> ¿Tengo acceso a cuotas?</>} onClick={probarCuotas}
               outline color={Q.gold} size="sm" full/>
             {srCuotas&&(
-              <div style={{marginTop:8,padding:10,borderRadius:8,
+              <div style={{marginTop:8,padding:10,borderRadius:RADII.md,
                 background:srCuotas.tiene_cuotas?`${Q.green}0C`:`${Q.red}0C`,
                 border:`1px solid ${srCuotas.tiene_cuotas?Q.green:Q.red}44`}}>
                 <div style={{color:srCuotas.tiene_cuotas?Q.green:Q.red,fontSize:12,fontWeight:700,
@@ -6679,7 +6679,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
                           {[1,2,3].map(v=>(
                             <button key={v} onClick={()=>inspeccionar(v)} style={{
                               background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.cyan}55`,
-                              borderRadius:8,padding:"6px 12px",cursor:"pointer",color:Q.cyan,
+                              borderRadius:RADII.md,padding:"6px 12px",cursor:"pointer",color:Q.cyan,
                               fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                               Ruta {v}</button>
                           ))}
@@ -6746,13 +6746,13 @@ function TabDiag({ adminKey, onNoAutorizado }){
                         {srDia&&!srDia.cargando&&(
                           <pre style={{color:Q.gold,fontSize:12,whiteSpace:"pre-wrap",
                             wordBreak:"break-all",maxHeight:320,overflowY:"auto",marginTop:6,
-                            background:"rgba(0,0,0,0.3)",padding:8,borderRadius:6}}>
+                            background:"rgba(0,0,0,0.3)",padding:8,borderRadius:RADII.sm}}>
                             {(JSON.stringify(srDia,null,1)||"").slice(0,2800)}</pre>
                         )}
                         {srEstruct&&!srEstruct.cargando&&(
                           <pre style={{color:Q.muted,fontSize:12,whiteSpace:"pre-wrap",
                             wordBreak:"break-all",maxHeight:250,overflowY:"auto",marginTop:6,
-                            background:"rgba(0,0,0,0.3)",padding:8,borderRadius:6}}>
+                            background:"rgba(0,0,0,0.3)",padding:8,borderRadius:RADII.sm}}>
                             {(JSON.stringify(srEstruct,null,1)||"").slice(0,2000)}</pre>
                         )}
                         {srEstruct&&srEstruct.ok&&srEstruct.muestra_evento&&srEstruct.muestra_evento.sport_event&&(
@@ -6763,7 +6763,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
                         {srMercados&&!srMercados.cargando&&(
                           <pre style={{color:Q.gold,fontSize:12,whiteSpace:"pre-wrap",
                             wordBreak:"break-all",maxHeight:300,overflowY:"auto",marginTop:6,
-                            background:"rgba(0,0,0,0.3)",padding:8,borderRadius:6}}>
+                            background:"rgba(0,0,0,0.3)",padding:8,borderRadius:RADII.sm}}>
                             {(JSON.stringify(srMercados,null,1)||"").slice(0,2500)}</pre>
                         )}
                       </div>
@@ -6798,7 +6798,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
         {srPartidos&&!srPartidos.ok&&<div style={{color:Q.red,fontSize:12,marginTop:8,
           fontFamily:F_BODY}}><Icon name="x" size={13}/> {srPartidos.error}</div>}
         {srResumen&&!srResumen.cargando&&(
-          <div style={{marginTop:8,padding:10,background:"rgba(255,255,255,0.04)",borderRadius:8}}>
+          <div style={{marginTop:8,padding:10,background:"rgba(255,255,255,0.04)",borderRadius:RADII.md}}>
             {srResumen.ok?(
               <div>
                 <div style={{color:Q.cyan,fontSize:12,fontWeight:700,marginBottom:4,
@@ -6826,7 +6826,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
               <div style={{marginTop:8,maxHeight:240,overflowY:"auto"}}>
                 {diagLiq.diagnostico.map((b,i)=>(
                   <div key={i} style={{padding:"6px 8px",marginBottom:4,
-                    background:"rgba(255,255,255,0.03)",borderRadius:6}}>
+                    background:"rgba(255,255,255,0.03)",borderRadius:RADII.sm}}>
                     <div style={{color:Q.cyan,fontSize:12,fontWeight:700,
                       fontFamily:F_BODY}}>{b.code}</div>
                     {b.picks.map((p,j)=>(
@@ -6843,7 +6843,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
             )}
             {liqSR&&(
               <div style={{marginTop:8,padding:10,background:`${Q.green}0C`,
-                border:`1px solid ${liqSR.error?Q.red:Q.green}44`,borderRadius:8}}>
+                border:`1px solid ${liqSR.error?Q.red:Q.green}44`,borderRadius:RADII.md}}>
                 {liqSR.error
                   ? <div style={{color:Q.red,fontSize:12}}><Icon name="x" size={13}/> {liqSR.error}</div>
                   : <div style={{color:Q.text,fontSize:12,lineHeight:1.6,
@@ -6912,14 +6912,14 @@ function PanelComunicacion({ adminKey, onNoAutorizado }){
           ["asistente","💬 Asistente"]].map(([k,l])=>(
           <button key={k} onClick={()=>setModo(k)} style={{flex:1,
             background:modo===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-            border:`1px solid ${modo===k?Q.violet:Q.border}`,borderRadius:9,
+            border:`1px solid ${modo===k?Q.violet:Q.border}`,borderRadius:RADII.md,
             padding:"10px 6px",cursor:"pointer",
             color:modo===k?Q.cyan:Q.muted,fontSize:12.5,
             fontWeight:modo===k?700:400,
             fontFamily:F_BODY}}>
             {l}
             {k==="mensajes"&&pend>0&&(
-              <span style={{background:Q.red,color:"#fff",borderRadius:8,
+              <span style={{background:Q.red,color:"#fff",borderRadius:RADII.md,
                 padding:"1px 6px",fontSize:12,marginLeft:5}}>{pend}</span>
             )}
           </button>
@@ -6997,7 +6997,7 @@ function SelectorSonido(){
           <button key={k} onClick={()=>cambiar(k)} style={{flex:1,
             background:nivel===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${nivel===k?Q.violet:Q.border}`,
-            borderRadius:8,padding:"9px 4px",cursor:"pointer",
+            borderRadius:RADII.md,padding:"9px 4px",cursor:"pointer",
             color:nivel===k?Q.cyan:Q.muted,fontSize:12,
             fontWeight:nivel===k?700:400,
             fontFamily:F_BODY}}>{l}</button>
@@ -7031,7 +7031,7 @@ function TabDesafios({ adminKey, onNoAutorizado }){
           <button key={k} onClick={()=>setSub(k)}
             style={{background:sub===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${sub===k?Q.violet:Q.border}`,
-              borderRadius:8,padding:"8px 12px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"8px 12px",cursor:"pointer",
               color:sub===k?Q.cyan:Q.muted,fontSize:12,
               fontWeight:sub===k?700:400,whiteSpace:"nowrap",
               fontFamily:F_BODY}}>{l}</button>
@@ -7080,7 +7080,7 @@ function DesafiosConfig({ adminKey, onNoAutorizado }){
     padding:20}}>Cargando…</div>;
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
     color:Q.text,fontSize:16,fontWeight:700,textAlign:"center",
     fontFamily:F_BODY};
   const campo=(label,clave,ayuda)=>(
@@ -7104,7 +7104,7 @@ function DesafiosConfig({ adminKey, onNoAutorizado }){
           guardar({activo:v});}}
         style={{width:"100%",
           background:c.activo?`${Q.green}18`:"rgba(255,255,255,0.04)",
-          border:`1px solid ${c.activo?Q.green:Q.border}`,borderRadius:9,
+          border:`1px solid ${c.activo?Q.green:Q.border}`,borderRadius:RADII.md,
           padding:"11px",cursor:"pointer",marginBottom:12,
           color:c.activo?Q.green:Q.muted,fontSize:13,fontWeight:700,
           fontFamily:F_BODY}}>
@@ -7202,7 +7202,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{background:`${Q.amber}12`,
-        border:`1px solid ${Q.amber}44`,borderRadius:10,
+        border:`1px solid ${Q.amber}44`,borderRadius:RADII.md,
         padding:"11px 13px",marginBottom:12,color:Q.amber,fontSize:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         La IA sugiere, vos confirmás. Si un valor equivocado entra en
@@ -7248,7 +7248,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
       <input value={spread} inputMode="decimal"
         onChange={e=>setSpread(e.target.value)}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px",
           color:Q.text,fontSize:15,fontWeight:700,textAlign:"center",
           marginBottom:6,fontFamily:F_BODY}}/>
       <div style={{color:Q.dim,fontSize:12,marginBottom:14,
@@ -7272,7 +7272,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
             <button onClick={()=>{setEditando(c.moneda);
                 setPrecio(String(sug?.[c.moneda]||c.compra));}}
               style={{background:`${Q.violet}22`,
-                border:`1px solid ${Q.violet}66`,borderRadius:8,
+                border:`1px solid ${Q.violet}66`,borderRadius:RADII.md,
                 padding:"7px 12px",color:Q.cyan,fontSize:12,
                 cursor:"pointer",flexShrink:0}}>Cambiar</button>
           </div>
@@ -7287,19 +7287,19 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
               <input value={precio} inputMode="decimal"
                 onChange={e=>setPrecio(e.target.value)}
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.border}`,borderRadius:8,
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                   padding:"10px",color:Q.text,fontSize:16,
                   fontWeight:700,textAlign:"center",marginBottom:7,
                   fontFamily:F_BODY}}/>
               <div style={{display:"flex",gap:6}}>
                 <button onClick={()=>fijar(c.moneda,precio)} disabled={proc}
                   style={{flex:1,background:`${Q.green}22`,
-                    border:`1px solid ${Q.green}`,borderRadius:8,
+                    border:`1px solid ${Q.green}`,borderRadius:RADII.md,
                     padding:"9px",color:Q.green,fontSize:12,
                     fontWeight:700,cursor:"pointer"}}>Confirmar</button>
                 <button onClick={()=>setEditando(null)}
                   style={{flex:1,background:"transparent",
-                    border:`1px solid ${Q.border}`,borderRadius:8,
+                    border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                     padding:"9px",color:Q.muted,fontSize:12,
                     cursor:"pointer"}}>Cancelar</button>
               </div>
@@ -7332,12 +7332,12 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
                   <input value={precio} inputMode="decimal"
                     onChange={e=>setPrecio(e.target.value)}
                     style={{width:90,background:"rgba(255,255,255,0.05)",
-                      border:`1px solid ${Q.border}`,borderRadius:7,
+                      border:`1px solid ${Q.border}`,borderRadius:RADII.sm,
                       padding:"7px",color:Q.text,fontSize:13,
                       textAlign:"center"}}/>
                   <button onClick={()=>fijar(m,precio)} disabled={proc}
                     style={{background:`${Q.green}22`,
-                      border:`1px solid ${Q.green}`,borderRadius:7,
+                      border:`1px solid ${Q.green}`,borderRadius:RADII.sm,
                       padding:"7px 11px",color:Q.green,fontSize:12,
                       cursor:"pointer"}}>OK</button>
                 </div>
@@ -7345,7 +7345,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
                 <button onClick={()=>{setEditando(m);
                     setPrecio(String(sug?.[m]||""));}}
                   style={{background:`${Q.violet}22`,
-                    border:`1px solid ${Q.violet}66`,borderRadius:7,
+                    border:`1px solid ${Q.violet}66`,borderRadius:RADII.sm,
                     padding:"6px 11px",color:Q.cyan,fontSize:12,
                     cursor:"pointer"}}>Fijar</button>
               )}
@@ -7465,7 +7465,7 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
           {d.analisis_ia&&(
             <div style={{marginTop:10,padding:"10px 12px",
               background:`${Q.cyan}0D`,border:`1px solid ${Q.cyan}33`,
-              borderRadius:9}}>
+              borderRadius:RADII.md}}>
               <div style={{color:Q.cyan,fontSize:12,letterSpacing:0.5,
                 marginBottom:5}}>LECTURA DE LA IA</div>
               <div style={{color:Q.muted,fontSize:12,lineHeight:1.55,
@@ -7489,7 +7489,7 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
           {!d.analisis_ia&&(
             <button onClick={()=>analizar(d.id)} disabled={proc}
               style={{width:"100%",marginTop:10,background:`${Q.cyan}18`,
-                border:`1px solid ${Q.cyan}55`,borderRadius:9,
+                border:`1px solid ${Q.cyan}55`,borderRadius:RADII.md,
                 padding:"10px",color:Q.cyan,fontSize:12.5,
                 fontWeight:700,cursor:"pointer",
                 fontFamily:F_BODY}}>
@@ -7502,26 +7502,26 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
               <input value={nota} onChange={e=>setNota(e.target.value)}
                 placeholder="Por qué decidiste esto (queda registrado)"
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.border}`,borderRadius:8,
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                   padding:"9px 11px",color:Q.text,fontSize:12,
                   marginBottom:8,
                   fontFamily:F_BODY}}/>
               <div style={{display:"flex",gap:6}}>
                 <button onClick={()=>resolver(d.id,"creador")}
                   disabled={proc} style={{flex:1,background:`${Q.green}18`,
-                    border:`1px solid ${Q.green}66`,borderRadius:8,
+                    border:`1px solid ${Q.green}66`,borderRadius:RADII.md,
                     padding:"10px 6px",color:Q.green,fontSize:12,
                     fontWeight:700,cursor:"pointer",lineHeight:1.3}}>
                   Gana<br/>{d.creador}</button>
                 <button onClick={()=>resolver(d.id,"aceptador")}
                   disabled={proc} style={{flex:1,background:`${Q.green}18`,
-                    border:`1px solid ${Q.green}66`,borderRadius:8,
+                    border:`1px solid ${Q.green}66`,borderRadius:RADII.md,
                     padding:"10px 6px",color:Q.green,fontSize:12,
                     fontWeight:700,cursor:"pointer",lineHeight:1.3}}>
                   Gana<br/>{d.aceptador}</button>
                 <button onClick={()=>resolver(d.id,"empate")}
                   disabled={proc} style={{flex:1,background:"transparent",
-                    border:`1px solid ${Q.border}`,borderRadius:8,
+                    border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                     padding:"10px 6px",color:Q.muted,fontSize:12,
                     cursor:"pointer",lineHeight:1.3}}>
                   Devolver<br/>a los dos</button>
@@ -7535,7 +7535,7 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
             <button onClick={()=>setAbierta(d.id)}
               style={{width:"100%",marginTop:8,
                 background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-                border:"none",borderRadius:9,padding:"11px",
+                border:"none",borderRadius:RADII.md,padding:"11px",
                 color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",
                 fontFamily:F_BODY}}>
               Resolver</button>
@@ -7606,7 +7606,7 @@ function ModeracionPanel({ adminKey, onNoAutorizado }){
               style={{flex:1,
                 background:p.oculto?`${Q.green}18`:`${Q.red}18`,
                 border:`1px solid ${p.oculto?Q.green:Q.red}66`,
-                borderRadius:8,padding:"9px",
+                borderRadius:RADII.md,padding:"9px",
                 color:p.oculto?Q.green:Q.red,fontSize:12,
                 fontWeight:700,cursor:"pointer"}}>
               {p.oculto?"Restaurar":"Ocultar"}</button>
@@ -7692,7 +7692,7 @@ function HistorialAdmin({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const inp={background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:8,padding:"9px 11px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 11px",
     color:Q.text,fontSize:13,minWidth:0,
     fontFamily:F_BODY};
 
@@ -7738,7 +7738,7 @@ function HistorialAdmin({ adminKey, onNoAutorizado }){
           <button key={k} onClick={()=>setTipo(k)}
             style={{background:tipo===k?`${Q.violet}28`:"transparent",
               border:`1px solid ${tipo===k?Q.violet:Q.border}`,
-              borderRadius:8,padding:"7px 12px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"7px 12px",cursor:"pointer",
               color:tipo===k?Q.cyan:Q.muted,fontSize:12,
               whiteSpace:"nowrap",flexShrink:0,
               fontFamily:F_BODY}}>{l}</button>
@@ -7849,7 +7849,7 @@ function Liquidacion({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const inp={background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:8,padding:"9px 11px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 11px",
     color:Q.text,fontSize:13,flex:1,minWidth:0,
     fontFamily:F_BODY};
 
@@ -8007,7 +8007,7 @@ function CCDesafios({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const inp={background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:8,padding:"9px 11px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 11px",
     color:Q.text,fontSize:13,flex:1,minWidth:0,
     fontFamily:F_BODY};
 
@@ -8147,7 +8147,7 @@ function ReporteDesafios({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const inp={background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:8,padding:"9px 11px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 11px",
     color:Q.text,fontSize:13,flex:1,minWidth:0,
     fontFamily:F_BODY};
 
@@ -8300,7 +8300,7 @@ function ReporteJuegos({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const inp={background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:8,padding:"9px 11px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 11px",
     color:Q.text,fontSize:13,flex:1,minWidth:0,
     fontFamily:F_BODY};
 
@@ -8474,7 +8474,7 @@ function LogosCasino({ adminKey, onNoAutorizado }){
           son, así que esos quedan para asignar a mano. */}
       <button onClick={automatico} disabled={proc}
         style={{width:"100%",background:`${Q.cyan}18`,
-          border:`1px solid ${Q.cyan}55`,borderRadius:9,
+          border:`1px solid ${Q.cyan}55`,borderRadius:RADII.md,
           padding:"11px",color:Q.cyan,fontSize:12.5,fontWeight:700,
           cursor:"pointer",marginBottom:12,
           fontFamily:F_BODY}}>
@@ -8503,7 +8503,7 @@ function LogosCasino({ adminKey, onNoAutorizado }){
                 setEditando(editando===m.marca?null:m.marca);
                 setArchivo(m.archivo||""); }}
               style={{background:`${Q.violet}22`,
-                border:`1px solid ${Q.violet}66`,borderRadius:7,
+                border:`1px solid ${Q.violet}66`,borderRadius:RADII.sm,
                 padding:"6px 11px",color:Q.cyan,fontSize:12,
                 cursor:"pointer",flexShrink:0}}>
               {m.archivo?"Cambiar":"Asignar"}</button>
@@ -8517,7 +8517,7 @@ function LogosCasino({ adminKey, onNoAutorizado }){
                   guardar(m.marca, archivo.trim()); }}
                 placeholder="ej: real dealer.png"
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.border}`,borderRadius:8,
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                   padding:"9px 11px",color:Q.text,fontSize:12.5,
                   marginBottom:6,
                   fontFamily:F_BODY}}/>
@@ -8538,14 +8538,14 @@ function LogosCasino({ adminKey, onNoAutorizado }){
                 <button onClick={()=>guardar(m.marca, archivo.trim())}
                   disabled={proc}
                   style={{flex:1,background:`${Q.green}18`,
-                    border:`1px solid ${Q.green}66`,borderRadius:8,
+                    border:`1px solid ${Q.green}66`,borderRadius:RADII.md,
                     padding:"8px",color:Q.green,fontSize:12,
                     fontWeight:700,cursor:"pointer"}}>Guardar</button>
                 {m.archivo&&(
                   <button onClick={()=>guardar(m.marca,"")}
                     disabled={proc}
                     style={{background:"transparent",
-                      border:`1px solid ${Q.border}`,borderRadius:8,
+                      border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                       padding:"8px 12px",color:Q.muted,fontSize:12,
                       cursor:"pointer"}}>Quitar</button>
                 )}
@@ -8697,7 +8697,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
           Para una agencia en particular</div>
         <select value={agSel} onChange={e=>setAgSel(e.target.value)}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:8,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"9px 11px",color:Q.text,fontSize:12.5,
             marginBottom:agSel?8:0,
             fontFamily:F_BODY}}>
@@ -8717,19 +8717,19 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
       <div style={{display:"flex",gap:6,marginBottom:10}}>
         <button onClick={()=>masivo("todos",true)} disabled={proc}
           style={{flex:1,background:`${Q.green}14`,
-            border:`1px solid ${Q.green}55`,borderRadius:8,
+            border:`1px solid ${Q.green}55`,borderRadius:RADII.md,
             padding:"9px 6px",color:Q.green,fontSize:12,
             cursor:"pointer",
             fontFamily:F_BODY}}>Prender todos</button>
         <button onClick={()=>masivo("slots",false)} disabled={proc}
           style={{flex:1,background:"transparent",
-            border:`1px solid ${Q.border}`,borderRadius:8,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"9px 6px",color:Q.muted,fontSize:12,
             cursor:"pointer",
             fontFamily:F_BODY}}>Apagar slots</button>
         <button onClick={()=>masivo("vivo",false)} disabled={proc}
           style={{flex:1,background:"transparent",
-            border:`1px solid ${Q.border}`,borderRadius:8,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"9px 6px",color:Q.muted,fontSize:12,
             cursor:"pointer",
             fontFamily:F_BODY}}>Apagar vivo</button>
@@ -8738,7 +8738,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
       <input value={busq} onChange={e=>setBusq(e.target.value)}
         placeholder="Buscar proveedor…"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:9,
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,
           padding:"10px 12px",color:Q.text,fontSize:13,marginBottom:8,
           fontFamily:F_BODY}}/>
 
@@ -8749,7 +8749,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
           <button key={k} onClick={()=>setFiltro(k)}
             style={{background:filtro===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${filtro===k?Q.violet:Q.border}`,
-              borderRadius:8,padding:"7px 12px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"7px 12px",cursor:"pointer",
               color:filtro===k?Q.cyan:Q.muted,fontSize:12,
               whiteSpace:"nowrap",flexShrink:0,
               fontFamily:F_BODY}}>{l}</button>
@@ -8777,7 +8777,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
               <img src={p.logo} alt="" loading="lazy"
                 onError={e=>{e.target.style.display="none";}}
                 style={{width:34,height:34,objectFit:"contain",
-                  borderRadius:6,flexShrink:0,
+                  borderRadius:RADII.sm,flexShrink:0,
                   opacity:p.activo?1:0.4}}/>
             )}
             <div style={{minWidth:0,flex:1}}>
@@ -8804,7 +8804,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
               disabled={proc}
               style={{background:p.activo?"transparent":`${Q.green}18`,
                 border:`1px solid ${p.activo?Q.border:Q.green}66`,
-                borderRadius:7,padding:"6px 11px",
+                borderRadius:RADII.sm,padding:"6px 11px",
                 color:p.activo?Q.muted:Q.green,fontSize:12,
                 cursor:"pointer",flexShrink:0}}>
               {p.activo?"Apagar":"Prender"}</button>
@@ -8820,7 +8820,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
                 disabled={proc}
                 style={{background:p.en_app?`${Q.green}14`:"transparent",
                   border:`1px solid ${p.en_app?`${Q.green}55`:Q.border}`,
-                  borderRadius:6,padding:"5px 11px",
+                  borderRadius:RADII.sm,padding:"5px 11px",
                   color:p.en_app?Q.green:Q.dim,fontSize:12,
                   cursor:"pointer",
                   fontFamily:F_BODY}}>App</button>
@@ -8828,7 +8828,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
                 disabled={proc}
                 style={{background:p.en_web?`${Q.green}14`:"transparent",
                   border:`1px solid ${p.en_web?`${Q.green}55`:Q.border}`,
-                  borderRadius:6,padding:"5px 11px",
+                  borderRadius:RADII.sm,padding:"5px 11px",
                   color:p.en_web?Q.green:Q.dim,fontSize:12,
                   cursor:"pointer",
                   fontFamily:F_BODY}}>Web</button>
@@ -8843,7 +8843,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
                   title="Mostrar en la app aunque el proveedor no lo marque para móvil"
                   style={{background:p.forzar_movil?`${Q.amber}14`:"transparent",
                     border:`1px solid ${p.forzar_movil?`${Q.amber}55`:Q.border}`,
-                    borderRadius:6,padding:"5px 10px",
+                    borderRadius:RADII.sm,padding:"5px 10px",
                     color:p.forzar_movil?Q.amber:Q.dim,fontSize:12,
                     cursor:"pointer",
                     fontFamily:F_BODY}}>Forzar</button>
@@ -8933,7 +8933,7 @@ function Integraciones({ adminKey, onNoAutorizado }){
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
     color:Q.text,fontSize:13.5,marginBottom:8,
     fontFamily:F_BODY};
 
@@ -8989,19 +8989,19 @@ function Integraciones({ adminKey, onNoAutorizado }){
                     activa:i.activa,url:i.url||"",monedas:i.monedas,
                     prioridad:i.prioridad,notas:i.notas||""}); }}
                 style={{background:`${Q.violet}22`,
-                  border:`1px solid ${Q.violet}66`,borderRadius:7,
+                  border:`1px solid ${Q.violet}66`,borderRadius:RADII.sm,
                   padding:"6px 11px",color:Q.cyan,fontSize:12,
                   cursor:"pointer"}}>Editar</button>
               <button onClick={()=>sincronizar(i.codigo)} disabled={proc}
                 style={{background:"transparent",
-                  border:`1px solid ${Q.border}`,borderRadius:7,
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.sm,
                   padding:"6px 11px",color:Q.muted,fontSize:12,
                   cursor:"pointer"}}>Traer</button>
               {i.activa&&(
                 <button onClick={()=>quitar(i.codigo,i.nombre)}
                   disabled={proc}
                   style={{background:"transparent",
-                    border:`1px solid ${Q.red}44`,borderRadius:7,
+                    border:`1px solid ${Q.red}44`,borderRadius:RADII.sm,
                     padding:"6px 11px",color:Q.red,fontSize:12,
                     cursor:"pointer"}}>Quitar</button>
               )}
@@ -9088,7 +9088,7 @@ function Integraciones({ adminKey, onNoAutorizado }){
             style={{width:"100%",
               background:form.activa?`${Q.green}18`:"rgba(255,255,255,0.04)",
               border:`1px solid ${form.activa?Q.green:Q.border}`,
-              borderRadius:9,padding:"10px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"10px",cursor:"pointer",
               color:form.activa?Q.green:Q.muted,fontSize:12.5,
               fontWeight:700,marginBottom:10,
               fontFamily:F_BODY}}>
@@ -9215,7 +9215,7 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
               </div>
               <button onClick={()=>prender(p.marca)} disabled={proc}
                 style={{background:`${Q.green}18`,
-                  border:`1px solid ${Q.green}66`,borderRadius:7,
+                  border:`1px solid ${Q.green}66`,borderRadius:RADII.sm,
                   padding:"6px 12px",color:Q.green,fontSize:12,
                   cursor:"pointer",flexShrink:0}}>Prender</button>
             </div>
@@ -9241,7 +9241,7 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
               lineHeight:1.4,fontFamily:F_BODY}}>
               {a.titulo}</span>
             <span style={{background:`${COLOR[a.severidad]}22`,
-              border:`1px solid ${COLOR[a.severidad]}66`,borderRadius:12,
+              border:`1px solid ${COLOR[a.severidad]}66`,borderRadius:RADII.lg,
               padding:"2px 8px",fontSize:12,color:COLOR[a.severidad],
               flexShrink:0,fontWeight:700}}>{a.severidad}</span>
           </div>
@@ -9254,7 +9254,7 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
           {a.analisis_ia&&(
             <div style={{marginTop:10,padding:"10px 12px",
               background:`${Q.cyan}0D`,border:`1px solid ${Q.cyan}33`,
-              borderRadius:9}}>
+              borderRadius:RADII.md}}>
               <div style={{color:Q.cyan,fontSize:12,letterSpacing:0.5,
                 marginBottom:5}}>LECTURA DE LA IA</div>
               <div style={{color:Q.muted,fontSize:12,lineHeight:1.55,
@@ -9276,20 +9276,20 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
             {!a.analisis_ia&&(
               <button onClick={()=>analizar(a.id)} disabled={proc}
                 style={{flex:1,background:`${Q.cyan}18`,
-                  border:`1px solid ${Q.cyan}55`,borderRadius:8,
+                  border:`1px solid ${Q.cyan}55`,borderRadius:RADII.md,
                   padding:"9px",color:Q.cyan,fontSize:12,
                   fontWeight:700,cursor:"pointer"}}>🤖 Analizar</button>
             )}
             {a.marca&&(
               <button onClick={()=>apagar(a.marca)} disabled={proc}
                 style={{flex:1,background:`${Q.red}12`,
-                  border:`1px solid ${Q.red}55`,borderRadius:8,
+                  border:`1px solid ${Q.red}55`,borderRadius:RADII.md,
                   padding:"9px",color:Q.red,fontSize:12,
                   cursor:"pointer"}}>Apagar {a.marca}</button>
             )}
             <button onClick={()=>cerrar(a.id)}
               style={{flex:1,background:"transparent",
-                border:`1px solid ${Q.border}`,borderRadius:8,
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                 padding:"9px",color:Q.muted,fontSize:12,
                 cursor:"pointer"}}>Cerrar</button>
           </div>
@@ -9346,7 +9346,7 @@ function TabCasinoProveedor({ adminKey, onNoAutorizado }){
           <button key={k} onClick={()=>setSolapa(k)}
             style={{background:solapa===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${solapa===k?Q.violet:Q.border}`,
-              borderRadius:8,padding:"8px 12px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"8px 12px",cursor:"pointer",
               color:solapa===k?Q.cyan:Q.muted,fontSize:12,
               fontWeight:solapa===k?700:400,whiteSpace:"nowrap",
               fontFamily:F_BODY}}>{l}</button>
@@ -9512,7 +9512,7 @@ function Rendimiento({ adminKey, onNoAutorizado }){
             {p.usadas ?? "—"} / {p.maximo ?? "—"}</span>
         </div>
         <div style={{height:5,background:"rgba(255,255,255,.07)",
-          borderRadius:3,overflow:"hidden"}}>
+          borderRadius:RADII.sm,overflow:"hidden"}}>
           <div style={{height:"100%",width:`${Math.min(100,pctPool)}%`,
             background:pctPool>80?Q.red:(pctPool>50?Q.amber:Q.green),
             transition:"width .3s"}}/>
@@ -9529,14 +9529,14 @@ function Rendimiento({ adminKey, onNoAutorizado }){
       <div style={{display:"flex",gap:7,marginBottom:12}}>
         <button onClick={()=>correrCarga(30,4)} disabled={cargando}
           style={{flex:1,background:`${Q.cyan}18`,
-            border:`1px solid ${Q.cyan}55`,borderRadius:8,
+            border:`1px solid ${Q.cyan}55`,borderRadius:RADII.md,
             padding:"10px 6px",color:Q.cyan,fontSize:12,
             fontWeight:700,cursor:"pointer",
             fontFamily:F_BODY}}>
           <Zap size={13}/> Rápida</button>
         <button onClick={()=>correrCarga(80,8)} disabled={cargando}
           style={{flex:1,background:`${Q.amber}14`,
-            border:`1px solid ${Q.amber}55`,borderRadius:8,
+            border:`1px solid ${Q.amber}55`,borderRadius:RADII.md,
             padding:"10px 6px",color:Q.amber,fontSize:12,
             fontWeight:700,cursor:"pointer",
             fontFamily:F_BODY}}>
@@ -9775,7 +9775,7 @@ function TabTester({ adminKey, onNoAutorizado }){
 
       {est.produccion&&(
         <div style={{background:`${Q.amber}12`,
-          border:`1px solid ${Q.amber}44`,borderRadius:10,
+          border:`1px solid ${Q.amber}44`,borderRadius:RADII.md,
           padding:"11px 13px",marginBottom:12,color:Q.amber,
           fontSize:12,lineHeight:1.55,
           fontFamily:F_BODY}}>
@@ -9798,7 +9798,7 @@ function TabTester({ adminKey, onNoAutorizado }){
             {est.desafios} desafíos. Están ensuciando los reportes.</div>
           <button onClick={limpiar} disabled={proc}
             style={{width:"100%",background:`${Q.red}14`,
-              border:`1px solid ${Q.red}55`,borderRadius:8,
+              border:`1px solid ${Q.red}55`,borderRadius:RADII.md,
               padding:"10px",color:Q.red,fontSize:12.5,fontWeight:700,
               cursor:"pointer",
               fontFamily:F_BODY}}>
@@ -9810,7 +9810,7 @@ function TabTester({ adminKey, onNoAutorizado }){
         style={{width:"100%",
           background:conEscritura?`${Q.amber}14`:"rgba(255,255,255,0.04)",
           border:`1px solid ${conEscritura?Q.amber:Q.border}`,
-          borderRadius:9,padding:"11px",cursor:"pointer",marginBottom:8,
+          borderRadius:RADII.md,padding:"11px",cursor:"pointer",marginBottom:8,
           color:conEscritura?Q.amber:Q.muted,fontSize:12.5,
           fontWeight:conEscritura?700:400,textAlign:"left",
           fontFamily:F_BODY}}>
@@ -9827,7 +9827,7 @@ function TabTester({ adminKey, onNoAutorizado }){
           placeholder="Escribí CREAR DATOS para confirmar"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
             border:`1px solid ${conf.toUpperCase()==="CREAR DATOS"
-              ?Q.amber:Q.border}`,borderRadius:9,padding:"10px 12px",
+              ?Q.amber:Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
             color:Q.text,fontSize:13,marginBottom:8,
             fontFamily:F_BODY}}/>
       )}
@@ -9955,7 +9955,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
           <button key={k} onClick={()=>setSolapa(k)}
             style={{background:solapa===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${solapa===k?Q.violet:Q.border}`,
-              borderRadius:8,padding:"8px 13px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"8px 13px",cursor:"pointer",
               color:solapa===k?Q.cyan:Q.muted,fontSize:12,
               fontWeight:solapa===k?700:400,
               fontFamily:F_BODY}}>{l}</button>
@@ -10006,7 +10006,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
               onChange={e=>setD({...d,
                 horas_para_subir:e.target.value.replace(/\D/g,"")})}
               style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                border:`1px solid ${Q.border}`,borderRadius:9,
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                 padding:"10px",color:Q.text,fontSize:16,fontWeight:700,
                 textAlign:"center",
                 fontFamily:F_BODY}}/>
@@ -10157,7 +10157,7 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
     padding:20}}>Cargando…</div>;
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
     color:Q.text,fontSize:16,fontWeight:700,textAlign:"center",
     fontFamily:F_BODY};
 
@@ -10179,7 +10179,7 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
         style={{width:"100%",
           background:form.activo?`${Q.green}18`:"rgba(255,255,255,0.04)",
           border:`1px solid ${form.activo?Q.green:Q.border}`,
-          borderRadius:9,padding:"11px",cursor:"pointer",marginBottom:12,
+          borderRadius:RADII.md,padding:"11px",cursor:"pointer",marginBottom:12,
           color:form.activo?Q.green:Q.muted,fontSize:13,fontWeight:700,
           fontFamily:F_BODY}}>
         {form.activo?"✅ Activo":"⭕ Apagado"}</button>
@@ -10193,7 +10193,7 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
           {ars(d.pozo.acumulado)}</div>
 
         <div style={{height:6,background:"rgba(255,255,255,.07)",
-          borderRadius:3,marginTop:10,overflow:"hidden"}}>
+          borderRadius:RADII.sm,marginTop:10,overflow:"hidden"}}>
           <div style={{height:"100%",
             width:`${Math.min(100,d.pozo.pct_completo)}%`,
             background:d.pozo.listo
@@ -10230,7 +10230,7 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         <button onClick={acumular} disabled={proc||!form.activo}
           style={{flex:1,background:`${Q.cyan}18`,
-            border:`1px solid ${Q.cyan}55`,borderRadius:9,
+            border:`1px solid ${Q.cyan}55`,borderRadius:RADII.md,
             padding:"11px",color:Q.cyan,fontSize:12.5,fontWeight:700,
             cursor:"pointer",
             fontFamily:F_BODY}}>
@@ -10241,7 +10241,7 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
             background:(d.pozo.acumulado>0&&d.conectados>0)
               ?`linear-gradient(135deg,${Q.gold},#c9a227)`
               :"rgba(255,255,255,0.05)",
-            border:"none",borderRadius:9,padding:"11px",
+            border:"none",borderRadius:RADII.md,padding:"11px",
             color:(d.pozo.acumulado>0&&d.conectados>0)?"#1a1200":Q.dim,
             fontSize:12.5,fontWeight:800,cursor:"pointer",
             fontFamily:F_BODY}}>
@@ -10364,7 +10364,7 @@ function TabMonedas({ adminKey, onNoAutorizado }){
               justifyContent:"space-between",alignItems:"center",
               background:on?`${Q.green}10`:"rgba(255,255,255,0.03)",
               border:`1px solid ${on?`${Q.green}55`:Q.border}`,
-              borderRadius:9,padding:"11px 13px",marginBottom:6,
+              borderRadius:RADII.md,padding:"11px 13px",marginBottom:6,
               cursor:"pointer",
               fontFamily:F_BODY}}>
             <span style={{color:on?Q.text:Q.dim,fontSize:13,
@@ -10472,7 +10472,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
     color:Q.text,fontSize:16,fontWeight:700,textAlign:"center",
     fontFamily:F_BODY};
 
@@ -10487,7 +10487,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
         que entre con su enlace.</div>
 
       <div style={{background:`${Q.cyan}0F`,border:`1px solid ${Q.cyan}44`,
-        borderRadius:10,padding:"11px 13px",marginBottom:12,fontSize:12,
+        borderRadius:RADII.md,padding:"11px 13px",marginBottom:12,fontSize:12,
         color:Q.text,lineHeight:1.55,
         fontFamily:F_BODY}}>
         Se paga por <b>visitas reales</b>, no por tocar compartir. El
@@ -10502,7 +10502,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
       <button onClick={()=>{const v=!activo; setActivo(v); guardar({activo:v});}}
         style={{width:"100%",
         background:activo?`${Q.green}18`:"rgba(255,255,255,0.04)",
-        border:`1px solid ${activo?Q.green:Q.border}`,borderRadius:9,
+        border:`1px solid ${activo?Q.green:Q.border}`,borderRadius:RADII.md,
         padding:"11px",cursor:"pointer",marginBottom:12,
         color:activo?Q.green:Q.muted,fontSize:13,fontWeight:700,
         fontFamily:F_BODY}}>
@@ -10609,7 +10609,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
                   setDestinos(n); guardar({destinos:n});
                 }} style={{flex:1,
                 background:on?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-                border:`1px solid ${on?Q.violet:Q.border}`,borderRadius:8,
+                border:`1px solid ${on?Q.violet:Q.border}`,borderRadius:RADII.md,
                 padding:"10px 6px",cursor:"pointer",
                 color:on?Q.cyan:Q.muted,fontSize:12,
                 fontWeight:on?700:400,
@@ -10627,7 +10627,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
               setRamas(n); guardar({ramas:n});
             }
           }} style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:9,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"10px 12px",color:Q.text,fontSize:13,marginBottom:6,
             fontFamily:F_BODY}}>
           <option value="">+ Agregar agencia o rama…</option>
@@ -10648,7 +10648,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
                 setRamas(n); guardar({ramas:n});
               }}
               style={{background:`${Q.violet}22`,
-                border:`1px solid ${Q.violet}55`,borderRadius:8,
+                border:`1px solid ${Q.violet}55`,borderRadius:RADII.md,
                 padding:"3px 10px",color:Q.cyan,fontSize:12,
                 cursor:"pointer",
                 fontFamily:F_BODY}}>{rc} ✕</span>
@@ -10664,7 +10664,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
               setExcluidas(n); guardar({excluidas:n});
             }
           }} style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:9,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"10px 12px",color:Q.text,fontSize:13,marginBottom:6,
             fontFamily:F_BODY}}>
           <option value="">Elegí la agencia a excluir…</option>
@@ -10685,7 +10685,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
                 setExcluidas(n); guardar({excluidas:n});
               }}
               style={{background:`${Q.red}18`,border:`1px solid ${Q.red}55`,
-                borderRadius:8,padding:"3px 10px",color:Q.red,fontSize:12,
+                borderRadius:RADII.md,padding:"3px 10px",color:Q.red,fontSize:12,
                 cursor:"pointer",
                 fontFamily:F_BODY}}>{rc} ✕</span>
           ))}
@@ -10820,7 +10820,7 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
                   justifyContent:"space-between",alignItems:"center",
                   background:c.activo?`${Q.green}12`:"rgba(255,255,255,0.03)",
                   border:`1px solid ${c.activo?`${Q.green}55`:Q.border}`,
-                  borderRadius:9,padding:"11px 13px",marginBottom:6,
+                  borderRadius:RADII.md,padding:"11px 13px",marginBottom:6,
                   cursor:"pointer",
                   fontFamily:F_BODY}}>
                 <span style={{color:c.activo?Q.text:Q.dim,fontSize:13,
@@ -10838,7 +10838,7 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
               Por agencia</div>
             <select value={sel} onChange={e=>setSel(e.target.value)}
               style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                border:`1px solid ${Q.border}`,borderRadius:9,
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                 padding:"10px 12px",color:Q.text,fontSize:13,
                 marginBottom:sel?10:0,
                 fontFamily:F_BODY}}>
@@ -10859,7 +10859,7 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
                     justifyContent:"space-between",alignItems:"center",
                     background:apagado?`${Q.red}12`:`${Q.green}12`,
                     border:`1px solid ${apagado?`${Q.red}55`:`${Q.green}55`}`,
-                    borderRadius:9,padding:"11px 13px",marginBottom:6,
+                    borderRadius:RADII.md,padding:"11px 13px",marginBottom:6,
                     cursor:"pointer",
                     fontFamily:F_BODY}}>
                   <span style={{color:apagado?Q.dim:Q.text,fontSize:13,
@@ -10933,7 +10933,7 @@ function TabProductos({ adminKey, onNoAutorizado }){
   const ICONO={deportivas:<Icon name="trophy" size={13}/>, casino:<Icon name="spade" size={13}/>, ruleta:"🎡"};
   const NOMBRE={deportivas:"Deportivas", casino:"Casino", ruleta:"Ruleta"};
   const inp={background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:8,padding:"9px 11px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 11px",
     color:Q.text,fontSize:13,flex:1,minWidth:0,
     fontFamily:F_BODY};
 
@@ -11140,7 +11140,7 @@ function TabSoporte({ adminKey, onNoAutorizado }){
 
         {detalle?.motivo==="sensible"&&(
           <div style={{background:`${Q.red}14`,
-            border:`1px solid ${Q.red}55`,borderRadius:9,
+            border:`1px solid ${Q.red}55`,borderRadius:RADII.md,
             padding:"10px 12px",marginBottom:10,fontSize:12,
             color:Q.red,lineHeight:1.5,
             fontFamily:F_BODY}}>
@@ -11161,7 +11161,7 @@ function TabSoporte({ adminKey, onNoAutorizado }){
                   :(m.autor==="ia"?`${Q.cyan}14`:`${Q.violet}28`),
                 border:`1px solid ${m.autor==="cliente"?Q.border
                   :(m.autor==="ia"?`${Q.cyan}44`:Q.violet)}`,
-                borderRadius:12,padding:"9px 12px",color:Q.text,
+                borderRadius:RADII.lg,padding:"9px 12px",color:Q.text,
                 fontSize:12.5,lineHeight:1.55,whiteSpace:"pre-wrap",
                 fontFamily:F_BODY}}>
                 <div style={{color:m.autor==="ia"?Q.cyan:Q.dim,
@@ -11181,20 +11181,20 @@ function TabSoporte({ adminKey, onNoAutorizado }){
             onKeyDown={e=>e.key==="Enter"&&responder(false)}
             placeholder="Escribí tu respuesta…"
             style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:10,
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,
               padding:"12px 14px",color:Q.text,fontSize:14,
               fontFamily:F_BODY}}/>
           <button onClick={()=>responder(false)}
             disabled={proc||!texto.trim()}
             style={{background:texto.trim()?Q.violet:"rgba(255,255,255,0.05)",
-              border:"none",borderRadius:10,padding:"0 18px",
+              border:"none",borderRadius:RADII.md,padding:"0 18px",
               cursor:texto.trim()?"pointer":"default",
               color:texto.trim()?"#fff":Q.dim,fontSize:14,fontWeight:700,
               flexShrink:0}}>↑</button>
         </div>
         <button onClick={()=>responder(true)} disabled={proc}
           style={{background:"transparent",border:`1px solid ${Q.border}`,
-            borderRadius:9,padding:"9px",cursor:"pointer",color:Q.muted,
+            borderRadius:RADII.md,padding:"9px",cursor:"pointer",color:Q.muted,
             fontSize:12,
             fontFamily:F_BODY}}>
           Marcar como resuelto</button>
@@ -11238,7 +11238,7 @@ function TabSoporte({ adminKey, onNoAutorizado }){
           <button key={k} onClick={()=>setEstado(k)} style={{flex:1,
             background:estado===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${estado===k?Q.violet:Q.border}`,
-            borderRadius:9,padding:"9px 6px",cursor:"pointer",
+            borderRadius:RADII.md,padding:"9px 6px",cursor:"pointer",
             color:estado===k?Q.cyan:Q.muted,fontSize:12,
             fontWeight:estado===k?700:400,
             fontFamily:F_BODY}}>{l}</button>
@@ -11408,7 +11408,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
 
   const NIVEL={info:Q.cyan, aviso:Q.gold, urgente:Q.red};
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
     color:Q.text,fontSize:14,marginBottom:9,
     fontFamily:F_BODY};
 
@@ -11444,7 +11444,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
               <div style={{maxWidth:"84%",
                 background:m.mio?`${Q.violet}28`:"rgba(255,255,255,0.05)",
                 border:`1px solid ${m.mio?Q.violet:Q.border}`,
-                borderRadius:12,padding:"9px 12px",color:Q.text,
+                borderRadius:RADII.lg,padding:"9px 12px",color:Q.text,
                 fontSize:12.5,lineHeight:1.55,whiteSpace:"pre-wrap",
                 fontFamily:F_BODY}}>
                 {m.texto}
@@ -11463,7 +11463,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
               flex:1,minWidth:0}}/>
           <button onClick={enviar} disabled={proc||!texto.trim()}
             style={{background:texto.trim()?Q.violet:"rgba(255,255,255,0.05)",
-              border:"none",borderRadius:9,padding:"0 18px",
+              border:"none",borderRadius:RADII.md,padding:"0 18px",
               cursor:texto.trim()?"pointer":"default",
               color:texto.trim()?"#fff":Q.dim,fontSize:14,fontWeight:700,
               flexShrink:0}}>↑</button>
@@ -11478,14 +11478,14 @@ function TabMensajes({ adminKey, onNoAutorizado }){
         {[["hilos","💬 Agencias"],["avisos","📢 Avisos"]].map(([k,l])=>(
           <button key={k} onClick={()=>setVista(k)} style={{flex:1,
             background:vista===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-            border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:9,
+            border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:RADII.md,
             padding:"10px 6px",cursor:"pointer",
             color:vista===k?Q.cyan:Q.muted,fontSize:12.5,
             fontWeight:vista===k?700:400,
             fontFamily:F_BODY}}>
             {l}
             {k==="hilos"&&hilos?.total_sin_leer>0&&(
-              <span style={{background:Q.red,color:"#fff",borderRadius:8,
+              <span style={{background:Q.red,color:"#fff",borderRadius:RADII.md,
                 padding:"1px 6px",fontSize:12,marginLeft:5}}>
                 {hilos.total_sin_leer}</span>
             )}
@@ -11513,7 +11513,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                     {h.nombre}
                     {h.sin_leer>0&&(
                       <span style={{background:Q.red,color:"#fff",
-                        borderRadius:8,padding:"1px 6px",fontSize:12,
+                        borderRadius:RADII.md,padding:"1px 6px",fontSize:12,
                         marginLeft:6}}>{h.sin_leer}</span>
                     )}
                   </div>
@@ -11555,7 +11555,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                   background:nuevo.nivel===k?`${NIVEL[k]}22`
                     :"rgba(255,255,255,0.04)",
                   border:`1px solid ${nuevo.nivel===k?NIVEL[k]:Q.border}`,
-                  borderRadius:8,padding:"8px 4px",cursor:"pointer",
+                  borderRadius:RADII.md,padding:"8px 4px",cursor:"pointer",
                   color:nuevo.nivel===k?NIVEL[k]:Q.muted,fontSize:12,
                   fontWeight:nuevo.nivel===k?700:400,
                   fontFamily:F_BODY}}>{l}</button>
@@ -11572,7 +11572,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                   background:nuevo.alcance===k?`${Q.violet}33`
                     :"rgba(255,255,255,0.04)",
                   border:`1px solid ${nuevo.alcance===k?Q.violet:Q.border}`,
-                  borderRadius:8,padding:"8px 4px",cursor:"pointer",
+                  borderRadius:RADII.md,padding:"8px 4px",cursor:"pointer",
                   color:nuevo.alcance===k?Q.cyan:Q.muted,fontSize:12,
                   fontWeight:nuevo.alcance===k?700:400,
                   fontFamily:F_BODY}}>{l}</button>
@@ -11607,7 +11607,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                     style={{background:on?`${Q.violet}33`
                       :"rgba(255,255,255,0.04)",
                     border:`1px solid ${on?Q.violet:Q.border}`,
-                    borderRadius:8,padding:"8px 12px",cursor:"pointer",
+                    borderRadius:RADII.md,padding:"8px 12px",cursor:"pointer",
                     color:on?Q.cyan:Q.muted,fontSize:12,
                     fontWeight:on?700:400,
                     fontFamily:F_BODY}}>{l}</button>
@@ -11652,7 +11652,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                     marginTop:4}}>
                     {(a.destinos||["agencia"]).map(dst=>(
                       <span key={dst} style={{fontSize:12,
-                        border:`1px solid ${Q.border}`,borderRadius:5,
+                        border:`1px solid ${Q.border}`,borderRadius:RADII.sm,
                         padding:"1px 6px",color:Q.cyan,
                         fontFamily:F_BODY}}>
                         {{agencia:"🏢 Agencias",box:"🖥️ Terminales",
@@ -11749,7 +11749,7 @@ function ChatOperador({ adminKey, onNoAutorizado }){
             {sugerencias.map(x=>(
               <button key={x} onClick={()=>enviar(x)} style={{
                 background:"rgba(255,255,255,0.04)",
-                border:`1px solid ${Q.border}`,borderRadius:9,
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                 padding:"8px 12px",cursor:"pointer",color:Q.muted,
                 fontSize:12,textAlign:"left",
                 fontFamily:F_BODY}}>{x}</button>
@@ -11766,7 +11766,7 @@ function ChatOperador({ adminKey, onNoAutorizado }){
                 :(m.error?`${Q.red}14`:"rgba(255,255,255,0.05)"),
               border:`1px solid ${m.rol==="user"?Q.violet
                 :(m.error?`${Q.red}55`:Q.border)}`,
-              borderRadius:12,padding:"10px 13px",
+              borderRadius:RADII.lg,padding:"10px 13px",
               color:m.error?Q.red:Q.text,fontSize:12.5,lineHeight:1.6,
               whiteSpace:"pre-wrap",
               fontFamily:F_BODY}}>
@@ -11791,12 +11791,12 @@ function ChatOperador({ adminKey, onNoAutorizado }){
           onKeyDown={e=>e.key==="Enter"&&enviar()}
           placeholder="Escribí tu consulta…"
           style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:10,
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"12px 14px",color:Q.text,fontSize:14,
             fontFamily:F_BODY}}/>
         <button onClick={()=>enviar()} disabled={proc||!texto.trim()}
           style={{background:texto.trim()?Q.violet:"rgba(255,255,255,0.05)",
-            border:"none",borderRadius:10,padding:"0 18px",
+            border:"none",borderRadius:RADII.md,padding:"0 18px",
             cursor:texto.trim()?"pointer":"default",
             color:texto.trim()?"#fff":Q.dim,fontSize:14,fontWeight:700,
             flexShrink:0,fontFamily:F_BODY}}>↑</button>
@@ -12152,7 +12152,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
           ["vigia","👁️ Vigía"],["avisos","🔔 Avisos"]].map(([k,l])=>(
           <button key={k} onClick={()=>setVista(k)} style={{flex:1,
             background:vista===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-            border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:9,
+            border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:RADII.md,
             padding:"9px 6px",cursor:"pointer",
             color:vista===k?Q.cyan:Q.muted,fontSize:12,
             fontWeight:vista===k?700:400,
@@ -12186,7 +12186,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
           ["descartada","Descartadas"],["todas","Todas"]].map(([k,l])=>(
           <button key={k} onClick={()=>setFiltro(k)} style={{
             background:filtro===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-            border:`1px solid ${filtro===k?Q.violet:Q.border}`,borderRadius:8,
+            border:`1px solid ${filtro===k?Q.violet:Q.border}`,borderRadius:RADII.md,
             padding:"7px 12px",cursor:"pointer",whiteSpace:"nowrap",
             color:filtro===k?Q.cyan:Q.muted,fontSize:12,
             fontWeight:filtro===k?700:400,
@@ -12220,7 +12220,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                   marginBottom:3}}>
                   <span style={{color:COLOR[a.severidad],fontSize:12,
                     fontWeight:800,border:`1px solid ${COLOR[a.severidad]}66`,
-                    borderRadius:5,padding:"1px 6px",letterSpacing:0.5,
+                    borderRadius:RADII.sm,padding:"1px 6px",letterSpacing:0.5,
                     textTransform:"uppercase"}}>{a.severidad}</span>
                   <span style={{color:Q.muted,fontSize:12}}>
                     {NOMBRE[a.tipo]||a.tipo}</span>
@@ -12248,7 +12248,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
 
               {a.evidencia&&Object.keys(a.evidencia).length>0&&(
                 <div style={{background:"rgba(255,255,255,0.03)",
-                  border:`1px solid ${Q.border}`,borderRadius:8,padding:10,
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:10,
                   marginBottom:10}}>
                   <div style={{color:Q.muted,fontSize:12,marginBottom:5,
                     letterSpacing:0.8}}>EVIDENCIA</div>
@@ -12284,20 +12284,20 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                 <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                   <button onClick={()=>marcar(a.id,"revisada")} style={{
                     flex:1,minWidth:100,background:`${Q.green}18`,
-                    border:`1px solid ${Q.green}`,borderRadius:8,
+                    border:`1px solid ${Q.green}`,borderRadius:RADII.md,
                     padding:"9px",cursor:"pointer",color:Q.green,fontSize:12,
                     fontWeight:700,fontFamily:F_BODY}}>
                     Revisada</button>
                   <button onClick={()=>marcar(a.id,"descartada")} style={{
                     flex:1,minWidth:100,background:"transparent",
-                    border:`1px solid ${Q.border}`,borderRadius:8,
+                    border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                     padding:"9px",cursor:"pointer",color:Q.muted,fontSize:12,
                     fontFamily:F_BODY}}>
                     Falso positivo</button>
                   {a.user_id&&(
                     <button onClick={()=>marcarUsuario(a.user_id,"observado")}
                       style={{flex:1,minWidth:100,background:`${Q.gold}18`,
-                      border:`1px solid ${Q.gold}`,borderRadius:8,
+                      border:`1px solid ${Q.gold}`,borderRadius:RADII.md,
                       padding:"9px",cursor:"pointer",color:Q.gold,fontSize:12,
                       fontWeight:700,fontFamily:F_BODY}}>
                       Observar cliente</button>
@@ -12348,7 +12348,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
 
                 <button onClick={diagnosticar} style={{width:"100%",
                   marginTop:9,background:"transparent",
-                  border:`1px solid ${Q.border}`,borderRadius:8,
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                   padding:"7px",cursor:"pointer",color:Q.cyan,fontSize:12,
                   fontFamily:F_BODY}}>
                   🔧 ¿Llega la IP real del jugador?</button>
@@ -12393,7 +12393,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                     background:soloCompartidas===v?`${Q.violet}33`
                       :"rgba(255,255,255,0.04)",
                     border:`1px solid ${soloCompartidas===v?Q.violet:Q.border}`,
-                    borderRadius:8,padding:"8px 6px",cursor:"pointer",
+                    borderRadius:RADII.md,padding:"8px 6px",cursor:"pointer",
                     color:soloCompartidas===v?Q.cyan:Q.muted,fontSize:12,
                     fontWeight:soloCompartidas===v?700:400,
                     fontFamily:F_BODY}}>{l}</button>
@@ -12516,7 +12516,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                         {a.name}
                         {a.alertas>0&&(
                           <span style={{color:Q.gold,fontSize:12,marginLeft:6,
-                            border:`1px solid ${Q.gold}55`,borderRadius:5,
+                            border:`1px solid ${Q.gold}55`,borderRadius:RADII.sm,
                             padding:"1px 5px"}}>{a.alertas} alertas</span>
                         )}
                       </div>
@@ -12637,7 +12637,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                         disabled={bloqProc}
                         style={{width:"100%",marginTop:8,
                           background:`${Q.green}18`,
-                          border:`1px solid ${Q.green}66`,borderRadius:8,
+                          border:`1px solid ${Q.green}66`,borderRadius:RADII.md,
                           padding:"7px",cursor:"pointer",color:Q.green,
                           fontSize:12,fontWeight:700,
                           fontFamily:F_BODY}}>
@@ -12647,7 +12647,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                         disabled={bloqProc}
                         style={{width:"100%",marginTop:8,
                           background:`${Q.red}18`,
-                          border:`1px solid ${Q.red}66`,borderRadius:8,
+                          border:`1px solid ${Q.red}66`,borderRadius:RADII.md,
                           padding:"7px",cursor:"pointer",color:Q.red,
                           fontSize:12,fontWeight:700,
                           fontFamily:F_BODY}}>
@@ -12763,7 +12763,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                   activo:!avisos.activo})} style={{width:"100%",
                 background:avisos.activo?`${Q.green}18`:"rgba(255,255,255,0.04)",
                 border:`1px solid ${avisos.activo?Q.green:Q.border}`,
-                borderRadius:9,padding:"11px",cursor:"pointer",
+                borderRadius:RADII.md,padding:"11px",cursor:"pointer",
                 marginBottom:12,color:avisos.activo?Q.green:Q.muted,
                 fontSize:13,fontWeight:700,
                 fontFamily:F_BODY}}>
@@ -12785,7 +12785,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                       background:avisos.minimo===k?`${Q.violet}33`
                         :"rgba(255,255,255,0.04)",
                       border:`1px solid ${avisos.minimo===k?Q.violet:Q.border}`,
-                      borderRadius:8,padding:"9px 4px",cursor:"pointer",
+                      borderRadius:RADII.md,padding:"9px 4px",cursor:"pointer",
                       color:avisos.minimo===k?Q.cyan:Q.muted,fontSize:12,
                       fontWeight:avisos.minimo===k?700:400,
                       fontFamily:F_BODY}}>{l}</button>
@@ -12812,7 +12812,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                           ?{...x,nombre:e.target.value}:x)}))}
                       style={{flex:1,minWidth:0,
                         background:"rgba(255,255,255,0.05)",
-                        border:`1px solid ${Q.border}`,borderRadius:8,
+                        border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                         padding:"8px 10px",color:Q.text,fontSize:13,
                         fontFamily:F_BODY}}/>
                     <input value={d.chat_id} placeholder="123456789"
@@ -12822,7 +12822,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                           ?{...x,chat_id:e.target.value}:x)}))}
                       style={{width:120,flexShrink:0,
                         background:"rgba(255,255,255,0.05)",
-                        border:`1px solid ${Q.border}`,borderRadius:8,
+                        border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                         padding:"8px 10px",color:Q.text,fontSize:13,
                         fontFamily:F_BODY}}/>
                     <button onClick={()=>setAvisos(a=>({...a,
@@ -12836,7 +12836,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                 <button onClick={()=>setAvisos(a=>({...a,
                     destinos:[...(a.destinos||[]),{nombre:"",chat_id:""}]}))}
                   style={{width:"100%",background:"transparent",
-                    border:`1px dashed ${Q.border}`,borderRadius:8,
+                    border:`1px dashed ${Q.border}`,borderRadius:RADII.md,
                     padding:"9px",cursor:"pointer",color:Q.cyan,fontSize:12,
                     marginTop:4,
                     fontFamily:F_BODY}}>
@@ -12863,7 +12863,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",
             maxWidth:460,maxHeight:"88dvh",overflowY:"auto",
             background:Q.deep||"#080814",border:`1px solid ${Q.border}`,
-            borderRadius:14,padding:16}}>
+            borderRadius:RADII.lg,padding:16}}>
 
             <div style={{display:"flex",justifyContent:"space-between",
               alignItems:"flex-start",marginBottom:12}}>
@@ -12976,7 +12976,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",
             maxWidth:440,maxHeight:"88dvh",overflowY:"auto",
             background:Q.deep||"#080814",border:`1px solid ${Q.border}`,
-            borderRadius:14,padding:16}}>
+            borderRadius:RADII.lg,padding:16}}>
 
             {ficha.cargando&&<div style={{color:Q.muted,textAlign:"center",
               padding:20}}>Cargando...</div>}
@@ -13025,7 +13025,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
 
                 {ficha.actividad.resultado_jugador>0&&(
                   <div style={{background:`${Q.red}14`,
-                    border:`1px solid ${Q.red}44`,borderRadius:8,
+                    border:`1px solid ${Q.red}44`,borderRadius:RADII.md,
                     padding:"8px 11px",marginBottom:12,fontSize:12,
                     color:Q.red,fontFamily:F_BODY}}>
                     La casa lleva perdidos {ars(ficha.actividad.resultado_jugador)}
@@ -13089,7 +13089,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                         marcarUsuario(ficha.cliente.id,"observado");
                         setFicha(null);
                       }} style={{flex:1,background:`${Q.gold}18`,
-                      border:`1px solid ${Q.gold}`,borderRadius:9,
+                      border:`1px solid ${Q.gold}`,borderRadius:RADII.md,
                       padding:"10px",cursor:"pointer",color:Q.gold,
                       fontSize:12,fontWeight:700,
                       fontFamily:F_BODY}}>
@@ -13099,7 +13099,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                         marcarUsuario(ficha.cliente.id,"normal");
                         setFicha(null);
                       }} style={{flex:1,background:"transparent",
-                      border:`1px solid ${Q.border}`,borderRadius:9,
+                      border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                       padding:"10px",cursor:"pointer",color:Q.muted,
                       fontSize:12,
                       fontFamily:F_BODY}}>
@@ -13161,7 +13161,7 @@ function TabFlash({ adminKey, onNoAutorizado }){
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
     color:Q.text,fontSize:16,fontWeight:700,textAlign:"center",
     fontFamily:F_BODY};
 
@@ -13182,7 +13182,7 @@ function TabFlash({ adminKey, onNoAutorizado }){
       <button onClick={()=>{const v=!activo; setActivo(v); guardar({activo:v});}}
         style={{width:"100%",
         background:activo?`${Q.green}18`:"rgba(255,255,255,0.04)",
-        border:`1px solid ${activo?Q.green:Q.border}`,borderRadius:9,
+        border:`1px solid ${activo?Q.green:Q.border}`,borderRadius:RADII.md,
         padding:"11px",cursor:"pointer",marginBottom:12,
         color:activo?Q.green:Q.muted,fontSize:13,fontWeight:700,
         fontFamily:F_BODY}}>
@@ -13335,7 +13335,7 @@ function TabMejora({ adminKey, onNoAutorizado }){
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:9,padding:"11px 13px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"11px 13px",
     color:Q.text,fontSize:20,fontWeight:700,textAlign:"center",
     fontFamily:F_BODY};
 
@@ -13458,7 +13458,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
   };
 
   const inp={background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:8,padding:"8px 10px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 10px",
     color:Q.text,fontSize:14,fontFamily:F_BODY};
 
   return(
@@ -13477,7 +13477,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
 
       <button onClick={()=>setActivo(a=>!a)} style={{width:"100%",
         background:activo?`${Q.green}18`:"rgba(255,255,255,0.04)",
-        border:`1px solid ${activo?Q.green:Q.border}`,borderRadius:9,
+        border:`1px solid ${activo?Q.green:Q.border}`,borderRadius:RADII.md,
         padding:"11px",cursor:"pointer",marginBottom:12,
         color:activo?Q.green:Q.muted,fontSize:13,fontWeight:700,
         fontFamily:F_BODY}}>
@@ -13515,7 +13515,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
         <button onClick={()=>setTabla(x=>[...x,
           {picks:(x[x.length-1]?.picks||2)+1,pct:(x[x.length-1]?.pct||0)+5}])}
           style={{width:"100%",background:"transparent",
-            border:`1px dashed ${Q.border}`,borderRadius:8,padding:"9px",
+            border:`1px dashed ${Q.border}`,borderRadius:RADII.md,padding:"9px",
             cursor:"pointer",color:Q.cyan,fontSize:12,marginTop:4,
             fontFamily:F_BODY}}>+ Agregar escalón</button>
       </GCard>
@@ -13702,7 +13702,7 @@ function TabBanners({ adminKey, onNoAutorizado }){
     b.id===id ? {...b,[campo]:valor} : b));
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:8,padding:"9px 11px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 11px",
     color:Q.text,fontSize:13,marginBottom:7,
     fontFamily:F_BODY};
 
@@ -13773,7 +13773,7 @@ function TabBanners({ adminKey, onNoAutorizado }){
                 style={{...inp,width:64,marginBottom:0,padding:"7px 9px"}}/>
               <button onClick={()=>cambiar(b.id,"activo",!b.activo)}
                 style={{flex:1,background:b.activo?`${Q.green}22`:"rgba(255,255,255,0.04)",
-                  border:`1px solid ${b.activo?Q.green:Q.border}`,borderRadius:8,
+                  border:`1px solid ${b.activo?Q.green:Q.border}`,borderRadius:RADII.md,
                   padding:"8px",cursor:"pointer",fontSize:12,fontWeight:700,
                   color:b.activo?Q.green:Q.muted}}>
                 {b.activo?"Visible":"Oculto"}</button>
@@ -13782,7 +13782,7 @@ function TabBanners({ adminKey, onNoAutorizado }){
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <Btn label="Guardar" onClick={()=>guardar(b)} color={Q.violet}/>
               <button onClick={()=>borrar(b.id)} style={{background:"transparent",
-                border:`1px solid ${Q.red}`,borderRadius:8,padding:"9px 14px",
+                border:`1px solid ${Q.red}`,borderRadius:RADII.md,padding:"9px 14px",
                 color:Q.red,fontSize:12,fontWeight:700,cursor:"pointer"}}>
                 Borrar</button>
               <span style={{marginLeft:"auto",color:Q.dim,fontSize:12}}>
@@ -13879,7 +13879,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
 
   const plata=n=>"$"+Number(n||0).toLocaleString("es-AR");
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px 12px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
     color:Q.text,fontSize:14,marginBottom:8,
     fontFamily:F_BODY};
 
@@ -13906,7 +13906,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
               {cargando?"…":plata(data?.riesgo_total_abierto)}</div>
           </div>
           <button onClick={cargar} style={{background:"transparent",
-            border:`1px solid ${Q.border}`,borderRadius:8,padding:"6px 12px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"6px 12px",
             color:Q.muted,fontSize:12,cursor:"pointer"}}>Actualizar</button>
         </div>
 
@@ -13920,7 +13920,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
                 :"rgba(255,255,255,0.04)",
               border:`1px solid ${monedaTope===m?Q.violet
                 :(enUso.has(m)?`${Q.cyan}55`:Q.border)}`,
-              borderRadius:8,padding:"8px 13px",cursor:"pointer",
+              borderRadius:RADII.md,padding:"8px 13px",cursor:"pointer",
               color:monedaTope===m?Q.cyan:(enUso.has(m)?Q.text:Q.muted),
               fontSize:12,fontWeight:monedaTope===m?700:400,
               fontFamily:F_BODY}}>
@@ -13944,7 +13944,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
 
         <button onClick={()=>setActivo(a=>!a)} style={{width:"100%",
           background:activo?`${Q.green}22`:"rgba(255,255,255,0.04)",
-          border:`1px solid ${activo?Q.green:Q.border}`,borderRadius:9,
+          border:`1px solid ${activo?Q.green:Q.border}`,borderRadius:RADII.md,
           padding:"11px",cursor:"pointer",marginBottom:10,
           color:activo?Q.green:Q.muted,fontSize:13,fontWeight:700,
           fontFamily:F_BODY}}>
@@ -14034,7 +14034,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
               </div>
             </div>
             {topeNum>0&&(
-              <div style={{height:3,borderRadius:2,background:"rgba(255,255,255,0.07)",
+              <div style={{height:3,borderRadius:RADII.sm,background:"rgba(255,255,255,0.07)",
                 marginTop:8,overflow:"hidden"}}>
                 <div style={{height:"100%",
                   width:`${Math.min(100,(l.riesgo/topeNum)*100)}%`,
@@ -14118,7 +14118,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-    borderRadius:9,padding:"10px 12px",color:Q.text,fontSize:14,marginBottom:8,
+    borderRadius:RADII.md,padding:"10px 12px",color:Q.text,fontSize:14,marginBottom:8,
     fontFamily:F_BODY};
 
   return(
@@ -14137,7 +14137,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
           {[["global","🌐 Toda la red"],["rama","🌿 Una rama"],["agencia","🏢 Una agencia"]].map(([k,l])=>(
             <button key={k} onClick={()=>setForm(f=>({...f,alcance:k}))} style={{flex:1,
               background:form.alcance===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-              border:`1px solid ${form.alcance===k?Q.violet:Q.border}`,borderRadius:9,
+              border:`1px solid ${form.alcance===k?Q.violet:Q.border}`,borderRadius:RADII.md,
               padding:"9px 4px",cursor:"pointer",color:form.alcance===k?Q.violet2||Q.violet:Q.muted,
               fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
           ))}
@@ -14150,7 +14150,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
               : l.agencia_code===form.agencia_code));
           return ya?(
             <div style={{background:`${Q.cyan}12`,
-              border:`1px solid ${Q.cyan}44`,borderRadius:8,
+              border:`1px solid ${Q.cyan}44`,borderRadius:RADII.md,
               padding:"8px 11px",marginBottom:10,fontSize:12,
               color:Q.cyan,lineHeight:1.5,
               fontFamily:F_BODY}}>
@@ -14174,7 +14174,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
                       :"rgba(255,255,255,0.04)",
                     border:`1px solid ${form.moneda===m?Q.violet
                       :(enUso.has(m)?`${Q.cyan}55`:Q.border)}`,
-                    borderRadius:8,padding:"8px 13px",cursor:"pointer",
+                    borderRadius:RADII.md,padding:"8px 13px",cursor:"pointer",
                     color:form.moneda===m?Q.cyan
                       :(enUso.has(m)?Q.text:Q.muted),fontSize:12,
                     fontWeight:form.moneda===m?700:400,
@@ -14214,7 +14214,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
           placeholder="Ej: 5000000" inputMode="numeric" style={inp}/>
         <button onClick={guardar} disabled={proc} style={{width:"100%",marginTop:6,
           background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,border:"none",
-          borderRadius:10,padding:"12px",color:"#fff",fontWeight:700,fontSize:14,
+          borderRadius:RADII.md,padding:"12px",color:"#fff",fontWeight:700,fontSize:14,
           cursor:"pointer",fontFamily:F_BODY}}>
           {proc?"Guardando...":"Guardar límite"}</button>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
@@ -14256,14 +14256,14 @@ function TabLimites({ adminKey, onNoAutorizado }){
                 setMsg({text:"Valores cargados arriba: ajustá y guardá",ok:false});
                 window.scrollTo({top:0,behavior:"smooth"});
               }} style={{background:"transparent",
-                border:`1px solid ${Q.cyan}55`,borderRadius:7,
+                border:`1px solid ${Q.cyan}55`,borderRadius:RADII.sm,
                 padding:"5px 11px",cursor:"pointer",color:Q.cyan,
                 fontSize:12,marginRight:6,flexShrink:0,
                 fontFamily:F_BODY}}>Editar</button>
 
             {l.alcance!=="global"&&(
               <button onClick={()=>borrar(l.id)} style={{background:"transparent",
-                border:`1px solid ${Q.red}55`,borderRadius:8,padding:"5px 10px",
+                border:`1px solid ${Q.red}55`,borderRadius:RADII.md,padding:"5px 10px",
                 color:Q.red,fontSize:12,cursor:"pointer"}}>Quitar</button>
             )}
           </div>
@@ -14317,7 +14317,7 @@ function AdminPanel({ adminKey, onLogout }){
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <HBadge label="ADMIN" color={Q.violet}/>
           <button onClick={onLogout} style={{background:"transparent",
-            border:`1px solid ${Q.border}`,borderRadius:8,padding:"5px 10px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"5px 10px",
             color:Q.muted,fontSize:12,cursor:"pointer"}}>Salir</button>
         </div>
       </div>
@@ -14355,13 +14355,13 @@ function AdminPanel({ adminKey, onLogout }){
           }}>
             {tab===t.k&&<div style={{position:"absolute",top:0,left:"20%",right:"20%",
               height:2,background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},transparent)`,
-              borderRadius:2}}/>}
+              borderRadius:RADII.sm}}/>}
             <span style={{fontSize:17,position:"relative",
               filter:tab===t.k?`drop-shadow(0 0 6px ${Q.cyan})`:"none"}}>
               {t.i}
               {t.k==="config"&&alertasRiesgo>0&&(
                 <span style={{position:"absolute",top:-3,right:-8,
-                  background:Q.red,color:"#fff",borderRadius:9,
+                  background:Q.red,color:"#fff",borderRadius:RADII.md,
                   minWidth:15,height:15,fontSize:12,fontWeight:800,
                   display:"flex",alignItems:"center",justifyContent:"center",
                   padding:"0 3px",lineHeight:1,
