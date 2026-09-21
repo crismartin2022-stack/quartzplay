@@ -6840,40 +6840,51 @@ function Config({ agencia }){
     <div>
       <PageHeader icon={<Icon name="sliders-horizontal"/>} title="Config"
         description="Los datos de tu agencia, tu contraseña, Telegram y el test de impresora."/>
-      <GCard style={{padding:SPACING[20],marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:14,
-          fontFamily:F_BODY}}>Datos de la agencia</div>
-        {[["Nombre",agencia.name||"—"],["Código",agencia.code||"—"],
-          ["Dirección",agencia.address||"Sin cargar"],
-          ["Teléfono",agencia.phone||"Sin cargar"],
-        ].map(([l,v])=>(
-          <div key={l} style={{display:"flex",justifyContent:"space-between",
-            padding:"8px 0",borderBottom:`1px solid ${Q.dim}`}}>
-            <span style={{color:Q.muted,fontSize:12}}>{l}</span>
-            <span style={{color:Q.text,fontSize:12}}>{v}</span>
+      {/* Auto-fit two-up on desktop, one column below the breakpoint —
+          no separate desktop check needed, the min column width alone
+          decides how many fit. None of these four cards is tall or
+          form-heavy enough to need the full row to itself: the password
+          form is only two inputs and a button, same footprint as the
+          other three. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(360px,1fr))",
+        gap:SPACING[16]}}>
+        <GCard style={{padding:SPACING[20]}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:14,
+            fontFamily:F_BODY}}>Datos de la agencia</div>
+          {[["Nombre",agencia.name||"—"],["Código",agencia.code||"—"],
+            ["Dirección",agencia.address||"Sin cargar"],
+            ["Teléfono",agencia.phone||"Sin cargar"],
+          ].map(([l,v])=>(
+            <div key={l} style={{display:"flex",justifyContent:"space-between",
+              padding:"8px 0",borderBottom:`1px solid ${Q.dim}`}}>
+              <span style={{color:Q.muted,fontSize:12}}>{l}</span>
+              <span style={{color:Q.text,fontSize:12}}>{v}</span>
+            </div>
+          ))}
+        </GCard>
+
+        <CambiarMiPassword agencia={agencia}/>
+
+        <ConectarTelegramAgencia agencia={agencia}/>
+
+        <GCard style={{padding:SPACING[20]}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:8,
+            fontFamily:F_BODY}}>Test de impresora</div>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:14}}>
+            Imprime un ticket de prueba para verificar la conexión
           </div>
-        ))}
-      </GCard>
-      <CambiarMiPassword agencia={agencia}/>
-
-      <ConectarTelegramAgencia agencia={agencia}/>
-
-      <GCard style={{padding:SPACING[20]}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:8,
-          fontFamily:F_BODY}}>Test de impresora</div>
-        <div style={{color:Q.muted,fontSize:12,marginBottom:14}}>
-          Imprime un ticket de prueba para verificar la conexión
-        </div>
-        <Btn label={testDone?"Reimprimir test":"IMPRIMIR TICKET TEST"}
-          onClick={()=>{
-            const ok = printTicket({
-              code:"QP-TEST",user:"Test",created_at:nowStr(),expires_at:expires24(),
-              picks:[{home:"River",away:"Boca",sel:"River gana",odd:1.55,sport:"TEST"}],
-              stake:10000,odd_total:1.55,potential_win:15500,agencia:agencia.code,
-            },"apuesta");
-            if(ok) setTestDone(true);
-          }} color={Q.violet} full/>
-      </GCard>
+          <Btn label={testDone?"Reimprimir test":"IMPRIMIR TICKET TEST"}
+            onClick={()=>{
+              const ok = printTicket({
+                code:"QP-TEST",user:"Test",created_at:nowStr(),expires_at:expires24(),
+                picks:[{home:"River",away:"Boca",sel:"River gana",odd:1.55,sport:"TEST"}],
+                stake:10000,odd_total:1.55,potential_win:15500,agencia:agencia.code,
+              },"apuesta");
+              if(ok) setTestDone(true);
+            }} color={Q.violet} full/>
+        </GCard>
+      </div>
     </div>
   );
 }
