@@ -5470,9 +5470,20 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           recortada, y el panel le reserva el lugar (min-height/padding-right,
           los mismos números que .hero-balance:has(.mascot-header) en
           html/styles.css:876-891) para que nunca tape el título ni el botón. */}
+      {/* Desktop puts the hero and the three cards on one line: the hero
+          takes a double-width first column and the cards become tall and
+          narrow beside it. On a phone the hero spans the full row and the
+          cards sit three across underneath, which is the same grid with
+          different columns rather than a second layout. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:isDesktopShell?"2fr 1fr 1fr 1fr":"repeat(3,minmax(0,1fr))",
+        gap:isDesktopShell?SPACING[16]:SPACING[8],
+        alignItems:"stretch",marginBottom:14}}>
       <div onClick={()=>onNav("mejorar")} style={{
-        position:"relative",overflow:"hidden",borderRadius:RADII.lg,marginBottom:14,
-        padding:"20px 16px",paddingRight:166,minHeight:244,cursor:"pointer",
+        gridColumn:isDesktopShell?"auto":"1 / -1",
+        position:"relative",overflow:"hidden",borderRadius:RADII.lg,
+        padding:"20px 16px",paddingRight:166,
+        minHeight:isDesktopShell?340:244,cursor:"pointer",
         background:`linear-gradient(115deg,${Q.violet2} 0%,${Q.violet} 70%)`}}>
         {/* Stadium photo, fused into the violet rather than sitting on top of
             it: painted at 30% opacity over the panel's own gradient, then the
@@ -5515,6 +5526,77 @@ function ScreenHome({ user, onNav, onBet, refCode }){
             </svg>
             <span style={{color:inkOn(Q.goldBg),fontWeight:700,fontSize:12.5,
               fontFamily:F_BODY}}>Escanear boleto</span>
+          </div>
+        </div>
+      </div>
+        <div onClick={()=>onNav("casino")} style={{position:"relative",overflow:"hidden",
+          minWidth:0,height:isDesktopShell?"100%":168,
+          cursor:"pointer",borderRadius:RADII.lg,
+          backgroundImage:"url(/brand/slot.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,opacity:0.32}}/>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
+          <div style={{position:"relative",height:"100%",display:"flex",
+            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
+            <Icon name="spade" size={24} color={inkOn(Q.void,Q.dark)}/>
+            <div>
+              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
+                fontFamily:F_BODY}}>Casino</div>
+              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
+                marginTop:2,lineHeight:1.35,
+                fontFamily:F_BODY}}>
+                Tragamonedas y mesas</div>
+            </div>
+          </div>
+        </div>
+        {/* Bug fix, not only a rename: this card already navigates to
+            "casinovivo" — onNav("casinovivo") below — but its label said
+            "En vivo", which reads as the sportsbook's live-betting section
+            (App.jsx's own ScreenLive/BarraInferior "live" tab), not this
+            live-dealer casino screen. Renamed here and in HistorialJuegos'
+            NOMBRE.casino_vivo, the only other place in this file that
+            labels this same casino_vivo destination. */}
+        <div onClick={()=>onNav("casinovivo")} style={{position:"relative",overflow:"hidden",
+          minWidth:0,height:isDesktopShell?"100%":168,
+          cursor:"pointer",borderRadius:RADII.lg,
+          backgroundImage:"url(/brand/live-casino.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:`linear-gradient(135deg,${Q.pink},${Q.gold})`,opacity:0.32}}/>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
+          <div style={{position:"relative",height:"100%",display:"flex",
+            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
+            <Video size={24} color={inkOn(Q.void,Q.dark)} aria-hidden="true"/>
+            <div>
+              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
+                fontFamily:F_BODY}}>Casino en Vivo</div>
+              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
+                marginTop:2,lineHeight:1.35,
+                fontFamily:F_BODY}}>
+                Mesas con crupier</div>
+            </div>
+          </div>
+        </div>
+        <div onClick={()=>onNav("desafios")} style={{position:"relative",overflow:"hidden",
+          minWidth:0,height:isDesktopShell?"100%":168,
+          cursor:"pointer",borderRadius:RADII.lg,
+          backgroundImage:"url(/brand/desafios.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,opacity:0.32}}/>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
+          <div style={{position:"relative",height:"100%",display:"flex",
+            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
+            <Handshake size={22} color={inkOn(Q.void,Q.dark)} aria-hidden="true"/>
+            <div>
+              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
+                fontFamily:F_BODY}}>Desafíos</div>
+              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
+                marginTop:2,lineHeight:1.35,
+                fontFamily:F_BODY}}>
+                Apostá contra otros jugadores</div>
+            </div>
           </div>
         </div>
       </div>
@@ -5583,84 +5665,6 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           cards share it as equal columns instead of staying phone-sized
           and leaving the rest of the column empty — the same "mobile
           inside desktop" the panels were just fixed for. */}
-      {/* Three columns at every width. A scroller hid the third card
-          behind a swipe nobody is told about; on a 360px phone the
-          content column is about 328px, which leaves ~104px per card. */}
-      <div style={{display:"grid",
-        gridTemplateColumns:"repeat(3,minmax(0,1fr))",
-        gap:isDesktopShell?SPACING[16]:SPACING[8],marginBottom:16}}>
-        <div onClick={()=>onNav("casino")} style={{position:"relative",overflow:"hidden",
-          minWidth:0,height:isDesktopShell?232:168,
-          cursor:"pointer",borderRadius:RADII.lg,
-          backgroundImage:"url(/brand/slot.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
-          <div aria-hidden="true" style={{position:"absolute",inset:0,
-            background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,opacity:0.32}}/>
-          <div aria-hidden="true" style={{position:"absolute",inset:0,
-            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
-          <div style={{position:"relative",height:"100%",display:"flex",
-            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
-            <Icon name="spade" size={24} color={inkOn(Q.void,Q.dark)}/>
-            <div>
-              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
-                fontFamily:F_BODY}}>Casino</div>
-              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
-                marginTop:2,lineHeight:1.35,
-                fontFamily:F_BODY}}>
-                Tragamonedas y mesas</div>
-            </div>
-          </div>
-        </div>
-        {/* Bug fix, not only a rename: this card already navigates to
-            "casinovivo" — onNav("casinovivo") below — but its label said
-            "En vivo", which reads as the sportsbook's live-betting section
-            (App.jsx's own ScreenLive/BarraInferior "live" tab), not this
-            live-dealer casino screen. Renamed here and in HistorialJuegos'
-            NOMBRE.casino_vivo, the only other place in this file that
-            labels this same casino_vivo destination. */}
-        <div onClick={()=>onNav("casinovivo")} style={{position:"relative",overflow:"hidden",
-          minWidth:0,height:isDesktopShell?232:168,
-          cursor:"pointer",borderRadius:RADII.lg,
-          backgroundImage:"url(/brand/live-casino.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
-          <div aria-hidden="true" style={{position:"absolute",inset:0,
-            background:`linear-gradient(135deg,${Q.pink},${Q.gold})`,opacity:0.32}}/>
-          <div aria-hidden="true" style={{position:"absolute",inset:0,
-            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
-          <div style={{position:"relative",height:"100%",display:"flex",
-            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
-            <Video size={24} color={inkOn(Q.void,Q.dark)} aria-hidden="true"/>
-            <div>
-              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
-                fontFamily:F_BODY}}>Casino en Vivo</div>
-              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
-                marginTop:2,lineHeight:1.35,
-                fontFamily:F_BODY}}>
-                Mesas con crupier</div>
-            </div>
-          </div>
-        </div>
-        <div onClick={()=>onNav("desafios")} style={{position:"relative",overflow:"hidden",
-          minWidth:0,height:isDesktopShell?232:168,
-          cursor:"pointer",borderRadius:RADII.lg,
-          backgroundImage:"url(/brand/desafios.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
-          <div aria-hidden="true" style={{position:"absolute",inset:0,
-            background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,opacity:0.32}}/>
-          <div aria-hidden="true" style={{position:"absolute",inset:0,
-            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
-          <div style={{position:"relative",height:"100%",display:"flex",
-            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
-            <Handshake size={22} color={inkOn(Q.void,Q.dark)} aria-hidden="true"/>
-            <div>
-              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
-                fontFamily:F_BODY}}>Desafíos</div>
-              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
-                marginTop:2,lineHeight:1.35,
-                fontFamily:F_BODY}}>
-                Apostá contra otros jugadores</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Combo del día destacado */}
       <div style={{display:"flex",alignItems:"center",gap:SPACING[8],color:Q.text,fontWeight:800,fontSize:15,
         marginBottom:8,fontFamily:F_BODY}}>
