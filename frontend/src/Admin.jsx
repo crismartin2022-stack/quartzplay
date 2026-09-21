@@ -14334,7 +14334,7 @@ function AdminPanel({ adminKey, onLogout }){
         </div>
       </div>
 
-      <div style={isDesktop ? {padding:"16px",maxWidth:620,margin:"0 auto",
+      <div style={isDesktop ? {padding:"16px",maxWidth:1100,margin:"0 auto",
         position:"relative",zIndex:1,paddingBottom:"40px",
         gridColumn:"2",gridRow:"2"} : {padding:"16px",maxWidth:620,margin:"0 auto",
         position:"relative",zIndex:1,

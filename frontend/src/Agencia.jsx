@@ -8075,7 +8075,8 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         WebkitOverflowScrolling:"touch",position:"relative",zIndex:1,
         gridColumn:"2",gridRow:"2"} : {flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
         WebkitOverflowScrolling:"touch",position:"relative",zIndex:1}}>
-      <div style={{padding:"16px 12px",maxWidth:620,margin:"0 auto",
+      <div style={isDesktop ? {padding:"16px 12px",maxWidth:1100,margin:"0 auto",
+        paddingBottom:"calc(28px + env(safe-area-inset-bottom))"} : {padding:"16px 12px",maxWidth:620,margin:"0 auto",
         paddingBottom:"calc(28px + env(safe-area-inset-bottom))"}}>
         <CazaError>
         {/* Los avisos del admin: arriba de todo y en cualquier
