@@ -223,29 +223,39 @@ ones, and any message whose component sets only one kind of outcome.
 ## Delivery
 
 One commit per task on `fix/quartzplay-message-status-colour`, off `staging`.
-Assess after each; hand back the returned command when review is due.
+Assess after each; hand back the returned command when review is due. The
+first boundary is `staging`, and it stays the base for every assess call
+below since no review has actually been acknowledged on this branch —
+the boundary only advances once a review is acknowledged, not on every
+commit. (An earlier version of this section assessed T2 and T3 against the
+previous commit instead of `staging`; that understated `changed_lines` and
+is corrected here using `--base-ref staging` throughout, re-run from real
+worktrees at each commit for T1 and T2 to get an accurate historical read.)
 
 **T1 assess** (`gentle-ai review assess --cwd . --agent claude-code
---base-ref staging --committed-only --json`): `risk: "medium"`
+--base-ref staging --committed-only --json`, at `44bbc00`): `risk: "medium"`
 (`executable_change` on `App.jsx`), `changed_paths: 5`,
 `changed_lines: 341`, `review_due: false`, `review_due_reason:
 "under_budget"`.
 
-**T2 assess** (`--base-ref 44bbc00`): `risk: "medium"`
-(`executable_change` on `Agencia.jsx`), `changed_paths: 2`,
-`changed_lines: 74`, `review_due: false`, `review_due_reason:
-"under_budget"`.
+**T2 assess** (`--base-ref staging`, at `fb0dc56`): `risk: "medium"`
+(`executable_change` on `Agencia.jsx`), `changed_paths: 6`,
+`changed_lines: 415`, **`review_due: true`, `review_due_reason:
+"slice_budget_reached"`**. Not executed live at the time; re-derived from a
+worktree at that commit for this record.
 
-**T3 assess** (`--base-ref fb0dc56`): `risk: "medium"`
-(`executable_change` on `Admin.jsx`), `changed_paths: 2`,
-`changed_lines: 500`, `review_due: true`, `review_due_reason:
+**T3 assess** (`--base-ref staging`, at `21372cc`): `risk: "medium"`
+(`executable_change` on `Admin.jsx`), `changed_paths: 7`,
+`changed_lines: 905`, `review_due: true`, `review_due_reason:
 "slice_budget_reached"`. Returned `next_transition.command`:
 
 ```
-gentle-ai review status '--cwd=/Users/usuario/Documents/Trabajo 2026/iaqp/app' --contract=gentle-ai.review-integration/v2 --agent=claude-code --next-transition=true --base-ref=fb0dc56 --committed-only=true
+gentle-ai review status '--cwd=/Users/usuario/Documents/Trabajo 2026/iaqp/app' --contract=gentle-ai.review-integration/v2 --agent=claude-code --next-transition=true --base-ref=staging --committed-only=true
 ```
 
-Not run — the consent envelope belongs to the owner.
+Not run — the consent envelope belongs to the owner. Review has been due
+since T2 (`slice_budget_reached` against the `staging` boundary); T3 only
+adds to the same still-open boundary.
 
 ## Progress
 
@@ -256,11 +266,13 @@ All three tasks complete. T1 (`44bbc00`), T2 (`fb0dc56`) and T3
 themselves from `msg.ok` instead of a fixed colour, with the redundant
 `✅`/`⚠️` prefix removed from each one's own `setMsg` calls. Full suite
 green (32/32 suites, 602/602 tests), ESLint clean on all four touched
-files, production build compiles (+0.22 kB gzip). T3's native review is
-due (`slice_budget_reached`, 500 changed lines) — its exact
+files, production build compiles (+0.22 kB gzip, 285.37 kB → 285.59 kB).
+Review against the `staging` boundary has been due since T2
+(`slice_budget_reached`, 415 changed lines) and remains due after T3
+(905 changed lines against the same still-open boundary) — the exact
 `next_transition.command` is recorded above and has not been run.
 
 ## Next step
 
-Hand the T3 `next_transition.command` to the owner for the consent
+Hand the `next_transition.command` above to the owner for the consent
 decision. No further implementation work is pending on this feature.
