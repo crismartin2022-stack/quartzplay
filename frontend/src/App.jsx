@@ -5,12 +5,12 @@ import { betslipPicks } from "./betslipPicks";
 import { estadoDeAcciones, stakeValido, mensajeDeDetalle } from "./betBestActions";
 import { oscuro as Q, F_NUM, F_BODY, inkOn } from "./theme";
 import BrandMark from "./BrandMark";
-import Mascot from "./Mascot";
+import Mascot, { MASCOT_FACE_ASSET } from "./Mascot";
 import Icon from "./Icon";
 // lucide-react carries the icons this screen's emoji have no match for
 // among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
 // no live-feed mark, no handshake, no bolt, no gift.
-import { Video, Handshake, Zap, Gift } from "lucide-react";
+import { Video, Handshake, Zap, Gift, Image as ImageIcon } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
 // IAQP SPORTS — Web App Telegram completa
@@ -238,16 +238,23 @@ function QBtn({ label, icon, onClick, color=Q.violet, size="md", full=false, out
 function BotMsg({ children, time="9:41" }){
   return(
     <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:16}}>
+      {/* El avatar es la cara del bot, no un glifo geométrico. El archivo
+          venía en el paquete desde que se sumaron los assets de marca y no
+          se usaba en ninguna parte: es exactamente la pieza pensada para
+          superficies chicas como esta. */}
       <div style={{width:36,height:36,borderRadius:"50%",
         background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
         display:"flex",alignItems:"center",justifyContent:"center",
-        color:inkOn(Q.violet, Q.cyan),
-        fontSize:18,flexShrink:0,boxShadow:`0 0 12px ${Q.violet}44`}}>⬡</div>
+        overflow:"hidden",flexShrink:0,
+        boxShadow:`0 0 12px ${Q.violet}44`}}>
+        <img src={MASCOT_FACE_ASSET} alt="" aria-hidden="true"
+          style={{width:32,height:32,objectFit:"contain",display:"block"}}/>
+      </div>
       {/* minWidth:0 es imprescindible: sin esto el ítem flex no se achica
           por debajo de su contenido y los nombres largos de equipos
           empujan toda la pantalla hacia la derecha. */}
       <div style={{flex:1,minWidth:0}}>
-        <BrandMark size={11} style={{marginBottom:3}}/>
+        <BrandMark size={16} style={{marginBottom:4}}/>
         <GCard style={{padding:"14px"}}>
           {children}
           <div style={{textAlign:"right",marginTop:6,color:Q.muted,fontSize:9,
@@ -2377,7 +2384,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
             background:"transparent",border:`2px dashed ${Q.border}`,
             borderRadius:12,padding:"18px 10px",textAlign:"center",
             cursor:"pointer"}}>
-            <div style={{marginBottom:4}}><Icon name="camera" size={24}/></div>
+            <div style={{marginBottom:4}}><Icon name="camera" size={24} color={Q.text}/></div>
             <div style={{color:Q.text,fontWeight:700,fontSize:11,
               fontFamily:F_BODY}}>Sacar foto</div>
           </button>
@@ -2385,7 +2392,8 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
             padding:"18px 10px",textAlign:"center",cursor:"pointer"}}>
             <input type="file" accept="image/*" multiple onChange={elegir}
               style={{display:"none"}}/>
-            <div style={{fontSize:24,marginBottom:4}}>🖼️</div>
+            <div style={{marginBottom:4,lineHeight:0}}>
+              <ImageIcon size={24} color={Q.text} aria-hidden="true"/></div>
             <div style={{color:Q.text,fontWeight:700,fontSize:11,
               fontFamily:F_BODY}}>
               {imagenes.length>0?"Agregar más":"Galería"}</div>
@@ -5312,14 +5320,22 @@ function BarraInferior({ actual, onNav }){
   const izq = items.slice(0,2), der = items.slice(2);
   const activoBB = actual==="mejorar";
 
+  // Medidas tomadas del prototipo (html/styles.css:465-570). El botón de
+  // Bet Best flota POR ENCIMA de la barra (`top:-25px`) y su etiqueta se
+  // apoya en el borde inferior de la celda: antes ambos vivían abajo y se
+  // superponían, que es lo que se veía en pantalla.
   const Item = ({it}) => {
     const on = actual===it.k;
     return(
-      <button onClick={()=>onNav(it.k)} style={{flex:1,background:"transparent",
-        border:"none",cursor:"pointer",display:"flex",flexDirection:"column",
-        alignItems:"center",gap:3,padding:"6px 0"}}>
-        <Ico d={ICONOS[it.k]} on={on}/>
-        <span style={{fontSize:9,fontWeight:on?700:500,color:on?Q.gold:Q.dim,
+      <button onClick={()=>onNav(it.k)} style={{background:"transparent",
+        border:"none",cursor:"pointer",minWidth:0,minHeight:62,padding:"0 2px",
+        display:"grid",placeItems:"center",alignContent:"center",gap:3,
+        textAlign:"center",position:"relative"}}>
+        {on&&<span aria-hidden="true" style={{position:"absolute",top:0,
+          width:16,height:3,borderRadius:2,background:Q.gold}}/>}
+        <Ico d={ICONOS[it.k]} on={on} size={19}/>
+        <span style={{fontSize:10,lineHeight:1.15,whiteSpace:"nowrap",
+          fontWeight:on?700:600,color:on?Q.gold:Q.dim,
           fontFamily:F_BODY}}>{it.l}</span>
       </button>
     );
@@ -5327,30 +5343,33 @@ function BarraInferior({ actual, onNav }){
 
   return(
     <div style={{flexShrink:0,background:Q.deep,borderTop:`1px solid ${Q.border}`,
-      display:"flex",alignItems:"flex-end",
-      padding:"6px 4px calc(6px + env(safe-area-inset-bottom))",position:"relative"}}>
+      height:"calc(68px + env(safe-area-inset-bottom))",
+      padding:"5px 8px env(safe-area-inset-bottom)",
+      display:"grid",gridTemplateColumns:"repeat(5,1fr)"}}>
       {izq.map(it=><Item key={it.k} it={it}/>)}
 
-      {/* Bet Best — boton elevado */}
-      <div style={{flex:1,display:"flex",justifyContent:"center",position:"relative"}}>
-        <button onClick={()=>onNav("mejorar")} aria-label="Bet Best" style={{
-          position:"absolute",bottom:2,width:56,height:56,borderRadius:"50%",
-          border:`3px solid ${Q.deep}`,cursor:"pointer",padding:0,
-          background:activoBB
-            ? `linear-gradient(145deg,#FFE07A,${Q.goldBg})`
-            : `linear-gradient(145deg,${Q.goldBg},#E0A614)`,
-          boxShadow:`0 6px 18px ${Q.goldBg}55`,
-          display:"flex",flexDirection:"column",alignItems:"center",
-          justifyContent:"center",gap:1}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={inkOn(Q.goldBg,"#E0A614","#FFE07A")}
-            strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      {/* Bet Best — la función insignia se lleva el único botón elevado. */}
+      <button onClick={()=>onNav("mejorar")} style={{background:"transparent",
+        border:"none",cursor:"pointer",minWidth:0,minHeight:62,
+        padding:"0 2px 7px",display:"grid",placeItems:"center",
+        alignContent:"end",textAlign:"center",position:"relative"}}>
+        <span aria-hidden="true" style={{position:"absolute",top:-25,
+          width:56,height:56,borderRadius:"50%",display:"grid",
+          placeItems:"center",background:Q.gold,
+          border:`3px solid ${Q.deep}`,
+          boxShadow:activoBB
+            ? `0 5px 0 rgba(0,0,0,0.2), 0 0 0 3px ${Q.gold}47`
+            : `0 5px 0 rgba(0,0,0,0.2), 0 0 0 1px ${Q.gold}73`}}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke={inkOn(Q.gold)} strokeWidth="2.25"
+            strokeLinecap="round" strokeLinejoin="round">
             {ICONOS.camara}
           </svg>
-        </button>
-        <span style={{position:"absolute",bottom:-2,fontSize:9,fontWeight:700,
-          color:activoBB?Q.gold:Q.muted,fontFamily:F_BODY,whiteSpace:"nowrap"}}>
-          Bet Best</span>
-      </div>
+        </span>
+        <span style={{fontSize:10,lineHeight:1.15,whiteSpace:"nowrap",
+          fontWeight:700,color:activoBB?Q.gold:Q.text,
+          fontFamily:F_BODY}}>Bet Best</span>
+      </button>
 
       {der.map(it=><Item key={it.k} it={it}/>)}
     </div>
