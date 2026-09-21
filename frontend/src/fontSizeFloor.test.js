@@ -58,33 +58,45 @@ const sources = Object.fromEntries(
 // The cut runs from `function BarraWeb(` to the next top-level `function`,
 // so anything written between the two would be exempted with it. Today
 // that gap is blank. Put new code somewhere else, or move the bar.
-function splitOutBottomBar(source) {
-  const start = source.indexOf("function BarraWeb(");
+// Both bottom bars, named by the file they live in. `BarraWeb` is the
+// public site's; `BarraInferior` is the player app's. They are the same
+// kind of control and carry the same exception.
+const BOTTOM_BARS = {
+  "Web.jsx": "function BarraWeb(",
+  "App.jsx": "function BarraInferior(",
+};
+
+function splitOutBottomBar(source, marker) {
+  const start = source.indexOf(marker);
   if (start === -1) return { rest: source, bottomBar: "" };
   const end = source.indexOf("\nfunction ", start + 1);
   const stop = end === -1 ? source.length : end;
   return { rest: source.slice(0, start) + source.slice(stop), bottomBar: source.slice(start, stop) };
 }
 
-const bottomBar = splitOutBottomBar(sources["Web.jsx"]).bottomBar;
-sources["Web.jsx"] = splitOutBottomBar(sources["Web.jsx"]).rest;
+const bottomBars = {};
+for (const [name, marker] of Object.entries(BOTTOM_BARS)) {
+  const split = splitOutBottomBar(sources[name], marker);
+  bottomBars[name] = split.bottomBar;
+  sources[name] = split.rest;
+}
 
-describe("the site's bottom tab bar keeps a floor of its own", () => {
-  test("the bar was actually found and read", () => {
+describe("each bottom tab bar keeps a floor of its own", () => {
+  test.each(Object.entries(BOTTOM_BARS))("%s's bar was actually found and read", (name, marker) => {
     // Without this, a renamed component would silently exempt nothing —
     // or, worse, exempt the whole file by matching nothing and leaving
     // `rest` untouched while the assertion below passes on an empty string.
-    expect(bottomBar).toContain("function BarraWeb(");
-    expect(literalFontSizes(bottomBar).length).toBeGreaterThan(0);
+    expect(bottomBars[name]).toContain(marker);
+    expect(literalFontSizes(bottomBars[name]).length).toBeGreaterThan(0);
   });
 
-  test("it declares no fontSize under 11", () => {
-    const offenders = literalFontSizes(bottomBar).filter((value) => value < 11);
+  test.each(Object.keys(BOTTOM_BARS))("%s's bar declares no fontSize under 11", (name) => {
+    const offenders = literalFontSizes(bottomBars[name]).filter((value) => value < 11);
     expect(offenders).toEqual([]);
   });
 
-  test("the exception does not leak: the rest of Web.jsx still holds 12", () => {
-    const offenders = literalFontSizes(sources["Web.jsx"]).filter((value) => value < 12);
+  test.each(Object.keys(BOTTOM_BARS))("the exception does not leak: the rest of %s still holds 12", (name) => {
+    const offenders = literalFontSizes(sources[name]).filter((value) => value < 12);
     expect(offenders).toEqual([]);
   });
 });
