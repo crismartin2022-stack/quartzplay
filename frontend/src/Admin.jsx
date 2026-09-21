@@ -6911,12 +6911,11 @@ function PanelComunicacion({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      {/* Title is "Comunicación", not "Consultas" (the sidebar label),
-          because ChatOperador's own sub-header below already reads
-          "Consultas" — same title stacked twice would read as a
-          duplicate when the Asistente segment is open. */}
-      <PageHeader icon={<Icon name="message-circle"/>} title="Comunicación"
-        description="Los mensajes de agencias, las consultas de soporte y el asistente IA, todo en un lugar."/>
+      {/* No PageHeader here, for the same reason TabGlobal has none: the
+          three buttons below already name the three things a header would
+          describe, and this tab's sub-views are chat viewports sized from
+          the viewport height. A header would cost them a permanent strip
+          of conversation on a phone to restate the buttons under it. */}
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         {[["mensajes",<><Mail size={13}/> Agencias</>],["soporte",<><Headphones size={13}/> Soporte</>],
           ["asistente",<><MessageSquare size={13}/> Asistente</>]].map(([k,l])=>(
@@ -11131,14 +11130,8 @@ function TabSoporte({ adminKey, onNoAutorizado }){
   // ── Un ticket abierto ──
   if(abierto){
     return(
-      // PanelComunicacion now renders a PageHeader above this component's
-      // segmented tabs, adding a two-line title+description block that
-      // this fixed-height viewport did not have to budget for before —
-      // see odd/tasks/page-headers.md. Offset raised 210px -> 270px
-      // (~60px, an estimate: this repo has no renderer to measure the
-      // block's exact rendered height) so the chat input stays on screen.
       <div style={{display:"flex",flexDirection:"column",
-        height:"calc(100dvh - 270px)",minHeight:340}}>
+        height:"calc(100dvh - 210px)",minHeight:340}}>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12],
           marginBottom:10}}>
           <button onClick={()=>{setAbierto(null);setDetalle(null);}}
@@ -11432,10 +11425,8 @@ function TabMensajes({ adminKey, onNoAutorizado }){
   if(abierto){
     const h=(hilos?.hilos||[]).find(x=>x.code===abierto);
     return(
-      // Same PanelComunicacion header offset as TabSoporte above —
-      // see the comment there and odd/tasks/page-headers.md.
       <div style={{display:"flex",flexDirection:"column",
-        height:"calc(100dvh - 270px)",minHeight:340}}>
+        height:"calc(100dvh - 210px)",minHeight:340}}>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12],
           marginBottom:10}}>
           <button onClick={()=>{setAbierto(null);setMsgs(null);}}
@@ -11752,12 +11743,8 @@ function ChatOperador({ adminKey, onNoAutorizado }){
   ];
 
   return(
-    // Same PanelComunicacion header offset as TabSoporte/TabMensajes above —
-    // see the comment there and odd/tasks/page-headers.md. This component's
-    // own title/description below is its sub-view header, not the page
-    // header, so it is left as-is.
     <div style={{display:"flex",flexDirection:"column",
-      height:"calc(100dvh - 270px)",minHeight:340}}>
+      height:"calc(100dvh - 210px)",minHeight:340}}>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:3,
         fontFamily:F_BODY}}><Icon name="message-circle" size={14}/> Consultas</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:10,

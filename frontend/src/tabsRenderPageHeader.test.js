@@ -2,9 +2,15 @@ import fs from "fs";
 import path from "path";
 
 // T4 of odd/tasks/page-headers.md: every one of the panels' 29 tab
-// components must render <PageHeader/> in its opening view, except
-// "global" — it opens on the dashboard's own KPI grid, which is its own
-// hero, and deliberately has no page header (see the task doc).
+// components must render <PageHeader/> in its opening view, except two
+// named below. Both exceptions are asserted, not merely excluded, so
+// neither can rot into an accidental omission.
+//
+//   global — opens on the dashboard's own KPI grid, which is its hero.
+//   chat   — its three buttons already name the three things a header
+//            would describe, and its sub-views are chat viewports sized
+//            from the viewport height, so a header would cost them a
+//            permanent strip of conversation to restate those buttons.
 //
 // The obvious guard — scanning for the fontWeight:700,fontSize:15 title
 // pattern PageHeader itself renders with — does not work: 18 legitimate,
@@ -102,10 +108,15 @@ describe("the matcher can see the dispatch lists at all", () => {
   });
 });
 
-describe("every tab component renders a PageHeader in its opening view", () => {
-  const nonGlobalTabs = TABS.filter((t) => t.key !== "global");
+const EXCEPTIONS = {
+  global: "TabGlobal",
+  chat: "PanelComunicacion",
+};
 
-  test.each(nonGlobalTabs.map((t) => [`${t.file} ${t.key} -> ${t.component}`, t]))(
+describe("every tab component renders a PageHeader in its opening view", () => {
+  const requiredTabs = TABS.filter((t) => !(t.key in EXCEPTIONS));
+
+  test.each(requiredTabs.map((t) => [`${t.file} ${t.key} -> ${t.component}`, t]))(
     "%s",
     (_label, t) => {
       expect(rendersPageHeader(t.source, t.component)).toBe(true);
@@ -113,15 +124,18 @@ describe("every tab component renders a PageHeader in its opening view", () => {
   );
 });
 
-describe("the single named exception: global", () => {
-  test("global opens on the dashboard's own KPI hero and deliberately has no PageHeader", () => {
-    const globalTab = TABS.find((t) => t.key === "global");
-    expect(globalTab).toBeDefined();
-    expect(globalTab.component).toBe("TabGlobal");
-    // Honesty check, not just an exclusion above: if TabGlobal ever
-    // started rendering a PageHeader, this would catch that too.
-    expect(rendersPageHeader(globalTab.source, globalTab.component)).toBe(false);
-  });
+describe("the two named exceptions", () => {
+  test.each(Object.entries(EXCEPTIONS))(
+    "%s deliberately has no PageHeader",
+    (key, component) => {
+      const tab = TABS.find((t) => t.key === key);
+      expect(tab).toBeDefined();
+      expect(tab.component).toBe(component);
+      // Honesty check, not just the exclusion above: if either ever
+      // started rendering a PageHeader, this catches it.
+      expect(rendersPageHeader(tab.source, tab.component)).toBe(false);
+    }
+  );
 });
 
 describe("positive control: the matcher actually finds components", () => {

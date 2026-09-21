@@ -207,6 +207,29 @@ Delivery: T1+T2 in one PR, T3+T4 in the next. The two files are large enough
 that one PR would pass the review budget. All four tasks are done; T3+T4 are
 committed on `feat/quartzplay-admin-headers`, not pushed or opened as a PR.
 
+## Two tabs end up without a header, not one
+
+`global` was exempted in the plan. **`chat` joined it after the work was
+done**, and the reason is worth keeping.
+
+Adding a header there cost ~57px — a title line, a description line and
+the block's margin — above three sub-views that are chat viewports sized
+`calc(100dvh - 210px)`. The implementation compensated by raising that to
+`270px` in all three, a number it could not verify: there is no renderer
+here to measure the block, so `60` was a reasoned estimate flagged for a
+manual phone check.
+
+The header was not worth a magic number. Its description read "Los
+mensajes de agencias, las consultas de soporte y el asistente IA" directly
+above three buttons labelled **Agencias**, **Soporte** and **Asistente**.
+It restated the control under it, and charged a permanent strip of
+conversation on a phone for the privilege.
+
+Removed, the three offsets are back at `210px` and nothing in this change
+depends on an unmeasured value. The guard names both exceptions and
+asserts each one *does not* render a header, so neither can decay into an
+accidental omission.
+
 ## Acceptance
 
 - Every tab still reachable and rendering; no duplicated title anywhere.
