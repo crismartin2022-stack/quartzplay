@@ -58,9 +58,21 @@ describe("ScreenHome draws icons, not emoji", () => {
     // Pinned on purpose: every name added here is one more icon set this
     // file depends on, and the point of the local Icon.jsx is that the
     // product draws its own. `Image` is aliased because the bare name
-    // shadows the browser global of the same name.
+    // shadows the browser global of the same name. `User` joined in the
+    // player-chrome batch (odd/tasks/player-chrome-batch.md, T3-T4):
+    // Icon.jsx's own 36-mark set has no single-person icon, only `users`
+    // (a group), which is wrong for a profile avatar (User, T3); Flame,
+    // Coins, Link and Bell followed for the row the row rule had
+    // protected (T4) — a flame for the Muro tab, a coin for IACOIN, a
+    // link for Vincular cuenta, a bell for the help chat's sound toggle.
+    // Calendar, Rocket, Store, Target, Shield, Scale, Dices, Moon,
+    // Lightbulb, Pencil, Repeat, Smartphone, PartyPopper, Eye, Heart and
+    // Construction joined in odd/tasks/finish-icon-migration.md's T1, the
+    // row rule now retired: every one of them draws a mark Icon.jsx's own
+    // 36-path set has no equivalent for. None of the names below shadow a
+    // browser global the way `Image` does.
     expect(APP).toMatch(
-      /import\s*\{\s*Video,\s*Handshake,\s*Zap,\s*Gift,\s*Image as ImageIcon\s*\}\s*from\s*"lucide-react";/
+      /import\s*\{\s*Video,\s*Handshake,\s*Zap,\s*Gift,\s*Image as ImageIcon,\s*User,\s*Flame,\s*Coins,\s*Link,\s*Bell,\s*Calendar,\s*Rocket,\s*Store,\s*Target,\s*Shield,\s*Scale,\s*Dices,\s*Moon,\s*Lightbulb,\s*Pencil,\s*Repeat,\s*Smartphone,\s*PartyPopper,\s*Eye,\s*Heart,\s*Construction\s*\}\s*from\s*"lucide-react";/
     );
   });
 });

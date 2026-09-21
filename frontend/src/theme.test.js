@@ -41,8 +41,40 @@ describe("theme module — one source of colour", () => {
     expect(themeModule.claro).toBeUndefined();
     expect(themeModule.THEMES).toBeUndefined();
     expect(Object.keys(themeModule).sort()).toEqual(
-      ["F_BODY", "F_NUM", "INK_DARK", "INK_LIGHT", "inkOn", "oscuro"].sort()
+      [
+        "F_BODY", "F_NUM", "INK_DARK", "INK_LIGHT", "RADII", "SPACING",
+        "TEXT", "inkOn", "oscuro",
+      ].sort()
     );
+  });
+});
+
+// ── Scales — additive, unconsumed by any screen yet ─────────────────────
+// `SPACING`, `RADII` and `TEXT` exist so later normalisation passes (the
+// radii slice, then padding/gap, then the per-screen body pass) have a
+// fixed set of values to point at. Pinning their exact shape here means a
+// later edit cannot silently drift the numbers those passes will assume.
+describe("the scales added for later passes", () => {
+  test("SPACING is the prototype's 4px grid (html/styles.css --space-1..--space-10)", () => {
+    expect(themeModule.SPACING).toEqual({
+      4: 4, 8: 8, 12: 12, 16: 16, 20: 20, 24: 24, 32: 32, 40: 40,
+    });
+  });
+
+  test("RADII matches html/styles.css --radius-sm/md/lg/xl, plus a pill value", () => {
+    expect(themeModule.RADII).toEqual({
+      sm: 6, md: 10, lg: 14, xl: 20, full: 9999,
+    });
+  });
+
+  test("TEXT is the fixed font-size steps html/styles.css actually applies", () => {
+    // Every literal (non-clamp, non-zero) `font-size` value in the
+    // prototype's stylesheet — not the unused `--text-display` token,
+    // which is defined there but never applied to anything.
+    expect(themeModule.TEXT).toEqual({
+      10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16,
+      20: 20, 21: 21, 28: 28, 30: 30, 32: 32,
+    });
   });
 });
 

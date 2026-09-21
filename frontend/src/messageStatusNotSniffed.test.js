@@ -22,6 +22,10 @@ const SRC = path.resolve(__dirname);
 // The screens whose messages already carry their own status.
 const FIXED_SCREENS = ["App.jsx", "Web.jsx", "Agencia.jsx", "Admin.jsx"];
 
+// Files where message-status-colour has now reached every message display,
+// so no ✅/⚠️ prefix remains anywhere in the file.
+const EMOJI_PREFIX_FULLY_RETIRED = ["App.jsx", "Web.jsx"];
+
 const sourceOf = (file) => fs.readFileSync(path.join(SRC, file), "utf8");
 
 // Matches `.startsWith("✅")` / `.startsWith('✅')` with any whitespace, used
@@ -61,11 +65,23 @@ describe.each(FIXED_SCREENS)("%s does not decide a message's colour from its own
     expect(source).toMatch(/msg\.ok\s*\?/);
   });
 
-  test("the ✅/⚠️ prefixes are still in the message text", () => {
-    // The emoji stay for now — only the colour decision moved. Taking them
-    // out is the next slice's job, and it is safe only because of this one.
-    expect(source).toMatch(/✅/);
-    expect(source).toMatch(/⚠️/);
+  test("the ✅/⚠️ prefixes are still in the message text, where that slice hasn't landed yet", () => {
+    // The emoji stayed after this file's sniffing fix — only the colour
+    // decision moved — because taking them out was a later slice: the
+    // message-status-colour change (see odd/tasks/message-status-colour.md),
+    // which gives every message here its own {text, ok} status and, only
+    // then, retires the prefix as decoration. App.jsx and Web.jsx have now
+    // had every one of their message displays carried through that slice
+    // (both the ones fixed here and the ones fixed by it), so neither file
+    // has a ✅/⚠️ prefix left to find; Agencia.jsx and Admin.jsx still carry
+    // theirs on the components that slice hasn't reached.
+    if (EMOJI_PREFIX_FULLY_RETIRED.includes(file)) {
+      expect(source).not.toMatch(/✅/);
+      expect(source).not.toMatch(/⚠️/);
+    } else {
+      expect(source).toMatch(/✅/);
+      expect(source).toMatch(/⚠️/);
+    }
   });
 });
 

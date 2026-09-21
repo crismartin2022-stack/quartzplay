@@ -19,26 +19,18 @@ function emojiIn(source) {
   return found;
 }
 
-// Every emoji in this screen that the inventory gives an icon to. None of
-// them may survive in the file. 🤝 joined this list in the site slice
-// (odd/tasks/site-emoji-to-icons.md, T2): `Handshake` from lucide-react,
-// the same source App.jsx's T2 used for it, not a name in ICON_PATHS.
-const REPLACED = ["📊", "🔍", "🚫", "🎟️", "⏱", "💰", "✅", "🎫", "📸", "⚠️", "🛡️", "🤝"];
-
-// The emoji the set cannot draw yet. They stay until the icon exists,
-// because an approximation would be worse than an honest gap. Each is
-// listed in docs/icon-inventory.md under "What the set cannot draw yet".
-const AWAITING_AN_ICON = {
-  "🔁": 1, // repeat — Mantener selecciones
-  "🌙": 1, // empty state — No hay combos ahora
-  "🖼️": 1, // image — Galería
-  "✏️": 1, // pencil — Está mal / Corregir
-  "🛠️": 1, // tools — Bet Builder
-  "🎲": 1, // dice — Armar combinada
-  "⚖️": 1, // scales — Medio
-  "🚀": 1, // rocket — Fuerte
-  "📭": 1, // empty state — No hay partidos
-};
+// Every emoji this screen ever had, all of it replaced by a drawn icon.
+// 🤝 joined this list in the site slice (odd/tasks/site-emoji-to-icons.md,
+// T2): `Handshake` from lucide-react, the same source App.jsx's T2 used
+// for it, not a name in ICON_PATHS. The nine glyphs the row rule had
+// protected (🔁🌙🖼️✏️🛠️🎲⚖️🚀📭) joined in
+// odd/tasks/finish-icon-migration.md's T1, the row rule now retired:
+// Repeat, Moon, Image as ImageIcon, Pencil, Wrench, Dices, Scale, Rocket
+// and Inbox, all from lucide-react. Box.jsx has no canvas/share/print
+// text, so nothing here left the "renders in the interface" scope — the
+// screen is emoji-free.
+const REPLACED = ["📊", "🔍", "🚫", "🎟️", "⏱", "💰", "✅", "🎫", "📸", "⚠️", "🛡️", "🤝",
+  "🔁", "🌙", "🖼️", "✏️", "🛠️", "🎲", "⚖️", "🚀", "📭"];
 
 describe("Box.jsx draws icons, not emoji", () => {
   test("it takes its icons from the one component", () => {
@@ -51,8 +43,8 @@ describe("Box.jsx draws icons, not emoji", () => {
     expect(left.filter((emoji) => REPLACED.includes(emoji))).toEqual([]);
   });
 
-  test("the only emoji left are the ones the set cannot draw yet", () => {
-    expect(emojiIn(box)).toEqual(AWAITING_AN_ICON);
+  test("Box.jsx is emoji-free", () => {
+    expect(emojiIn(box)).toEqual({});
   });
 
   test("every icon it names exists in the set", () => {
