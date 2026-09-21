@@ -238,7 +238,7 @@ export default function Casino(){
   const Ficha=({monto})=>(
     <span style={{position:"absolute",top:-6,right:-6,minWidth:19,height:19,
       padding:"0 3px",borderRadius:10,background:Q.gold,color:inkOn(Q.gold),
-      fontSize:8.5,fontWeight:700,fontFamily:F_BODY,display:"flex",
+      fontSize:12,fontWeight:700,fontFamily:F_BODY,display:"flex",
       alignItems:"center",justifyContent:"center",border:`2px solid ${Q.pano}`}}>
       {monto>=100000?`${Math.round(monto/100000)}k`:Math.round(monto/100)}
     </span>
@@ -264,7 +264,7 @@ export default function Casino(){
     return(
       <button onClick={()=>poner(tipo,valor)} style={{position:"relative",
         height:alto,border:"1px solid rgba(255,255,255,.16)",borderRadius:3,
-        background:fondo||"rgba(0,0,0,.18)",color:"#fff",fontSize:10.5,
+        background:fondo||"rgba(0,0,0,.18)",color:"#fff",fontSize:12,
         fontWeight:700,fontFamily:F_BODY,padding:0,
         cursor:abierta?"pointer":"default"}}>
         {txt}{p>0&&<Ficha monto={p}/>}
@@ -292,7 +292,7 @@ export default function Casino(){
         position:"sticky",top:0,zIndex:20}}>
         <BrandMark size={20}/>
         <div style={{marginLeft:"auto",textAlign:"right"}}>
-          <div style={{fontSize:8,letterSpacing:1.3,color:Q.dim,
+          <div style={{fontSize:12,letterSpacing:1.3,color:Q.dim,
             fontWeight:700}}>SALDO</div>
           <div style={{fontFamily:F_NUM,fontSize:19,fontWeight:700,
             color:Q.gold,lineHeight:1}}>{saldo!=null?plata(saldo):"—"}</div>
@@ -306,7 +306,7 @@ export default function Casino(){
           borderRadius:14,padding:12}}>
           <div>
             <Crupier nombre={mesa?.crupier} hablando={hablando}/>
-            <div style={{fontSize:11,color:Q.muted,textAlign:"center",
+            <div style={{fontSize:12,color:Q.muted,textAlign:"center",
               marginTop:6}}>{mesa?.crupier||"…"}</div>
           </div>
           <div style={{flex:1,minWidth:0}}>
@@ -318,7 +318,7 @@ export default function Casino(){
           background:Q.surface,border:`1px solid ${Q.border}`,
           borderRadius:12,padding:"11px 14px",marginBottom:12}}>
           <div style={{flex:1}}>
-            <div style={{fontSize:11.5,color:Q.muted}}>
+            <div style={{fontSize:12,color:Q.muted}}>
               {mesa?.estado==="abierta" ? "Hagan juego"
                : mesa?.estado==="cerrada" ? "No va más"
                : mesa?.estado==="resuelta" ? "Pagando" : "Conectando…"}</div>
@@ -333,7 +333,7 @@ export default function Casino(){
             {(mesa?.ultimos_numeros||[]).slice(-6).map((n,i)=>(
               <span key={i} style={{width:21,height:21,borderRadius:4,
                 display:"flex",alignItems:"center",justifyContent:"center",
-                fontSize:10,fontWeight:700,fontFamily:F_NUM,color:"#fff",
+                fontSize:12,fontWeight:700,fontFamily:F_NUM,color:"#fff",
                 background:colorDe(n)==="rojo"?Q.rojo
                   :colorDe(n)==="negro"?Q.negro:Q.verde}}>{n}</span>
             ))}
@@ -442,7 +442,7 @@ export default function Casino(){
           </div>
         </div>
 
-        <div style={{marginTop:12,padding:"0 4px",fontSize:10,color:Q.dim,
+        <div style={{marginTop:12,padding:"0 4px",fontSize:12,color:Q.dim,
           lineHeight:1.6}}>
           Ronda {mesa?.ronda_nonce ?? "—"} · el hash de la semilla se publica
           antes de que se pueda apostar:

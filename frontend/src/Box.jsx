@@ -209,21 +209,21 @@ function DesafiosBox({ agenciaCode }){
       padding:"13px 15px",marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",
         alignItems:"center",marginBottom:7}}>
-        <span style={{color:Q.gold,fontSize:11,fontWeight:800,
+        <span style={{color:Q.gold,fontSize:12,fontWeight:800,
           letterSpacing:0.8}}><Handshake size={11} aria-hidden="true"/> DESAFÍOS ABIERTOS</span>
         {lista.length>1&&(
-          <span style={{color:Q.dim,fontSize:10}}>
+          <span style={{color:Q.dim,fontSize:12}}>
             {i+1} de {lista.length}</span>
         )}
       </div>
 
       <div style={{color:Q.text,fontSize:14,fontWeight:600,
         lineHeight:1.4}}>{d.titulo}</div>
-      <div style={{color:Q.muted,fontSize:11,marginTop:4}}>
+      <div style={{color:Q.muted,fontSize:12,marginTop:4}}>
         {d.creador} puso {d.pone_el_creador.toLocaleString("es-AR")} IACOIN
         {" · "}busca quien ponga {d.tenes_que_poner.toLocaleString("es-AR")}</div>
 
-      <div style={{color:Q.cyan,fontSize:11,marginTop:8,paddingTop:8,
+      <div style={{color:Q.cyan,fontSize:12,marginTop:8,paddingTop:8,
         borderTop:`1px solid ${Q.border}`,lineHeight:1.45}}>
         Escaneá el código QR para aceptarlo desde tu celular</div>
     </div>
@@ -284,10 +284,10 @@ function QRTerminal({ agenciaCode }){
         style={{width:58,height:58,background:"#fff",borderRadius:6,
           padding:3,flexShrink:0}}/>
       <div style={{minWidth:0}}>
-        <div style={{color:Q.text,fontSize:11.5,fontWeight:700,
+        <div style={{color:Q.text,fontSize:12,fontWeight:700,
           lineHeight:1.35}}>
           ¿Querés apostar<br/>desde tu celular?</div>
-        <div style={{color:Q.cyan,fontSize:10,marginTop:3}}>
+        <div style={{color:Q.cyan,fontSize:12,marginTop:3}}>
           Escaneá este código</div>
       </div>
     </div>
@@ -334,7 +334,7 @@ function AvisosBanner({ destino, agenciaCode }){
       <div style={{minWidth:0,flex:1}}>
         <div style={{color:c,fontWeight:700,fontSize:12}}>{a.titulo}</div>
         {a.cuerpo&&(
-          <div style={{color:Q.text,fontSize:11,marginTop:3,
+          <div style={{color:Q.text,fontSize:12,marginTop:3,
             lineHeight:1.5}}>{a.cuerpo}</div>
         )}
       </div>
@@ -390,14 +390,14 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
   return(
     <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${Q.dim}`}}>
       {(pick.home_real||pick.away_real)&&(
-        <div style={{color:Q.muted,fontSize:10,marginBottom:8}}>
+        <div style={{color:Q.muted,fontSize:12,marginBottom:8}}>
           En nuestro sistema: <span style={{color:Q.cyan}}>{pick.home_real} vs {pick.away_real}</span>
         </div>
       )}
       {/* Candidatos parecidos (cuando no encontró el partido) */}
       {(pick.candidatos&&pick.candidatos.length>0)&&(
         <div style={{marginBottom:10}}>
-          <div style={{color:Q.amber,fontSize:10,marginBottom:6,
+          <div style={{color:Q.amber,fontSize:12,marginBottom:6,
             fontFamily:F_BODY}}>
             ¿Quisiste decir alguno de estos?
           </div>
@@ -412,7 +412,7 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:ov(0.05),border:`1px solid ${Q.border}`,
                     borderRadius:7,padding:"5px 9px",cursor:"pointer",
-                    color:Q.cyan,fontSize:11,fontWeight:600,
+                    color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
                 ))}
@@ -427,17 +427,17 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
           background:modo==="seleccion"?`${Q.violet}33`:ov(0.04),
           border:`1px solid ${modo==="seleccion"?Q.violet:Q.border}`,borderRadius:8,
           padding:"7px",cursor:"pointer",color:modo==="seleccion"?Q.cyan:Q.muted,
-          fontSize:11,fontWeight:700}}>Cambiar selección</button>
+          fontSize:12,fontWeight:700}}>Cambiar selección</button>
         <button onClick={()=>setModo("partido")} style={{flex:1,
           background:modo==="partido"?`${Q.violet}33`:ov(0.04),
           border:`1px solid ${modo==="partido"?Q.violet:Q.border}`,borderRadius:8,
           padding:"7px",cursor:"pointer",color:modo==="partido"?Q.cyan:Q.muted,
-          fontSize:11,fontWeight:700}}>Otro partido</button>
+          fontSize:12,fontWeight:700}}>Otro partido</button>
       </div>
 
       {modo==="seleccion"&&(
         <div>
-          {opciones.length===0&&<div style={{color:Q.muted,fontSize:11,marginBottom:8}}>
+          {opciones.length===0&&<div style={{color:Q.muted,fontSize:12,marginBottom:8}}>
             No tenemos opciones de este partido. Probá "Otro partido".</div>}
           {opciones.map((op,k)=>(
             <button key={k} onClick={()=>elegirOpcion(op)} style={{width:"100%",
@@ -475,7 +475,7 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:ov(0.05),border:`1px solid ${Q.border}`,
                     borderRadius:7,padding:"5px 9px",cursor:"pointer",
-                    color:Q.cyan,fontSize:11,fontWeight:600}}>
+                    color:Q.cyan,fontSize:12,fontWeight:600}}>
                     {op.sel} · {fmt(op.odd)}</button>
                 ))}
               </div>
@@ -492,7 +492,7 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
             color:Q.text,fontSize:13}}/>
         <button onClick={onQuitar} style={{background:`${Q.pink}18`,
           border:`1px solid ${Q.pink}`,borderRadius:8,padding:"8px 12px",
-          cursor:"pointer",color:Q.pink,fontSize:11,fontWeight:700}}>Quitar</button>
+          cursor:"pointer",color:Q.pink,fontSize:12,fontWeight:700}}>Quitar</button>
       </div>
     </div>
   );
@@ -975,12 +975,12 @@ export default function Box(){
                   alignItems:"flex-start",marginBottom:10,gap:8}}>
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{fontWeight:700,fontSize:15}}>{combo.name}</div>
-                    <div style={{color:combo.tagColor||Q.muted,fontSize:11,
+                    <div style={{color:combo.tagColor||Q.muted,fontSize:12,
                       marginTop:2}}>{combo.tag}</div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
                     <div style={{color:Q.gold,fontWeight:900,fontSize:19}}>{fmt(combo.odd_total)}x</div>
-                    <div style={{color:Q.muted,fontSize:10}}>{combo.picks.length} picks</div>
+                    <div style={{color:Q.muted,fontSize:12}}>{combo.picks.length} picks</div>
                   </div>
                 </div>
                 {combo.picks.slice(0,4).map((p,i)=>(
@@ -1032,7 +1032,7 @@ export default function Box(){
             {coValor!=null&&!coHecho&&(
               <div style={{background:`${Q.gold}12`,border:`1px solid ${Q.gold}`,
                 borderRadius:14,padding:20,marginBottom:12,textAlign:"center"}}>
-                <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1}}>
+                <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1}}>
                   Retirás ahora</div>
                 <div style={{color:Q.gold,fontWeight:900,fontSize:36,margin:"6px 0"}}>
                   ${Math.round(coValor).toLocaleString("es-AR")}</div>
@@ -1099,7 +1099,7 @@ export default function Box(){
                       objectFit:"cover",borderRadius:8,border:`1px solid ${Q.border}`}}/>
                     <button onClick={()=>quitarImgMejora(i)} style={{position:"absolute",
                       top:-6,right:-6,width:20,height:20,borderRadius:"50%",
-                      background:Q.pink,border:"none",color:"#fff",fontSize:11,
+                      background:Q.pink,border:"none",color:"#fff",fontSize:12,
                       cursor:"pointer",lineHeight:1}}>✕</button>
                   </div>
                 ))}
@@ -1142,7 +1142,7 @@ export default function Box(){
                 {resMejora.faltan_picks&&(
                   <div style={{background:`${Q.pink}12`,border:`1px solid ${Q.pink}66`,
                     borderRadius:9,padding:"9px 11px",marginBottom:10,color:Q.pink,
-                    fontSize:11,lineHeight:1.4}}>
+                    fontSize:12,lineHeight:1.4}}>
                     <Icon name="triangle-alert" size={13}/> El cupón marca cuota {fmt(resMejora.total_odd_cupon)} pero con lo
                     leído no llegamos. Falta algún partido — agregá otra foto.
                   </div>
@@ -1156,20 +1156,20 @@ export default function Box(){
                       <div style={{minWidth:0,flex:1}}>
                         <div style={{fontSize:13,fontWeight:600,overflow:"hidden",
                           textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.home} vs {p.away}</div>
-                        <div style={{color:Q.muted,fontSize:11}}>{p.selection}</div>
+                        <div style={{color:Q.muted,fontSize:12}}>{p.selection}</div>
                       </div>
                       <div style={{textAlign:"right",flexShrink:0,fontSize:12}}>
                         {p.odd_original&&<div style={{color:Q.dim}}>Origen {fmt(p.odd_original)}</div>}
                         {p.odd_final?<div style={{color:c,fontWeight:700}}>
                           Nuestra {fmt(p.odd_final)}{p.ajustada?" ↑":""}</div>
-                          :<div style={{color:Q.red,fontSize:10}}>No disponible</div>}
+                          :<div style={{color:Q.red,fontSize:12}}>No disponible</div>}
                       </div>
                     </div>
                     <button onClick={()=>setCorrigiendo(corrigiendo===i?null:i)} style={{
                       marginTop:8,background:corrigiendo===i?`${Q.cyan}22`:"transparent",
                       border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:8,
                       padding:"6px 12px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
-                      fontSize:11,fontWeight:700}}>
+                      fontSize:12,fontWeight:700}}>
                       {corrigiendo===i?"✕ Cerrar":"✏️ Está mal / Corregir"}</button>
                     {corrigiendo===i&&(
                       <CorregirPickBox pick={p}
@@ -1201,7 +1201,7 @@ export default function Box(){
           <div style={{background:`${Q.violet}12`,border:`1px solid ${Q.violet}55`,borderRadius:10,
             padding:"9px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
             <span style={{fontSize:16}}>🛠️</span>
-            <div style={{color:Q.muted,fontSize:11,fontFamily:F_BODY}}>
+            <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
               <b style={{color:Q.violet}}>Bet Builder activo</b> · combiná hasta {bbFeature.max_picks||4} mercados del mismo partido</div>
           </div>
         )}
@@ -1230,7 +1230,7 @@ export default function Box(){
             borderRadius:12,padding:"12px 14px",marginBottom:10}}>
             <div style={{color:Q.text,fontSize:13.5,fontWeight:700,
               marginBottom:3}}>🎲 Armar combinada</div>
-            <div style={{color:Q.muted,fontSize:11,marginBottom:9,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:9,
               lineHeight:1.4}}>
               El sistema la arma con partidos de hoy.
               {genCupo&&` Quedan ${genCupo.quedan} de ${genCupo.tope} hoy.`}</div>
@@ -1315,7 +1315,7 @@ export default function Box(){
                         background:sel?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:ov(0.04),
                         border:`2px solid ${sel?Q.cyan:Q.border}`,borderRadius:12,
                         padding:"12px 6px",cursor:"pointer",textAlign:"center"}}>
-                      <div style={{color:Q.muted,fontSize:11,overflow:"hidden",
+                      <div style={{color:Q.muted,fontSize:12,overflow:"hidden",
                         textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt.label}</div>
                       <div style={{color:sel?Q.cyan:Q.text,fontWeight:700,
                         fontSize:18}}>{opt.odd}</div>
