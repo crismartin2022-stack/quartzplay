@@ -4,10 +4,12 @@
 import { useState, useRef, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
-import { oscuro as Q, F_BODY, RADII, SPACING } from "./theme";
+import { oscuro as Q, F_BODY, RADII, SPACING, TEXT } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
+import PageHeader from "./PageHeader";
 import { Zap, Gift, Handshake, Video, ArrowLeftRight, Ban, Banknote, Bell, Bot, Building2, Calendar, CalendarDays, CircleOff, Coins, Dices, Disc, Eye, Flame, FlaskConical, Gamepad2, GitBranch, Globe, Hand, Headphones, Image as ImageIcon, Inbox, Key, Link, Lock, Mail, Megaphone, MessageSquare, Monitor, PartyPopper, PenLine, Pencil, Plug, Printer, RefreshCw, Rocket, RotateCcw, Save, Scale, Shield, Smartphone, Star, Stethoscope, Store, Target, Trash2, TrendingDown, Volume2, VolumeX, Wrench } from "lucide-react";
+import { useDesktopShellWidth } from "./desktopShellLayout";
 
 const ars  = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt  = n => Number(n||0).toFixed(2);
@@ -185,7 +187,7 @@ function AdminLogin({ onLogin }){
         backgroundSize:"28px 28px"}}/>
       <div style={{width:"100%",maxWidth:360,position:"relative",zIndex:1}}>
         <div style={{textAlign:"center",marginBottom:32}}>
-          <QPLogo size={26}/>
+          <QPLogo size={44}/>
           <div style={{color:Q.muted,fontSize:12,marginTop:8,
             fontFamily:F_BODY}}>Panel Administrador</div>
         </div>
@@ -449,6 +451,8 @@ function TabCierre({ adminKey, onNoAutorizado }){
 
   return(
     <div>
+      <PageHeader icon={<Icon name="chart-no-axes-combined"/>} title="Cierre"
+        description="El cierre de caja, liquidaciones y movimientos de todas las agencias, por el período que elijas."/>
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         {[["resumen",<><Icon name="chart-no-axes-combined" size={13}/> Resumen</>],["productos",<><Icon name="spade" size={13}/> Productos</>],["liquidacion",<><Icon name="wallet-cards" size={13}/> Liquidar</>],["historial",<><Icon name="clipboard-list" size={13}/> Historial</>],["caja",<><Icon name="receipt-text" size={13}/> Caja</>],["movimientos",<><Banknote size={13}/> Movs</>],["apuestas",<><Icon name="receipt-text" size={13}/> Apuestas</>],["cashout",<><Icon name="wallet-cards" size={13}/> Cash out</>],["combos",<><Zap size={13}/> Combos</>]].map(([k,l])=>(
           <button key={k} onClick={()=>setVista(k)} style={{flex:1,
@@ -1394,6 +1398,8 @@ function TabCombos({ adminKey, onNoAutorizado }){
 
   return(
     <div>
+      <PageHeader icon={<Zap/>} title="Combos"
+        description="Los combos cargados en el sistema: creá nuevos, escaneá tickets o eliminalos."/>
       <div style={{display:"flex",gap:SPACING[8],marginBottom:14}}>
         <Btn label="+ Crear combo" onClick={()=>setModo("crear")} color={Q.violet} full/>
         <Btn label={<><Icon name="scan-line" size={13}/> Escanear</>} onClick={()=>setModo("escanear")} color={Q.cyan} full/>
@@ -2963,8 +2969,8 @@ function TabEventos({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:10,
-        fontFamily:F_BODY}}><Calendar size={15}/> Eventos con cuotas</div>
+      <PageHeader icon={<Calendar/>} title="Eventos con cuotas"
+        description="Buscá y filtrá los eventos deportivos con cuotas cargadas, por deporte, liga o equipo."/>
 
       {/* Buscador: va contra el backend porque el listado viene
           recortado por liga y un partido puntual podría no estar. */}
@@ -3899,11 +3905,9 @@ function TabInfluencers({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}><Star size={15}/> Influencers</div>
-        <Btn label="+ Nuevo" onClick={()=>setShowForm(s=>!s)} color={Q.violet} size="sm"/>
-      </div>
+      <PageHeader icon={<Star/>} title="Influencers"
+        description="Los códigos de influencer de todo el sistema, su costo y sus escaneos."
+        action={<Btn label="+ Nuevo" onClick={()=>setShowForm(s=>!s)} color={Q.violet} size="sm"/>}/>
 
       {showForm&&<CrearInfluencer adminKey={adminKey}
         onListo={()=>{setShowForm(false);cargar();}} onNoAutorizado={onNoAutorizado}/>}
@@ -4294,16 +4298,14 @@ function TabAgencias({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}><Building2 size={15}/> Agencias</div>
-        <div style={{display:"flex",gap:SPACING[8]}}>
+      <PageHeader icon={<Building2/>} title="Agencias"
+        description="Todas las agencias del sistema: creá nuevas, revisá su red y gestioná bloqueos e impresiones."
+        action={<div style={{display:"flex",gap:SPACING[8]}}>
           <Btn label={<><Icon name="network" size={13}/> Árbol</>} onClick={()=>setShowArbol(true)} color={Q.cyan} size="sm"/>
           <Btn label={<><Lock size={13}/> Bloqueos</>} onClick={()=>setShowBloqueos(true)} color={Q.red} size="sm"/>
           <Btn label={<><Printer size={13}/> Impresiones</>} onClick={()=>setShowImpresiones(true)} color={Q.amber} size="sm"/>
           <Btn label="+ Nueva" onClick={()=>setShowForm(s=>!s)} color={Q.violet} size="sm"/>
-        </div>
-      </div>
+        </div>}/>
 
       {showForm&&<CrearAgenciaAdmin adminKey={adminKey} agencias={ags||[]}
         onListo={()=>{setShowForm(false);cargarAgs();}}
@@ -5317,12 +5319,10 @@ function TabUsuarios({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:16,
-          fontFamily:F_BODY}}><Icon name="users" size={14}/> Clientes</div>
-        <Btn label={crear?"Cancelar":"+ Nuevo cliente"} onClick={()=>setCrear(c=>!c)}
-          color={Q.violet} size="sm"/>
-      </div>
+      <PageHeader icon={<Icon name="users"/>} title="Clientes"
+        description="Buscá, dá de alta y administrá los clientes del sistema."
+        action={<Btn label={crear?"Cancelar":"+ Nuevo cliente"} onClick={()=>setCrear(c=>!c)}
+          color={Q.violet} size="sm"/>}/>
 
       {crear&&<CrearClienteAdmin adminKey={adminKey} agencia=""
         onListo={()=>{setCrear(false);buscar(query);}} onCancel={()=>setCrear(false)}
@@ -5396,10 +5396,8 @@ function TabConfig({ adminKey, onNoAutorizado }){
   ];
   return(
     <div>
-      <div style={{color:Q.text,fontWeight:800,fontSize:18,marginBottom:4,
-        fontFamily:F_BODY}}><Icon name="sliders-horizontal" size={14}/> Configuración</div>
-      <div style={{color:Q.muted,fontSize:12,marginBottom:14,
-        fontFamily:F_BODY}}>Todo lo configurable del sistema en un solo lugar.</div>
+      <PageHeader icon={<Icon name="sliders-horizontal"/>} title="Configuración"
+        description="Todo lo configurable del sistema en un solo lugar."/>
       <div style={{display:"flex",gap:SPACING[8],marginBottom:16,flexWrap:"wrap"}}>
         {subs.map(([k,l])=>(
           <button key={k} onClick={()=>setSub(k)} style={{
@@ -6012,12 +6010,9 @@ function TabPSP({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
-        fontFamily:F_BODY}}><Icon name="landmark" size={14}/> Pagos digitales (PSP)</div>
-      <div style={{color:Q.muted,fontSize:12,marginBottom:14,
-        fontFamily:F_BODY}}>
-        Carga y retiro automáticos por transferencia.
-        {!cfg.configurada&&(<> <Icon name="triangle-alert" size={11}/> Falta cargar la PSP_API_KEY en el servidor.</>)}</div>
+      <PageHeader icon={<Icon name="landmark"/>} title="Pagos digitales (PSP)"
+        description={<>Carga y retiro automáticos por transferencia.
+        {!cfg.configurada&&(<> <Icon name="triangle-alert" size={11}/> Falta cargar la PSP_API_KEY en el servidor.</>)}</>}/>
 
       <GCard glow={cfg.activo?Q.green:Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
         <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",
@@ -6520,13 +6515,10 @@ function TabDiag({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",
-        alignItems:"center",marginBottom:14}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}>Diagnóstico</div>
-        <Btn label={loading?"...":"↻ Actualizar"} onClick={cargar}
-          outline color={Q.muted} size="sm"/>
-      </div>
+      <PageHeader title="Diagnóstico"
+        description="El estado del feed de cuotas: créditos disponibles y los partidos en vivo que no cruzaron con la casa."
+        action={<Btn label={loading?"...":"↻ Actualizar"} onClick={cargar}
+          outline color={Q.muted} size="sm"/>}/>
 
       {err&&<div style={{color:Q.red,fontSize:12,marginBottom:12}}>{err}</div>}
 
@@ -6887,6 +6879,18 @@ const TABS=[
   {k:"chat",     i:<Icon name="message-circle" size={17}/>, l:"Consultas"},
 ];
 
+// Desktop-only grouping of AdminPanel's TABS for the sidebar menu.
+// Approved grouping: odd/tasks/sidebar-groups.md. Every key here must
+// also be a key in TABS above (sidebarGroupKeysMatchTabs.test.js guards
+// that pairing). Below 1024px the fixed bottom bar still renders straight
+// from the flat TABS array, unaffected by this grouping.
+const TAB_GROUPS = [
+  { label: "Operación", keys: ["global", "eventos", "combos"] },
+  { label: "Red", keys: ["agencias", "influencers", "usuarios"] },
+  { label: "Dinero", keys: ["billetera", "cierre"] },
+  { label: "Sistema", keys: ["config", "diag", "chat"] },
+];
+
 // Agrupa el asistente y los mensajes con agencias en una sola
 // pestaña: son las dos cosas que hace un operador cuando necesita
 // comunicarse o entender algo.
@@ -6907,6 +6911,11 @@ function PanelComunicacion({ adminKey, onNoAutorizado }){
 
   return(
     <div>
+      {/* No PageHeader here, for the same reason TabGlobal has none: the
+          three buttons below already name the three things a header would
+          describe, and this tab's sub-views are chat viewports sized from
+          the viewport height. A header would cost them a permanent strip
+          of conversation on a phone to restate the buttons under it. */}
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         {[["mensajes",<><Mail size={13}/> Agencias</>],["soporte",<><Headphones size={13}/> Soporte</>],
           ["asistente",<><MessageSquare size={13}/> Asistente</>]].map(([k,l])=>(
@@ -14275,6 +14284,9 @@ function TabLimites({ adminKey, onNoAutorizado }){
 
 function AdminPanel({ adminKey, onLogout }){
   const [tab,setTab]=useState("global");
+  // At 1024px and up (the prototype's own breakpoint) the tab bar becomes
+  // a sidebar; below it nothing changes — see odd/tasks/desktop-shell.md.
+  const isDesktop=useDesktopShellWidth();
   // Alertas de riesgo abiertas, para el indicador de la pestaña Config.
   // Se refresca cada 2 minutos: si algo crítico aparece, se ve sin
   // tener que entrar a buscarlo.
@@ -14302,18 +14314,26 @@ function AdminPanel({ adminKey, onLogout }){
     return()=>{ vivo=false; clearInterval(t); };
   },[adminKey]);
   return(
-    <div style={{background:Q.void,minHeight:"100vh",
+    <div style={isDesktop ? {
+      background:Q.void,minHeight:"100vh",
+      fontFamily:"system-ui,-apple-system,sans-serif",
+      display:"grid",gridTemplateColumns:"264px minmax(0,1fr)",
+      gridTemplateRows:"auto 1fr",maxWidth:1600,margin:"0 auto",
+    } : {background:Q.void,minHeight:"100vh",
       fontFamily:"system-ui,-apple-system,sans-serif"}}>
       <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
 
-      <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
+      <div style={isDesktop ? {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
+        padding:"12px 16px",display:"flex",alignItems:"center",
+        justifyContent:"space-between",position:"sticky",top:0,zIndex:50,overflow:"hidden",minHeight:64,
+        gridColumn:"2",gridRow:"1"} : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"12px 16px",display:"flex",alignItems:"center",
         justifyContent:"space-between",position:"sticky",top:0,zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        <QPLogo size={16}/>
+        <QPLogo size={isDesktop?40:16}/>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
           <HBadge label="ADMIN" color={Q.violet}/>
           <button onClick={onLogout} style={{background:"transparent",
@@ -14322,7 +14342,9 @@ function AdminPanel({ adminKey, onLogout }){
         </div>
       </div>
 
-      <div style={{padding:"16px",maxWidth:620,margin:"0 auto",
+      <div style={isDesktop ? {padding:"16px",maxWidth:1100,margin:"0 auto",
+        position:"relative",zIndex:1,paddingBottom:"40px",
+        gridColumn:"2",gridRow:"2"} : {padding:"16px",maxWidth:620,margin:"0 auto",
         position:"relative",zIndex:1,
         paddingBottom:"calc(140px + env(safe-area-inset-bottom))"}}>
         {tab==="global"   &&<TabGlobal   adminKey={adminKey} onNoAutorizado={onLogout} onIr={setTab}/>}
@@ -14338,7 +14360,15 @@ function AdminPanel({ adminKey, onLogout }){
         {tab==="chat"     &&<PanelComunicacion adminKey={adminKey} onNoAutorizado={onLogout}/>}
       </div>
 
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",
+      <div style={isDesktop ? {
+        gridColumn:"1",gridRow:"1 / span 2",position:"sticky",top:0,
+        alignSelf:"start",width:264,height:"100vh",
+        background:"rgba(6,6,18,0.97)",backdropFilter:"blur(20px)",
+        borderRight:`1px solid ${Q.border}`,
+        display:"flex",flexDirection:"column",alignItems:"stretch",
+        gap:SPACING[4],padding:`${SPACING[24]}px ${SPACING[12]}px`,
+        overflowY:"auto",zIndex:50,
+      } : {position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",
         width:"100%",maxWidth:620,background:"rgba(6,6,18,0.97)",
         backdropFilter:"blur(20px)",borderTop:`1px solid ${Q.border}`,
         // 11 pestañas: con 5 columnas queda una sola en la última fila
@@ -14346,7 +14376,49 @@ function AdminPanel({ adminKey, onLogout }){
         paddingBottom:"env(safe-area-inset-bottom)",zIndex:50}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        {TABS.map(t=>(
+        {isDesktop ? TAB_GROUPS.flatMap((group,gi)=>{
+          const groupTabs = group.keys.map(k=>TABS.find(t=>t.k===k)).filter(Boolean);
+          if(groupTabs.length===0) return [];
+          return [
+            <div key={`group-${group.label}`} style={{
+              marginTop:gi===0?0:SPACING[16],
+              padding:"0 12px",
+              color:Q.dim,fontSize:TEXT[12],fontWeight:700,
+              textTransform:"uppercase",letterSpacing:1,fontFamily:F_BODY,
+            }}>{group.label}</div>,
+            ...groupTabs.map(t=>(
+              <button key={t.k} onClick={()=>setTab(t.k)} style={{
+                minWidth:0,
+                background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
+                border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
+                borderRadius:RADII.md,
+                padding:"0 12px",minHeight:44,cursor:"pointer",
+                display:"flex",flexDirection:"row",alignItems:"center",
+                justifyContent:"flex-start",gap:SPACING[12],
+                position:"relative",overflow:"visible",width:"100%",flexShrink:0,
+              }}>
+                <span style={{fontSize:17,position:"relative",
+                  filter:tab===t.k?`drop-shadow(0 0 6px ${Q.cyan})`:"none"}}>
+                  {t.i}
+                  {t.k==="config"&&alertasRiesgo>0&&(
+                    <span style={{position:"absolute",top:-3,right:-8,
+                      background:Q.red,color:"#fff",borderRadius:RADII.md,
+                      minWidth:15,height:15,fontSize:12,fontWeight:800,
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      padding:"0 4px",lineHeight:1,
+                      fontFamily:F_BODY}}>
+                      {alertasRiesgo>99?"99+":alertasRiesgo}</span>
+                  )}
+                </span>
+                <span style={{color:tab===t.k?Q.cyan:Q.muted,fontSize:12,
+                  fontWeight:tab===t.k?700:400,maxWidth:"100%",
+                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+                  fontFamily:F_BODY,letterSpacing:0.3,
+                  textTransform:"uppercase"}}>{t.l}</span>
+              </button>
+            )),
+          ];
+        }) : TABS.map(t=>(
           <button key={t.k} onClick={()=>setTab(t.k)} style={{
             minWidth:0,background:"transparent",border:"none",
             padding:"8px 4px 8px",cursor:"pointer",

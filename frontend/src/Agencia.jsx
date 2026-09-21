@@ -5,7 +5,9 @@ import { useState, useEffect, useRef, Component } from "react";
 import { getFrontendConfig } from "./config";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
+import PageHeader from "./PageHeader";
 import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon, Bell, Moon } from "lucide-react";
+import { useDesktopShellWidth } from "./desktopShellLayout";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -48,7 +50,7 @@ class CazaError extends Component {
   }
 }
 
-import { oscuro as Q, F_BODY, RADII, SPACING } from "./theme";
+import { oscuro as Q, F_BODY, RADII, SPACING, TEXT } from "./theme";
 
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 
@@ -830,7 +832,7 @@ function LoginScreen({ onLogin }){
         backgroundSize:"28px 28px"}}/>
       <div style={{width:"100%",maxWidth:380,position:"relative",zIndex:1}}>
         <div style={{textAlign:"center",marginBottom:32}}>
-          <QPLogo size={28}/>
+          <QPLogo size={44}/>
           <div style={{color:Q.muted,fontSize:12,marginTop:8,
             fontFamily:F_BODY}}>Panel de Agencia Oficial</div>
         </div>
@@ -998,6 +1000,8 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
 
   return(
     <div>
+      <PageHeader icon={<Bot/>} title="Código / Bot"
+        description="Buscá una apuesta por su código para pagarla o gestionar su cash out."/>
       <GCard glow={Q.violet} style={{padding:SPACING[20],marginBottom:16}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
           fontFamily:F_BODY}}>Buscar código de apuesta</div>
@@ -1433,6 +1437,8 @@ function FlujoManual({ agencia }){
 
   return(
     <div>
+      <PageHeader icon={<Pencil/>} title="Apuesta manual"
+        description="Armá una apuesta a mano eligiendo los partidos y el monto vos mismo."/>
       <GCard style={{padding:SPACING[16],marginBottom:14}}>
         <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
           letterSpacing:1,fontFamily:F_BODY,marginBottom:6}}>
@@ -2143,13 +2149,9 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
-        fontFamily:F_BODY}}><Icon name="scan-line" size={14}/> Mejorar combinada</div>
-      <div style={{color:Q.muted,fontSize:12,marginBottom:14,lineHeight:1.4,
-        fontFamily:F_BODY}}>
-        Subí la captura de una apuesta de otro sitio. La leemos y la
-        replicamos con nuestras cuotas, mejorándola hasta {res?.tope_ajuste_pct||6}%.
-      </div>
+      <PageHeader icon={<Icon name="scan-line"/>} title="Mejorar combinada"
+        description={<>Subí la captura de una apuesta de otro sitio. La leemos y la
+        replicamos con nuestras cuotas, mejorándola hasta {res?.tope_ajuste_pct||6}%.</>}/>
 
       <div style={{color:Q.muted,fontSize:12,marginBottom:8,lineHeight:1.4,
         fontFamily:F_BODY}}>
@@ -2882,16 +2884,10 @@ function CombosIA({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",
-        alignItems:"center",marginBottom:12}}>
-        <div>
-          <div style={{color:Q.text,fontWeight:700,fontSize:15,
-            fontFamily:F_BODY}}><Zap size={13}/> Combos IA</div>
-          {gen&&<div style={{color:Q.muted,fontSize:12}}>Generados {gen}</div>}
-        </div>
-        <Btn label={cargando?"...":"↻ Actualizar"} onClick={cargar}
-          outline color={Q.muted} size="sm"/>
-      </div>
+      <PageHeader icon={<Zap/>} title="Combos IA"
+        action={<Btn label={cargando?"...":"↻ Actualizar"} onClick={cargar}
+          outline color={Q.muted} size="sm"/>}/>
+      {gen&&<div style={{color:Q.muted,fontSize:12,marginBottom:12}}>Generados {gen}</div>}
 
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         <Btn label="+ Crear combo" onClick={()=>setModo("crear")}
@@ -3059,6 +3055,8 @@ function Clientes({ agencia, onSesionExpirada }){
 
   return(
     <div>
+      <PageHeader icon={<Icon name="users"/>} title="Clientes"
+        description="Buscá, dá de alta y administrá los clientes de tu agencia."/>
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:SPACING[8],
           background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
@@ -4407,23 +4405,16 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",
-        alignItems:"center",marginBottom:10}}>
-        <div>
-          <div style={{color:Q.text,fontWeight:700,fontSize:15,
-            fontFamily:F_BODY}}><Headphones size={15}/> Soporte</div>
-          <div style={{color:Q.muted,fontSize:12}}>
-            Consultas de tus clientes</div>
-        </div>
-        <button onClick={()=>setSonido(v=>{
+      <PageHeader icon={<Headphones/>} title="Soporte"
+        description="Consultas de tus clientes"
+        action={<button onClick={()=>setSonido(v=>{
             const n=!v;
             try{ localStorage.setItem("qp_sop_sonido", n?"1":"0"); }catch(e){}
             return n;
           })} title="Sonido al llegar un caso"
           style={{background:"transparent",border:"none",
             cursor:"pointer",opacity:sonido?1:0.4}}>
-          <Bell size={17}/></button>
-      </div>
+          <Bell size={17}/></button>}/>
 
       {derivados>0&&(
         <div style={{background:`${Q.gold}12`,border:`1px solid ${Q.gold}55`,
@@ -4812,13 +4803,10 @@ function Terminales({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:3,
-        fontFamily:F_BODY}}><Monitor size={15}/> Terminales</div>
-      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
-        lineHeight:1.55,fontFamily:F_BODY}}>
-        Cada pantalla del local con su QR. El cliente lo escanea, arma
+      <PageHeader icon={<Monitor/>} title="Terminales"
+        description={<>Cada pantalla del local con su QR. El cliente lo escanea, arma
         el boleto en su teléfono mientras espera, y llega al mostrador
-        con el código listo.</div>
+        con el código listo.</>}/>
 
       {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
         textAlign:"center"}}>
@@ -4962,11 +4950,8 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:3,
-        fontFamily:F_BODY}}><Bot size={15}/> Tu asesor</div>
-      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
-        lineHeight:1.55,fontFamily:F_BODY}}>
-        Lee tus números y te dice qué mirar. Solo ve lo de tu red.</div>
+      <PageHeader icon={<Bot/>} title="Tu asesor"
+        description="Lee tus números y te dice qué mirar. Solo ve lo de tu red."/>
 
       <Btn label={cargando?"Analizando…":<><RefreshCw size={13}/> Analizar mi negocio</>}
         onClick={analizar} color={Q.violet} full disabled={cargando}/>
@@ -5143,12 +5128,9 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:3,
-        fontFamily:F_BODY}}><Handshake size={14}/> Desafíos</div>
-      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
-        lineHeight:1.55,fontFamily:F_BODY}}>
-        Tus clientes apuestan entre ellos en IACOIN. La casa no
-        arriesga: cobra comisión y vos cobrás una parte.</div>
+      <PageHeader icon={<Handshake/>} title="Desafíos"
+        description={<>Tus clientes apuestan entre ellos en IACOIN. La casa no
+        arriesga: cobra comisión y vos cobrás una parte.</>}/>
 
       {!loTengo&&(
         <GCard glow={Q.red} style={{padding:SPACING[16],marginBottom:12}}>
@@ -5450,11 +5432,13 @@ function MensajesAgencia({ agencia, onSesionExpirada }){
 
   return(
     <div style={{display:"flex",flexDirection:"column",
-      height:"calc(100dvh - 230px)",minHeight:320}}>
-      <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:3,
-        fontFamily:F_BODY}}><Icon name="message-circle" size={14}/> Mensajes</div>
-      <div style={{color:Q.muted,fontSize:12,marginBottom:10}}>
-        Escribile directo a la administración.</div>
+      height:"calc(100dvh - 223px)",minHeight:320}}>
+      {/* PageHeader's fixed spacing (SPACING[4]+SPACING[16]=20) is 7px
+          taller than this header's old (3+10=13), so the 230px offset was
+          reduced to 223px to keep this fixed-height chat viewport exactly
+          the same size below the header — see odd/tasks/page-headers.md. */}
+      <PageHeader icon={<Icon name="message-circle"/>} title="Mensajes"
+        description="Escribile directo a la administración."/>
 
       <div style={{marginBottom:12,paddingBottom:SPACING[12],
         borderBottom:`1px solid ${Q.border}`}}>
@@ -5689,11 +5673,8 @@ function BonosAgencia({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
-        fontFamily:F_BODY}}><Gift size={14}/> Bonos activos</div>
-      <div style={{color:Q.muted,fontSize:12,marginBottom:14,
-        fontFamily:F_BODY}}>
-        Bonos que el admin habilitó para tu agencia. Los otorgás a tus clientes.</div>
+      <PageHeader icon={<Gift/>} title="Bonos activos"
+        description="Bonos que el admin habilitó para tu agencia. Los otorgás a tus clientes."/>
       <AlertaError mensaje={err}/>
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:14}}>
@@ -5760,11 +5741,9 @@ function HistorialCashout({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}><Icon name="wallet-cards" size={14}/> Cash outs de la rama</div>
-        <Btn label={cargando?"...":"↻ Actualizar"} onClick={cargar} outline color={Q.muted} size="sm"/>
-      </div>
+      <PageHeader icon={<Icon name="wallet-cards"/>} title="Cash outs de la rama"
+        description="Los cash outs pagados en tu rama y su estado."
+        action={<Btn label={cargando?"...":"↻ Actualizar"} onClick={cargar} outline color={Q.muted} size="sm"/>}/>
       <AlertaError mensaje={err}/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:SPACING[8],marginBottom:14}}>
         {[{l:"Cash outs",v:items.length,c:Q.cyan},
@@ -5848,13 +5827,10 @@ function Historial({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",
-        alignItems:"center",marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}>Historial</div>
-        <Btn label={cargando?"...":"↻ Actualizar"} onClick={cargar}
-          outline color={Q.muted} size="sm"/>
-      </div>
+      <PageHeader title="Historial"
+        description="Los tickets que emitió tu agencia, con su cobro y exposición."
+        action={<Btn label={cargando?"...":"↻ Actualizar"} onClick={cargar}
+          outline color={Q.muted} size="sm"/>}/>
 
       <AutoLiquidar agencia={agencia} onListo={cargar}
         onSesionExpirada={onSesionExpirada}/>
@@ -6030,6 +6006,8 @@ function Cierres({ agencia, onSesionExpirada }){
 
   return(
     <div>
+      <PageHeader icon={<Icon name="chart-no-axes-combined"/>} title="Cierres"
+        description="El resumen de caja, movimientos y apuestas del período que elijas."/>
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         {[["resumen",<><Icon name="chart-no-axes-combined" size={13}/> Resumen</>],["caja",<><Icon name="receipt-text" size={13}/> Caja</>],["movs",<><Banknote size={13}/> Movs</>],["apuestas",<><Icon name="receipt-text" size={13}/> Apuestas</>],["digital",<><Icon name="landmark" size={13}/> Digital</>],["combos",<><Zap size={13}/> Combos</>],["impresiones",<><Printer size={13}/> Impres.</>]].map(([k,l])=>(
           <button key={k} onClick={()=>setVista(k)} style={{flex:1,
@@ -6644,6 +6622,8 @@ function Config({ agencia }){
   const [testDone,setTestDone]=useState(false);
   return(
     <div>
+      <PageHeader icon={<Icon name="sliders-horizontal"/>} title="Config"
+        description="Los datos de tu agencia, tu contraseña, Telegram y el test de impresora."/>
       <GCard style={{padding:SPACING[20],marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:14,
           fontFamily:F_BODY}}>Datos de la agencia</div>
@@ -6884,23 +6864,22 @@ function EnVivo({ agencia }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{display:"flex",alignItems:"center",gap:SPACING[8]}}>
+      <PageHeader
+        title={<div style={{display:"flex",alignItems:"center",gap:SPACING[8]}}>
           <div style={{width:8,height:8,borderRadius:"50%",background:Q.pink,
             boxShadow:`0 0 6px ${Q.pink}`,animation:"qPulse 1.2s ease-in-out infinite"}}/>
-          <span style={{color:Q.text,fontWeight:700,fontSize:15,
-            fontFamily:F_BODY}}>En Vivo</span>
+          En Vivo
           {matches.length>0&&<span style={{background:`${Q.pink}22`,border:`1px solid ${Q.pink}`,
             borderRadius:RADII.xl,padding:"4px 12px",color:Q.pink,fontSize:12,fontWeight:700,
             fontFamily:F_BODY}}>{matches.length} partidos</span>}
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:SPACING[8]}}>
+        </div>}
+        description="Cargá apuestas de partidos que se están jugando en este momento."
+        action={<div style={{display:"flex",alignItems:"center",gap:SPACING[8]}}>
           {lastUpdate&&<span style={{color:Q.dim,fontSize:12}}>{lastUpdate}</span>}
           <button onClick={fetchLive} style={{background:"transparent",
             border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"4px 12px",
             color:Q.muted,fontSize:12,cursor:"pointer"}}>↻ Actualizar</button>
-        </div>
-      </div>
+        </div>}/>
 
       {loading&&(
         <GCard style={{padding:SPACING[24],textAlign:"center"}}>
@@ -7128,12 +7107,10 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}><Star size={15}/> Influencers</div>
-        <Btn label={showForm?"Cancelar":"+ Nuevo"} onClick={()=>setShowForm(s=>!s)}
-          color={Q.violet} size="sm"/>
-      </div>
+      <PageHeader icon={<Star/>} title="Influencers"
+        description="Los códigos de influencer que generan tus ventas, su costo y sus escaneos."
+        action={<Btn label={showForm?"Cancelar":"+ Nuevo"} onClick={()=>setShowForm(s=>!s)}
+          color={Q.violet} size="sm"/>}/>
 
       {showForm&&<CrearInfluencerAgencia agencia={agencia}
         onListo={()=>{setShowForm(false);cargar();}} onSesionExpirada={onSesionExpirada}/>}
@@ -7682,12 +7659,10 @@ function MisAgencias({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}><Building2 size={15}/> Mis agencias</div>
-        <Btn label={showForm?"Cancelar":"+ Nueva"} onClick={()=>setShowForm(s=>!s)}
-          color={Q.violet} size="sm"/>
-      </div>
+      <PageHeader icon={<Building2/>} title="Mis agencias"
+        description="Tu red de subagencias: creá nuevas, revisá su rendimiento y bloqueá las que necesites."
+        action={<Btn label={showForm?"Cancelar":"+ Nueva"} onClick={()=>setShowForm(s=>!s)}
+          color={Q.violet} size="sm"/>}/>
 
       {showForm&&<CrearSubAgencia agencia={agencia}
         onListo={()=>{setShowForm(false);cargar();}} onSesionExpirada={onSesionExpirada}/>}
@@ -7910,10 +7885,26 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
   );
 }
 
+// Desktop-only grouping of AgenciaPanel's TABS for the sidebar menu.
+// Approved grouping: odd/tasks/sidebar-groups.md. Every key here must
+// also be a key in TABS below (sidebarGroupKeysMatchTabs.test.js guards
+// that pairing). Below 1024px the mobile row still renders straight
+// from the flat TABS array, unaffected by this grouping.
+const TAB_GROUPS = [
+  { label: "Vender", keys: ["codigo", "envivo", "manual", "combos", "mejorar"] },
+  { label: "Clientes", keys: ["clientes", "influencers", "desafios", "mensajes"] },
+  { label: "Red", keys: ["misagencias", "terminales", "asesor"] },
+  { label: "Dinero", keys: ["cashout", "bonos", "cierres", "historial"] },
+  { label: "Cuenta", keys: ["soporte", "config"] },
+];
+
 function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   const [tab,setTab]=useState("codigo");
   const [saldoCC,setSaldoCC]=useState(null);
   const [verSaldo,setVerSaldo]=useState(false);
+  // At 1024px and up (the prototype's own breakpoint) the tab row becomes
+  // a sidebar; below it nothing changes — see odd/tasks/desktop-shell.md.
+  const isDesktop=useDesktopShellWidth();
   // Mensajes del admin sin leer, para el punto en la pestaña.
   // Sin esto un mensaje quedaba invisible hasta que entraban a mirar.
   const [msgPendientes,setMsgPendientes]=useState(0);
@@ -7955,24 +7946,24 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   },[]);
 
   const TABS=[
-    {k:"codigo",   l:"Código / Bot"},
-    {k:"envivo",   l:<><Icon name="circle-dot" size={12}/> En Vivo</>},
-    {k:"manual",   l:"Apuesta manual"},
-    {k:"combos",   l:<><Zap size={12}/> Combos IA</>},
-    {k:"mejorar",  l:<><Icon name="scan-line" size={12}/> Mejorar</>},
-    {k:"clientes", l:<><Icon name="users" size={12}/> Clientes</>},
-    {k:"misagencias", l:<><Building2 size={12}/> Mis agencias</>},
-    {k:"influencers", l:<><Star size={12}/> Influencers</>},
-    {k:"historial",l:"Historial"},
-    {k:"cashout",  l:<><Icon name="wallet-cards" size={12}/> Cash out</>},
-    {k:"bonos",    l:<><Gift size={12}/> Bonos</>},
-    {k:"cierres",  l:"Cierres"},
-    {k:"mensajes", l:"Mensajes"},
-    {k:"terminales", l:"Terminales"},
-    {k:"desafios", l:"Desafíos"},
-    {k:"asesor", l:"Asesor"},
-    {k:"soporte",  l:"Soporte"},
-    {k:"config",   l:"Config"},
+    {k:"codigo",   i:<Bot size={12}/>, l:"Código / Bot"},
+    {k:"envivo",   i:<Icon name="circle-dot" size={12}/>, l:"En Vivo"},
+    {k:"manual",   i:<Pencil size={12}/>, l:"Apuesta manual"},
+    {k:"combos",   i:<Zap size={12}/>, l:"Combos IA"},
+    {k:"mejorar",  i:<Icon name="scan-line" size={12}/>, l:"Mejorar"},
+    {k:"clientes", i:<Icon name="users" size={12}/>, l:"Clientes"},
+    {k:"misagencias", i:<Building2 size={12}/>, l:"Mis agencias"},
+    {k:"influencers", i:<Star size={12}/>, l:"Influencers"},
+    {k:"historial",i:<Icon name="clock-3" size={12}/>, l:"Historial"},
+    {k:"cashout",  i:<Icon name="wallet-cards" size={12}/>, l:"Cash out"},
+    {k:"bonos",    i:<Gift size={12}/>, l:"Bonos"},
+    {k:"cierres",  i:<Icon name="chart-no-axes-combined" size={12}/>, l:"Cierres"},
+    {k:"mensajes", i:<Icon name="message-circle" size={12}/>, l:"Mensajes"},
+    {k:"terminales", i:<Monitor size={12}/>, l:"Terminales"},
+    {k:"desafios", i:<Icon name="trophy" size={12}/>, l:"Desafíos"},
+    {k:"asesor", i:<Handshake size={12}/>, l:"Asesor"},
+    {k:"soporte",  i:<Headphones size={12}/>, l:"Soporte"},
+    {k:"config",   i:<Icon name="sliders-horizontal" size={12}/>, l:"Config"},
   ].filter(t=>{
     const perm = agencia.permiso || "ambos";
     if(t.k==="misagencias") return perm==="crea_agencias"||perm==="ambos";
@@ -7981,18 +7972,26 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   });
 
   return(
-    <div style={{background:Q.void,height:"100dvh",
+    <div style={isDesktop ? {
+      background:Q.void,height:"100dvh",overflow:"hidden",
+      fontFamily:"system-ui,-apple-system,sans-serif",
+      display:"grid",gridTemplateColumns:"264px minmax(0,1fr)",
+      gridTemplateRows:"auto 1fr",maxWidth:1600,margin:"0 auto",
+    } : {background:Q.void,height:"100dvh",
       display:"flex",flexDirection:"column",overflow:"hidden",
       fontFamily:"system-ui,-apple-system,sans-serif"}}>
       <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
-      <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
+      <div style={isDesktop ? {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
+        padding:"12px 16px",display:"flex",alignItems:"center",flexShrink:0,
+        justifyContent:"space-between",zIndex:50,overflow:"hidden",minHeight:64,
+        gridColumn:"2",gridRow:"1"} : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"12px 16px",display:"flex",alignItems:"center",flexShrink:0,
         justifyContent:"space-between",zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        <QPLogo size={16}/>
+        <QPLogo size={isDesktop?40:16}/>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
           <button onClick={()=>setVerSaldo(true)} style={{
             background:`${(saldoCC??0)>=0?Q.green:Q.red}18`,
@@ -8015,11 +8014,39 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         </div>
       </div>
 
-      <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
+      <div style={isDesktop ? {
+        background:Q.deep,borderRight:`1px solid ${Q.border}`,
+        padding:`${SPACING[24]}px ${SPACING[12]}px`,display:"flex",
+        flexDirection:"column",alignItems:"stretch",gap:SPACING[8],
+        overflowY:"auto",flexShrink:0,zIndex:40,
+        gridColumn:"1",gridRow:"1 / span 2",position:"sticky",top:0,
+        alignSelf:"start",width:264,height:"100dvh",
+      } : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"8px 12px",display:"flex",gap:SPACING[4],overflowX:"auto",
         flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"}}>
-        {TABS.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={{
+        {isDesktop ? TAB_GROUPS.flatMap((group,gi)=>{
+          const groupTabs = group.keys.map(k=>TABS.find(t=>t.k===k)).filter(Boolean);
+          if(groupTabs.length===0) return [];
+          return [
+            <div key={`group-${group.label}`} style={{
+              marginTop:gi===0?0:SPACING[16],
+              padding:"0 12px",
+              color:Q.dim,fontSize:TEXT[12],fontWeight:700,
+              textTransform:"uppercase",letterSpacing:1,fontFamily:F_BODY,
+            }}>{group.label}</div>,
+            ...groupTabs.map(t=>(
+          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
+            minWidth:0,
+            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
+            border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
+            borderRadius:RADII.md,cursor:"pointer",
+            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
+            fontFamily:F_BODY,
+            position:"relative",
+            width:"100%",minHeight:44,padding:"0 12px",flexShrink:0,
+            display:"flex",alignItems:"center",justifyContent:"flex-start",
+            textAlign:"left",
+          } : {
             background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
             border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
             borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,
@@ -8027,7 +8054,40 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             fontFamily:F_BODY,
             position:"relative",
           }}>
-            {t.l}
+            {t.i}<span style={{marginLeft:SPACING[8]}}>{t.l}</span>
+            {t.k==="mensajes"&&msgPendientes>0&&(
+              <span style={{position:"absolute",top:-4,right:-4,
+                background:Q.red,color:"#fff",borderRadius:RADII.md,
+                minWidth:16,height:16,fontSize:12,fontWeight:800,
+                display:"flex",alignItems:"center",
+                justifyContent:"center",padding:"0 4px",lineHeight:1,
+                fontFamily:F_BODY}}>
+                {msgPendientes>9?"9+":msgPendientes}</span>
+            )}
+          </button>
+            )),
+          ];
+        }) : TABS.map(t=>(
+          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
+            minWidth:0,
+            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
+            border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
+            borderRadius:RADII.md,cursor:"pointer",
+            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
+            fontFamily:F_BODY,
+            position:"relative",
+            width:"100%",minHeight:44,padding:"0 12px",flexShrink:0,
+            display:"flex",alignItems:"center",justifyContent:"flex-start",
+            textAlign:"left",
+          } : {
+            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
+            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
+            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,
+            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
+            fontFamily:F_BODY,
+            position:"relative",
+          }}>
+            {t.i}<span style={{marginLeft:SPACING[8]}}>{t.l}</span>
             {t.k==="mensajes"&&msgPendientes>0&&(
               <span style={{position:"absolute",top:-4,right:-4,
                 background:Q.red,color:"#fff",borderRadius:RADII.md,
@@ -8041,9 +8101,12 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         ))}
       </div>
 
-      <div style={{flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
+      <div style={isDesktop ? {flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
+        WebkitOverflowScrolling:"touch",position:"relative",zIndex:1,
+        gridColumn:"2",gridRow:"2"} : {flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
         WebkitOverflowScrolling:"touch",position:"relative",zIndex:1}}>
-      <div style={{padding:"16px 12px",maxWidth:620,margin:"0 auto",
+      <div style={isDesktop ? {padding:"16px 12px",maxWidth:1100,margin:"0 auto",
+        paddingBottom:"calc(28px + env(safe-area-inset-bottom))"} : {padding:"16px 12px",maxWidth:620,margin:"0 auto",
         paddingBottom:"calc(28px + env(safe-area-inset-bottom))"}}>
         <CazaError>
         {/* Los avisos del admin: arriba de todo y en cualquier
