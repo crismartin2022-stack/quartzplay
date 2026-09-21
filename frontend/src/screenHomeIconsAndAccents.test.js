@@ -54,8 +54,14 @@ describe("ScreenHome draws icons, not emoji", () => {
     expect(body).toMatch(/<Gift\b/);
   });
 
-  test("App.jsx imports those four names from lucide-react, and nothing else changed about the import shape", () => {
-    expect(APP).toMatch(/import\s*\{\s*Video,\s*Handshake,\s*Zap,\s*Gift\s*\}\s*from\s*"lucide-react";/);
+  test("App.jsx imports exactly the lucide names it draws, and nothing more", () => {
+    // Pinned on purpose: every name added here is one more icon set this
+    // file depends on, and the point of the local Icon.jsx is that the
+    // product draws its own. `Image` is aliased because the bare name
+    // shadows the browser global of the same name.
+    expect(APP).toMatch(
+      /import\s*\{\s*Video,\s*Handshake,\s*Zap,\s*Gift,\s*Image as ImageIcon\s*\}\s*from\s*"lucide-react";/
+    );
   });
 });
 

@@ -25,6 +25,8 @@ import path from "path";
 const APP = fs.readFileSync(path.resolve(__dirname, "App.jsx"), "utf8");
 const WEB = fs.readFileSync(path.resolve(__dirname, "Web.jsx"), "utf8");
 const BOX = fs.readFileSync(path.resolve(__dirname, "Box.jsx"), "utf8");
+const AGENCIA = fs.readFileSync(path.resolve(__dirname, "Agencia.jsx"), "utf8");
+const ADMIN = fs.readFileSync(path.resolve(__dirname, "Admin.jsx"), "utf8");
 
 // Same rule as screenHomeIconsAndAccents.test.js: an Extended_Pictographic
 // character with its optional variation selector, skin tone or
@@ -100,5 +102,41 @@ describe("Box.jsx does not gain emoji back", () => {
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
     expect(counts.size).toBeLessThanOrEqual(9);
+  });
+});
+
+describe("Agencia.jsx does not gain emoji back", () => {
+  const counts = emojiCounts(AGENCIA);
+  const total = [...counts.values()].reduce((a, b) => a + b, 0);
+
+  // The exact count the agency slice (T1 + T2) leaves behind, measured
+  // directly from source (docs/icon-inventory.md's 281/73 for this screen
+  // was taken at an earlier revision and no longer matches; this guard
+  // trusts a fresh scan over that document's summary numbers).
+  test("total emoji uses do not rise above what this migration leaves behind", () => {
+    expect(total).toBeLessThanOrEqual(157);
+  });
+
+  test("distinct emoji do not rise above what this migration leaves behind", () => {
+    expect(counts.size).toBeLessThanOrEqual(56);
+  });
+});
+
+describe("Admin.jsx does not gain emoji back", () => {
+  const counts = emojiCounts(ADMIN);
+  const total = [...counts.values()].reduce((a, b) => a + b, 0);
+
+  // The exact count the admin slice (T1 + T2 + T3) leaves behind, measured
+  // directly from source (docs/icon-inventory.md's 503/90 for this screen
+  // was taken at an earlier revision and no longer matches; this guard
+  // trusts a fresh scan over that document's summary numbers). This is
+  // the last screen: with it fixed, every screen in the product has been
+  // through the migration.
+  test("total emoji uses do not rise above what this migration leaves behind", () => {
+    expect(total).toBeLessThanOrEqual(299);
+  });
+
+  test("distinct emoji do not rise above what this migration leaves behind", () => {
+    expect(counts.size).toBeLessThanOrEqual(70);
   });
 });
