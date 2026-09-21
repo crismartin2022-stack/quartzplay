@@ -5509,10 +5509,13 @@ function TabUsuarios({ adminKey, onNoAutorizado }){
   useEffect(()=>{ buscar(""); // eslint-disable-next-line
   },[]);
 
-  if(sel) return <FichaCliente userId={sel} adminKey={adminKey}
-    onCerrar={()=>{setSel(null);buscar(query);}} onCambio={()=>buscar(query)}
-    onNoAutorizado={onNoAutorizado}/>;
-
+  // `sel` used to swap the whole screen for <FichaCliente/> via an early
+  // return, which threw away the list (and whatever the admin had typed
+  // in the search box) the moment it closed. FichaCliente already draws
+  // itself as a fixed-position sheet with its own backdrop and close
+  // button, so it renders as an overlay on top of the list below instead
+  // — closing it needs no re-render of the list, the search text was
+  // never touched.
   return(
     <div>
       <PageHeader icon={<Icon name="users"/>} title="Clientes"
@@ -5537,32 +5540,44 @@ function TabUsuarios({ adminKey, onNoAutorizado }){
         fontFamily:F_BODY}}>Buscando...</div>}
       {!cargando&&lista.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
         padding:SPACING[20],fontFamily:F_BODY}}>Sin clientes</div>}
-      {lista.map(u=>(
-        <GCard key={u.id} onClick={()=>setSel(u.id)}
-          style={{padding:"12px 12px",marginBottom:6,cursor:"pointer"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
-            <div style={{minWidth:0,flex:1}}>
-              <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                fontFamily:F_BODY}}>{u.nombre_completo||u.nombre||u.username}</div>
-              <div style={{color:Q.muted,fontSize:12}}>
-                {u.creado_por==="admin"?<><Icon name="landmark" size={11}/> Admin</>:<><Building2 size={11}/> {u.creado_por||"—"}</>}
-                {u.telefono?` · ${u.telefono}`:""}</div>
+      {/* A side-to-side stacked list read as a spreadsheet on desktop;
+          an auto-fit card grid gives each client room for name, agency
+          and balance without a horizontal scan, and still stacks to one
+          column on a phone with no breakpoint logic. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",
+        gap:SPACING[12]}}>
+        {lista.map(u=>(
+          <GCard key={u.id} onClick={()=>setSel(u.id)}
+            style={{padding:SPACING[12],cursor:"pointer"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{color:Q.text,fontWeight:700,fontSize:13,
+                  fontFamily:F_BODY}}>{u.nombre_completo||u.nombre||u.username}</div>
+                <div style={{color:Q.muted,fontSize:12}}>
+                  {u.creado_por==="admin"?<><Icon name="landmark" size={11}/> Admin</>:<><Building2 size={11}/> {u.creado_por||"—"}</>}
+                  {u.telefono?` · ${u.telefono}`:""}</div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                {/* La conversión de centavos a pesos la hace el backend.
+                    Acá se dividía otra vez, así que un saldo de 2.500 se
+                    mostraba como 25. La regla: convertir en un solo lado. */}
+                <div style={{color:(u.saldo!=null?u.saldo:u.balance||0)>=0?Q.green:Q.red,
+                  fontWeight:700,fontSize:TEXT[15],
+                  fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>
+                  {ars(u.saldo!=null?u.saldo:(u.balance||0))}</div>
+                <div style={{color:Q.muted,fontSize:12}}>saldo ›</div>
+              </div>
             </div>
-            <div style={{textAlign:"right",flexShrink:0}}>
-              {/* La conversión de centavos a pesos la hace el backend.
-                  Acá se dividía otra vez, así que un saldo de 2.500 se
-                  mostraba como 25. La regla: convertir en un solo lado. */}
-              <div style={{color:(u.saldo!=null?u.saldo:u.balance||0)>=0?Q.green:Q.red,
-                fontWeight:700,fontSize:14,
-                fontFamily:F_BODY}}>
-                {ars(u.saldo!=null?u.saldo:(u.balance||0))}</div>
-              <div style={{color:Q.muted,fontSize:12}}>saldo ›</div>
-            </div>
-          </div>
-        </GCard>
-      ))}
+          </GCard>
+        ))}
+      </div>
       {msg&&<div style={{fontSize:12,marginTop:8,color:Q.green,
         fontFamily:F_BODY}}>{msg}</div>}
+
+      {sel&&<FichaCliente userId={sel} adminKey={adminKey}
+        onCerrar={()=>{setSel(null);buscar(query);}} onCambio={()=>buscar(query)}
+        onNoAutorizado={onNoAutorizado}/>}
     </div>
   );
 }
