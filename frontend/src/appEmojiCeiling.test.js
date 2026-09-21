@@ -57,16 +57,16 @@ describe("App.jsx does not gain emoji back", () => {
   const counts = emojiCounts(APP);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
 
-  // The exact count this migration leaves behind, measured directly from
-  // source after T1 and T2 (docs/icon-inventory.md's 137/51 for this
-  // screen was taken at an earlier revision and no longer matches; this
-  // guard trusts a fresh scan over that document's summary numbers).
+  // odd/tasks/finish-icon-migration.md's T1 retired the row rule and
+  // migrated every remaining site but one: the ScreenPrematch sport-list
+  // "Cargando..." fallback, whose icon is backend-supplied data
+  // (`s.icon`/`d.sports[]`), not this file's own literal.
   test("total emoji uses do not rise above what this migration leaves behind", () => {
-    expect(total).toBeLessThanOrEqual(52);
+    expect(total).toBeLessThanOrEqual(1);
   });
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
-    expect(counts.size).toBeLessThanOrEqual(36);
+    expect(counts.size).toBeLessThanOrEqual(1);
   });
 });
 
@@ -74,16 +74,15 @@ describe("Web.jsx does not gain emoji back", () => {
   const counts = emojiCounts(WEB);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
 
-  // The exact count the site slice leaves behind, measured directly from
-  // source after T1 and T2 (docs/icon-inventory.md's 74/38 for this
-  // screen was taken at an earlier revision and no longer matches; this
-  // guard trusts a fresh scan over that document's summary numbers).
+  // odd/tasks/finish-icon-migration.md's T1 retired the row rule: every
+  // remaining emoji in this screen — including the dead, unreferenced
+  // STEPS array — now has a drawn-icon equivalent. Web.jsx is emoji-free.
   test("total emoji uses do not rise above what this migration leaves behind", () => {
-    expect(total).toBeLessThanOrEqual(32);
+    expect(total).toBeLessThanOrEqual(0);
   });
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
-    expect(counts.size).toBeLessThanOrEqual(26);
+    expect(counts.size).toBeLessThanOrEqual(0);
   });
 });
 
@@ -91,17 +90,15 @@ describe("Box.jsx does not gain emoji back", () => {
   const counts = emojiCounts(BOX);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
 
-  // The exact count the site slice leaves behind, measured directly from
-  // source after T2 (docs/icon-inventory.md's 23/21 for this screen was
-  // taken at an earlier revision, before an earlier PR's partial
-  // migration, and no longer matches; this guard trusts a fresh scan over
-  // that document's summary numbers).
+  // odd/tasks/finish-icon-migration.md's T1 retired the row rule and, with
+  // Box.jsx having no canvas/share/print text to carve an exception for,
+  // migrated the screen to zero.
   test("total emoji uses do not rise above what this migration leaves behind", () => {
-    expect(total).toBeLessThanOrEqual(9);
+    expect(total).toBeLessThanOrEqual(0);
   });
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
-    expect(counts.size).toBeLessThanOrEqual(9);
+    expect(counts.size).toBeLessThanOrEqual(0);
   });
 });
 
