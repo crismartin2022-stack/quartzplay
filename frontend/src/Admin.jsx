@@ -60,7 +60,7 @@ function HBadge({ label, color=Q.violet }){
 
 function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=false, disabled=false, icon }){
   const h=size==="lg"?"48px":size==="sm"?"32px":"42px";
-  const fs=size==="lg"?14:size==="sm"?10:12;
+  const fs=size==="lg"?14:size==="sm"?12:12;
   return(
     <button onClick={onClick} disabled={disabled} style={{
       height:h, width:full?"100%":"auto",

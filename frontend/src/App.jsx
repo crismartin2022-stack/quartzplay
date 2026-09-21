@@ -218,7 +218,7 @@ function LiveDot({ color=Q.pink }){
 
 function QBtn({ label, icon, onClick, color=Q.violet, size="md", full=false, outline=false }){
   const h=size==="lg"?"52px":size==="sm"?"32px":"44px";
-  const fs=size==="lg"?16:size==="sm"?11:13;
+  const fs=size==="lg"?16:size==="sm"?12:13;
   return(
     <button onClick={onClick} style={{
       height:h, width:full?"100%":"auto",

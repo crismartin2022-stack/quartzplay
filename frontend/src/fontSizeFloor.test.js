@@ -57,3 +57,30 @@ describe("no fontSize below 12 survives", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// A font size does not have to be written as `fontSize: N` to render below
+// the floor. Three button components compute theirs from a size prop
+// (`const fs = size==="lg"?16:size==="sm"?11:13`), so the literal never
+// appears beside the property name and the matcher above cannot see it.
+// They rendered 10px and 11px text until this slice. Pinned separately
+// rather than by widening the matcher, because the shape is different and a
+// widened pattern would start reading unrelated numbers.
+const SIZE_VARIABLE = /const\s+fs\s*=\s*([^;]+);/g;
+
+describe("a size computed from a prop also respects the floor", () => {
+  test("the matcher finds the computed-size declarations", () => {
+    // Positive control for this shape specifically.
+    const found = SCREENS.flatMap((name) => [...sources[name].matchAll(SIZE_VARIABLE)]);
+    expect(found.length).toBeGreaterThan(0);
+  });
+
+  test.each(SCREENS)("%s computes no font size under 12", (name) => {
+    const offenders = [];
+    for (const [, expression] of sources[name].matchAll(SIZE_VARIABLE)) {
+      for (const [, value] of expression.matchAll(/\b([0-9]+(?:\.[0-9]+)?)\b/g)) {
+        if (Number(value) < 12) offenders.push(`${expression.trim()} -> ${value}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

@@ -266,7 +266,7 @@ function QPLogo({ size=20 }){
 
 function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=false, disabled=false }){
   const h=size==="lg"?"50px":size==="sm"?"34px":"44px";
-  const fs=size==="lg"?15:size==="sm"?11:13;
+  const fs=size==="lg"?15:size==="sm"?12:13;
   return(
     <button onClick={onClick} disabled={disabled} style={{
       height:h, width:full?"100%":"auto",
