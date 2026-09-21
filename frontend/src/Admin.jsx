@@ -14393,7 +14393,13 @@ function AdminPanel({ adminKey, onLogout }){
         justifyContent:"space-between",position:"sticky",top:0,zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        <QPLogo size={isDesktop?40:16}/>
+        <div style={{display:"flex",alignItems:"center",gap:SPACING[12],minWidth:0}}>
+          <QPLogo size={isDesktop?40:16}/>
+          {isDesktop&&<span style={{color:Q.dim,fontSize:TEXT[20],
+            fontWeight:300,lineHeight:1,fontFamily:F_BODY}}>|</span>}
+          {isDesktop&&<span style={{color:Q.muted,fontSize:TEXT[14],fontWeight:600,
+            whiteSpace:"nowrap",fontFamily:F_BODY}}>Panel Administrador</span>}
+        </div>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
           <HBadge label="ADMIN" color={Q.violet}/>
           <button onClick={onLogout} style={{background:"transparent",

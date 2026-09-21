@@ -8033,24 +8033,24 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   },[]);
 
   const TABS=[
-    {k:"codigo",   i:<Bot size={12}/>, l:"Código / Bot"},
-    {k:"envivo",   i:<Icon name="circle-dot" size={12}/>, l:"En Vivo"},
-    {k:"manual",   i:<Pencil size={12}/>, l:"Apuesta manual"},
-    {k:"combos",   i:<Zap size={12}/>, l:"Combos IA"},
-    {k:"mejorar",  i:<Icon name="scan-line" size={12}/>, l:"Mejorar"},
-    {k:"clientes", i:<Icon name="users" size={12}/>, l:"Clientes"},
-    {k:"misagencias", i:<Building2 size={12}/>, l:"Mis agencias"},
-    {k:"influencers", i:<Star size={12}/>, l:"Influencers"},
-    {k:"historial",i:<Icon name="clock-3" size={12}/>, l:"Historial"},
-    {k:"cashout",  i:<Icon name="wallet-cards" size={12}/>, l:"Cash out"},
-    {k:"bonos",    i:<Gift size={12}/>, l:"Bonos"},
-    {k:"cierres",  i:<Icon name="chart-no-axes-combined" size={12}/>, l:"Cierres"},
-    {k:"mensajes", i:<Icon name="message-circle" size={12}/>, l:"Mensajes"},
-    {k:"terminales", i:<Monitor size={12}/>, l:"Terminales"},
-    {k:"desafios", i:<Icon name="trophy" size={12}/>, l:"Desafíos"},
-    {k:"asesor", i:<Handshake size={12}/>, l:"Asesor"},
-    {k:"soporte",  i:<Headphones size={12}/>, l:"Soporte"},
-    {k:"config",   i:<Icon name="sliders-horizontal" size={12}/>, l:"Config"},
+    {k:"codigo",   i:<Bot size={17}/>, l:"Código / Bot"},
+    {k:"envivo",   i:<Icon name="circle-dot" size={17}/>, l:"En Vivo"},
+    {k:"manual",   i:<Pencil size={17}/>, l:"Apuesta manual"},
+    {k:"combos",   i:<Zap size={17}/>, l:"Combos IA"},
+    {k:"mejorar",  i:<Icon name="scan-line" size={17}/>, l:"Mejorar"},
+    {k:"clientes", i:<Icon name="users" size={17}/>, l:"Clientes"},
+    {k:"misagencias", i:<Building2 size={17}/>, l:"Mis agencias"},
+    {k:"influencers", i:<Star size={17}/>, l:"Influencers"},
+    {k:"historial",i:<Icon name="clock-3" size={17}/>, l:"Historial"},
+    {k:"cashout",  i:<Icon name="wallet-cards" size={17}/>, l:"Cash out"},
+    {k:"bonos",    i:<Gift size={17}/>, l:"Bonos"},
+    {k:"cierres",  i:<Icon name="chart-no-axes-combined" size={17}/>, l:"Cierres"},
+    {k:"mensajes", i:<Icon name="message-circle" size={17}/>, l:"Mensajes"},
+    {k:"terminales", i:<Monitor size={17}/>, l:"Terminales"},
+    {k:"desafios", i:<Icon name="trophy" size={17}/>, l:"Desafíos"},
+    {k:"asesor", i:<Handshake size={17}/>, l:"Asesor"},
+    {k:"soporte",  i:<Headphones size={17}/>, l:"Soporte"},
+    {k:"config",   i:<Icon name="sliders-horizontal" size={17}/>, l:"Config"},
   ].filter(t=>{
     const perm = agencia.permiso || "ambos";
     if(t.k==="misagencias") return perm==="crea_agencias"||perm==="ambos";
@@ -8078,17 +8078,26 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         justifyContent:"space-between",zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        <QPLogo size={isDesktop?40:16}/>
+        <div style={{display:"flex",alignItems:"center",gap:SPACING[12],minWidth:0}}>
+          <QPLogo size={isDesktop?40:16}/>
+          {isDesktop&&<span style={{color:Q.dim,fontSize:TEXT[20],
+            fontWeight:300,lineHeight:1,fontFamily:F_BODY}}>|</span>}
+          {isDesktop&&<span style={{color:Q.muted,fontSize:TEXT[14],fontWeight:600,
+            whiteSpace:"nowrap",fontFamily:F_BODY}}>Panel de Agencia</span>}
+        </div>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
           <button onClick={()=>setVerSaldo(true)} style={{
             background:`${(saldoCC??0)>=0?Q.green:Q.red}18`,
             border:`1px solid ${(saldoCC??0)>=0?Q.green:Q.red}66`,
-            borderRadius:RADII.md,padding:"4px 12px",cursor:"pointer",textAlign:"right"}}>
-            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
-              letterSpacing:1,fontFamily:F_BODY}}>Saldo</div>
-            <div style={{color:(saldoCC??0)>=0?Q.green:Q.red,fontWeight:800,fontSize:13,
-              fontFamily:F_BODY}}>
-              {saldoCC==null?"...":ars(saldoCC)}</div>
+            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",
+            display:"flex",alignItems:"baseline",gap:SPACING[8],
+            whiteSpace:"nowrap"}}>
+            <span style={{color:Q.muted,fontSize:TEXT[12],textTransform:"uppercase",
+              letterSpacing:1,fontFamily:F_BODY}}>Saldo</span>
+            <span style={{color:(saldoCC??0)>=0?Q.green:Q.red,fontWeight:800,
+              fontSize:TEXT[20],fontFamily:F_MONO,
+              fontVariantNumeric:"tabular-nums"}}>
+              {saldoCC==null?"...":ars(saldoCC)}</span>
           </button>
           <div style={{textAlign:"right"}}>
             <div style={{color:Q.text,fontSize:12,fontWeight:600,
@@ -8131,8 +8140,9 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             fontFamily:F_BODY,
             position:"relative",
             width:"100%",minHeight:44,padding:"0 12px",flexShrink:0,
-            display:"flex",alignItems:"center",justifyContent:"flex-start",
-            textAlign:"left",
+            display:"flex",flexDirection:"row",alignItems:"center",
+            justifyContent:"flex-start",gap:SPACING[12],
+            textAlign:"left",overflow:"visible",
           } : {
             background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
             border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
@@ -8141,7 +8151,16 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             fontFamily:F_BODY,
             position:"relative",
           }}>
-            {t.i}<span style={{marginLeft:SPACING[8]}}>{t.l}</span>
+            {/* Same treatment as admin's sidebar, down to the icon's glow
+                and the uppercase label: two panels of one product should
+                not have two different menus. */}
+            <span style={isDesktop ? {fontSize:17,position:"relative",
+              filter:tab===t.k?`drop-shadow(0 0 6px ${Q.cyan})`:"none"} : undefined}>{t.i}</span>
+            <span style={isDesktop ? {color:tab===t.k?Q.cyan:Q.muted,fontSize:TEXT[12],
+              fontWeight:tab===t.k?700:400,maxWidth:"100%",
+              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+              fontFamily:F_BODY,letterSpacing:0.3,
+              textTransform:"uppercase"} : {marginLeft:SPACING[8]}}>{t.l}</span>
             {t.k==="mensajes"&&msgPendientes>0&&(
               <span style={{position:"absolute",top:-4,right:-4,
                 background:Q.red,color:"#fff",borderRadius:RADII.md,
