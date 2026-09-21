@@ -107,21 +107,42 @@ the admin looks at most.
 
 ## Tasks
 
-- [ ] **T1** — `PageHeader` component + a test that it renders title,
+- [x] **T1** — `PageHeader` component + a test that it renders title,
       description and action, and that it uses the theme tokens rather than
       hardcoded numbers.
-- [ ] **T2** — Agencia: 13 replacements, 5 additions.
+      `frontend/src/PageHeader.jsx`, `frontend/src/PageHeader.test.js`.
+      Commit `4bce08d`.
+- [x] **T2** — Agencia: 13 replacements, 5 additions.
+      `frontend/src/Agencia.jsx`. Commit `074998d`.
+      All 13 traps/edge cases held: `SoporteAgencia`'s real `return(` at
+      4409 (not the `useEffect` cleanup at 4305), `CombosIA`/`EnVivo`/
+      `FlujoManual`'s early sub-view returns left untouched (header went on
+      the opening-state return only), `codigo`/`config`'s in-card headings
+      left as card titles with the page header added above them,
+      `MensajesAgencia`'s fixed chat-viewport height adjusted from
+      `calc(100dvh - 230px)` to `calc(100dvh - 223px)` (PageHeader's fixed
+      spacing is 7px taller than the old title/desc margins: 4+16=20 vs
+      3+10=13) so the visible chat area is unchanged.
+      10 descriptions written (5 additions + 5 previously title-only tabs):
+      see report for the exact Spanish copy.
+      Tests: 828/828 passed (51 suites, up from 813/50 — T1 added its own
+      suite). Build: `Compiled successfully`.
 - [ ] **T3** — Admin: 7 replacements, 3 additions, `global` untouched.
 - [ ] **T4** — A guard that no tab component still hand-rolls the
       `fontWeight:700,fontSize:15` title pattern outside `PageHeader`.
 
 Delivery: T1+T2 in one PR, T3+T4 in the next. The two files are large enough
-that one PR would pass the review budget.
+that one PR would pass the review budget. T1+T2 are done; T3+T4 are a
+separate unit, not started.
 
 ## Acceptance
 
 - Every tab still reachable and rendering; no duplicated title anywhere.
-- `global` visibly unchanged.
-- Chat viewport height unchanged on `mensajes`.
-- Existing tests still pass; T1 and T4 add their own.
-- `CI=true ... npm run build` → `Compiled successfully`.
+  (T2: verified by reading each replaced/added return block; no renderer
+  available in this repo, so this is a structural/source check, not a
+  screenshot.)
+- `global` visibly unchanged. (T3, not yet done.)
+- Chat viewport height unchanged on `mensajes`. Done — see T2 note above.
+- Existing tests still pass; T1 and T4 add their own. T1's test added;
+  T4 not yet done.
+- `CI=true ... npm run build` → `Compiled successfully`. Confirmed for T1+T2.
