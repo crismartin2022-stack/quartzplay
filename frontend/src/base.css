@@ -1,0 +1,26 @@
+/* The document's own baseline, for the things the browser colours itself.
+ *
+ * `index.js` sets `document.body.style.color`, and that reaches almost
+ * everything — but not a <button>, a <label> or a form control. Those carry a
+ * user-agent colour of their own (`buttontext`, near-black), so the document's
+ * colour never gets there and anything inside them that relies on inheriting
+ * it renders black on a near-black background.
+ *
+ * That is exactly what happened to the admin panel's bottom navigation: each
+ * item's label declared its own colour and was visible, while the icon beside
+ * it declared none and disappeared. 25 controls across the product hold an
+ * icon with no colour of its own and were relying on inheritance that a
+ * button never delivers.
+ *
+ * One rule instead of 25 patches. A control that declares its own colour —
+ * inline or otherwise — still wins, so nothing that already looks right
+ * changes.
+ *
+ * Form fields are deliberately left out: an input or a select may sit on a
+ * light background of its own, and forcing them to inherit would be a
+ * different bug in the opposite direction.
+ */
+button,
+label {
+  color: inherit;
+}
