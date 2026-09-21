@@ -49,7 +49,7 @@ class CazaError extends Component {
   }
 }
 
-import { oscuro as Q, F_BODY, RADII, SPACING } from "./theme";
+import { oscuro as Q, F_BODY, RADII, SPACING, TEXT } from "./theme";
 
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 
@@ -7911,6 +7911,19 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
   );
 }
 
+// Desktop-only grouping of AgenciaPanel's TABS for the sidebar menu.
+// Approved grouping: odd/tasks/sidebar-groups.md. Every key here must
+// also be a key in TABS below (sidebarGroupKeysMatchTabs.test.js guards
+// that pairing). Below 1024px the mobile row still renders straight
+// from the flat TABS array, unaffected by this grouping.
+const TAB_GROUPS = [
+  { label: "Vender", keys: ["codigo", "envivo", "manual", "combos", "mejorar"] },
+  { label: "Clientes", keys: ["clientes", "influencers", "desafios", "mensajes"] },
+  { label: "Red", keys: ["misagencias", "terminales", "asesor"] },
+  { label: "Dinero", keys: ["cashout", "bonos", "cierres", "historial"] },
+  { label: "Cuenta", keys: ["soporte", "config"] },
+];
+
 function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   const [tab,setTab]=useState("codigo");
   const [saldoCC,setSaldoCC]=useState(null);
@@ -8037,7 +8050,50 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
       } : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"8px 12px",display:"flex",gap:SPACING[4],overflowX:"auto",
         flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"}}>
-        {TABS.map(t=>(
+        {isDesktop ? TAB_GROUPS.flatMap((group,gi)=>{
+          const groupTabs = group.keys.map(k=>TABS.find(t=>t.k===k)).filter(Boolean);
+          if(groupTabs.length===0) return [];
+          return [
+            <div key={`group-${group.label}`} style={{
+              marginTop:gi===0?0:SPACING[16],
+              padding:"0 12px",
+              color:Q.dim,fontSize:TEXT[12],fontWeight:700,
+              textTransform:"uppercase",letterSpacing:1,fontFamily:F_BODY,
+            }}>{group.label}</div>,
+            ...groupTabs.map(t=>(
+          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
+            minWidth:0,
+            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
+            border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
+            borderRadius:RADII.md,cursor:"pointer",
+            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
+            fontFamily:F_BODY,
+            position:"relative",
+            width:"100%",minHeight:44,padding:"0 12px",flexShrink:0,
+            display:"flex",alignItems:"center",justifyContent:"flex-start",
+            textAlign:"left",
+          } : {
+            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
+            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
+            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,
+            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
+            fontFamily:F_BODY,
+            position:"relative",
+          }}>
+            {t.i}<span style={{marginLeft:SPACING[8]}}>{t.l}</span>
+            {t.k==="mensajes"&&msgPendientes>0&&(
+              <span style={{position:"absolute",top:-4,right:-4,
+                background:Q.red,color:"#fff",borderRadius:RADII.md,
+                minWidth:16,height:16,fontSize:12,fontWeight:800,
+                display:"flex",alignItems:"center",
+                justifyContent:"center",padding:"0 4px",lineHeight:1,
+                fontFamily:F_BODY}}>
+                {msgPendientes>9?"9+":msgPendientes}</span>
+            )}
+          </button>
+            )),
+          ];
+        }) : TABS.map(t=>(
           <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
             minWidth:0,
             background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
