@@ -54,7 +54,11 @@ describe("Web.jsx's plain-text empty states carry the mascot", () => {
 
 describe("the mascot in an empty state is decorative", () => {
   test("App.jsx imports Mascot", () => {
-    expect(APP).toMatch(/import Mascot from ["']\.\/Mascot["'];?/);
+    // App.jsx also takes the named MASCOT_FACE_ASSET from this module, for
+    // the bot's avatar in the conversation. The default import is what this
+    // test is about, so the pattern allows the named list beside it rather
+    // than pinning the whole line.
+    expect(APP).toMatch(/import Mascot(?:,\s*\{[^}]*\})? from ["']\.\/Mascot["'];?/);
   });
   test("Web.jsx imports Mascot", () => {
     expect(WEB).toMatch(/import Mascot from ["']\.\/Mascot["'];?/);
