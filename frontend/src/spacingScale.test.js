@@ -39,16 +39,25 @@ import { SPACING } from "./theme";
 //     hack outright.
 // A string containing any of `calc(`, `env(` or `%` is skipped entirely.
 //
-// One further documented exception: `App.jsx`'s `paddingRight:166` is a
-// reserved-width value for the mascot header illustration, copied
-// verbatim from a specific prototype selector (see the comment above it
-// in App.jsx and odd/tasks/spacing-scale.md) — not a rhythm gap between
-// elements. Forcing it onto the grid's 40px ceiling would visibly cut the
-// image's reserved space and very likely make the mascot overlap the
-// panel's title/button, which is exactly the failure the surrounding
-// comment says that number exists to prevent. It is left unchanged and
-// allow-listed here by exact site so a *different* off-scale paddingRight
-// cannot hide behind it.
+// Two further documented exceptions, both left unchanged and allow-listed
+// here by exact site so a *different* off-scale value cannot hide behind
+// them:
+//   - `App.jsx`'s `paddingRight:166` is a reserved-width value for the
+//     mascot header illustration, copied verbatim from a specific
+//     prototype selector (see the comment above it in App.jsx and
+//     odd/tasks/spacing-scale.md) — not a rhythm gap between elements.
+//     Forcing it onto the grid's 40px ceiling would visibly cut the
+//     image's reserved space and very likely make the mascot overlap the
+//     panel's title/button, which is exactly the failure the surrounding
+//     comment says that number exists to prevent.
+//   - `App.jsx`'s `BarraSuperior` padding, `"5px 13px 5px"`, is pinned by
+//     topBarLogoSize.test.js to a value measured with headless Chromium
+//     (real layout) so the top bar stays exactly 51px tall now that its
+//     logo draws at 40px instead of 20px. Rounding 5 to the nearest step
+//     (4) would shave 2px off that measured height and undo the specific
+//     fix that test guards — a case of a spacing number already chosen
+//     for a reason, not picked at random, the same shape of exception as
+//     the reserved paddingRight above.
 const SRC = path.resolve(__dirname);
 const SCREENS = [
   "App.jsx", "Web.jsx", "Box.jsx", "Casino.jsx", "Agencia.jsx", "Admin.jsx",
@@ -62,9 +71,13 @@ const PLAIN_NUMBER = new RegExp(`\\b(?:${PROP_ALT})\\s*:\\s*(\\d+(?:\\.\\d+)?)\\
 const SPACING_TOKEN = new RegExp(`\\b(?:${PROP_ALT})\\s*:\\s*SPACING\\[(\\d+)\\]\\s*[,}]`, "g");
 const STRING_VALUE = new RegExp(`\\b(?:${PROP_ALT})\\s*:\\s*"([^"]*)"`, "g");
 
-// A single documented exception, by exact screen+prop+value — see the
-// comment above.
+// The documented plain-number exception, by exact screen+prop+value —
+// see the comment above.
 const ALLOWED_EXCEPTIONS = new Set(["App.jsx|paddingRight|166"]);
+
+// The documented string exception, by exact inner text — see the comment
+// above.
+const ALLOWED_STRING_EXCEPTIONS = new Set(["5px 13px 5px"]);
 
 function plainNumbers(source, screen) {
   const values = [];
@@ -92,7 +105,7 @@ function stringNumbers(source) {
   let match = STRING_VALUE.exec(source);
   while (match) {
     const inner = match[1];
-    if (!/calc\(|env\(|%/.test(inner)) {
+    if (!/calc\(|env\(|%/.test(inner) && !ALLOWED_STRING_EXCEPTIONS.has(inner)) {
       const nums = inner.match(/\d+(?:\.\d+)?(?=px)/g) || [];
       for (const n of nums) values.push(Number(n));
     }

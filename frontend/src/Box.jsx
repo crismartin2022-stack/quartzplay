@@ -206,7 +206,7 @@ function DesafiosBox({ agenciaCode }){
   return(
     <div style={{background:`linear-gradient(135deg,${Q.gold}14,${Q.violet}0D)`,
       border:`1px solid ${Q.gold}44`,borderRadius:RADII.lg,
-      padding:"13px 15px",marginBottom:12}}>
+      padding:"12px 16px",marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",
         alignItems:"center",marginBottom:7}}>
         <span style={{color:Q.gold,fontSize:12,fontWeight:800,
@@ -277,7 +277,7 @@ function QRTerminal({ agenciaCode }){
       style={{position:"fixed",right:14,
         bottom:"calc(14px + env(safe-area-inset-bottom))",zIndex:70,
         background:"rgba(10,10,22,.92)",border:`1px solid ${Q.border}`,
-        borderRadius:RADII.lg,padding:"10px 12px",cursor:"pointer",
+        borderRadius:RADII.lg,padding:"12px 12px",cursor:"pointer",
         display:"flex",alignItems:"center",gap:SPACING[12],
         backdropFilter:"blur(8px)",maxWidth:230}}>
       <img alt="QR" src={qr(120)}
@@ -329,7 +329,7 @@ function AvisosBanner({ destino, agenciaCode }){
 
   return(
     <div style={{background:`${c}12`,border:`1px solid ${c}44`,
-      borderRadius:RADII.md,padding:"10px 12px",marginBottom:10,
+      borderRadius:RADII.md,padding:"12px 12px",marginBottom:10,
       display:"flex",alignItems:"flex-start",gap:SPACING[8]}}>
       <div style={{minWidth:0,flex:1}}>
         <div style={{color:c,fontWeight:700,fontSize:12}}>{a.titulo}</div>
@@ -404,14 +404,14 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
           {pick.candidatos.map((ev,ci)=>(
             <div key={ci} style={{background:`${Q.amber}0E`,
               border:`1px solid ${Q.amber}44`,borderRadius:RADII.md,
-              padding:"8px 10px",marginBottom:6}}>
+              padding:"8px 12px",marginBottom:6}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:5,
                 fontFamily:F_BODY}}>{ev.home} vs {ev.away}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:SPACING[4]}}>
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:ov(0.05),border:`1px solid ${Q.border}`,
-                    borderRadius:RADII.sm,padding:"5px 9px",cursor:"pointer",
+                    borderRadius:RADII.sm,padding:"4px 8px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
@@ -426,12 +426,12 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
         <button onClick={()=>setModo("seleccion")} style={{flex:1,
           background:modo==="seleccion"?`${Q.violet}33`:ov(0.04),
           border:`1px solid ${modo==="seleccion"?Q.violet:Q.border}`,borderRadius:RADII.md,
-          padding:"7px",cursor:"pointer",color:modo==="seleccion"?Q.cyan:Q.muted,
+          padding:"8px",cursor:"pointer",color:modo==="seleccion"?Q.cyan:Q.muted,
           fontSize:12,fontWeight:700}}>Cambiar selección</button>
         <button onClick={()=>setModo("partido")} style={{flex:1,
           background:modo==="partido"?`${Q.violet}33`:ov(0.04),
           border:`1px solid ${modo==="partido"?Q.violet:Q.border}`,borderRadius:RADII.md,
-          padding:"7px",cursor:"pointer",color:modo==="partido"?Q.cyan:Q.muted,
+          padding:"8px",cursor:"pointer",color:modo==="partido"?Q.cyan:Q.muted,
           fontSize:12,fontWeight:700}}>Otro partido</button>
       </div>
 
@@ -443,7 +443,7 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
             <button key={k} onClick={()=>elegirOpcion(op)} style={{width:"100%",
               display:"flex",justifyContent:"space-between",alignItems:"center",
               background:ov(0.04),border:`1px solid ${Q.border}`,
-              borderRadius:RADII.md,padding:"9px 12px",marginBottom:5,cursor:"pointer"}}>
+              borderRadius:RADII.md,padding:"8px 12px",marginBottom:5,cursor:"pointer"}}>
               <span style={{color:Q.text,fontSize:12}}>{op.sel}</span>
               <span style={{color:Q.cyan,fontWeight:700,fontSize:13}}>{fmt(op.odd)}</span>
             </button>
@@ -458,23 +458,23 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
               onKeyDown={e=>e.key==="Enter"&&buscarEventos()}
               placeholder="Nombre del equipo..."
               style={{flex:1,background:ov(0.05),
-                border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
                 color:Q.text,fontSize:14}}/>
             <button onClick={buscarEventos} style={{background:`${Q.violet}33`,
-              border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"0 14px",
+              border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"0 16px",
               cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700}}>
               {buscando?"...":"Buscar"}</button>
           </div>
           {encontrados.map((ev,k)=>(
             <div key={k} style={{background:ov(0.03),
-              border:`1px solid ${Q.dim}`,borderRadius:RADII.md,padding:"8px 10px",marginBottom:6}}>
+              border:`1px solid ${Q.dim}`,borderRadius:RADII.md,padding:"8px 12px",marginBottom:6}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:6}}>
                 {ev.home} vs {ev.away}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:SPACING[4]}}>
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:ov(0.05),border:`1px solid ${Q.border}`,
-                    borderRadius:RADII.sm,padding:"5px 9px",cursor:"pointer",
+                    borderRadius:RADII.sm,padding:"4px 8px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:600}}>
                     {op.sel} · {fmt(op.odd)}</button>
                 ))}
@@ -488,7 +488,7 @@ function CorregirPickBox({ pick, onAplicar, onQuitar }){
         <input value={ajuste} onChange={e=>setAjuste(e.target.value)}
           placeholder="Cuota a mano (opcional)" inputMode="decimal"
           style={{flex:1,background:ov(0.05),
-            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 10px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
             color:Q.text,fontSize:13}}/>
         <button onClick={onQuitar} style={{background:`${Q.pink}18`,
           border:`1px solid ${Q.pink}`,borderRadius:RADII.md,padding:"8px 12px",
@@ -872,7 +872,7 @@ export default function Box(){
           {picks.length>0&&(
             <button onClick={mantenerSelecciones} style={{width:"100%",
               background:`${Q.violet}22`,border:`1px solid ${Q.violet}`,
-              borderRadius:RADII.lg,padding:"15px",cursor:"pointer",
+              borderRadius:RADII.lg,padding:"16px",cursor:"pointer",
               color:Q.cyan,fontWeight:700,fontSize:15,marginBottom:10}}>
               🔁 Mantener selecciones ({picks.length})
             </button>
@@ -932,7 +932,7 @@ export default function Box(){
             background: bb ? (on?`linear-gradient(145deg,#FFE07A,${Q.goldBg})`:`${Q.gold}1A`)
                            : (on?Q.violet:Q.inset),
             border:`1px solid ${bb?Q.gold:(on?Q.violet:Q.border)}`,borderRadius:RADII.md,
-            padding:"12px 6px",cursor:"pointer",
+            padding:"12px 8px",cursor:"pointer",
             color: bb ? (on?"#1A1200":Q.gold) : (on?"#fff":Q.muted),
             fontSize:14,fontWeight:on||bb?700:500,fontFamily:F_BODY,
             display:"flex",alignItems:"center",justifyContent:"center",gap:SPACING[8]}}>
@@ -950,7 +950,7 @@ export default function Box(){
       </div>
 
       {/* Cuerpo scroll */}
-      <div style={{flex:1,overflowY:"auto",padding:"16px 20px 120px",
+      <div style={{flex:1,overflowY:"auto",padding:"16px 20px 40px",
         maxWidth:720,margin:"0 auto",width:"100%"}}>
 
         {/* ── SECCIÓN COMBOS ── */}
@@ -985,7 +985,7 @@ export default function Box(){
                 </div>
                 {combo.picks.slice(0,4).map((p,i)=>(
                   <div key={i} style={{display:"flex",justifyContent:"space-between",
-                    padding:"5px 0",gap:SPACING[8],fontSize:12}}>
+                    padding:"4px 0",gap:SPACING[8],fontSize:12}}>
                     <span style={{color:Q.muted,overflow:"hidden",
                       textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       {p.h} vs {p.a} · {p.sel}</span>
@@ -1022,7 +1022,7 @@ export default function Box(){
                     color:Q.text,fontSize:20,fontWeight:700,letterSpacing:2}}/>
                 <button onClick={consultarCO} disabled={!coCode||coProc}
                   style={{background:`${Q.gold}33`,border:`1.5px solid ${Q.gold}`,
-                    borderRadius:RADII.md,padding:"0 18px",color:Q.gold,fontWeight:700,
+                    borderRadius:RADII.md,padding:"0 20px",color:Q.gold,fontWeight:700,
                     fontSize:14,cursor:"pointer"}}>{coProc?"...":"VER"}</button>
               </div>
             )}
@@ -1070,13 +1070,13 @@ export default function Box(){
                     <div style={{color:Q.muted,fontSize:13,marginBottom:10}}>
                       Mostrá este código en la caja para cobrar en efectivo:</div>
                     <div style={{background:ov(0.06),border:`1px solid ${Q.gold}`,
-                      borderRadius:RADII.lg,padding:"14px",color:Q.gold,fontWeight:900,fontSize:26,
+                      borderRadius:RADII.lg,padding:"16px",color:Q.gold,fontWeight:900,fontSize:26,
                       letterSpacing:3}}>{coHecho.code}</div>
                   </div>
                 )}
                 <button onClick={()=>{setCoHecho(null);setCoCode("");setCoValor(null);}}
                   style={{marginTop:16,background:`${Q.violet}22`,border:`1px solid ${Q.violet}`,
-                    borderRadius:RADII.md,padding:"10px 24px",color:Q.violet2||Q.violet,
+                    borderRadius:RADII.md,padding:"12px 24px",color:Q.violet2||Q.violet,
                     fontWeight:700,fontSize:13,cursor:"pointer"}}>Listo</button>
               </div>
             )}
@@ -1107,7 +1107,7 @@ export default function Box(){
             )}
             <div style={{display:"flex",gap:SPACING[12],marginBottom:10}}>
               <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:RADII.lg,
-                padding:"22px 12px",textAlign:"center",cursor:"pointer"}}>
+                padding:"24px 12px",textAlign:"center",cursor:"pointer"}}>
                 <input type="file" accept="image/*" capture="environment"
                   onChange={elegirImg} style={{display:"none"}}/>
                 <div style={{fontSize:26,marginBottom:5}}>
@@ -1115,7 +1115,7 @@ export default function Box(){
                 <div style={{fontWeight:700,fontSize:12}}>Sacar foto</div>
               </label>
               <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:RADII.lg,
-                padding:"22px 12px",textAlign:"center",cursor:"pointer"}}>
+                padding:"24px 12px",textAlign:"center",cursor:"pointer"}}>
                 <input type="file" accept="image/*" multiple onChange={elegirImg}
                   style={{display:"none"}}/>
                 <div style={{fontSize:26,marginBottom:5}}>🖼️</div>
@@ -1126,7 +1126,7 @@ export default function Box(){
             {imgsMejora.length>0&&(
               <button onClick={analizarImg} disabled={analizando} style={{width:"100%",
                 background:analizando?ov(0.06):`linear-gradient(135deg,${Q.cyan},${Q.violet})`,
-                border:"none",borderRadius:RADII.lg,padding:"14px",marginBottom:4,
+                border:"none",borderRadius:RADII.lg,padding:"16px",marginBottom:4,
                 cursor:analizando?"wait":"pointer",color:analizando?Q.muted:"#fff",
                 fontWeight:700,fontSize:14}}>
                 {analizando?"Leyendo...":<><Icon name="search" size={15}/>{` Analizar ${imgsMejora.length} foto${imgsMejora.length>1?"s":""}`}</>}</button>
@@ -1141,7 +1141,7 @@ export default function Box(){
                 </div>
                 {resMejora.faltan_picks&&(
                   <div style={{background:`${Q.pink}12`,border:`1px solid ${Q.pink}66`,
-                    borderRadius:RADII.md,padding:"9px 11px",marginBottom:10,color:Q.pink,
+                    borderRadius:RADII.md,padding:"8px 12px",marginBottom:10,color:Q.pink,
                     fontSize:12,lineHeight:1.4}}>
                     <Icon name="triangle-alert" size={13}/> El cupón marca cuota {fmt(resMejora.total_odd_cupon)} pero con lo
                     leído no llegamos. Falta algún partido — agregá otra foto.
@@ -1168,7 +1168,7 @@ export default function Box(){
                     <button onClick={()=>setCorrigiendo(corrigiendo===i?null:i)} style={{
                       marginTop:8,background:corrigiendo===i?`${Q.cyan}22`:"transparent",
                       border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:RADII.md,
-                      padding:"6px 12px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
+                      padding:"8px 12px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
                       fontSize:12,fontWeight:700}}>
                       {corrigiendo===i?"✕ Cerrar":"✏️ Está mal / Corregir"}</button>
                     {corrigiendo===i&&(
@@ -1182,7 +1182,7 @@ export default function Box(){
                 {resMejora.picks_ok>0&&(
                   <button onClick={cargarMejora} style={{width:"100%",marginTop:6,
                     background:`linear-gradient(135deg,${Q.green},#00a854)`,
-                    border:"none",borderRadius:RADII.lg,padding:"14px",cursor:"pointer",
+                    border:"none",borderRadius:RADII.lg,padding:"16px",cursor:"pointer",
                     color:"#04120a",fontWeight:900,fontSize:14}}>
                     Cargar {resMejora.picks_ok} selecciones · {fmt(resMejora.cuota_total)}x</button>
                 )}
@@ -1199,7 +1199,7 @@ export default function Box(){
 
         {bbFeature.activo&&(
           <div style={{background:`${Q.violet}12`,border:`1px solid ${Q.violet}55`,borderRadius:RADII.md,
-            padding:"9px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:SPACING[8]}}>
+            padding:"8px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:SPACING[8]}}>
             <span style={{fontSize:16}}>🛠️</span>
             <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
               <b style={{color:Q.violet}}>Bet Builder activo</b> · combiná hasta {bbFeature.max_picks||4} mercados del mismo partido</div>
@@ -1227,7 +1227,7 @@ export default function Box(){
             cliente identificado. */}
         {picks.length===0&&deportes&&deportes.length>0&&(
           <div style={{background:ov(0.04),border:`1px solid ${Q.border}`,
-            borderRadius:RADII.lg,padding:"12px 14px",marginBottom:10}}>
+            borderRadius:RADII.lg,padding:"12px 16px",marginBottom:10}}>
             <div style={{color:Q.text,fontSize:13.5,fontWeight:700,
               marginBottom:3}}>🎲 Armar combinada</div>
             <div style={{color:Q.muted,fontSize:12,marginBottom:9,
@@ -1241,7 +1241,7 @@ export default function Box(){
                   disabled={genProc||(genCupo&&genCupo.quedan<=0)}
                   style={{flex:1,background:ov(0.05),
                     border:`1px solid ${Q.border}`,borderRadius:RADII.md,
-                    padding:"11px 4px",cursor:"pointer",
+                    padding:"12px 4px",cursor:"pointer",
                     color:(genCupo&&genCupo.quedan<=0)?Q.dim:Q.cyan,
                     fontSize:12,fontWeight:600}}>
                   {genProc?"…":l}</button>
@@ -1314,7 +1314,7 @@ export default function Box(){
                       style={{flex:1,minWidth:0,
                         background:sel?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:ov(0.04),
                         border:`2px solid ${sel?Q.cyan:Q.border}`,borderRadius:RADII.lg,
-                        padding:"12px 6px",cursor:"pointer",textAlign:"center"}}>
+                        padding:"12px 8px",cursor:"pointer",textAlign:"center"}}>
                       <div style={{color:Q.muted,fontSize:12,overflow:"hidden",
                         textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt.label}</div>
                       <div style={{color:sel?Q.cyan:Q.text,fontWeight:700,
@@ -1347,7 +1347,7 @@ export default function Box(){
                 <button key={v} onClick={()=>setMonto(v)} style={{flex:1,
                   background:monto===v?`${Q.violet}33`:ov(0.04),
                   border:`1px solid ${monto===v?Q.violet:Q.border}`,borderRadius:RADII.md,
-                  padding:"10px 4px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
+                  padding:"12px 4px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
                   fontSize:13,fontWeight:monto===v?700:400}}>
                   {v>=1000?`$${v/1000}K`:`$${v}`}</button>
               ))}
@@ -1360,7 +1360,7 @@ export default function Box(){
                               setMontoTocado(true);}}
                 aria-label="Monto a apostar"
                 style={{flex:1,minWidth:0,background:Q.inset,
-                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
                   color:Q.text,fontSize:15,fontWeight:700,fontFamily:F_NUM}}/>
             </div>
             <div style={{display:"flex",justifyContent:"space-between",

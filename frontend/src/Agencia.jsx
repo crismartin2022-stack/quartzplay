@@ -39,7 +39,7 @@ class CazaError extends Component {
           <div style={{color:"#888",fontSize:12,marginBottom:16}}>
             {String(this.state.err&&this.state.err.stack||"").slice(0,600)}</div>
           <button onClick={()=>this.setState({err:null})}
-            style={{background:"#7C3AED",border:"none",borderRadius:RADII.md,padding:"10px 18px",
+            style={{background:"#7C3AED",border:"none",borderRadius:RADII.md,padding:"12px 20px",
               color:"#fff",fontSize:14,cursor:"pointer"}}>Reintentar</button>
         </div>
       );
@@ -570,7 +570,7 @@ function EstadisticasPartidoBoton({ ev }){
     <>
       <button onClick={abrir} style={{width:"100%",marginTop:6,
         background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.cyan}44`,borderRadius:RADII.md,
-        padding:"6px",cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
+        padding:"8px",cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
         fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={10}/> Estadísticas</button>
       {abierto&&(
         <div style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(2,2,8,0.92)",
@@ -578,7 +578,7 @@ function EstadisticasPartidoBoton({ ev }){
           <div onClick={e=>e.stopPropagation()} style={{background:Q.void,
             borderTop:`1px solid ${Q.violet}55`,borderRadius:"20px 20px 0 0",
             maxWidth:520,margin:"0 auto",width:"100%",maxHeight:"80vh",overflowY:"auto",
-            padding:"18px 16px 30px"}}>
+            padding:"20px 16px 32px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
               <span style={{color:Q.text,fontWeight:700,fontSize:14,
                 fontFamily:F_BODY}}>{home} vs {away}</span>
@@ -659,7 +659,7 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
 
   if(!claves.length && !cargando)
     return (
-      <div style={{color:Q.dim,fontSize:12,padding:"10px 0",textAlign:"center",
+      <div style={{color:Q.dim,fontSize:12,padding:"12px 0",textAlign:"center",
         fontFamily:F_BODY}}>
         {aviso||"Sin mercados disponibles"}
       </div>
@@ -696,7 +696,7 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
                       background:sel?`linear-gradient(135deg,${color}44,${Q.violet}22)`
                                     :"rgba(255,255,255,0.04)",
                       border:`1.5px solid ${sel?color:Q.border}`,
-                      borderRadius:RADII.md,padding:"7px 6px",cursor:"pointer",
+                      borderRadius:RADII.md,padding:"8px 8px",cursor:"pointer",
                       display:"flex",alignItems:"center",
                       justifyContent:"space-between",gap:SPACING[8],minWidth:0,
                     }}>
@@ -716,7 +716,7 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
         );
       })}
       {cargando&&(
-        <div style={{color:Q.dim,fontSize:12,textAlign:"center",padding:"6px 0",
+        <div style={{color:Q.dim,fontSize:12,textAlign:"center",padding:"8px 0",
           fontFamily:F_BODY}}>
           Buscando córners, tarjetas y goleadores...
         </div>
@@ -753,7 +753,7 @@ function FiltroEventos({ ligas, liga, setLiga, busqueda, setBusqueda, total }){
           background:!liga?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`
                           :"rgba(255,255,255,0.04)",
           border:`1px solid ${!liga?Q.cyan:Q.border}`,borderRadius:RADII.xl,
-          padding:"6px 14px",cursor:"pointer",color:!liga?Q.cyan:Q.muted,
+          padding:"8px 16px",cursor:"pointer",color:!liga?Q.cyan:Q.muted,
           fontSize:12,fontWeight:!liga?700:400,whiteSpace:"nowrap",
           flexShrink:0,fontFamily:F_BODY,
         }}>Todas ({total})</button>
@@ -762,7 +762,7 @@ function FiltroEventos({ ligas, liga, setLiga, busqueda, setBusqueda, total }){
             background:liga===l.name?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`
                                     :"rgba(255,255,255,0.04)",
             border:`1px solid ${liga===l.name?Q.cyan:Q.border}`,borderRadius:RADII.xl,
-            padding:"6px 14px",cursor:"pointer",
+            padding:"8px 16px",cursor:"pointer",
             color:liga===l.name?Q.cyan:Q.muted,
             fontSize:12,fontWeight:liga===l.name?700:400,whiteSpace:"nowrap",
             flexShrink:0,fontFamily:F_BODY,
@@ -843,7 +843,7 @@ function LoginScreen({ onLogin }){
               <input type={t} value={v} onChange={e=>sv(e.target.value)} placeholder={ph}
                 onKeyDown={e=>e.key==="Enter"&&login()}
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"11px 14px",
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 16px",
                   color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
             </div>
           ))}
@@ -1030,14 +1030,14 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
               <Icon name="ticket" size={13}/> Esperando pago <span style={{color:Q.amber}}>
                 ({reservas.length})</span></div>
             <button onClick={cargarReservas} style={{background:"transparent",
-              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"5px 10px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"4px 12px",
               color:Q.muted,fontSize:12,cursor:"pointer"}}>↻</button>
           </div>
 
           {reservas.map(r=>(
             <div key={r.code} onClick={()=>{ setCode(r.code); setErr(""); }}
               style={{display:"flex",justifyContent:"space-between",
-                alignItems:"center",gap:SPACING[8],padding:"9px 4px",cursor:"pointer",
+                alignItems:"center",gap:SPACING[8],padding:"8px 4px",cursor:"pointer",
                 borderBottom:`1px solid ${Q.border}`}}>
               <div style={{minWidth:0,flex:1}}>
                 <span style={{color:Q.gold,fontWeight:800,fontSize:14,
@@ -1441,7 +1441,7 @@ function FlujoManual({ agencia }){
         <input value={cliente} onChange={e=>setCliente(e.target.value)}
           placeholder="Ej: Juan Pérez"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 14px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 16px",
             color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
         <div style={{color:Q.muted,fontSize:12,margin:"10px 0 6px",
           fontFamily:F_BODY}}>
@@ -1449,13 +1449,13 @@ function FlujoManual({ agencia }){
         <input value={codigoInf} onChange={e=>setCodigoInf(e.target.value.toUpperCase())}
           placeholder="Ej: JUANTIPS o REF1A2B"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${codigoInf?Q.cyan:Q.border}`,borderRadius:RADII.md,padding:"10px 14px",
+            border:`1px solid ${codigoInf?Q.cyan:Q.border}`,borderRadius:RADII.md,padding:"12px 16px",
             color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
       </GCard>
 
       {bbFeature.bet_builder&&(
         <div style={{background:`${Q.violet}12`,border:`1px solid ${Q.violet}55`,borderRadius:RADII.md,
-          padding:"9px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:SPACING[8]}}>
+          padding:"8px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:SPACING[8]}}>
           <span style={{fontSize:16}}>🛠️</span>
           <div>
             <div style={{color:Q.violet2||Q.violet,fontWeight:700,fontSize:12,
@@ -1538,7 +1538,7 @@ function FlujoManual({ agencia }){
 
               <button onClick={()=>toggleMercados(m.id)} style={{
                 width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
-                borderRadius:RADII.md,padding:"5px",cursor:"pointer",color:Q.dim,
+                borderRadius:RADII.md,padding:"4px",cursor:"pointer",color:Q.dim,
                 fontSize:12,marginTop:6,fontFamily:F_BODY,
               }}>
                 {abiertos[m.id]?"▲ Menos mercados":"▼ Todos los mercados"}
@@ -1647,7 +1647,7 @@ function FlujoManual({ agencia }){
 
                   <button onClick={()=>toggleMercados(ev.id)} style={{
                     width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
-                    borderRadius:RADII.md,padding:"5px",cursor:"pointer",color:Q.dim,
+                    borderRadius:RADII.md,padding:"4px",cursor:"pointer",color:Q.dim,
                     fontSize:12,marginTop:6,fontFamily:F_BODY,
                   }}>
                     {abiertos[ev.id]?"▲ Menos mercados":"▼ Todos los mercados"}
@@ -1683,7 +1683,7 @@ function FlujoManual({ agencia }){
                 {picks.map(p=>(
                   <div key={p.id} style={{display:"flex",
                     justifyContent:"space-between",alignItems:"center",
-                    gap:SPACING[8],padding:"5px 0"}}>
+                    gap:SPACING[8],padding:"4px 0"}}>
                     <div style={{minWidth:0,flex:1}}>
                       <div style={{color:Q.dim,fontSize:12,
                         overflow:"hidden",textOverflow:"ellipsis",
@@ -1705,7 +1705,7 @@ function FlujoManual({ agencia }){
                       setPicks([]);
                   }} style={{width:"100%",marginTop:7,
                   background:"transparent",border:`1px solid ${Q.border}`,
-                  borderRadius:RADII.sm,padding:"7px",cursor:"pointer",
+                  borderRadius:RADII.sm,padding:"8px",cursor:"pointer",
                   color:Q.muted,fontSize:12,
                   fontFamily:F_BODY}}>
                   Borrar todo</button>
@@ -1729,7 +1729,7 @@ function FlujoManual({ agencia }){
                   <button key={v} onClick={()=>setMonto(v)} style={{
                     background:monto===v?`${Q.violet}33`:"rgba(255,255,255,0.04)",
                     border:`1px solid ${monto===v?Q.violet:Q.border}`,
-                    borderRadius:RADII.md,padding:"5px 8px",cursor:"pointer",
+                    borderRadius:RADII.md,padding:"4px 8px",cursor:"pointer",
                     color:monto===v?Q.cyan:Q.muted,fontSize:12,fontWeight:monto===v?700:400,
                     fontFamily:F_BODY,
                   }}>{v>=1000?`$${v/1000}K`:v}</button>
@@ -1743,7 +1743,7 @@ function FlujoManual({ agencia }){
             onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
             aria-label="Monto a apostar"
             style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"6px 9px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 8px",
               color:Q.text,fontSize:13,fontWeight:700,
               fontFamily:F_BODY}}/>
         </div>
@@ -1814,7 +1814,7 @@ function DoneScreen({ slip, titulo, color, tipo, onReset }){
           ["Retorno pot.",ars(slip.potential_win),Q.green],
         ].map(([l,v,c])=>(
           <div key={l} style={{display:"flex",justifyContent:"space-between",
-            padding:"5px 0",borderBottom:`1px solid ${Q.dim}`}}>
+            padding:"4px 0",borderBottom:`1px solid ${Q.dim}`}}>
             <span style={{color:Q.muted,fontSize:12}}>{l}</span>
             <span style={{color:c,fontWeight:700,fontSize:12,
               fontFamily:F_BODY}}>{v}</span>
@@ -1907,14 +1907,14 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
           {pick.candidatos.map((ev,ci)=>(
             <div key={ci} style={{background:`${Q.amber}0E`,
               border:`1px solid ${Q.amber}44`,borderRadius:RADII.md,
-              padding:"8px 10px",marginBottom:6}}>
+              padding:"8px 12px",marginBottom:6}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:5,
                 fontFamily:F_BODY}}>{ev.home} vs {ev.away}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:SPACING[4]}}>
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevoPartido(ev,op)} style={{
                     background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-                    borderRadius:RADII.sm,padding:"5px 9px",cursor:"pointer",
+                    borderRadius:RADII.sm,padding:"4px 8px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
@@ -1930,13 +1930,13 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
         <button onClick={()=>setModo("seleccion")} style={{flex:1,
           background:modo==="seleccion"?`${Q.violet}33`:"rgba(255,255,255,0.04)",
           border:`1px solid ${modo==="seleccion"?Q.violet:Q.border}`,borderRadius:RADII.md,
-          padding:"7px",cursor:"pointer",color:modo==="seleccion"?Q.cyan:Q.muted,
+          padding:"8px",cursor:"pointer",color:modo==="seleccion"?Q.cyan:Q.muted,
           fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
           Cambiar selección</button>
         <button onClick={()=>setModo("partido")} style={{flex:1,
           background:modo==="partido"?`${Q.violet}33`:"rgba(255,255,255,0.04)",
           border:`1px solid ${modo==="partido"?Q.violet:Q.border}`,borderRadius:RADII.md,
-          padding:"7px",cursor:"pointer",color:modo==="partido"?Q.cyan:Q.muted,
+          padding:"8px",cursor:"pointer",color:modo==="partido"?Q.cyan:Q.muted,
           fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
           Otro partido</button>
       </div>
@@ -1953,7 +1953,7 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
             <button key={k} onClick={()=>elegirOpcion(op)} style={{width:"100%",
               display:"flex",justifyContent:"space-between",alignItems:"center",
               background:"rgba(255,255,255,0.04)",border:`1px solid ${Q.border}`,
-              borderRadius:RADII.md,padding:"9px 12px",marginBottom:5,cursor:"pointer"}}>
+              borderRadius:RADII.md,padding:"8px 12px",marginBottom:5,cursor:"pointer"}}>
               <span style={{color:Q.text,fontSize:12,
                 fontFamily:F_BODY}}>{op.sel}</span>
               <span style={{color:Q.cyan,fontWeight:700,fontSize:13,
@@ -1970,23 +1970,23 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
               onKeyDown={e=>e.key==="Enter"&&buscarEventos()}
               placeholder="Nombre del equipo..."
               style={{flex:1,background:"rgba(255,255,255,0.05)",
-                border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
                 color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
             <button onClick={buscarEventos} style={{background:`${Q.violet}33`,
-              border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"0 14px",
+              border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"0 16px",
               cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
               fontFamily:F_BODY}}>{buscando?"...":"Buscar"}</button>
           </div>
           {encontrados.map((ev,k)=>(
             <div key={k} style={{background:"rgba(255,255,255,0.03)",
-              border:`1px solid ${Q.dim}`,borderRadius:RADII.md,padding:"8px 10px",marginBottom:6}}>
+              border:`1px solid ${Q.dim}`,borderRadius:RADII.md,padding:"8px 12px",marginBottom:6}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:6,
                 fontFamily:F_BODY}}>{ev.home} vs {ev.away}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:SPACING[4]}}>
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevoPartido(ev,op)} style={{
                     background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-                    borderRadius:RADII.sm,padding:"5px 9px",cursor:"pointer",
+                    borderRadius:RADII.sm,padding:"4px 8px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
@@ -2002,7 +2002,7 @@ function CorregirPick({ pick, token, onAplicar, onQuitar, onSesionExpirada }){
         <input value={ajuste} onChange={e=>setAjuste(e.target.value)}
           placeholder="Cuota a mano (opcional)" inputMode="decimal"
           style={{flex:1,background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 10px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
             color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
         <button onClick={onQuitar} style={{background:`${Q.red}18`,
           border:`1px solid ${Q.red}`,borderRadius:RADII.md,padding:"8px 12px",
@@ -2223,7 +2223,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
 
           {res.faltan_picks&&(
             <div style={{background:`${Q.red}12`,border:`1px solid ${Q.red}66`,
-              borderRadius:RADII.md,padding:"10px 12px",marginBottom:12,color:Q.red,
+              borderRadius:RADII.md,padding:"12px 12px",marginBottom:12,color:Q.red,
               fontSize:12,lineHeight:1.4,fontFamily:F_BODY}}>
               <Icon name="triangle-alert" size={13}/> El cupón marca cuota total {fmt(res.total_odd_cupon)} pero con lo
               leído no llegamos. Probablemente falta algún partido — agregá otra
@@ -2235,7 +2235,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
               cada pick y repetirlo no agrega nada. */}
           <div style={{background:`${Q.amber}12`,
             border:`1px solid ${Q.amber}44`,borderRadius:RADII.md,
-            padding:"10px 12px",marginBottom:10,color:Q.amber,
+            padding:"12px 12px",marginBottom:10,color:Q.amber,
             fontSize:12,lineHeight:1.5,
             fontFamily:F_BODY}}>
             Revisá que los partidos y las selecciones sean los
@@ -2246,7 +2246,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
             const est=estados[p.estado]||{t:p.estado,c:Q.muted};
             return(
             <GCard key={i} glow={p.odd_final?est.c:undefined}
-              style={{padding:"12px 14px",marginBottom:8}}>
+              style={{padding:"12px 16px",marginBottom:8}}>
               <div style={{display:"flex",justifyContent:"space-between",
                 alignItems:"flex-start",gap:SPACING[8],marginBottom:6}}>
                 <div style={{minWidth:0,flex:1}}>
@@ -2256,7 +2256,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
                   <div style={{color:Q.muted,fontSize:12}}>{p.selection}</div>
                 </div>
                 <span style={{background:`${est.c}22`,border:`1px solid ${est.c}`,
-                  borderRadius:RADII.xl,padding:"2px 8px",fontSize:12,fontWeight:700,
+                  borderRadius:RADII.xl,padding:"4px 8px",fontSize:12,fontWeight:700,
                   color:est.c,flexShrink:0,whiteSpace:"nowrap",
                   fontFamily:F_BODY}}>{est.t}</span>
               </div>
@@ -2274,7 +2274,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
               <button onClick={()=>setCorrigiendo(corrigiendo===i?null:i)} style={{
                 background:corrigiendo===i?`${Q.cyan}22`:"transparent",
                 border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:RADII.md,
-                padding:"6px 12px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
+                padding:"8px 12px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
                 fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                 {corrigiendo===i?"✕ Cerrar":"✏️ Está mal / Corregir"}
               </button>
@@ -2290,7 +2290,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
 
           {res.picks_ok<res.picks_total&&(
             <div style={{background:`${Q.amber}12`,border:`1px solid ${Q.amber}55`,
-              borderRadius:RADII.md,padding:"10px 12px",marginBottom:12,color:Q.amber,
+              borderRadius:RADII.md,padding:"12px 12px",marginBottom:12,color:Q.amber,
               fontSize:12,lineHeight:1.4,fontFamily:F_BODY}}>
               <Icon name="triangle-alert" size={13}/> {res.picks_total-res.picks_ok} selección(es) no las podemos tomar
               (partido o mercado que no tenemos). Se cobra solo con las
@@ -2310,7 +2310,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
               <input value={cliente} onChange={e=>setCliente(e.target.value)}
                 placeholder="Cliente (opcional)"
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
                   color:Q.text,fontSize:16,marginBottom:8,
                   fontFamily:F_BODY}}/>
               <div style={{display:"flex",gap:SPACING[4],marginBottom:10}}>
@@ -2318,7 +2318,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
                   <button key={v} onClick={()=>setMonto(v)} style={{
                     flex:1,background:monto===v?`${Q.violet}33`:"rgba(255,255,255,0.04)",
                     border:`1px solid ${monto===v?Q.violet:Q.border}`,borderRadius:RADII.md,
-                    padding:"7px 2px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
+                    padding:"8px 4px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
                     fontSize:12,fontWeight:monto===v?700:400,
                     fontFamily:F_BODY,
                   }}>{v>=1000?`$${v/1000}K`:v}</button>
@@ -2332,12 +2332,12 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
             onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
             aria-label="Monto a apostar"
             style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"6px 9px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 8px",
               color:Q.text,fontSize:13,fontWeight:700,
               fontFamily:F_BODY}}/>
         </div>
               <div style={{display:"flex",justifyContent:"space-between",
-                marginBottom:10,padding:"6px 0",borderTop:`1px solid ${Q.dim}`}}>
+                marginBottom:10,padding:"8px 0",borderTop:`1px solid ${Q.dim}`}}>
                 <span style={{color:Q.muted,fontSize:12}}>Retorno {ars(monto)}</span>
                 <span style={{color:Q.green,fontWeight:700,fontSize:15,
                   fontFamily:F_BODY}}>
@@ -2456,13 +2456,13 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
       <input value={nombre} onChange={e=>setNombre(e.target.value)}
         placeholder="Nombre del combo (opcional)"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"11px 14px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 16px",
           color:Q.text,fontSize:16,marginBottom:10,
           fontFamily:F_BODY}}/>
 
       {infList.length>0&&<select value={infCode} onChange={e=>setInfCode(e.target.value)}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${infCode?Q.violet:Q.border}`,borderRadius:RADII.md,padding:"11px 14px",
+          border:`1px solid ${infCode?Q.violet:Q.border}`,borderRadius:RADII.md,padding:"12px 16px",
           color:infCode?Q.text:Q.muted,fontSize:15,marginBottom:10,
           fontFamily:F_BODY}}>
         <option value="">🌟 Asignar a influencer (opcional)</option>
@@ -2473,7 +2473,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
       {infCode&&<input value={codigoSalida} onChange={e=>setCodigoSalida(e.target.value.toUpperCase())}
         placeholder="Código de salida del combo (ej: COMBODELDIA)"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
-          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"11px 14px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 16px",
           color:Q.text,fontSize:15,marginBottom:10,
           fontFamily:F_BODY}}/>}
 
@@ -2491,7 +2491,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
                 <button onClick={()=>{setTodosSubs(v=>!v); if(!todosSubs)setDestSubs([]);}}
                   style={{background:todosSubs?`${Q.green}22`:"rgba(255,255,255,0.05)",
                     border:`1px solid ${todosSubs?Q.green:Q.border}`,borderRadius:RADII.md,
-                    padding:"4px 10px",cursor:"pointer",color:todosSubs?Q.green:Q.muted,
+                    padding:"4px 12px",cursor:"pointer",color:todosSubs?Q.green:Q.muted,
                     fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                   {todosSubs?"✓ Todas":"Todas"}</button>
               </div>
@@ -2500,7 +2500,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
                   <button key={x.code} onClick={()=>toggleDest(x.code,destSubs,setDestSubs)}
                     style={{background:destSubs.includes(x.code)?`${Q.violet}33`:"rgba(255,255,255,0.04)",
                       border:`1px solid ${destSubs.includes(x.code)?Q.violet:Q.border}`,borderRadius:RADII.md,
-                      padding:"6px 10px",cursor:"pointer",color:destSubs.includes(x.code)?Q.text:Q.muted,
+                      padding:"8px 12px",cursor:"pointer",color:destSubs.includes(x.code)?Q.text:Q.muted,
                       fontSize:12,fontFamily:F_BODY}}>
                     {destSubs.includes(x.code)?"✓ ":""}{x.name}</button>
                 ))}
@@ -2516,7 +2516,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
                 <button onClick={()=>{setTodosInfs(v=>!v); if(!todosInfs)setDestInfs([]);}}
                   style={{background:todosInfs?`${Q.green}22`:"rgba(255,255,255,0.05)",
                     border:`1px solid ${todosInfs?Q.green:Q.border}`,borderRadius:RADII.md,
-                    padding:"4px 10px",cursor:"pointer",color:todosInfs?Q.green:Q.muted,
+                    padding:"4px 12px",cursor:"pointer",color:todosInfs?Q.green:Q.muted,
                     fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                   {todosInfs?"✓ Todos":"Todos"}</button>
               </div>
@@ -2525,7 +2525,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
                   <button key={x.code} onClick={()=>toggleDest(x.code,destInfs,setDestInfs)}
                     style={{background:destInfs.includes(x.code)?`${Q.violet}33`:"rgba(255,255,255,0.04)",
                       border:`1px solid ${destInfs.includes(x.code)?Q.violet:Q.border}`,borderRadius:RADII.md,
-                      padding:"6px 10px",cursor:"pointer",color:destInfs.includes(x.code)?Q.text:Q.muted,
+                      padding:"8px 12px",cursor:"pointer",color:destInfs.includes(x.code)?Q.text:Q.muted,
                       fontSize:12,fontFamily:F_BODY}}>
                     {destInfs.includes(x.code)?"✓ ":""}{x.name}</button>
                 ))}
@@ -2550,14 +2550,14 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
           <button onClick={()=>setLiga(null)} style={{
             background:!liga?`${Q.cyan}22`:"rgba(255,255,255,0.04)",
             border:`1px solid ${!liga?Q.cyan:Q.border}`,borderRadius:RADII.xl,
-            padding:"6px 14px",cursor:"pointer",color:!liga?Q.cyan:Q.muted,
+            padding:"8px 16px",cursor:"pointer",color:!liga?Q.cyan:Q.muted,
             fontSize:12,whiteSpace:"nowrap",flexShrink:0,
             fontFamily:F_BODY}}>Todas</button>
           {deportes.map(d=>(
             <button key={d.name} onClick={()=>setLiga(d.name)} style={{
               background:liga===d.name?`${Q.cyan}22`:"rgba(255,255,255,0.04)",
               border:`1px solid ${liga===d.name?Q.cyan:Q.border}`,borderRadius:RADII.xl,
-              padding:"6px 14px",cursor:"pointer",color:liga===d.name?Q.cyan:Q.muted,
+              padding:"8px 16px",cursor:"pointer",color:liga===d.name?Q.cyan:Q.muted,
               fontSize:12,whiteSpace:"nowrap",flexShrink:0,
               fontFamily:F_BODY}}>{d.icon} {d.name}</button>
           ))}
@@ -2585,7 +2585,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
                       flex:1,minWidth:0,
                       background:tiene(ev,opt.l)?`${Q.cyan}33`:"rgba(255,255,255,0.04)",
                       border:`1.5px solid ${tiene(ev,opt.l)?Q.cyan:Q.border}`,
-                      borderRadius:RADII.md,padding:"6px 3px",cursor:"pointer",textAlign:"center"}}>
+                      borderRadius:RADII.md,padding:"8px 4px",cursor:"pointer",textAlign:"center"}}>
                       <div style={{color:Q.muted,fontSize:12,overflow:"hidden",
                         textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt.l}</div>
                       <div style={{color:tiene(ev,opt.l)?Q.cyan:Q.text,fontWeight:700,
@@ -2708,7 +2708,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
         const esCasa=c.de_la_casa||c.origen==="admin";
         return(
           <GCard key={c.id} glow={esCasa?Q.gold:undefined}
-            style={{padding:"12px 14px",marginBottom:8}}>
+            style={{padding:"12px 16px",marginBottom:8}}>
             <div onClick={()=>setAbierto(abierta?null:c.id)}
               style={{display:"flex",justifyContent:"space-between",
                 alignItems:"center",gap:SPACING[8],cursor:"pointer"}}>
@@ -2716,7 +2716,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                 <div style={{color:Q.text,fontWeight:600,fontSize:13,
                   fontFamily:F_BODY}}>{c.nombre}
                   {esCasa&&<span style={{background:`${Q.gold}22`,border:`1px solid ${Q.gold}`,
-                    borderRadius:RADII.md,padding:"1px 7px",fontSize:12,color:Q.gold,marginLeft:6}}>🏛️ De la casa</span>}</div>
+                    borderRadius:RADII.md,padding:"4px 8px",fontSize:12,color:Q.gold,marginLeft:6}}>🏛️ De la casa</span>}</div>
                 <div style={{color:Q.muted,fontSize:12}}>
                   {picks.length} picks · {fmt(c.odd_total)}x</div>
               </div>
@@ -2742,7 +2742,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                   <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
                     marginBottom:4,fontFamily:F_BODY}}>Ganancias</div>
                   {montosDe(agencia?.moneda).slice(0,3).map(m=>(
-                    <div key={m} style={{display:"flex",justifyContent:"space-between",padding:"1px 0"}}>
+                    <div key={m} style={{display:"flex",justifyContent:"space-between",padding:"4px 0"}}>
                       <span style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>Apostás {ars(m)}</span>
                       <span style={{color:Q.green,fontWeight:700,fontSize:12,
                         fontFamily:F_BODY}}>→ {ars(Math.round(m*(c.odd_total||1)))}</span>
@@ -2755,7 +2755,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                   <input value={cliente} onChange={e=>setCliente(e.target.value)}
                     placeholder="Cliente (opcional)"
                     style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                      border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
+                      border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
                       color:Q.text,fontSize:16,marginBottom:8,
                       fontFamily:F_BODY}}/>
                   <div style={{display:"flex",gap:SPACING[8],marginBottom:8}}>
@@ -2763,7 +2763,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                       <button key={m} onClick={()=>setMonto(m)} style={{flex:1,
                         background:monto===m?`${Q.gold}22`:"rgba(255,255,255,0.04)",
                         border:`1px solid ${monto===m?Q.gold:Q.border}`,borderRadius:RADII.md,
-                        padding:"7px 4px",cursor:"pointer",color:monto===m?Q.gold:Q.muted,
+                        padding:"8px 4px",cursor:"pointer",color:monto===m?Q.gold:Q.muted,
                         fontSize:12,fontWeight:monto===m?700:400,
                         fontFamily:F_BODY}}>{ars(m)}</button>
                     ))}
@@ -2776,7 +2776,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                       onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
                       aria-label="Monto a apostar"
                       style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
-                        border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"6px 9px",
+                        border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 8px",
                         color:Q.text,fontSize:13,fontWeight:700,
                         fontFamily:F_BODY}}/>
                   </div>
@@ -2905,7 +2905,7 @@ function CombosIA({ agencia, onSesionExpirada }){
         <input value={cliente} onChange={e=>setCliente(e.target.value)}
           placeholder="Cliente (opcional)"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
             color:Q.text,fontSize:16,marginBottom:8,
             fontFamily:F_BODY}}/>
 
@@ -2917,7 +2917,7 @@ function CombosIA({ agencia, onSesionExpirada }){
           onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
           aria-label="Monto a apostar"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"9px 12px",
+            border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"8px 12px",
             color:Q.text,fontSize:18,fontWeight:700,marginBottom:8,
             fontFamily:F_BODY}}/>
 
@@ -2926,7 +2926,7 @@ function CombosIA({ agencia, onSesionExpirada }){
             <button key={v} onClick={()=>setMonto(v)} style={{
               flex:1,background:monto===v?`${Q.violet}33`:"rgba(255,255,255,0.04)",
               border:`1px solid ${monto===v?Q.violet:Q.border}`,borderRadius:RADII.md,
-              padding:"7px 2px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
+              padding:"8px 4px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
               fontSize:12,fontWeight:monto===v?700:400,
               fontFamily:F_BODY,
             }}>{v>=1000?`$${v/1000}K`:v}</button>
@@ -2973,7 +2973,7 @@ function CombosIA({ agencia, onSesionExpirada }){
 
           <button onClick={()=>setAbierto(abiertoEste?null:combo.id)} style={{
             width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
-            borderRadius:RADII.md,padding:"6px",cursor:"pointer",color:Q.dim,fontSize:12,
+            borderRadius:RADII.md,padding:"8px",cursor:"pointer",color:Q.dim,fontSize:12,
             marginBottom:8,fontFamily:F_BODY,
           }}>{abiertoEste?"▲ Ocultar picks":"▼ Ver picks"}</button>
 
@@ -2981,7 +2981,7 @@ function CombosIA({ agencia, onSesionExpirada }){
             <div style={{marginBottom:10}}>
               {combo.picks.map((p,i)=>(
                 <div key={i} style={{display:"flex",justifyContent:"space-between",
-                  padding:"6px 0",gap:SPACING[8],
+                  padding:"8px 0",gap:SPACING[8],
                   borderBottom:i<combo.picks.length-1?`1px solid ${Q.dim}`:"none"}}>
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{color:Q.text,fontSize:12,fontWeight:600,
@@ -3009,7 +3009,7 @@ function CombosIA({ agencia, onSesionExpirada }){
               width:"100%",
               background:cobrando===combo.id?"rgba(255,255,255,0.06)"
                 :`linear-gradient(135deg,${combo.tagColor},${Q.violet})`,
-              border:"none",borderRadius:RADII.md,padding:"11px",
+              border:"none",borderRadius:RADII.md,padding:"12px",
               cursor:cobrando===combo.id?"wait":"pointer",
               color:cobrando===combo.id?Q.muted:"#fff",fontWeight:700,fontSize:13,
               fontFamily:F_BODY,textTransform:"uppercase",
@@ -3062,7 +3062,7 @@ function Clientes({ agencia, onSesionExpirada }){
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:SPACING[8],
           background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-          borderRadius:RADII.md,padding:"9px 12px"}}>
+          borderRadius:RADII.md,padding:"8px 12px"}}>
           <Icon name="search" size={14} color={Q.muted}/>
           <input value={q}
             onChange={e=>{setQ(e.target.value);buscar(e.target.value);}}
@@ -3092,7 +3092,7 @@ function Clientes({ agencia, onSesionExpirada }){
 
       {lista.map(u=>(
         <GCard key={u.id} onClick={()=>setSel(u)}
-          style={{padding:"12px 14px",marginBottom:8,cursor:"pointer"}}>
+          style={{padding:"12px 16px",marginBottom:8,cursor:"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",
             alignItems:"center",gap:SPACING[8]}}>
             <div style={{minWidth:0,flex:1}}>
@@ -3160,7 +3160,7 @@ function ImpresionesRama({ agencia, onCerrar, onSesionExpirada }){
         {data&&data.length===0&&<div style={{color:Q.muted,textAlign:"center",padding:SPACING[20],
           fontFamily:F_BODY}}>Todavía no hubo impresiones</div>}
         {(data||[]).map((im,i)=>(
-          <GCard key={i} style={{padding:"10px 13px",marginBottom:6}}>
+          <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{minWidth:0,flex:1}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:12,
@@ -3207,7 +3207,7 @@ function BloqueosRama({ agencia, onCerrar, onSesionExpirada }){
         {(data||[]).map((b,i)=>{
           const esBloqueo=b.accion==="bloqueo";
           return(
-            <GCard key={i} glow={esBloqueo?Q.red:Q.green} style={{padding:"11px 13px",marginBottom:6}}>
+            <GCard key={i} glow={esBloqueo?Q.red:Q.green} style={{padding:"12px 12px",marginBottom:6}}>
               <div style={{color:esBloqueo?Q.red:Q.green,fontWeight:700,fontSize:12,
                 fontFamily:F_BODY}}>
                 {esBloqueo?"🔒 Bloqueó":"✅ Desbloqueó"}{" "}
@@ -3280,7 +3280,7 @@ function AltaCliente({ agencia, onListo, onCancel, onSesionExpirada }){
               marginBottom:5}}>{l}</div>
             <input type={t} value={v} onChange={e=>sv(e.target.value)} placeholder={ph}
               style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"11px 14px",
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 16px",
                 color:Q.text,fontSize:16,fontFamily:F_BODY}}/>
           </div>
         ))}
@@ -3351,7 +3351,7 @@ function OtorgarBonoCliente({ agencia, userId }){
         <>
           <select value={sel} onChange={e=>setSel(e.target.value)}
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px",color:Q.text,
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px",color:Q.text,
               fontSize:13,marginBottom:8,fontFamily:F_BODY}}>
             <option value="">Elegí un bono</option>
             {bonos.map(b=>(<option key={b.id} value={b.id}>
@@ -3361,7 +3361,7 @@ function OtorgarBonoCliente({ agencia, userId }){
             <input value={montoCarga} onChange={e=>setMontoCarga(e.target.value.replace(/\D/g,""))}
               placeholder="Monto de la carga" inputMode="numeric"
               style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px",color:Q.text,
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px",color:Q.text,
                 fontSize:13,marginBottom:8,fontFamily:F_BODY}}/>
           )}
           <div style={{display:"flex",gap:SPACING[8]}}>
@@ -3506,17 +3506,17 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
       {/* Rendimiento */}
       {ficha&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
-          <GCard style={{padding:"9px",textAlign:"center"}}>
+          <GCard style={{padding:"8px",textAlign:"center"}}>
             <div style={{color:Q.cyan,fontWeight:700,fontSize:13,
               fontFamily:F_BODY}}>{ars(ficha.rendimiento.apostado)}</div>
             <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
           </GCard>
-          <GCard style={{padding:"9px",textAlign:"center"}}>
+          <GCard style={{padding:"8px",textAlign:"center"}}>
             <div style={{color:Q.violet2,fontWeight:700,fontSize:13,
               fontFamily:F_BODY}}>{ars(ficha.rendimiento.ganado)}</div>
             <div style={{color:Q.muted,fontSize:12}}>Ganado</div>
           </GCard>
-          <GCard style={{padding:"9px",textAlign:"center"}}>
+          <GCard style={{padding:"8px",textAlign:"center"}}>
             <div style={{color:ficha.rendimiento.neto_cliente>=0?Q.green:Q.red,
               fontWeight:700,fontSize:13,fontFamily:F_BODY}}>
               {ars(ficha.rendimiento.neto_cliente)}</div>
@@ -3539,7 +3539,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
             <button key={k} onClick={()=>setModo(k)} style={{
               flex:1,background:modo===k?`${c}22`:"rgba(255,255,255,0.04)",
               border:`1.5px solid ${modo===k?c:Q.border}`,borderRadius:RADII.md,
-              padding:"9px",cursor:"pointer",color:modo===k?c:Q.muted,
+              padding:"8px",cursor:"pointer",color:modo===k?c:Q.muted,
               fontSize:13,fontWeight:700,fontFamily:F_BODY,
             }}>{l}</button>
           ))}
@@ -3556,7 +3556,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
             <button key={v} onClick={()=>setMonto(v)} style={{
               flex:1,background:monto===v?`${Q.violet}33`:"rgba(255,255,255,0.04)",
               border:`1px solid ${monto===v?Q.violet:Q.border}`,borderRadius:RADII.md,
-              padding:"6px 2px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
+              padding:"8px 4px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
               fontSize:12,fontFamily:F_BODY,
             }}>{v>=1000?`${v/1000}K`:v}</button>
           ))}
@@ -3569,7 +3569,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
             onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
             aria-label="Monto a apostar"
             style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"6px 9px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 8px",
               color:Q.text,fontSize:13,fontWeight:700,
               fontFamily:F_BODY}}/>
         </div>
@@ -3600,7 +3600,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
               <input value={motivo} onChange={e=>setMotivo(e.target.value)}
                 placeholder="Motivo del bloqueo"
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 12px",
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
                   color:Q.text,fontSize:14,marginBottom:10,
                   fontFamily:F_BODY}}/>
               <div style={{display:"flex",gap:SPACING[8]}}>
@@ -3630,7 +3630,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
               <div style={{display:"flex",gap:SPACING[8]}}>
                 <input readOnly value={tgLink.link} style={{flex:1,minWidth:0,
                   background:"rgba(0,0,0,0.3)",border:`1px solid ${Q.border}`,borderRadius:RADII.md,
-                  padding:"8px 10px",color:Q.cyan,fontSize:12,
+                  padding:"8px 12px",color:Q.cyan,fontSize:12,
                   fontFamily:F_BODY}}/>
                 <button onClick={()=>{try{navigator.clipboard.writeText(tgLink.link);
                   setTgCopiado(true);setTimeout(()=>setTgCopiado(false),1500);}catch(e){}}}
@@ -3657,7 +3657,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
             const est={won:Q.green,ganada:Q.green,lost:Q.red,perdida:Q.red,
               pending:Q.amber,pendiente:Q.amber,active:Q.cyan}[(b.status||"").toLowerCase()]||Q.muted;
             return(
-              <GCard key={i} style={{padding:"9px 12px",marginBottom:5}}>
+              <GCard key={i} style={{padding:"8px 12px",marginBottom:5}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
                     <div style={{color:Q.text,fontSize:12,fontWeight:600,
@@ -3687,7 +3687,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         </GCard>
       )}
       {(movs||[]).map((m,i)=>(
-        <GCard key={i} style={{padding:"10px 14px",marginBottom:6}}>
+        <GCard key={i} style={{padding:"12px 16px",marginBottom:6}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
               <span style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
@@ -3730,7 +3730,7 @@ function AutoLiquidar({ agencia, onListo, onSesionExpirada }){
   };
 
   return(
-    <GCard style={{padding:"12px 14px",marginBottom:12,
+    <GCard style={{padding:"12px 16px",marginBottom:12,
       background:`linear-gradient(135deg,${Q.violet}12,${Q.cyan}08)`}}>
       <div style={{display:"flex",alignItems:"center",gap:SPACING[12],
         justifyContent:"space-between"}}>
@@ -3744,7 +3744,7 @@ function AutoLiquidar({ agencia, onListo, onSesionExpirada }){
         <button onClick={correr} disabled={proc} style={{
           background:proc?"rgba(255,255,255,0.06)"
             :`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-          border:"none",borderRadius:RADII.md,padding:"9px 14px",
+          border:"none",borderRadius:RADII.md,padding:"8px 16px",
           cursor:proc?"wait":"pointer",color:proc?Q.muted:"#fff",
           fontWeight:700,fontSize:12,flexShrink:0,
           fontFamily:F_BODY}}>
@@ -3812,7 +3812,7 @@ function DetalleTicket({ code, onCerrar }){
           </div>
 
           {(d.picks||[]).map((p,i)=>(
-            <div key={i} style={{padding:"9px 0",
+            <div key={i} style={{padding:"8px 0",
               borderTop:`1px solid ${Q.border}`}}>
               <div style={{color:Q.muted,fontSize:12}}>
                 {p.home}{p.away?` — ${p.away}`:""}</div>
@@ -3980,7 +3980,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
               fontFamily:F_BODY}}>{t.code}</span>
             <span style={{color:Q.dim,fontSize:12}}>ver ›</span>
             <span style={{background:`${colorEstado}22`,
-              border:`1px solid ${colorEstado}`,borderRadius:RADII.xl,padding:"1px 8px",
+              border:`1px solid ${colorEstado}`,borderRadius:RADII.xl,padding:"4px 8px",
               fontSize:12,fontWeight:700,color:colorEstado,
               fontFamily:F_BODY}}>{textoEstado}</span>
           </div>
@@ -4015,7 +4015,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
           {res==="ganada"&&(
             <button disabled={proc} onClick={pagar} style={{
               width:"100%",background:`linear-gradient(135deg,${Q.green},#00a854)`,
-              border:"none",borderRadius:RADII.md,padding:"11px",cursor:"pointer",
+              border:"none",borderRadius:RADII.md,padding:"12px",cursor:"pointer",
               color:"#04120a",fontWeight:900,fontSize:14,
               fontFamily:F_BODY,textTransform:"uppercase",
             }}><Icon name="wallet-cards" size={14}/> Pagar premio {ars(t.potential_win)}</button>
@@ -4030,7 +4030,7 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
           )}
 
           {confirmando&&(
-            <div style={{marginTop:8,padding:"10px 12px",
+            <div style={{marginTop:8,padding:"12px 12px",
               background:`${Q.red}12`,border:`1px solid ${Q.red}`,
               borderRadius:RADII.md}}>
               <div style={{color:Q.text,fontSize:12,marginBottom:8,
@@ -4040,21 +4040,21 @@ function TicketHistorial({ t, agencia, anular, onCambio, onSesionExpirada }){
               <input value={motivo} onChange={e=>setMotivo(e.target.value)}
                 placeholder="Motivo (ej: cargué mal el monto)"
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.dim}`,borderRadius:RADII.md,padding:"8px 10px",
+                  border:`1px solid ${Q.dim}`,borderRadius:RADII.md,padding:"8px 12px",
                   color:Q.text,fontSize:12,marginBottom:8,
                   fontFamily:F_BODY}}/>
               <div style={{display:"flex",gap:SPACING[8]}}>
                 <button disabled={proc||!motivo.trim()}
                   onClick={confirmarAnular} style={{flex:1,
                   background:motivo.trim()?Q.red:"rgba(255,255,255,0.05)",
-                  border:"none",borderRadius:RADII.md,padding:"9px",
+                  border:"none",borderRadius:RADII.md,padding:"8px",
                   cursor:motivo.trim()?"pointer":"default",
                   color:motivo.trim()?"#fff":Q.dim,fontSize:12,fontWeight:700,
                   fontFamily:F_BODY}}>
                   {proc?"Anulando…":"Sí, anular"}</button>
                 <button disabled={proc} onClick={()=>setConfirmando(false)}
                   style={{flex:1,background:"transparent",
-                  border:`1px solid ${Q.dim}`,borderRadius:RADII.md,padding:"9px",
+                  border:`1px solid ${Q.dim}`,borderRadius:RADII.md,padding:"8px",
                   cursor:"pointer",color:Q.muted,fontSize:12,
                   fontFamily:F_BODY}}>Volver</button>
               </div>
@@ -4147,7 +4147,7 @@ function SelectorSonido(){
           <button key={k} onClick={()=>cambiar(k)} style={{flex:1,
             background:nivel===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${nivel===k?Q.violet:Q.border}`,
-            borderRadius:RADII.md,padding:"9px 4px",cursor:"pointer",
+            borderRadius:RADII.md,padding:"8px 4px",cursor:"pointer",
             color:nivel===k?Q.cyan:Q.muted,fontSize:12,
             fontWeight:nivel===k?700:400,
             fontFamily:F_BODY}}>{l}</button>
@@ -4215,7 +4215,7 @@ function CarruselAvisos({ agencia, onSesionExpirada }){
   return(
     <div onClick={()=>{setAbierto(v=>!v); if(!a.visto) marcarVisto(a.id);}}
       style={{background:`${c}12`,border:`1px solid ${c}55`,
-        borderRadius:RADII.md,padding:"11px 13px",marginBottom:12,
+        borderRadius:RADII.md,padding:"12px 12px",marginBottom:12,
         cursor:"pointer"}}>
       <div style={{display:"flex",justifyContent:"space-between",
         alignItems:"flex-start",gap:SPACING[8]}}>
@@ -4225,7 +4225,7 @@ function CarruselAvisos({ agencia, onSesionExpirada }){
             <Icon name="circle-dot" size={11} color={c}/> {a.titulo}
             {!a.visto&&(
               <span style={{background:c,color:"#000",borderRadius:RADII.sm,
-                padding:"1px 5px",fontSize:12,marginLeft:6,
+                padding:"4px 4px",fontSize:12,marginLeft:6,
                 fontWeight:800}}>NUEVO</span>
             )}
           </div>
@@ -4364,7 +4364,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
                   :(m.autor==="ia"?"rgba(255,255,255,0.03)"
                     :"rgba(255,255,255,0.06)"),
                 border:`1px solid ${m.autor==="agencia"?Q.violet:Q.border}`,
-                borderRadius:RADII.lg,padding:"9px 12px",color:Q.text,
+                borderRadius:RADII.lg,padding:"8px 12px",color:Q.text,
                 fontSize:12.5,lineHeight:1.55,whiteSpace:"pre-wrap",
                 fontFamily:F_BODY}}>
                 <div style={{color:m.autor==="ia"?Q.dim:Q.cyan,fontSize:12,
@@ -4384,19 +4384,19 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
             placeholder="Escribí tu respuesta…"
             style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
               border:`1px solid ${Q.border}`,borderRadius:RADII.md,
-              padding:"11px 13px",color:Q.text,fontSize:14,
+              padding:"12px 12px",color:Q.text,fontSize:14,
               fontFamily:F_BODY}}/>
           <button onClick={()=>responder(false)}
             disabled={proc||!texto.trim()}
             style={{background:texto.trim()?Q.violet:"rgba(255,255,255,0.05)",
-              border:"none",borderRadius:RADII.md,padding:"0 17px",
+              border:"none",borderRadius:RADII.md,padding:"0 16px",
               cursor:texto.trim()?"pointer":"default",
               color:texto.trim()?"#fff":Q.dim,fontSize:14,fontWeight:700,
               flexShrink:0}}>↑</button>
         </div>
         <button onClick={()=>responder(true)} style={{width:"100%",
           background:"transparent",border:`1px solid ${Q.green}55`,
-          borderRadius:RADII.md,padding:"9px",cursor:"pointer",color:Q.green,
+          borderRadius:RADII.md,padding:"8px",cursor:"pointer",color:Q.green,
           fontSize:12,fontFamily:F_BODY}}>
           Marcar como resuelto</button>
       </div>
@@ -4427,7 +4427,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
 
       {derivados>0&&(
         <div style={{background:`${Q.gold}12`,border:`1px solid ${Q.gold}55`,
-          borderRadius:RADII.md,padding:"9px 12px",marginBottom:10,
+          borderRadius:RADII.md,padding:"8px 12px",marginBottom:10,
           color:Q.gold,fontSize:12,
           fontFamily:F_BODY}}>
           <Icon name="triangle-alert" size={13}/> {derivados} {derivados===1?"consulta necesita":"consultas necesitan"}
@@ -4460,7 +4460,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
       {(tickets||[]).map(t=>(
         <GCard key={t.id} glow={t.derivado?Q.gold:null}
           onClick={()=>abrir(t.id)}
-          style={{padding:"11px 13px",marginBottom:7,cursor:"pointer"}}>
+          style={{padding:"12px 12px",marginBottom:7,cursor:"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",
             alignItems:"flex-start",gap:SPACING[8]}}>
             <div style={{minWidth:0,flex:1}}>
@@ -4470,7 +4470,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
                 {t.cliente}
                 {t.sin_leer>0&&(
                   <span style={{background:Q.red,color:"#fff",borderRadius:RADII.md,
-                    padding:"1px 6px",fontSize:12,marginLeft:6}}>
+                    padding:"4px 8px",fontSize:12,marginLeft:6}}>
                     {t.sin_leer}</span>
                 )}
               </div>
@@ -4593,7 +4593,7 @@ function ProveedoresAgencia({ agencia, onSesionExpirada }){
                   <button key={k} onClick={()=>setFiltro(k)}
                     style={{background:filtro===k?`${Q.violet}28`:"transparent",
                       border:`1px solid ${filtro===k?Q.violet:Q.border}`,
-                      borderRadius:RADII.sm,padding:"5px 11px",cursor:"pointer",
+                      borderRadius:RADII.sm,padding:"4px 12px",cursor:"pointer",
                       color:filtro===k?Q.cyan:Q.muted,fontSize:12,
                       fontFamily:F_BODY}}>{l}</button>
                 ))}
@@ -4613,7 +4613,7 @@ function ProveedoresAgencia({ agencia, onSesionExpirada }){
                         :(tiene?`${Q.green}0D`:`${Q.red}0D`),
                       border:`1px solid ${!p.lo_tengo?Q.border
                         :(tiene?`${Q.green}33`:`${Q.red}33`)}`,
-                      borderRadius:RADII.md,padding:"9px 11px",marginBottom:5,
+                      borderRadius:RADII.md,padding:"8px 12px",marginBottom:5,
                       cursor:puedoTocar?"pointer":"not-allowed",
                       fontFamily:F_BODY}}>
                     <span style={{color:p.lo_tengo?Q.text:Q.dim,
@@ -4699,7 +4699,7 @@ function ProductosRed({ agencia, onSesionExpirada }){
         <div key={h.code} style={{marginBottom:7}}>
           <div onClick={()=>setAbierta(abierta===h.code?null:h.code)}
             style={{display:"flex",justifyContent:"space-between",
-              alignItems:"center",cursor:"pointer",padding:"7px 0"}}>
+              alignItems:"center",cursor:"pointer",padding:"8px 0"}}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:Q.text,fontSize:12.5,fontWeight:600,
                 fontFamily:F_BODY}}>{h.nombre}</div>
@@ -4732,7 +4732,7 @@ function ProductosRed({ agencia, onSesionExpirada }){
                         :(loTiene?`${Q.green}10`:`${Q.red}10`),
                       border:`1px solid ${!loTengo?Q.border
                         :(loTiene?`${Q.green}44`:`${Q.red}44`)}`,
-                      borderRadius:RADII.md,padding:"9px 11px",marginBottom:5,
+                      borderRadius:RADII.md,padding:"8px 12px",marginBottom:5,
                       cursor:loTengo?"pointer":"not-allowed",
                       fontFamily:F_BODY}}>
                     <span style={{color:loTengo?Q.text:Q.dim,fontSize:12}}>
@@ -4806,7 +4806,7 @@ function Terminales({ agencia, onSesionExpirada }){
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 12px",
     color:Q.text,fontSize:14,marginBottom:8,
     fontFamily:F_BODY};
 
@@ -4869,7 +4869,7 @@ function Terminales({ agencia, onSesionExpirada }){
             <button onClick={()=>setVerQR(verQR===t.codigo?null:t.codigo)}
               style={{background:`${Q.cyan}18`,
                 border:`1px solid ${Q.cyan}66`,borderRadius:RADII.md,
-                padding:"7px 12px",cursor:"pointer",color:Q.cyan,
+                padding:"8px 12px",cursor:"pointer",color:Q.cyan,
                 fontSize:12,flexShrink:0,fontWeight:700,
                 fontFamily:F_BODY}}>
               {verQR===t.codigo?"Ocultar":"Ver QR"}</button>
@@ -4898,7 +4898,7 @@ function Terminales({ agencia, onSesionExpirada }){
                 <button onClick={()=>cambiar(t,"activa",!t.activa)}
                   style={{flex:1,background:"transparent",
                     border:`1px solid ${t.activa?Q.red:Q.green}66`,
-                    borderRadius:RADII.md,padding:"9px",cursor:"pointer",
+                    borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:t.activa?Q.red:Q.green,fontSize:12,
                     fontFamily:F_BODY}}>
                   {t.activa?"Apagar":"Encender"}</button>
@@ -5036,7 +5036,7 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
         placeholder="¿Qué me conviene hacer esta semana?"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",
           border:`1px solid ${Q.border}`,borderRadius:RADII.md,
-          padding:"11px 13px",color:Q.text,fontSize:13.5,marginBottom:8,
+          padding:"12px 12px",color:Q.text,fontSize:13.5,marginBottom:8,
           fontFamily:F_BODY}}/>
 
       <div style={{display:"flex",gap:SPACING[4],flexWrap:"wrap",marginBottom:10}}>
@@ -5044,7 +5044,7 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
           <button key={q} onClick={()=>{ setPregunta(q); }}
             style={{background:"rgba(255,255,255,0.04)",
               border:`1px solid ${Q.border}`,borderRadius:RADII.sm,
-              padding:"6px 10px",cursor:"pointer",color:Q.muted,
+              padding:"8px 12px",cursor:"pointer",color:Q.muted,
               fontSize:12,lineHeight:1.3,textAlign:"left",
               fontFamily:F_BODY}}>{q}</button>
         ))}
@@ -5137,7 +5137,7 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
   const loTengo=(prods?.mis_productos||[]).includes("desafios");
 
   const inp={background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px 11px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
     color:Q.text,fontSize:13,flex:1,minWidth:0,
     fontFamily:F_BODY};
 
@@ -5199,7 +5199,7 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
           ].filter(([,v])=>v!==0).map(([l,v])=>(
             <div key={l} style={{display:"flex",
               justifyContent:"space-between",fontSize:12,
-              padding:"3px 0",borderTop:`1px solid ${Q.border}`,
+              padding:"4px 0",borderTop:`1px solid ${Q.border}`,
               fontFamily:F_BODY}}>
               <span style={{color:Q.muted}}>{l}</span>
               <span style={{color:v>=0?Q.text:Q.amber}}>
@@ -5310,7 +5310,7 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
                     :(tiene?`${Q.green}10`:`${Q.red}10`),
                   border:`1px solid ${!loTengo?Q.border
                     :(tiene?`${Q.green}44`:`${Q.red}44`)}`,
-                  borderRadius:RADII.md,padding:"11px 13px",marginBottom:6,
+                  borderRadius:RADII.md,padding:"12px 12px",marginBottom:6,
                   cursor:loTengo?"pointer":"not-allowed",
                   fontFamily:F_BODY}}>
                 <span style={{color:loTengo?Q.text:Q.dim,fontSize:12.5,
@@ -5362,7 +5362,7 @@ function MisCanales({ agencia, onSesionExpirada }){
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 12px",
     color:Q.text,fontSize:14,marginBottom:8,
     fontFamily:F_BODY};
 
@@ -5481,7 +5481,7 @@ function MensajesAgencia({ agencia, onSesionExpirada }){
             <div style={{maxWidth:"84%",
               background:m.mio?`${Q.violet}28`:"rgba(255,255,255,0.05)",
               border:`1px solid ${m.mio?Q.violet:Q.border}`,
-              borderRadius:RADII.lg,padding:"9px 12px",color:Q.text,
+              borderRadius:RADII.lg,padding:"8px 12px",color:Q.text,
               fontSize:12.5,lineHeight:1.55,whiteSpace:"pre-wrap",
               fontFamily:F_BODY}}>
               {!m.mio&&(
@@ -5502,11 +5502,11 @@ function MensajesAgencia({ agencia, onSesionExpirada }){
           placeholder="Escribí un mensaje…"
           style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
             border:`1px solid ${Q.border}`,borderRadius:RADII.md,
-            padding:"12px 14px",color:Q.text,fontSize:14,
+            padding:"12px 16px",color:Q.text,fontSize:14,
             fontFamily:F_BODY}}/>
         <button onClick={enviar} disabled={proc||!texto.trim()}
           style={{background:texto.trim()?Q.violet:"rgba(255,255,255,0.05)",
-            border:"none",borderRadius:RADII.md,padding:"0 18px",
+            border:"none",borderRadius:RADII.md,padding:"0 20px",
             cursor:texto.trim()?"pointer":"default",
             color:texto.trim()?"#fff":Q.dim,fontSize:14,fontWeight:700,
             flexShrink:0}}>↑</button>
@@ -5570,7 +5570,7 @@ function SaldoCC({ agencia, onSesionExpirada }){
         </GCard>
       )}
       {data.movimientos.map((m,i)=>(
-        <GCard key={i} style={{padding:"10px 13px",marginBottom:6}}>
+        <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
@@ -5626,14 +5626,14 @@ function PSPAgencia({ agencia, onSesionExpirada }){
           <button key={k} onClick={()=>setTipo(k)} style={{flex:1,
             background:tipo===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${tipo===k?Q.violet:Q.border}`,borderRadius:RADII.md,
-            padding:"9px",cursor:"pointer",color:tipo===k?Q.violet2||Q.violet:Q.muted,
+            padding:"8px",cursor:"pointer",color:tipo===k?Q.violet2||Q.violet:Q.muted,
             fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
 
       <AlertaError mensaje={err}/>
 
-      <GCard glow={Q.green} style={{padding:"10px 14px",marginBottom:12,textAlign:"center"}}>
+      <GCard glow={Q.green} style={{padding:"12px 16px",marginBottom:12,textAlign:"center"}}>
         <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
           fontFamily:F_BODY}}>
           Total {tipo==="cargas"?"acreditado":"completado"}</div>
@@ -5648,7 +5648,7 @@ function PSPAgencia({ agencia, onSesionExpirada }){
         <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
           Sin movimientos digitales</div></GCard>}
       {lista.map((x,i)=>(
-        <GCard key={i} style={{padding:"11px 13px",marginBottom:6}}>
+        <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,
@@ -5699,7 +5699,7 @@ function BonosAgencia({ agencia, onSesionExpirada }){
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:14}}>
         {[["Otorgados",res.otorgados||0,Q.cyan],["Activos",res.activos||0,Q.gold],
           ["Liberados",res.liberados||0,Q.green]].map(([l,v,c],i)=>(
-          <GCard key={i} glow={c} style={{padding:"10px 6px",textAlign:"center"}}>
+          <GCard key={i} glow={c} style={{padding:"12px 8px",textAlign:"center"}}>
             <div style={{color:c,fontWeight:800,fontSize:16,
               fontFamily:F_BODY}}>{v}</div>
             <div style={{color:Q.muted,fontSize:12}}>{l}</div>
@@ -5769,7 +5769,7 @@ function HistorialCashout({ agencia, onSesionExpirada }){
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:SPACING[8],marginBottom:14}}>
         {[{l:"Cash outs",v:items.length,c:Q.cyan},
           {l:"Total pagado",v:ars(totalPagado),c:Q.gold}].map((x,i)=>(
-          <GCard key={i} glow={x.c} style={{padding:"10px 12px",textAlign:"center"}}>
+          <GCard key={i} glow={x.c} style={{padding:"12px 12px",textAlign:"center"}}>
             <div style={{color:x.c,fontWeight:700,fontSize:13,
               fontFamily:F_BODY}}>{x.v}</div>
             <div style={{color:Q.muted,fontSize:12}}>{x.l}</div>
@@ -5785,13 +5785,13 @@ function HistorialCashout({ agencia, onSesionExpirada }){
         </GCard>
       )}
       {items.map((c,i)=>(
-        <GCard key={c.code+i} style={{padding:"12px 14px",marginBottom:8}}>
+        <GCard key={c.code+i} style={{padding:"12px 16px",marginBottom:8}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
             <div style={{color:Q.cyan,fontWeight:700,fontSize:13,
               fontFamily:F_BODY}}>{c.code}</div>
             <div style={{background:`${colores[c.estado]||Q.muted}22`,
               border:`1px solid ${colores[c.estado]||Q.muted}`,borderRadius:RADII.md,
-              padding:"2px 10px",color:colores[c.estado]||Q.muted,fontSize:12,fontWeight:700,
+              padding:"4px 12px",color:colores[c.estado]||Q.muted,fontSize:12,fontWeight:700,
               fontFamily:F_BODY}}>{rotulos[c.estado]||c.estado}</div>
           </div>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
@@ -5866,7 +5866,7 @@ function Historial({ agencia, onSesionExpirada }){
           {l:"Cobrado",v:ars(total),c:Q.green},
           {l:"Exposición",v:ars(expuesto),c:Q.amber},
         ].map((x,i)=>(
-          <GCard key={i} glow={x.c} style={{padding:"10px 12px",textAlign:"center"}}>
+          <GCard key={i} glow={x.c} style={{padding:"12px 12px",textAlign:"center"}}>
             <div style={{color:x.c,fontWeight:700,fontSize:12,
               fontFamily:F_BODY}}>{x.v}</div>
             <div style={{color:Q.muted,fontSize:12,
@@ -6035,7 +6035,7 @@ function Cierres({ agencia, onSesionExpirada }){
           <button key={k} onClick={()=>setVista(k)} style={{flex:1,
             background:vista===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:RADII.md,
-            padding:"9px",cursor:"pointer",color:vista===k?Q.cyan:Q.muted,
+            padding:"8px",cursor:"pointer",color:vista===k?Q.cyan:Q.muted,
             fontSize:13,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
@@ -6054,12 +6054,12 @@ function Cierres({ agencia, onSesionExpirada }){
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12,alignItems:"center"}}>
         <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 10px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
             color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
         <span style={{color:Q.muted}}>→</span>
         <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",
-            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 10px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
             color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
       </div>
 
@@ -6067,7 +6067,7 @@ function Cierres({ agencia, onSesionExpirada }){
         <select value={filtroCli} onChange={e=>setFiltroCli(e.target.value)}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",
             border:`1px solid ${filtroCli?Q.gold:Q.border}`,borderRadius:RADII.md,
-            padding:"9px 12px",color:Q.text,fontSize:14,marginBottom:12,
+            padding:"8px 12px",color:Q.text,fontSize:14,marginBottom:12,
             fontFamily:F_BODY}}>
           <option value="">— Toda la rama —</option>
           {clientesR.map(c=>(
@@ -6174,7 +6174,7 @@ function Cierres({ agencia, onSesionExpirada }){
                     ].filter(([,v])=>v!==0).map(([l,v,det])=>(
                       <div key={l} style={{display:"flex",
                         justifyContent:"space-between",alignItems:"baseline",
-                        fontSize:12,padding:"5px 0",
+                        fontSize:12,padding:"4px 0",
                         borderTop:`1px solid ${Q.border}`}}>
                         <span style={{color:Q.muted,
                           fontFamily:F_BODY}}>
@@ -6278,7 +6278,7 @@ function Cierres({ agencia, onSesionExpirada }){
               )}
               {(caja.agencias||[]).map(a=>(
                 <GCard key={a.code} glow={a.es_mia?Q.cyan:null}
-                  style={{padding:"11px 13px",marginBottom:7}}>
+                  style={{padding:"12px 12px",marginBottom:7}}>
                   <div style={{display:"flex",justifyContent:"space-between",
                     alignItems:"center",gap:SPACING[8]}}>
                     <div style={{minWidth:0,flex:1}}>
@@ -6405,7 +6405,7 @@ function Cierres({ agencia, onSesionExpirada }){
                 ["GGR",res.casino.ggr,res.casino.ggr>=0?Q.green:Q.red],
                 ["Tu comisión",res.casino.comisiones,Q.cyan]].map(([l,v,c])=>(
                 <div key={l} style={{display:"flex",
-                  justifyContent:"space-between",fontSize:12,padding:"3px 0"}}>
+                  justifyContent:"space-between",fontSize:12,padding:"4px 0"}}>
                   <span style={{color:Q.muted}}>{l}</span>
                   <span style={{color:c,fontWeight:600,
                     fontFamily:F_BODY}}>{ars(v)}</span>
@@ -6437,7 +6437,7 @@ function Cierres({ agencia, onSesionExpirada }){
               {/* Lo que vos pusiste en bonos: resta de tu comisión */}
               {res.total_general.bonos>0&&(
                 <div style={{display:"flex",justifyContent:"space-between",
-                  fontSize:12,padding:"3px 0",marginBottom:4,
+                  fontSize:12,padding:"4px 0",marginBottom:4,
                   paddingBottom:SPACING[8],borderBottom:`1px solid ${Q.border}`}}>
                   <span style={{color:Q.muted}}>Bono sports tu parte</span>
                   <span style={{color:Q.red,
@@ -6474,7 +6474,7 @@ function Cierres({ agencia, onSesionExpirada }){
             fontFamily:F_BODY}}>Desglose</div>}
           {res.agencias.map(a=>(
             <GCard key={a.code} glow={a.es_mia?Q.violet:undefined}
-              style={{padding:"11px 13px",marginBottom:6,
+              style={{padding:"12px 12px",marginBottom:6,
                 marginLeft:(a.nivel||0)*12}}>
               <div style={{display:"flex",justifyContent:"space-between",
                 alignItems:"center",marginBottom:6}}>
@@ -6509,7 +6509,7 @@ function Cierres({ agencia, onSesionExpirada }){
             carga:"Carga cliente",retiro:"Retiro cliente"}[m.tipo]||m.tipo;
           const pos=m.monto>=0;
           return(
-            <GCard key={i} style={{padding:"10px 13px",marginBottom:6}}>
+            <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontWeight:700,fontSize:12,
@@ -6538,7 +6538,7 @@ function Cierres({ agencia, onSesionExpirada }){
             pending:Q.amber,pendiente:Q.amber,active:Q.cyan,paid:Q.green}[(a.status||"").toLowerCase()]||Q.muted;
           const abierta=apAbierta===a.code;
           return(
-            <GCard key={i} style={{padding:"11px 13px",marginBottom:6,cursor:"pointer"}}
+            <GCard key={i} style={{padding:"12px 12px",marginBottom:6,cursor:"pointer"}}
               onClick={()=>setApAbierta(abierta?null:a.code)}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{minWidth:0,flex:1}}>
@@ -6563,7 +6563,7 @@ function Cierres({ agencia, onSesionExpirada }){
                   </div>
                   {a.picks.map((p,j)=>(
                     <div key={j} style={{background:"rgba(255,255,255,0.03)",
-                      borderRadius:RADII.md,padding:"8px 10px",marginBottom:5}}>
+                      borderRadius:RADII.md,padding:"8px 12px",marginBottom:5}}>
                       <div style={{color:Q.text,fontSize:12,fontWeight:600,
                         fontFamily:F_BODY}}>
                         {p.home||p.equipo_local||""}{(p.home||p.away)?" vs ":""}{p.away||p.equipo_visitante||""}</div>
@@ -6588,17 +6588,17 @@ function Cierres({ agencia, onSesionExpirada }){
         {combos&&combos.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
           padding:SPACING[20],fontFamily:F_BODY}}>Sin combos en el período</div>}
         {(combos||[]).map((c,i)=>(
-          <GCard key={i} style={{padding:"11px 13px",marginBottom:6}}>
+          <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
               <div style={{minWidth:0,flex:1}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:12,
                   fontFamily:F_BODY}}>{c.nombre||"Combo"}
                   {c.es_ia
                     ?<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
-                        borderRadius:RADII.lg,padding:"1px 7px",fontSize:12,fontWeight:700,
+                        borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
                         color:Q.violet2,marginLeft:6}}>🤖 IA</span>
                     :<span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,
-                        borderRadius:RADII.lg,padding:"1px 7px",fontSize:12,fontWeight:700,
+                        borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
                         color:Q.cyan,marginLeft:6}}>✍️ Manual</span>}
                   {!c.visible&&<span style={{color:Q.muted,fontSize:12,marginLeft:5}}>oculto</span>}
                 </div>
@@ -6619,7 +6619,7 @@ function Cierres({ agencia, onSesionExpirada }){
         {(impresiones||[]).map((im,i)=>{
           const tipoTxt={ticket:"Ticket",apuesta:"Apuesta",cobro:"Cobro",cierre:"Cierre de caja",combo:"Combo"}[im.tipo]||im.tipo;
           return(
-            <GCard key={i} style={{padding:"10px 13px",marginBottom:6}}>
+            <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontWeight:700,fontSize:12,
@@ -6711,7 +6711,7 @@ function ConectarTelegramAgencia({ agencia }){
         <div style={{marginTop:10,display:"flex",gap:SPACING[8]}}>
           <input readOnly value={link.link} style={{flex:1,minWidth:0,
             background:"rgba(0,0,0,0.3)",border:`1px solid ${Q.border}`,borderRadius:RADII.md,
-            padding:"8px 10px",color:Q.cyan,fontSize:12,
+            padding:"8px 12px",color:Q.cyan,fontSize:12,
             fontFamily:F_BODY}}/>
           <button onClick={()=>{try{navigator.clipboard.writeText(link.link);
             setCopiado(true);setTimeout(()=>setCopiado(false),1500);}catch(e){}}}
@@ -6757,12 +6757,12 @@ function CambiarMiPassword({ agencia, obligado=false, onListo }){
       <input type="password" value={nueva} onChange={e=>setNueva(e.target.value)}
         placeholder="Nueva contraseña (8+)"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-          borderRadius:RADII.md,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:8,
+          borderRadius:RADII.md,padding:"12px 16px",color:Q.text,fontSize:16,marginBottom:8,
           fontFamily:F_BODY}}/>
       <input type="password" value={repetir} onChange={e=>setRepetir(e.target.value)}
         placeholder="Repetir contraseña"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-          borderRadius:RADII.md,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:12,
+          borderRadius:RADII.md,padding:"12px 16px",color:Q.text,fontSize:16,marginBottom:12,
           fontFamily:F_BODY}}/>
       <Btn label={proc?"GUARDANDO...":"Guardar contraseña"} onClick={guardar}
         color={obligado?Q.amber:Q.violet} full disabled={proc}/>
@@ -6891,13 +6891,13 @@ function EnVivo({ agencia }){
           <span style={{color:Q.text,fontWeight:700,fontSize:15,
             fontFamily:F_BODY}}>En Vivo</span>
           {matches.length>0&&<span style={{background:`${Q.pink}22`,border:`1px solid ${Q.pink}`,
-            borderRadius:RADII.xl,padding:"2px 10px",color:Q.pink,fontSize:12,fontWeight:700,
+            borderRadius:RADII.xl,padding:"4px 12px",color:Q.pink,fontSize:12,fontWeight:700,
             fontFamily:F_BODY}}>{matches.length} partidos</span>}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[8]}}>
           {lastUpdate&&<span style={{color:Q.dim,fontSize:12}}>{lastUpdate}</span>}
           <button onClick={fetchLive} style={{background:"transparent",
-            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"5px 10px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"4px 12px",
             color:Q.muted,fontSize:12,cursor:"pointer"}}>🔄</button>
         </div>
       </div>
@@ -6932,7 +6932,7 @@ function EnVivo({ agencia }){
           return !q || `${m.home} ${m.away}`.toLowerCase().includes(q);
         })
         .map(m=>(
-        <GCard key={m.id} glow={Q.pink} style={{padding:"14px 16px",marginBottom:10,
+        <GCard key={m.id} glow={Q.pink} style={{padding:"16px 16px",marginBottom:10,
           background:`linear-gradient(135deg,${Q.pink}08,${Q.violet}05)`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div style={{display:"flex",alignItems:"center",gap:SPACING[8]}}>
@@ -6987,13 +6987,13 @@ function EnVivo({ agencia }){
               ))}
             </div>
           ):(
-            <div style={{textAlign:"center",color:Q.dim,fontSize:12,padding:"6px 0",
+            <div style={{textAlign:"center",color:Q.dim,fontSize:12,padding:"8px 0",
               fontFamily:F_BODY}}>Cuotas no disponibles aún</div>
           )}
 
           <button onClick={()=>setAbiertosLive(a=>({...a,[m.id]:!a[m.id]}))} style={{
             width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
-            borderRadius:RADII.md,padding:"5px",cursor:"pointer",color:Q.dim,
+            borderRadius:RADII.md,padding:"4px",cursor:"pointer",color:Q.dim,
             fontSize:12,marginTop:6,fontFamily:F_BODY,
           }}>
             {abiertosLive[m.id]?"▲ Menos mercados":"▼ Todos los mercados"}
@@ -7010,7 +7010,7 @@ function EnVivo({ agencia }){
           background:`linear-gradient(0deg,${Q.void} 80%,transparent)`,
           paddingTop:SPACING[16],
           paddingBottom:"calc(12px + env(safe-area-inset-bottom))"}}>
-          <GCard glow={Q.pink} style={{padding:"12px 14px"}}>
+          <GCard glow={Q.pink} style={{padding:"12px 16px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:SPACING[8]}}>
                 <div style={{width:6,height:6,borderRadius:"50%",background:Q.pink}}/>
@@ -7033,7 +7033,7 @@ function EnVivo({ agencia }){
                   flex:1,
                   background:monto===v?`${Q.pink}33`:"rgba(255,255,255,0.04)",
                   border:`1px solid ${monto===v?Q.pink:Q.border}`,
-                  borderRadius:RADII.md,padding:"6px 2px",cursor:"pointer",
+                  borderRadius:RADII.md,padding:"8px 4px",cursor:"pointer",
                   color:monto===v?Q.pink:Q.muted,fontSize:12,
                   fontWeight:monto===v?700:400,
                   fontFamily:F_BODY,
@@ -7048,7 +7048,7 @@ function EnVivo({ agencia }){
             onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
             aria-label="Monto a apostar"
             style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"6px 9px",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 8px",
               color:Q.text,fontSize:13,fontWeight:700,
               fontFamily:F_BODY}}/>
         </div>
@@ -7058,14 +7058,14 @@ function EnVivo({ agencia }){
             <div style={{display:"flex",gap:SPACING[8]}}>
               <button onClick={()=>setTicket([])} disabled={guardando} style={{
                 background:"transparent",border:`1px solid ${Q.border}`,
-                borderRadius:RADII.lg,padding:"0 14px",cursor:"pointer",color:Q.muted,
+                borderRadius:RADII.lg,padding:"0 16px",cursor:"pointer",color:Q.muted,
                 fontSize:12,fontFamily:F_BODY,
               }}>Limpiar</button>
               <button onClick={confirmarLive} disabled={guardando} style={{
                 flex:1,
                 background:guardando?"rgba(255,255,255,0.06)"
                           :`linear-gradient(135deg,${Q.pink},${Q.violet})`,
-                border:"none",borderRadius:RADII.lg,padding:"13px",
+                border:"none",borderRadius:RADII.lg,padding:"12px",
                 cursor:guardando?"wait":"pointer",
                 color:guardando?Q.muted:"#fff",fontWeight:700,fontSize:14,
                 fontFamily:F_BODY,textTransform:"uppercase",
@@ -7143,7 +7143,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
           <button key={k} onClick={()=>setVista(k)} style={{flex:1,
             background:vista===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:RADII.md,
-            padding:"9px",cursor:"pointer",color:vista===k?Q.cyan:Q.muted,
+            padding:"8px",cursor:"pointer",color:vista===k?Q.cyan:Q.muted,
             fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
@@ -7151,12 +7151,12 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12,alignItems:"center"}}>
         <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"8px 10px",color:Q.text,fontSize:13,
+            borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:13,
             fontFamily:F_BODY}}/>
         <span style={{color:Q.muted}}>→</span>
         <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"8px 10px",color:Q.text,fontSize:13,
+            borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:13,
             fontFamily:F_BODY}}/>
       </div>
 
@@ -7183,7 +7183,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
               No tenés influencers todavía</div>}
             {data.influencers.map(inf=>(
               <GCard key={inf.code} onClick={()=>setSel(inf.code)}
-                style={{padding:"11px 13px",marginBottom:6,cursor:"pointer"}}>
+                style={{padding:"12px 12px",marginBottom:6,cursor:"pointer"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{color:Q.text,fontWeight:700,fontSize:13,
@@ -7225,7 +7225,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
               textAlign:"center",padding:SPACING[20],fontFamily:F_BODY}}>
               Sin jugadas con influencer en el período</div>}
             {costos.detalle.map((d,i)=>(
-              <GCard key={i} style={{padding:"11px 13px",marginBottom:6}}>
+              <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{color:Q.text,fontWeight:700,fontSize:12,
@@ -7250,7 +7250,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
               {[["Escaneos",escaneos.total_escaneos,Q.cyan],["Jugaron",escaneos.total_jugadas,Q.green],
                 ["Conversión",escaneos.conversion+"%",Q.gold]].map(([l,v,c])=>(
-                <GCard key={l} style={{padding:"14px 8px",textAlign:"center"}}>
+                <GCard key={l} style={{padding:"16px 8px",textAlign:"center"}}>
                   <div style={{color:c,fontWeight:800,fontSize:18,
                     fontFamily:F_BODY}}>{v}</div>
                   <div style={{color:Q.muted,fontSize:12,marginTop:2}}>{l}</div>
@@ -7260,7 +7260,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
             {escaneos.detalle.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
               padding:SPACING[20],fontFamily:F_BODY}}>Sin escaneos en el período</div>}
             {escaneos.detalle.map(d=>(
-              <GCard key={d.code} style={{padding:"11px 13px",marginBottom:6}}>
+              <GCard key={d.code} style={{padding:"12px 12px",marginBottom:6}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{color:Q.text,fontWeight:700,fontSize:13,
@@ -7316,24 +7316,24 @@ function CrearInfluencerAgencia({ agencia, onListo, onSesionExpirada }){
         <input key={k} value={form[k]} type={k==="password"?"password":"text"}
           onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={l}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"10px 12px",color:Q.text,fontSize:16,marginBottom:8,
+            borderRadius:RADII.md,padding:"12px 12px",color:Q.text,fontSize:16,marginBottom:8,
             fontFamily:F_BODY}}/>
       ))}
       <div style={{display:"flex",gap:SPACING[8],marginBottom:8}}>
         <input value={form.pct_ggr} onChange={e=>setForm(f=>({...f,pct_ggr:e.target.value}))}
           placeholder="% GGR" inputMode="decimal"
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"10px 12px",color:Q.text,fontSize:16,
+            borderRadius:RADII.md,padding:"12px 12px",color:Q.text,fontSize:16,
             fontFamily:F_BODY}}/>
         <input value={form.pct_ventas} onChange={e=>setForm(f=>({...f,pct_ventas:e.target.value}))}
           placeholder="% Ventas" inputMode="decimal"
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"10px 12px",color:Q.text,fontSize:16,
+            borderRadius:RADII.md,padding:"12px 12px",color:Q.text,fontSize:16,
             fontFamily:F_BODY}}/>
       </div>
       <select value={form.alcance} onChange={e=>setForm(f=>({...f,alcance:e.target.value}))}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-          borderRadius:RADII.md,padding:"10px 12px",color:form.alcance?Q.text:Q.muted,fontSize:15,marginBottom:10,
+          borderRadius:RADII.md,padding:"12px 12px",color:form.alcance?Q.text:Q.muted,fontSize:15,marginBottom:10,
           fontFamily:F_BODY}}>
         <option value="">Dónde valen sus links (por defecto: solo mi agencia)</option>
         <option value="solo_agencia">Solo mi agencia</option>
@@ -7434,7 +7434,7 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
             <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
               marginBottom:8,fontFamily:F_BODY}}>Combos ({d.combos.length})</div>
             {d.combos.map(c=>(
-              <GCard key={c.id} style={{padding:"9px 12px",marginBottom:5}}>
+              <GCard key={c.id} style={{padding:"8px 12px",marginBottom:5}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div style={{color:Q.text,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>{c.nombre}
@@ -7450,7 +7450,7 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
               fontFamily:F_BODY}}>Sin jugadas en el período</div>}
             {d.jugadas.map((j,i)=>(
               <div key={i} style={{display:"flex",justifyContent:"space-between",
-                alignItems:"center",padding:"7px 0",
+                alignItems:"center",padding:"8px 0",
                 borderBottom:i<d.jugadas.length-1?`1px solid ${Q.dim}`:"none"}}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontSize:12,fontWeight:600,
@@ -7505,7 +7505,7 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
-    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"10px 12px",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 12px",
     color:Q.text,fontSize:15,marginBottom:8,fontFamily:F_BODY};
 
   return(
@@ -7630,12 +7630,12 @@ function ResetPassword({ agencia, code, userId, nombre, esAdmin=false, onCerrar 
         <input type="password" value={nueva} onChange={e=>setNueva(e.target.value)}
           placeholder="Nueva contraseña (8+)"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:8,
+            borderRadius:RADII.md,padding:"12px 16px",color:Q.text,fontSize:16,marginBottom:8,
             fontFamily:F_BODY}}/>
         <input type="password" value={repetir} onChange={e=>setRepetir(e.target.value)}
           placeholder="Repetir contraseña"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"11px 14px",color:Q.text,fontSize:16,marginBottom:12,
+            borderRadius:RADII.md,padding:"12px 16px",color:Q.text,fontSize:16,marginBottom:12,
             fontFamily:F_BODY}}/>
         <Btn label={proc?"GUARDANDO...":"Resetear"} onClick={guardar} color={Q.amber} full disabled={proc}/>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
@@ -7710,7 +7710,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
         // además aguanta cualquier estado nuevo.
         const bloqueada = !!a.status && a.status !== "active";
         return(
-          <GCard key={a.code} style={{padding:"12px 14px",marginBottom:8,
+          <GCard key={a.code} style={{padding:"12px 16px",marginBottom:8,
             opacity:bloqueada?0.6:1}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
               <div style={{minWidth:0,flex:1}}>
@@ -7732,19 +7732,19 @@ function MisAgencias({ agencia, onSesionExpirada }){
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:SPACING[4],flexShrink:0}}>
                 <button onClick={()=>setCcPara(a.code)} style={{background:`${Q.cyan}18`,
-                  border:`1px solid ${Q.cyan}`,borderRadius:RADII.sm,padding:"5px 10px",cursor:"pointer",
+                  border:`1px solid ${Q.cyan}`,borderRadius:RADII.sm,padding:"4px 12px",cursor:"pointer",
                   color:Q.cyan,fontSize:12,fontWeight:700,
                   fontFamily:F_BODY}}><Icon name="wallet-cards" size={11}/> Crédito</button>
                 <button onClick={()=>bloquear(a.code,!bloqueada)} style={{background:"transparent",
-                  border:`1px solid ${bloqueada?Q.green:Q.red}`,borderRadius:RADII.sm,padding:"5px 10px",
+                  border:`1px solid ${bloqueada?Q.green:Q.red}`,borderRadius:RADII.sm,padding:"4px 12px",
                   cursor:"pointer",color:bloqueada?Q.green:Q.red,fontSize:12,fontWeight:700,
                   fontFamily:F_BODY}}>{bloqueada?"Desbloquear":"Bloquear"}</button>
                 <button onClick={()=>setResetPara({code:a.code,nombre:a.name})} style={{background:`${Q.amber}18`,
-                  border:`1px solid ${Q.amber}`,borderRadius:RADII.sm,padding:"5px 10px",cursor:"pointer",
+                  border:`1px solid ${Q.amber}`,borderRadius:RADII.sm,padding:"4px 12px",cursor:"pointer",
                   color:Q.amber,fontSize:12,fontWeight:700,
                   fontFamily:F_BODY}}>🔑 Clave</button>
                 <button onClick={()=>setConfigPara(a)} style={{background:`${Q.violet}18`,
-                  border:`1px solid ${Q.violet}`,borderRadius:RADII.sm,padding:"5px 10px",cursor:"pointer",
+                  border:`1px solid ${Q.violet}`,borderRadius:RADII.sm,padding:"4px 12px",cursor:"pointer",
                   color:Q.violet2,fontSize:12,fontWeight:700,
                   fontFamily:F_BODY}}><Icon name="sliders-horizontal" size={11}/> Config</button>
               </div>
@@ -7812,26 +7812,26 @@ function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
         <input key={k} value={form[k]} type={k==="password"?"password":"text"}
           onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={l}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"10px 12px",color:Q.text,fontSize:16,marginBottom:8,
+            borderRadius:RADII.md,padding:"12px 12px",color:Q.text,fontSize:16,marginBottom:8,
             fontFamily:F_BODY}}/>
       ))}
       <div style={{display:"flex",gap:SPACING[8],marginBottom:6}}>
         <input value={form.pct_ggr} onChange={e=>setForm(f=>({...f,pct_ggr:e.target.value}))}
           placeholder="% GGR" inputMode="decimal"
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"10px 12px",color:Q.text,fontSize:16,
+            borderRadius:RADII.md,padding:"12px 12px",color:Q.text,fontSize:16,
             fontFamily:F_BODY}}/>
         <input value={form.pct_ventas} onChange={e=>setForm(f=>({...f,pct_ventas:e.target.value}))}
           placeholder="% Ventas" inputMode="decimal"
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"10px 12px",color:Q.text,fontSize:16,
+            borderRadius:RADII.md,padding:"12px 12px",color:Q.text,fontSize:16,
             fontFamily:F_BODY}}/>
       </div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:4,marginTop:6,
         fontFamily:F_BODY}}>Permisos de esta sub-agencia</div>
       <select value={form.permiso} onChange={e=>setForm(f=>({...f,permiso:e.target.value}))}
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.violet}`,
-          borderRadius:RADII.md,padding:"10px 12px",color:Q.text,fontSize:15,marginBottom:8,
+          borderRadius:RADII.md,padding:"12px 12px",color:Q.text,fontSize:15,marginBottom:8,
           fontFamily:F_BODY}}>
         <option value="solo_agencia">Solo agencia (crea clientes)</option>
         <option value="crea_agencias">+ Crear sub-agencias</option>
@@ -7887,7 +7887,7 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
             <button key={k} onClick={()=>setModo(k)} style={{flex:1,
               background:modo===k?`${Q.cyan}33`:"rgba(255,255,255,0.04)",
               border:`1px solid ${modo===k?Q.cyan:Q.border}`,borderRadius:RADII.md,
-              padding:"9px",cursor:"pointer",color:modo===k?Q.cyan:Q.muted,
+              padding:"8px",cursor:"pointer",color:modo===k?Q.cyan:Q.muted,
               fontSize:13,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
           ))}
         </div>
@@ -7899,7 +7899,7 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
         <input value={monto} onChange={e=>setMonto(e.target.value)} inputMode="decimal"
           placeholder="Ej: 50000"
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"12px 14px",color:Q.text,fontSize:18,marginBottom:12,
+            borderRadius:RADII.md,padding:"12px 16px",color:Q.text,fontSize:18,marginBottom:12,
             textAlign:"center",fontFamily:F_BODY}}/>
         <Btn label={proc?"PROCESANDO...":(modo==="retirar"?"Retirar":"Cargar")} onClick={cargar} color={modo==="retirar"?Q.amber:Q.cyan} full disabled={proc}/>
         {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
@@ -7988,7 +7988,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         backgroundImage:`linear-gradient(${Q.violet}04 1px,transparent 1px),linear-gradient(90deg,${Q.violet}04 1px,transparent 1px)`,
         backgroundSize:"28px 28px"}}/>
       <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
-        padding:"10px 14px",display:"flex",alignItems:"center",flexShrink:0,
+        padding:"12px 16px",display:"flex",alignItems:"center",flexShrink:0,
         justifyContent:"space-between",zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
@@ -7997,7 +7997,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
           <button onClick={()=>setVerSaldo(true)} style={{
             background:`${(saldoCC??0)>=0?Q.green:Q.red}18`,
             border:`1px solid ${(saldoCC??0)>=0?Q.green:Q.red}66`,
-            borderRadius:RADII.md,padding:"5px 10px",cursor:"pointer",textAlign:"right"}}>
+            borderRadius:RADII.md,padding:"4px 12px",cursor:"pointer",textAlign:"right"}}>
             <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
               letterSpacing:1,fontFamily:F_BODY}}>Saldo</div>
             <div style={{color:(saldoCC??0)>=0?Q.green:Q.red,fontWeight:800,fontSize:13,
@@ -8010,19 +8010,19 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             <div style={{color:Q.muted,fontSize:12}}>{agencia.code}</div>
           </div>
           <button onClick={onLogout} style={{background:"transparent",
-            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"5px 10px",
+            border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"4px 12px",
             color:Q.muted,fontSize:12,cursor:"pointer"}}>Salir</button>
         </div>
       </div>
 
       <div style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
-        padding:"6px 10px",display:"flex",gap:SPACING[4],overflowX:"auto",
+        padding:"8px 12px",display:"flex",gap:SPACING[4],overflowX:"auto",
         flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"}}>
         {TABS.map(t=>(
           <button key={t.k} onClick={()=>setTab(t.k)} style={{
             background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
             border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
-            borderRadius:RADII.md,padding:"7px 14px",cursor:"pointer",flexShrink:0,
+            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,
             color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
             fontFamily:F_BODY,
             position:"relative",
@@ -8043,7 +8043,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
 
       <div style={{flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
         WebkitOverflowScrolling:"touch",position:"relative",zIndex:1}}>
-      <div style={{padding:"14px 12px",maxWidth:620,margin:"0 auto",
+      <div style={{padding:"16px 12px",maxWidth:620,margin:"0 auto",
         paddingBottom:"calc(28px + env(safe-area-inset-bottom))"}}>
         <CazaError>
         {/* Los avisos del admin: arriba de todo y en cualquier
@@ -8318,7 +8318,7 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
             {capaSel.tipo==="texto"&&(
               <input value={capaSel.texto} onChange={e=>editarTextoSel(e.target.value)}
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 10px",
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
                   color:Q.text,fontSize:14,marginBottom:8,
                   fontFamily:F_BODY}}/>
             )}
@@ -8350,13 +8350,13 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
         <div style={{display:"flex",gap:SPACING[8],marginBottom:8,flexWrap:"wrap"}}>
           {templates.map((t,i)=>(
             <button key={i} onClick={()=>setFondo({tipo:"template",valor:i})}
-              style={{padding:"7px 12px",borderRadius:RADII.md,fontSize:12,cursor:"pointer",
+              style={{padding:"8px 12px",borderRadius:RADII.md,fontSize:12,cursor:"pointer",
                 background:fondo.tipo==="template"&&fondo.valor===i?`${Q.violet}44`:"rgba(255,255,255,0.05)",
                 border:`1px solid ${fondo.tipo==="template"&&fondo.valor===i?Q.violet:Q.border}`,
                 color:Q.text,fontFamily:F_BODY}}>{t.name}</button>
           ))}
           <button onClick={()=>fileRef.current?.click()}
-            style={{padding:"7px 12px",borderRadius:RADII.md,fontSize:12,cursor:"pointer",
+            style={{padding:"8px 12px",borderRadius:RADII.md,fontSize:12,cursor:"pointer",
               background:fondo.tipo==="imagen"?`${Q.cyan}33`:"rgba(255,255,255,0.05)",
               border:`1px solid ${fondo.tipo==="imagen"?Q.cyan:Q.border}`,
               color:Q.text,fontFamily:F_BODY}}><Icon name="camera" size={13}/> Mi foto</button>
@@ -8378,7 +8378,7 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
             <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
               {[["none","Normal"],["bn","B/N"],["calido","Cálido"],["frio","Frío"],["oscuro","Oscuro"]].map(([k,l])=>(
                 <button key={k} onClick={()=>setFiltro(k)}
-                  style={{padding:"6px 11px",borderRadius:RADII.md,fontSize:12,cursor:"pointer",
+                  style={{padding:"8px 12px",borderRadius:RADII.md,fontSize:12,cursor:"pointer",
                     background:filtro===k?`${Q.violet}44`:"rgba(255,255,255,0.05)",
                     border:`1px solid ${filtro===k?Q.violet:Q.border}`,
                     color:Q.text,fontFamily:F_BODY}}>{l}</button>
@@ -8448,12 +8448,12 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
           y cada jugada suma a tu comisión.</div>
         <div style={{display:"flex",flexDirection:"column",gap:SPACING[8]}}>
           <button onClick={()=>copiar(linkScanTg,"tg")} style={{background:`${Q.cyan}18`,
-            border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"11px",cursor:"pointer",
+            border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"12px",cursor:"pointer",
             color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
             fontFamily:F_BODY}}>
             {copiado==="tg"?"✅ Copiado":"📲 Copiar link de escáner (Telegram)"}</button>
           <button onClick={()=>copiar(linkScanWeb,"web")} style={{background:`${Q.violet}18`,
-            border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"11px",cursor:"pointer",
+            border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"12px",cursor:"pointer",
             color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
             fontFamily:F_BODY}}>
             {copiado==="web"?"✅ Copiado":"🌐 Copiar link de escáner (web)"}</button>
@@ -8463,12 +8463,12 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12,alignItems:"center"}}>
         <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"8px 10px",color:Q.text,fontSize:13,
+            borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:13,
             fontFamily:F_BODY}}/>
         <span style={{color:Q.muted}}>→</span>
         <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"8px 10px",color:Q.text,fontSize:13,
+            borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:13,
             fontFamily:F_BODY}}/>
       </div>
 
@@ -8479,7 +8479,7 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
             {[["Escaneos",data.escaneos,Q.cyan],["Jugaron",data.jugadas,Q.green],
               ["Conversión",data.conversion+"%",Q.gold]].map(([l,v,c])=>(
-              <GCard key={l} style={{padding:"14px 8px",textAlign:"center"}}>
+              <GCard key={l} style={{padding:"16px 8px",textAlign:"center"}}>
                 <div style={{color:c,fontWeight:800,fontSize:18,
                   fontFamily:F_BODY}}>{v}</div>
                 <div style={{color:Q.muted,fontSize:12,marginTop:2}}>{l}</div>
@@ -8492,7 +8492,7 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
           {data.ultimos.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
             padding:SPACING[20],fontFamily:F_BODY}}>Sin escaneos en el período</div>}
           {data.ultimos.map((u,i)=>(
-            <GCard key={i} style={{padding:"10px 13px",marginBottom:6}}>
+            <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontWeight:600,fontSize:12,
@@ -8517,13 +8517,13 @@ function InfluencerEscanerFin(){ return null; }
 function InfluencerPanel({ agencia, onLogout, onSesionExpirada }){
   const [tab,setTab]=useState("panel");   // panel | combos
   return(
-    <div style={{maxWidth:520,margin:"0 auto",padding:"0 14px 90px"}}>
+    <div style={{maxWidth:520,margin:"0 auto",padding:"0 16px 40px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
         padding:"16px 0 12px"}}>
         <div style={{color:Q.text,fontWeight:800,fontSize:18,
           fontFamily:F_BODY}}>🌟 {agencia.name}</div>
         <button onClick={onLogout} style={{background:"transparent",
-          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"6px 12px",
+          border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
           color:Q.muted,fontSize:12,cursor:"pointer",
           fontFamily:F_BODY}}>Salir</button>
       </div>
@@ -8533,7 +8533,7 @@ function InfluencerPanel({ agencia, onLogout, onSesionExpirada }){
           <button key={k} onClick={()=>setTab(k)} style={{flex:1,
             background:tab===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${tab===k?Q.violet:Q.border}`,borderRadius:RADII.md,
-            padding:"10px",cursor:"pointer",color:tab===k?Q.cyan:Q.muted,
+            padding:"12px",cursor:"pointer",color:tab===k?Q.cyan:Q.muted,
             fontSize:13,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
@@ -8586,12 +8586,12 @@ function InfluencerHome({ agencia, onSesionExpirada }){
           fontFamily:F_BODY}}>{ref||"—"}</div>
         <div style={{display:"flex",flexDirection:"column",gap:SPACING[8]}}>
           <button onClick={()=>copiar(linkTelegram,"tg")} style={{background:`${Q.cyan}18`,
-            border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"10px",cursor:"pointer",
+            border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"12px",cursor:"pointer",
             color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
             fontFamily:F_BODY}}>
             {copiado==="tg"?"✅ Copiado":"📲 Copiar link de Telegram"}</button>
           <button onClick={()=>copiar(linkWeb,"web")} style={{background:`${Q.violet}18`,
-            border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"10px",cursor:"pointer",
+            border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"12px",cursor:"pointer",
             color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
             fontFamily:F_BODY}}>
             {copiado==="web"?"✅ Copiado":"🌐 Copiar link web"}</button>
@@ -8605,12 +8605,12 @@ function InfluencerHome({ agencia, onSesionExpirada }){
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12,alignItems:"center"}}>
         <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"8px 10px",color:Q.text,fontSize:13,
+            borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:13,
             fontFamily:F_BODY}}/>
         <span style={{color:Q.muted}}>→</span>
         <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
           style={{flex:1,background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-            borderRadius:RADII.md,padding:"8px 10px",color:Q.text,fontSize:13,
+            borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:13,
             fontFamily:F_BODY}}/>
       </div>
 
@@ -8689,7 +8689,7 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
         const linkTg=`https://t.me/${BOT_USERNAME}?start=${ref}_c${c.id}`;
         const linkWeb=`${APP_ORIGIN}/?ref=${ref}&combo=${c.id}`;
         return(
-          <GCard key={c.id} style={{padding:"12px 14px",marginBottom:8}}>
+          <GCard key={c.id} style={{padding:"12px 16px",marginBottom:8}}>
             <div onClick={()=>setAbierto(abierta?null:c.id)}
               style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                 gap:SPACING[8],cursor:"pointer"}}>
@@ -8697,11 +8697,11 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>{c.nombre}
                   {c.es_ia&&<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
-                    borderRadius:RADII.md,padding:"1px 7px",fontSize:12,color:Q.violet2,marginLeft:6}}>🤖 IA</span>}
+                    borderRadius:RADII.md,padding:"4px 8px",fontSize:12,color:Q.violet2,marginLeft:6}}>🤖 IA</span>}
                   {c.expirado&&<span style={{background:`${Q.amber}22`,border:`1px solid ${Q.amber}`,
-                    borderRadius:RADII.md,padding:"1px 7px",fontSize:12,color:Q.amber,marginLeft:6}}>expirado</span>}
+                    borderRadius:RADII.md,padding:"4px 8px",fontSize:12,color:Q.amber,marginLeft:6}}>expirado</span>}
                   {!c.expirado&&c.estado==="activo"&&<span style={{background:`${Q.green}22`,border:`1px solid ${Q.green}`,
-                    borderRadius:RADII.md,padding:"1px 7px",fontSize:12,color:Q.green,marginLeft:6}}>activo</span>}</div>
+                    borderRadius:RADII.md,padding:"4px 8px",fontSize:12,color:Q.green,marginLeft:6}}>activo</span>}</div>
                 <div style={{color:Q.muted,fontSize:12}}>{c.picks.length} picks · {fmt(c.odd)}x</div>
               </div>
               <span style={{color:Q.muted,fontSize:16}}>{abierta?"▾":"›"}</span>
@@ -8718,34 +8718,34 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
                 ))}
                 <div style={{display:"flex",flexDirection:"column",gap:SPACING[8],marginTop:10}}>
                   <button onClick={()=>copiar(linkTg,`tg${c.id}`)} style={{background:`${Q.cyan}18`,
-                    border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"9px",cursor:"pointer",
+                    border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
                     {copiado===`tg${c.id}`?"✅ Copiado":"📲 Link Telegram con tu firma"}</button>
                   <button onClick={()=>copiar(linkWeb,`web${c.id}`)} style={{background:`${Q.violet}18`,
-                    border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"9px",cursor:"pointer",
+                    border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
                     {copiado===`web${c.id}`?"✅ Copiado":"🌐 Link web con tu firma"}</button>
                   <button onClick={()=>copiar(ref,`ref${c.id}`)} style={{background:"rgba(255,255,255,0.05)",
-                    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px",cursor:"pointer",
+                    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.muted,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
                     {copiado===`ref${c.id}`?<><Icon name="circle-check" size={12}/> Copiado</>:<><Icon name="ticket" size={12}/> Copiar tu código ({ref}) para agencia</>}</button>
                   <div style={{height:1,background:Q.dim,margin:"4px 0"}}/>
                   <button onClick={()=>copiar(textoCombo(c,ref,linkTg),`txt${c.id}`)}
                     style={{background:`${Q.green}18`,border:`1px solid ${Q.green}`,borderRadius:RADII.md,
-                    padding:"9px",cursor:"pointer",color:Q.green,fontSize:12,fontWeight:700,
+                    padding:"8px",cursor:"pointer",color:Q.green,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
                     {copiado===`txt${c.id}`?"✅ Texto copiado":"📝 Copiar texto para redes"}</button>
                   <button onClick={()=>descargarPlacaCombo(c,ref,linkTg)}
                     style={{background:`${Q.gold}18`,border:`1px solid ${Q.gold}`,borderRadius:RADII.md,
-                    padding:"9px",cursor:"pointer",color:Q.gold,fontSize:12,fontWeight:700,
+                    padding:"8px",cursor:"pointer",color:Q.gold,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
                     🖼️ Descargar placa (imagen)</button>
                   <button onClick={()=>setEditando(c)}
                     style={{background:`${Q.violet}18`,border:`1px solid ${Q.violet}`,borderRadius:RADII.md,
-                    padding:"9px",cursor:"pointer",color:Q.violet2,fontSize:12,fontWeight:700,
+                    padding:"8px",cursor:"pointer",color:Q.violet2,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
                     🎨 Editar imagen (crear placa)</button>
                 </div>
@@ -8806,7 +8806,7 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
         const linkTg=`https://t.me/${BOT_USERNAME}?start=${ref}_c${c.id}`;
         const linkWeb=`${APP_ORIGIN}/?ref=${ref}&combo=${c.id}`;
         return(
-          <GCard key={c.id} style={{padding:"12px 14px",marginBottom:8}}>
+          <GCard key={c.id} style={{padding:"12px 16px",marginBottom:8}}>
             <div onClick={()=>setAbierto(abierta?null:c.id)}
               style={{display:"flex",justifyContent:"space-between",alignItems:"center",
                 gap:SPACING[8],cursor:"pointer"}}>
@@ -8814,7 +8814,7 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>{c.nombre}
                   {c.codigo&&<span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,
-                    borderRadius:RADII.md,padding:"1px 8px",fontSize:12,color:Q.cyan,marginLeft:6}}>{c.codigo}</span>}</div>
+                    borderRadius:RADII.md,padding:"4px 8px",fontSize:12,color:Q.cyan,marginLeft:6}}>{c.codigo}</span>}</div>
                 <div style={{color:Q.muted,fontSize:12}}>{c.picks.length} picks · {fmt(c.odd)}x{c.fecha?` · ${c.fecha}`:""}</div>
               </div>
               <span style={{color:Q.muted,fontSize:16}}>{abierta?"▾":"›"}</span>
@@ -8832,7 +8832,7 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
                 {/* Ganancias */}
                 <div style={{marginTop:8,marginBottom:6}}>
                   {montosDe(agencia?.moneda).slice(1).map(m=>(
-                    <div key={m} style={{display:"flex",justifyContent:"space-between",padding:"1px 0"}}>
+                    <div key={m} style={{display:"flex",justifyContent:"space-between",padding:"4px 0"}}>
                       <span style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>Apostás {ars(m)}</span>
                       <span style={{color:Q.green,fontWeight:700,fontSize:12,
                         fontFamily:F_BODY}}>→ {ars(Math.round(m*(c.odd||1)))}</span>
@@ -8841,34 +8841,34 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:SPACING[8],marginTop:6}}>
                   <button onClick={()=>copiar(linkTg,`tg${c.id}`)} style={{background:`${Q.cyan}18`,
-                    border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"9px",cursor:"pointer",
+                    border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
                     {copiado===`tg${c.id}`?"✅ Copiado":"📲 Link Telegram con tu firma"}</button>
                   <button onClick={()=>copiar(linkWeb,`web${c.id}`)} style={{background:`${Q.violet}18`,
-                    border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"9px",cursor:"pointer",
+                    border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
                     {copiado===`web${c.id}`?"✅ Copiado":"🌐 Link web con tu firma"}</button>
                   <button onClick={()=>copiar(codOut,`ref${c.id}`)} style={{background:"rgba(255,255,255,0.05)",
-                    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"9px",cursor:"pointer",
+                    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.muted,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
                     {copiado===`ref${c.id}`?<><Icon name="circle-check" size={12}/> Copiado</>:<><Icon name="ticket" size={12}/> Copiar código ({codOut}) para agencia</>}</button>
                   <div style={{height:1,background:Q.dim,margin:"4px 0"}}/>
                   <button onClick={()=>copiar(textoCombo(c,ref,linkTg),`txt${c.id}`)}
                     style={{background:`${Q.green}18`,border:`1px solid ${Q.green}`,borderRadius:RADII.md,
-                    padding:"9px",cursor:"pointer",color:Q.green,fontSize:12,fontWeight:700,
+                    padding:"8px",cursor:"pointer",color:Q.green,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
                     {copiado===`txt${c.id}`?"✅ Texto copiado":"📝 Copiar texto para redes"}</button>
                   <button onClick={()=>descargarPlacaCombo(c,ref,linkTg)}
                     style={{background:`${Q.gold}18`,border:`1px solid ${Q.gold}`,borderRadius:RADII.md,
-                    padding:"9px",cursor:"pointer",color:Q.gold,fontSize:12,fontWeight:700,
+                    padding:"8px",cursor:"pointer",color:Q.gold,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
                     🖼️ Descargar placa (imagen)</button>
                   <button onClick={()=>setEditando(c)}
                     style={{background:`${Q.violet}18`,border:`1px solid ${Q.violet}`,borderRadius:RADII.md,
-                    padding:"9px",cursor:"pointer",color:Q.violet2,fontSize:12,fontWeight:700,
+                    padding:"8px",cursor:"pointer",color:Q.violet2,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
                     🎨 Editar imagen (Instagram)</button>
                 </div>
@@ -8943,12 +8943,12 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
         fontFamily:F_BODY}}><Zap size={13}/> Nuevo combo · elegí de la oferta real</div>
       <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre del combo"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-          borderRadius:RADII.md,padding:"9px 12px",color:Q.text,fontSize:16,marginBottom:8,
+          borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:16,marginBottom:8,
           fontFamily:F_BODY}}/>
       <input value={codigo} onChange={e=>setCodigo(e.target.value.toUpperCase())}
         placeholder="Código de salida (opcional, ej: JUANTIPS)"
         style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
-          borderRadius:RADII.md,padding:"9px 12px",color:Q.text,fontSize:16,marginBottom:12,
+          borderRadius:RADII.md,padding:"8px 12px",color:Q.text,fontSize:16,marginBottom:12,
           fontFamily:F_BODY}}/>
 
       {/* Picks elegidos + ganancias */}
@@ -8959,7 +8959,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
             marginBottom:8,fontFamily:F_BODY}}>Tu combo ({picks.length})</div>
           {picks.map((p,i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-              padding:"5px 0",borderBottom:i<picks.length-1?`1px solid ${Q.dim}`:"none"}}>
+              padding:"4px 0",borderBottom:i<picks.length-1?`1px solid ${Q.dim}`:"none"}}>
               <div style={{minWidth:0,flex:1}}>
                 <div style={{color:Q.text,fontSize:12,fontWeight:600,
                   fontFamily:F_BODY}}>{p.sel}</div>
@@ -8981,7 +8981,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
             <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
               marginBottom:4,fontFamily:F_BODY}}>Ganancias</div>
             {montosDe(agencia?.moneda).slice(1).map(m=>(
-              <div key={m} style={{display:"flex",justifyContent:"space-between",padding:"2px 0"}}>
+              <div key={m} style={{display:"flex",justifyContent:"space-between",padding:"4px 0"}}>
                 <span style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
                   Apostás {ars(m)}</span>
                 <span style={{color:Q.green,fontWeight:700,fontSize:12,
@@ -9145,7 +9145,7 @@ export default function QuartzAgencia(){
             onListo={()=>setAgencia(a=>({...a,debe_cambiar_pass:false}))}/>
           <button onClick={()=>setAgencia(null)} style={{width:"100%",
             background:"transparent",border:`1px solid ${Q.border}`,borderRadius:RADII.md,
-            padding:"10px",color:Q.muted,fontSize:12,cursor:"pointer",marginTop:8,
+            padding:"12px",color:Q.muted,fontSize:12,cursor:"pointer",marginTop:8,
             fontFamily:F_BODY}}>Salir</button>
         </div>
       ) : agencia.tipo==="influencer" ? (
