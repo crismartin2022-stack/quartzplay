@@ -166,8 +166,6 @@ function GCard({ children, style={}, glow, onClick }){
       position:"relative", overflow:"visible", maxWidth:"100%", minWidth:0,
       cursor:onClick?"pointer":"default", ...style,
     }}>
-      {glow&&<div style={{position:"absolute",top:0,left:0,right:0,height:2,
-        background:`linear-gradient(90deg,${glow},transparent)`,pointerEvents:"none"}}/>}
       {children}
     </div>
   );
