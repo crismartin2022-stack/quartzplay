@@ -10,7 +10,7 @@ import Icon from "./Icon";
 // lucide-react carries the icons this screen's emoji have no match for
 // among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
 // no live-feed mark, no handshake, no bolt, no gift.
-import { Video, Handshake, Zap, Gift, Image as ImageIcon } from "lucide-react";
+import { Video, Handshake, Zap, Gift, Image as ImageIcon, User } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
 // IAQP SPORTS — Web App Telegram completa
@@ -2372,7 +2372,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
                 <img src={im.preview} alt={"f"+i} style={{width:60,height:60,
                   objectFit:"cover",borderRadius:7,border:`1px solid ${Q.border}`}}/>
                 <button onClick={()=>quitarImagen(i)} style={{position:"absolute",
-                  top:-5,right:-5,width:18,height:18,borderRadius:"50%",
+                  top:-5,right:-5,width:18,height:18,borderRadius:"50%",padding:0,
                   background:Q.pink,border:"none",color:inkOn(Q.pink),fontSize:10,
                   cursor:"pointer",lineHeight:1}}>✕</button>
               </div>
@@ -5302,8 +5302,10 @@ function BarraSuperior({ user, onNav }){
         border:"none",cursor:"pointer",flexShrink:0,
         background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
         display:"flex",alignItems:"center",justifyContent:"center"}}>
-        <span style={{fontFamily:F_NUM,fontSize:13,fontWeight:700,color:inkOn(Q.violet,Q.violet2)}}>
-          {ini||"·"}</span>
+        {ini
+          ? <span style={{fontFamily:F_NUM,fontSize:13,fontWeight:700,color:inkOn(Q.violet,Q.violet2)}}>
+              {ini}</span>
+          : <User size={16} color={inkOn(Q.violet,Q.violet2)}/>}
       </button>
       <div style={{position:"absolute",bottom:-1,left:0,right:0,height:1,
         background:`linear-gradient(90deg,${Q.violet},${Q.violet2},transparent)`}}/>
@@ -6303,7 +6305,7 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
       <div style={{position:"relative",zIndex:1,padding:"14px 12px 260px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
           <div style={{color:Q.text,fontWeight:800,fontSize:18,
-            fontFamily:F_BODY}}>🛠️ Bet Builder</div>
+            fontFamily:F_BODY}}>Bet Builder</div>
           <button onClick={()=>onNav("home")} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:13,cursor:"pointer",fontFamily:F_BODY}}>✕ Cerrar</button>
         </div>
@@ -6377,8 +6379,10 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
         ))}
       </div>
 
-      {/* CARRITO VISIBLE fijo abajo */}
-      <div style={{position:"fixed",left:0,right:0,bottom:0,zIndex:50,
+      {/* CARRITO VISIBLE fijo abajo, arriba de la barra inferior —
+          BarraInferior mide calc(68px + env(safe-area-inset-bottom)). */}
+      <div style={{position:"fixed",left:0,right:0,
+        bottom:"calc(68px + env(safe-area-inset-bottom))",zIndex:50,
         background:"rgba(6,6,18,0.98)",borderTop:`1px solid ${Q.violet}55`,
         maxWidth:520,margin:"0 auto",padding:"12px 14px 16px",
         maxHeight:"46vh",overflowY:"auto"}}>
