@@ -7,6 +7,7 @@ import CameraCapture from "./CameraCapture";
 import { oscuro as Q, F_BODY, RADII, SPACING, TEXT } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
+import PageHeader from "./PageHeader";
 import { Zap, Gift, Handshake, Video, ArrowLeftRight, Ban, Banknote, Bell, Bot, Building2, Calendar, CalendarDays, CircleOff, Coins, Dices, Disc, Eye, Flame, FlaskConical, Gamepad2, GitBranch, Globe, Hand, Headphones, Image as ImageIcon, Inbox, Key, Link, Lock, Mail, Megaphone, MessageSquare, Monitor, PartyPopper, PenLine, Pencil, Plug, Printer, RefreshCw, Rocket, RotateCcw, Save, Scale, Shield, Smartphone, Star, Stethoscope, Store, Target, Trash2, TrendingDown, Volume2, VolumeX, Wrench } from "lucide-react";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 
@@ -450,6 +451,8 @@ function TabCierre({ adminKey, onNoAutorizado }){
 
   return(
     <div>
+      <PageHeader icon={<Icon name="chart-no-axes-combined"/>} title="Cierre"
+        description="El cierre de caja, liquidaciones y movimientos de todas las agencias, por el período que elijas."/>
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         {[["resumen",<><Icon name="chart-no-axes-combined" size={13}/> Resumen</>],["productos",<><Icon name="spade" size={13}/> Productos</>],["liquidacion",<><Icon name="wallet-cards" size={13}/> Liquidar</>],["historial",<><Icon name="clipboard-list" size={13}/> Historial</>],["caja",<><Icon name="receipt-text" size={13}/> Caja</>],["movimientos",<><Banknote size={13}/> Movs</>],["apuestas",<><Icon name="receipt-text" size={13}/> Apuestas</>],["cashout",<><Icon name="wallet-cards" size={13}/> Cash out</>],["combos",<><Zap size={13}/> Combos</>]].map(([k,l])=>(
           <button key={k} onClick={()=>setVista(k)} style={{flex:1,
@@ -1395,6 +1398,8 @@ function TabCombos({ adminKey, onNoAutorizado }){
 
   return(
     <div>
+      <PageHeader icon={<Zap/>} title="Combos"
+        description="Los combos cargados en el sistema: creá nuevos, escaneá tickets o eliminalos."/>
       <div style={{display:"flex",gap:SPACING[8],marginBottom:14}}>
         <Btn label="+ Crear combo" onClick={()=>setModo("crear")} color={Q.violet} full/>
         <Btn label={<><Icon name="scan-line" size={13}/> Escanear</>} onClick={()=>setModo("escanear")} color={Q.cyan} full/>
@@ -2964,8 +2969,8 @@ function TabEventos({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:10,
-        fontFamily:F_BODY}}><Calendar size={15}/> Eventos con cuotas</div>
+      <PageHeader icon={<Calendar/>} title="Eventos con cuotas"
+        description="Buscá y filtrá los eventos deportivos con cuotas cargadas, por deporte, liga o equipo."/>
 
       {/* Buscador: va contra el backend porque el listado viene
           recortado por liga y un partido puntual podría no estar. */}
@@ -3900,11 +3905,9 @@ function TabInfluencers({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}><Star size={15}/> Influencers</div>
-        <Btn label="+ Nuevo" onClick={()=>setShowForm(s=>!s)} color={Q.violet} size="sm"/>
-      </div>
+      <PageHeader icon={<Star/>} title="Influencers"
+        description="Los códigos de influencer de todo el sistema, su costo y sus escaneos."
+        action={<Btn label="+ Nuevo" onClick={()=>setShowForm(s=>!s)} color={Q.violet} size="sm"/>}/>
 
       {showForm&&<CrearInfluencer adminKey={adminKey}
         onListo={()=>{setShowForm(false);cargar();}} onNoAutorizado={onNoAutorizado}/>}
@@ -4295,16 +4298,14 @@ function TabAgencias({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}><Building2 size={15}/> Agencias</div>
-        <div style={{display:"flex",gap:SPACING[8]}}>
+      <PageHeader icon={<Building2/>} title="Agencias"
+        description="Todas las agencias del sistema: creá nuevas, revisá su red y gestioná bloqueos e impresiones."
+        action={<div style={{display:"flex",gap:SPACING[8]}}>
           <Btn label={<><Icon name="network" size={13}/> Árbol</>} onClick={()=>setShowArbol(true)} color={Q.cyan} size="sm"/>
           <Btn label={<><Lock size={13}/> Bloqueos</>} onClick={()=>setShowBloqueos(true)} color={Q.red} size="sm"/>
           <Btn label={<><Printer size={13}/> Impresiones</>} onClick={()=>setShowImpresiones(true)} color={Q.amber} size="sm"/>
           <Btn label="+ Nueva" onClick={()=>setShowForm(s=>!s)} color={Q.violet} size="sm"/>
-        </div>
-      </div>
+        </div>}/>
 
       {showForm&&<CrearAgenciaAdmin adminKey={adminKey} agencias={ags||[]}
         onListo={()=>{setShowForm(false);cargarAgs();}}
@@ -5318,12 +5319,10 @@ function TabUsuarios({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:16,
-          fontFamily:F_BODY}}><Icon name="users" size={14}/> Clientes</div>
-        <Btn label={crear?"Cancelar":"+ Nuevo cliente"} onClick={()=>setCrear(c=>!c)}
-          color={Q.violet} size="sm"/>
-      </div>
+      <PageHeader icon={<Icon name="users"/>} title="Clientes"
+        description="Buscá, dá de alta y administrá los clientes del sistema."
+        action={<Btn label={crear?"Cancelar":"+ Nuevo cliente"} onClick={()=>setCrear(c=>!c)}
+          color={Q.violet} size="sm"/>}/>
 
       {crear&&<CrearClienteAdmin adminKey={adminKey} agencia=""
         onListo={()=>{setCrear(false);buscar(query);}} onCancel={()=>setCrear(false)}
@@ -5397,10 +5396,8 @@ function TabConfig({ adminKey, onNoAutorizado }){
   ];
   return(
     <div>
-      <div style={{color:Q.text,fontWeight:800,fontSize:18,marginBottom:4,
-        fontFamily:F_BODY}}><Icon name="sliders-horizontal" size={14}/> Configuración</div>
-      <div style={{color:Q.muted,fontSize:12,marginBottom:14,
-        fontFamily:F_BODY}}>Todo lo configurable del sistema en un solo lugar.</div>
+      <PageHeader icon={<Icon name="sliders-horizontal"/>} title="Configuración"
+        description="Todo lo configurable del sistema en un solo lugar."/>
       <div style={{display:"flex",gap:SPACING[8],marginBottom:16,flexWrap:"wrap"}}>
         {subs.map(([k,l])=>(
           <button key={k} onClick={()=>setSub(k)} style={{
@@ -6013,12 +6010,9 @@ function TabPSP({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
-        fontFamily:F_BODY}}><Icon name="landmark" size={14}/> Pagos digitales (PSP)</div>
-      <div style={{color:Q.muted,fontSize:12,marginBottom:14,
-        fontFamily:F_BODY}}>
-        Carga y retiro automáticos por transferencia.
-        {!cfg.configurada&&(<> <Icon name="triangle-alert" size={11}/> Falta cargar la PSP_API_KEY en el servidor.</>)}</div>
+      <PageHeader icon={<Icon name="landmark"/>} title="Pagos digitales (PSP)"
+        description={<>Carga y retiro automáticos por transferencia.
+        {!cfg.configurada&&(<> <Icon name="triangle-alert" size={11}/> Falta cargar la PSP_API_KEY en el servidor.</>)}</>}/>
 
       <GCard glow={cfg.activo?Q.green:Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
         <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",
@@ -6521,13 +6515,10 @@ function TabDiag({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",
-        alignItems:"center",marginBottom:14}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}>Diagnóstico</div>
-        <Btn label={loading?"...":"↻ Actualizar"} onClick={cargar}
-          outline color={Q.muted} size="sm"/>
-      </div>
+      <PageHeader title="Diagnóstico"
+        description="El estado del feed de cuotas: créditos disponibles y los partidos en vivo que no cruzaron con la casa."
+        action={<Btn label={loading?"...":"↻ Actualizar"} onClick={cargar}
+          outline color={Q.muted} size="sm"/>}/>
 
       {err&&<div style={{color:Q.red,fontSize:12,marginBottom:12}}>{err}</div>}
 
@@ -6920,6 +6911,11 @@ function PanelComunicacion({ adminKey, onNoAutorizado }){
 
   return(
     <div>
+      {/* No PageHeader here, for the same reason TabGlobal has none: the
+          three buttons below already name the three things a header would
+          describe, and this tab's sub-views are chat viewports sized from
+          the viewport height. A header would cost them a permanent strip
+          of conversation on a phone to restate the buttons under it. */}
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         {[["mensajes",<><Mail size={13}/> Agencias</>],["soporte",<><Headphones size={13}/> Soporte</>],
           ["asistente",<><MessageSquare size={13}/> Asistente</>]].map(([k,l])=>(
