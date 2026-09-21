@@ -2817,7 +2817,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
   const [ligas,setLigas]=useState([]);
   // Apuestas vivas sobre el evento que se está por bloquear
   const [expo,setExpo]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const [ajustes,setAjustes]=useState([]);
@@ -2832,7 +2832,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
   };
 
   const guardarAjuste=async(cfg)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/ajustes`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -2840,8 +2840,8 @@ function TabEventos({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg("✅ Cuota ajustada"); setPanel(null); cargarAjustes();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Cuota ajustada", ok:true}); setPanel(null); cargarAjustes();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -2849,8 +2849,8 @@ function TabEventos({ adminKey, onNoAutorizado }){
     try{
       const r=await fetch(`${API}/api/admin/ajustes/${id}`,
         {method:"DELETE",headers:adminHeaders(adminKey)});
-      if(r.ok){ setMsg("✅ Ajuste quitado"); cargarAjustes(); }
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      if(r.ok){ setMsg({text:"Ajuste quitado", ok:true}); cargarAjustes(); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
   };
 
   const tieneAjuste=(ev)=>ajustes.find(a=>a.event_id===ev.event_id);
@@ -2873,7 +2873,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
   },[]);
 
   const bloquear=async(cfg)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/eventos/bloqueos`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -2881,8 +2881,8 @@ function TabEventos({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg("✅ Bloqueado"); setPanel(null); cargarBloqueos();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Bloqueado", ok:true}); setPanel(null); cargarBloqueos();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -2891,8 +2891,8 @@ function TabEventos({ adminKey, onNoAutorizado }){
       const r=await fetch(`${API}/api/admin/eventos/bloqueos/${id}`,
         {method:"DELETE",headers:adminHeaders(adminKey)});
       if(r.status===401){ onNoAutorizado(); return; }
-      if(r.ok){ setMsg("✅ Desbloqueado"); cargarBloqueos(); }
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      if(r.ok){ setMsg({text:"Desbloqueado", ok:true}); cargarBloqueos(); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
   };
 
   // ¿Este evento ya está bloqueado en algún nivel?
@@ -3113,9 +3113,10 @@ function TabEventos({ adminKey, onNoAutorizado }){
         </GCard>
       )}
 
-      {msg&&!panel&&<div style={{color:Q.muted,fontSize:12.5,
+      {msg&&!panel&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,
         marginBottom:10,textAlign:"center",
-        fontFamily:F_BODY}}>{msg}</div>}
+        fontFamily:F_BODY}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {cargando&&<div style={{color:Q.muted,textAlign:"center",padding:20,
         fontFamily:F_BODY}}>Cargando cuotas...</div>}
@@ -3562,8 +3563,9 @@ function TabEventos({ adminKey, onNoAutorizado }){
                 ? "Si hay varios ajustes que apliquen, gana el más bajo."
                 : "El nivel superior manda: lo que bloquees acá no lo puede habilitar ninguna agencia de abajo."}</div>
 
-            {msg&&<div style={{color:Q.muted,fontSize:12,marginBottom:10,
-              textAlign:"center"}}>{msg}</div>}
+            {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12,marginBottom:10,
+              textAlign:"center"}}>
+              <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
             {panel.accion==="ajustar"?(
               <Btn label={proc?"Guardando…":"📉 Aplicar ajuste"}
@@ -7049,7 +7051,7 @@ function TabDesafios({ adminKey, onNoAutorizado }){
 
 function DesafiosConfig({ adminKey, onNoAutorizado }){
   const [c,setC]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const cargar=()=>{
@@ -7061,7 +7063,7 @@ function DesafiosConfig({ adminKey, onNoAutorizado }){
   useEffect(cargar,[]);
 
   const guardar=async(over)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/desafios/config`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -7069,8 +7071,8 @@ function DesafiosConfig({ adminKey, onNoAutorizado }){
         body:JSON.stringify({...c, ...(over||{})})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"Error");
-      setMsg("✅ Guardado"); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Guardado", ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7094,8 +7096,9 @@ function DesafiosConfig({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <button onClick={()=>{const v=!c.activo; setC({...c,activo:v});
           guardar({activo:v});}}
@@ -7148,7 +7151,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
   const [sug,setSug]=useState(null);
   const [analisis,setAnalisis]=useState("");
   const [proc,setProc]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [editando,setEditando]=useState(null);
   const [precio,setPrecio]=useState("");
   const [spread,setSpread]=useState("3");
@@ -7163,7 +7166,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
   useEffect(cargar,[]);
 
   const sugerir=async()=>{
-    setProc(true); setMsg(""); setAnalisis("");
+    setProc(true); setMsg(null); setAnalisis("");
     try{
       const r=await fetch(`${API}/api/admin/iacoin/sugerir`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -7171,12 +7174,12 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"Error");
       setSug(x.sugerencias||{}); setAnalisis(x.analisis||"");
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
   const fijar=async(moneda,valor)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/iacoin/cotizacion`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -7187,9 +7190,9 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
           sugerido_ia:sug?sug[moneda]:null})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"Error");
-      setMsg(`✅ ${moneda}: compra ${x.compra} · venta ${x.venta}`);
+      setMsg({text:`${moneda}: compra ${x.compra} · venta ${x.venta}`, ok:true});
       setEditando(null); setPrecio(""); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7206,8 +7209,9 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
         vigencia, se compran IACOIN baratos y la casa pierde plata
         real. Verificá contra una fuente actual antes de aplicar.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center",lineHeight:1.45}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center",lineHeight:1.45}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <GCard glow={Q.cyan} style={{padding:14,marginBottom:12}}>
         <div style={{display:"flex",gap:10}}>
@@ -7359,7 +7363,7 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
   const [lista,setLista]=useState(null);
   const [abierta,setAbierta]=useState(null);
   const [proc,setProc]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [nota,setNota]=useState("");
 
   const cargar=()=>{
@@ -7372,7 +7376,7 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
   useEffect(cargar,[]);
 
   const analizar=async(id)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(
         `${API}/api/admin/desafios/disputas/${id}/analizar`,{
@@ -7381,7 +7385,7 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
       if(!r.ok) throw new Error(d.detail||"Error");
       setLista(l=>l.map(x=>x.id===id
         ?{...x, analisis_ia:d.analisis, sugerencia_ia:d.sugerencia}:x));
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7390,7 +7394,7 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
       empate:"empate (se devuelve a los dos)"}[ganador];
     if(!window.confirm(`¿Resolver a favor de ${q}? Se paga al instante.`))
       return;
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(
         `${API}/api/admin/desafios/disputas/${id}/resolver`,{
@@ -7399,9 +7403,9 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
         body:JSON.stringify({ganador, nota})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"Error");
-      setMsg("✅ Resuelta y pagada"); setAbierta(null); setNota("");
+      setMsg({text:"Resuelta y pagada", ok:true}); setAbierta(null); setNota("");
       cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -7419,8 +7423,9 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
@@ -7544,7 +7549,7 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
 
 function ModeracionPanel({ adminKey, onNoAutorizado }){
   const [d,setD]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
 
   const cargar=()=>{
     fetch(`${API}/api/admin/muro/moderacion`,
@@ -7560,8 +7565,8 @@ function ModeracionPanel({ adminKey, onNoAutorizado }){
       await fetch(`${API}/api/admin/muro/${postId}/moderar`,{
         method:"POST",headers:{"Content-Type":"application/json",
           ...adminHeaders(adminKey)},body:JSON.stringify({accion})});
-      setMsg(accion==="ocultar"?"Ocultado":"Restaurado"); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:accion==="ocultar"?"Ocultado":"Restaurado", ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
   };
 
   if(!d) return <div style={{color:Q.muted,textAlign:"center",
@@ -7569,8 +7574,9 @@ function ModeracionPanel({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {d.denunciados.length===0&&(
         <GCard style={{padding:22,textAlign:"center",marginBottom:12}}>
@@ -8402,7 +8408,7 @@ function ReporteJuegos({ adminKey, onNoAutorizado }){
 // asigna a mano una vez y queda guardado.
 function LogosCasino({ adminKey, onNoAutorizado }){
   const [d,setD]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [editando,setEditando]=useState(null);
   const [archivo,setArchivo]=useState("");
@@ -8417,31 +8423,31 @@ function LogosCasino({ adminKey, onNoAutorizado }){
   useEffect(cargar,[]);
 
   const automatico=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/casino/logos-automatico`,{
         method:"POST",headers:adminHeaders(adminKey)});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"Error");
-      setMsg(`✅ ${x.asignados} asignados`+
+      setMsg({text:`${x.asignados} asignados`+
         (x.faltan?.length?` · faltan ${x.faltan.length}: `+
-          x.faltan.slice(0,6).join(", "):""));
+          x.faltan.slice(0,6).join(", "):""), ok:true});
       cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
   const guardar=async(marca,arch)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/casino/logos`,{
         method:"POST",headers:{"Content-Type":"application/json",
           ...adminHeaders(adminKey)},
         body:JSON.stringify({marca, archivo:arch})});
       if(!r.ok) throw new Error("No se pudo");
-      setMsg(arch?`✅ ${marca}`:`Quitado de ${marca}`);
+      setMsg({text:arch?marca:`Quitado de ${marca}`, ok:true});
       setEditando(null); setArchivo(""); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -8459,8 +8465,9 @@ function LogosCasino({ adminKey, onNoAutorizado }){
         archivo tal cual está en el repositorio, con espacios y
         mayúsculas si los tiene.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12,marginBottom:9,
-        textAlign:"center",lineHeight:1.45}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12,marginBottom:9,
+        textAlign:"center",lineHeight:1.45}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {/* Las que se pueden deducir por el nombre, de una vez. Los
           archivos "logo 01" a "logo 09" no dicen de qué proveedor
@@ -8557,7 +8564,7 @@ function LogosCasino({ adminKey, onNoAutorizado }){
 function ProveedoresCasino({ adminKey, onNoAutorizado }){
   const [d,setD]=useState(null);
   const [proc,setProc]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [filtro,setFiltro]=useState("todos");
   const [busq,setBusq]=useState("");
   // Para apagar en una agencia puntual en vez de globalmente
@@ -8596,7 +8603,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
           ...adminHeaders(adminKey)},
         body:JSON.stringify({activo, motivo})});
       cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -8614,8 +8621,8 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
         body:JSON.stringify({agencia_code:agSel, marca,
                              activo:false, motivo})});
       if(!r.ok) throw new Error("No se pudo");
-      setMsg(`${marca} apagado en ${nom}`);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:`${marca} apagado en ${nom}`, ok:true});
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -8630,7 +8637,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
         body:JSON.stringify({[campo]:valor})});
       if(!r.ok) throw new Error("No se pudo");
       cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -8653,8 +8660,8 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
         body:JSON.stringify({alcance, activo, motivo})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"Error");
-      setMsg(`✅ ${x.cambiados} proveedores`); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:`${x.cambiados} proveedores`, ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -8672,8 +8679,9 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      {msg&&<div style={{color:Q.muted,fontSize:12,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:10,
         lineHeight:1.5,fontFamily:F_BODY}}>
@@ -8857,7 +8865,7 @@ function Integraciones({ adminKey, onNoAutorizado }){
   const [d,setD]=useState(null);
   const [editando,setEditando]=useState(null);
   const [form,setForm]=useState({});
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const cargar=()=>{
@@ -8870,15 +8878,15 @@ function Integraciones({ adminKey, onNoAutorizado }){
   useEffect(cargar,[]);
 
   const guardar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/casino/integraciones`,{
         method:"POST",headers:{"Content-Type":"application/json",
           ...adminHeaders(adminKey)},body:JSON.stringify(form)});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"Error");
-      setMsg("✅ Guardado"); setEditando(null); setForm({}); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Guardado", ok:true}); setEditando(null); setForm({}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -8895,13 +8903,13 @@ function Integraciones({ adminKey, onNoAutorizado }){
         `${API}/api/admin/casino/integraciones/${codigo}`,{
         method:"DELETE",headers:adminHeaders(adminKey)});
       if(!r.ok) throw new Error("No se pudo");
-      setMsg(`${nombre} quitada`); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:`${nombre} quitada`, ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
   const sincronizar=async(codigo)=>{
-    setProc(true); setMsg("Trayendo el catálogo…");
+    setProc(true); setMsg({text:"Trayendo el catálogo…", ok:true});
     try{
       const r=await fetch(`${API}/api/admin/casino/sincronizar`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -8911,10 +8919,16 @@ function Integraciones({ adminKey, onNoAutorizado }){
       if(!r.ok) throw new Error(x.detail||"Error");
       const ok=(x.resultados||[]).filter(y=>y.ok);
       const mal=(x.resultados||[]).filter(y=>!y.ok);
-      setMsg(ok.map(y=>`✅ ${y.integracion}: ${y.juegos} juegos`)
-        .concat(mal.map(y=>`⚠️ ${y.integracion}: ${y.error}`)).join(" · "));
+      // A batch result: each item's own outcome (✅/⚠️) is content, not
+      // decoration — it says which integration succeeded and which
+      // didn't, information the outer ok:mal.length===0 can't carry by
+      // itself. Only the batch-level prefix moves to colour; the
+      // per-item glyphs inside this summary stay.
+      setMsg({text:ok.map(y=>`✅ ${y.integracion}: ${y.juegos} juegos`)
+        .concat(mal.map(y=>`⚠️ ${y.integracion}: ${y.error}`)).join(" · "),
+        ok:mal.length===0});
       cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -8928,8 +8942,9 @@ function Integraciones({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      {msg&&<div style={{color:Q.muted,fontSize:12,marginBottom:10,
-        textAlign:"center",lineHeight:1.45}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12,marginBottom:10,
+        textAlign:"center",lineHeight:1.45}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <Btn label={proc?"Sincronizando…":"🔄 Traer catálogos"}
         onClick={()=>sincronizar(null)} color={Q.cyan} full
@@ -9095,7 +9110,7 @@ function Integraciones({ adminKey, onNoAutorizado }){
 function RiesgoCasino({ adminKey, onNoAutorizado }){
   const [d,setD]=useState(null);
   const [proc,setProc]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
 
   const cargar=async(revisar)=>{
     setProc(true);
@@ -9111,7 +9126,7 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargar(false); /* eslint-disable-next-line */ },[]);
 
   const analizar=async(id)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(
         `${API}/api/admin/casino/riesgo/${id}/analizar`,{
@@ -9120,7 +9135,7 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
       if(!r.ok) throw new Error(x.detail||"Error");
       setD(v=>({...v, alertas:v.alertas.map(a=>a.id===id
         ?{...a, analisis_ia:x.analisis, sugerencia:x.sugerencia}:a)}));
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -9134,8 +9149,8 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
         method:"POST",headers:{"Content-Type":"application/json",
           ...adminHeaders(adminKey)},
         body:JSON.stringify({activo:false, motivo})});
-      setMsg(`${marca} apagado`); cargar(false);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:`${marca} apagado`, ok:true}); cargar(false);
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -9146,8 +9161,8 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
         method:"POST",headers:{"Content-Type":"application/json",
           ...adminHeaders(adminKey)},
         body:JSON.stringify({activo:true})});
-      setMsg(`${marca} disponible`); cargar(false);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:`${marca} disponible`, ok:true}); cargar(false);
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -9169,8 +9184,9 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      {msg&&<div style={{color:Q.muted,fontSize:12,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <Btn label={proc?"Revisando…":<><Icon name="search" size={13}/> Revisar ahora</>}
         onClick={()=>cargar(true)} color={Q.cyan} full disabled={proc}/>
@@ -9672,7 +9688,7 @@ function TabTester({ adminKey, onNoAutorizado }){
   const [est,setEst]=useState(null);
   const [res,setRes]=useState(null);
   const [proc,setProc]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [conf,setConf]=useState("");
   const [conEscritura,setConEscritura]=useState(false);
 
@@ -9685,7 +9701,7 @@ function TabTester({ adminKey, onNoAutorizado }){
   useEffect(cargar,[]);
 
   const correr=async()=>{
-    setProc(true); setMsg(""); setRes(null);
+    setProc(true); setMsg(null); setRes(null);
     try{
       const r=await fetch(`${API}/api/admin/test/correr`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -9694,8 +9710,8 @@ function TabTester({ adminKey, onNoAutorizado }){
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"Error");
       setRes(x); cargar();
-      if(x.bloqueado) setMsg("⚠️ "+x.bloqueado);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      if(x.bloqueado) setMsg({text:x.bloqueado, ok:false});
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -9704,7 +9720,7 @@ function TabTester({ adminKey, onNoAutorizado }){
       "Vas a borrar TODOS los datos marcados como prueba.\n"+
       "No se puede deshacer.\n\nEscribí BORRAR para confirmar:");
     if(!c) return;
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/test/limpiar`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -9714,9 +9730,9 @@ function TabTester({ adminKey, onNoAutorizado }){
       if(!r.ok) throw new Error(x.detail||"Error");
       const det=Object.entries(x.borrado||{})
         .map(([k,v])=>`${v} ${k}`).join(", ");
-      setMsg(x.total?`✅ Borrado: ${det}`:"No había nada que borrar");
+      setMsg({text:x.total?`Borrado: ${det}`:"No había nada que borrar", ok:true});
       cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -9767,8 +9783,9 @@ function TabTester({ adminKey, onNoAutorizado }){
           Las que crean datos piden confirmación escrita.</div>
       )}
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center",lineHeight:1.45}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center",lineHeight:1.45}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {est.hay_datos&&(
         <GCard glow={Q.amber} style={{padding:13,marginBottom:12}}>
@@ -9866,7 +9883,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
   const [solapa,setSolapa]=useState("config");
   const [d,setD]=useState(null);
   const [aud,setAud]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const cargar=()=>{
@@ -9888,15 +9905,15 @@ function TabResponsable({ adminKey, onNoAutorizado }){
     /* eslint-disable-next-line */ },[solapa]);
 
   const guardar=async(over)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/juego-responsable`,{
         method:"POST",headers:{"Content-Type":"application/json",
           ...adminHeaders(adminKey)},
         body:JSON.stringify({...d, ...(over||{})})});
       if(!r.ok) throw new Error("Error");
-      setMsg("✅ Guardado"); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Guardado", ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -9947,8 +9964,9 @@ function TabResponsable({ adminKey, onNoAutorizado }){
 
       {solapa==="config"&&(
         <>
-          {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-            textAlign:"center"}}>{msg}</div>}
+          {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+            textAlign:"center"}}>
+            <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
           <div style={{display:"flex",gap:8,marginBottom:12}}>
             <GCard style={{flex:1,padding:13,textAlign:"center"}}>
@@ -10068,7 +10086,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
 function TabSuperBono({ adminKey, onNoAutorizado }){
   const [d,setD]=useState(null);
   const [proc,setProc]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [form,setForm]=useState(null);
 
   const cargar=()=>{
@@ -10085,7 +10103,7 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
   useEffect(cargar,[]);
 
   const guardar=async(over)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/superbono/config`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -10098,22 +10116,22 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
           min_jugadas:parseInt(form.min_jugadas)||0, ...(over||{})})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"Error");
-      setMsg("✅ Guardado"); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Guardado", ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
   const acumular=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/superbono/acumular`,{
         method:"POST",headers:{"Content-Type":"application/json",
           ...adminHeaders(adminKey)},body:JSON.stringify({dias:1})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"Error");
-      setMsg(`✅ +${ars(x.aporte)} al pozo (GGR ${ars(x.ggr_periodo)})`);
+      setMsg({text:`+${ars(x.aporte)} al pozo (GGR ${ars(x.ggr_periodo)})`, ok:true});
       cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -10122,16 +10140,16 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
       `¿Repartir ${ars(d.pozo.acumulado)} entre ${d.conectados} `+
       `conectados? Se acredita al instante y no se puede deshacer.`))
       return;
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/superbono/repartir`,{
         method:"POST",headers:{"Content-Type":"application/json",
           ...adminHeaders(adminKey)},body:JSON.stringify({})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"Error");
-      setMsg(`🎉 ${x.ganadores} ganadores · ${ars(x.monto_c_u)} cada uno`);
+      setMsg({text:`🎉 ${x.ganadores} ganadores · ${ars(x.monto_c_u)} cada uno`, ok:true});
       cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -10152,8 +10170,9 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
         Un porcentaje del GGR del casino se acumula y se reparte entre
         jugadores conectados.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center",lineHeight:1.45}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center",lineHeight:1.45}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <button onClick={()=>{const v=!form.activo;
           setForm({...form,activo:v}); guardar({activo:v});}}
@@ -10292,7 +10311,7 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
 function TabMonedas({ adminKey, onNoAutorizado }){
   const [d,setD]=useState(null);
   const [sel,setSel]=useState([]);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const cargar=()=>{
@@ -10305,7 +10324,7 @@ function TabMonedas({ adminKey, onNoAutorizado }){
   useEffect(cargar,[]);
 
   const guardar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/monedas`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -10313,8 +10332,8 @@ function TabMonedas({ adminKey, onNoAutorizado }){
         body:JSON.stringify({monedas:sel})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"Error");
-      setMsg("✅ Guardado"); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Guardado", ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -10330,8 +10349,9 @@ function TabMonedas({ adminKey, onNoAutorizado }){
         Entre cuáles puede elegir alguien que se registra por su
         cuenta, sin que lo dé de alta una agencia.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {d.todas.map(m=>{
         const on=sel.includes(m.codigo);
@@ -10403,7 +10423,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
   const [ramas,setRamas]=useState([]);
   const [excluidas,setExcluidas]=useState([]);
   const [ags,setAgs]=useState([]);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   useEffect(()=>{
@@ -10432,7 +10452,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const guardar=async(over)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/recompensas`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -10446,8 +10466,8 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||`Error ${r.status}`);
-      setMsg("✅ Guardado"); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Guardado", ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -10475,8 +10495,9 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
         pagar el toque sería regalarle plata a cualquiera que abra y
         cierre el menú cinco veces.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <button onClick={()=>{const v=!activo; setActivo(v); guardar({activo:v});}}
         style={{width:"100%",
@@ -10719,7 +10740,7 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
   const [datos,setDatos]=useState(null);
   const [ags,setAgs]=useState([]);
   const [sel,setSel]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const cargar=async()=>{
@@ -10745,13 +10766,13 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
         method:"POST",headers:{"Content-Type":"application/json",
           ...adminHeaders(adminKey)},
         body:JSON.stringify({codigo,activo})});
-      if(r.ok){ setMsg("✅ Guardado"); cargar(); }
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      if(r.ok){ setMsg({text:"Guardado", ok:true}); cargar(); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
   const porAgencia=async(agencia_code,producto,activo)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/productos/agencia`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -10759,8 +10780,8 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
         body:JSON.stringify({agencia_code,producto,activo})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg(activo?"✅ Habilitado":"✅ Deshabilitado"); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:activo?"Habilitado":"Deshabilitado", ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -10776,8 +10797,9 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
         Qué puede ofrecer cada agencia. Lo que apagues acá no lo puede
         volver a encender ninguna agencia de esa rama.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {!datos&&<div style={{color:Q.muted,textAlign:"center",
         padding:20}}>Cargando…</div>}
@@ -11282,7 +11304,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
   const [nuevo,setNuevo]=useState({titulo:"",cuerpo:"",nivel:"info",
     alcance:"todas",agencia_code:"",horas:"",destinos:["agencia"]});
   const [ags,setAgs]=useState([]);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const finRef=useRef(null);
 
   const cargarHilos=async()=>{
@@ -11321,15 +11343,15 @@ function TabMensajes({ adminKey, onNoAutorizado }){
           ...adminHeaders(adminKey)},body:JSON.stringify({texto:t})});
       if(r.status===401){ onNoAutorizado(); return; }
       if(r.ok){ abrirHilo(abierto); }
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
   const crearAviso=async()=>{
-    if(!nuevo.titulo.trim()){ setMsg("Poné un título"); return; }
+    if(!nuevo.titulo.trim()){ setMsg({text:"Poné un título", ok:false}); return; }
     if(nuevo.alcance!=="todas"&&!nuevo.agencia_code){
-      setMsg("Elegí la agencia"); return; }
-    setProc(true); setMsg("");
+      setMsg({text:"Elegí la agencia", ok:false}); return; }
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/avisos`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -11337,11 +11359,11 @@ function TabMensajes({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg("✅ Aviso publicado");
+      setMsg({text:"Aviso publicado", ok:true});
       setNuevo({titulo:"",cuerpo:"",nivel:"info",alcance:"todas",
                 agencia_code:"",horas:"",destinos:["agencia"]});
       cargarAvisos();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -11471,8 +11493,9 @@ function TabMensajes({ adminKey, onNoAutorizado }){
         ))}
       </div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {vista==="hilos"&&(
         <>
@@ -11802,7 +11825,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
   const [resumen,setResumen]=useState({});
   const [filtro,setFiltro]=useState("abierta");
   const [tipoF,setTipoF]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [escaneando,setEscaneando]=useState(false);
   const [analisis,setAnalisis]=useState("");
   const [anaProc,setAnaProc]=useState(false);
@@ -11841,8 +11864,8 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg("✅ Avisos guardados"); cargarAvisos();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Avisos guardados", ok:true}); cargarAvisos();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setAvProc(false);
   };
 
@@ -11853,8 +11876,8 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
         {method:"POST",headers:adminHeaders(adminKey)});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg(`✅ Enviado a ${d.enviados} de ${d.destinos}`);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:`Enviado a ${d.enviados} de ${d.destinos}`, ok:true});
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setAvProc(false);
   };
 
@@ -11863,7 +11886,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
 
   // Bloquear desde acá evita tener que ir a buscar el evento a mano.
   const bloquearCuota=async(eventIds,umbral)=>{
-    setBloqProc(true); setMsg("");
+    setBloqProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/riesgo/cuotas/bloquear`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -11874,21 +11897,21 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
       if(eventIds) setBloqueadas(b=>new Set([...b,...eventIds]));
-      setMsg(d.bloqueados>0
-        ? `✅ ${d.bloqueados} ${d.bloqueados===1?"evento bloqueado"
+      setMsg({text:d.bloqueados>0
+        ? `${d.bloqueados} ${d.bloqueados===1?"evento bloqueado"
             :"eventos bloqueados"}`
-        : "Ya estaban bloqueados");
+        : "Ya estaban bloqueados", ok:true});
       // Se relee siempre: así el estado sale de la base y no de lo
       // que la pantalla recuerde.
       auditarCuotas();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setBloqProc(false);
   };
 
   // Desbloquear desde acá: había que ir a Eventos a buscarlo, y si el
   // bloqueo era de un mercado ni siquiera aparecía en el listado.
   const desbloquearCuota=async(eventId)=>{
-    setBloqProc(true); setMsg("");
+    setBloqProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/riesgo/cuotas/desbloquear`,{
         method:"POST",headers:{"Content-Type":"application/json",
@@ -11898,9 +11921,9 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
       setBloqueadas(x=>{ const n=new Set(x); n.delete(eventId); return n; });
-      setMsg(d.quitados>0?"✅ Habilitado":"No estaba bloqueado");
+      setMsg({text:d.quitados>0?"Habilitado":"No estaba bloqueado", ok:true});
       auditarCuotas();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setBloqProc(false);
   };
 
@@ -12022,14 +12045,14 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
         setAlertas(d.alertas||[]); setResumen(d.resumen||{});
       }else{
         const e=await r.json().catch(()=>({}));
-        setAlertas([]); setMsg("⚠️ "+(e.detail||`Error ${r.status}`));
+        setAlertas([]); setMsg({text:e.detail||`Error ${r.status}`, ok:false});
       }
-    }catch(e){ setAlertas([]); setMsg("⚠️ "+e.message); }
+    }catch(e){ setAlertas([]); setMsg({text:e.message, ok:false}); }
   };
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[filtro,tipoF]);
 
   const escanear=async()=>{
-    setEscaneando(true); setMsg("");
+    setEscaneando(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/riesgo/escanear`,
         {method:"POST",headers:adminHeaders(adminKey)});
@@ -12037,11 +12060,14 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
       const total=Object.values(d.nuevas||{}).reduce((a,b)=>a+b,0);
-      setMsg(total>0?`✅ ${total} alertas nuevas`:"✅ Sin hallazgos nuevos");
+      setMsg({text:total>0?`${total} alertas nuevas`:"Sin hallazgos nuevos", ok:true});
+      // Appends a partial-failure caveat onto the just-set success text
+      // without touching its colour: the scan itself succeeded, some
+      // rules just couldn't run.
       if(d.reglas_con_error?.length)
-        setMsg(m=>m+` · no pudieron correr: ${d.reglas_con_error.join(", ")}`);
+        setMsg(m=>m&&({text:m.text+` · no pudieron correr: ${d.reglas_con_error.join(", ")}`, ok:m.ok}));
       cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setEscaneando(false);
   };
 
@@ -12054,7 +12080,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
       if(r.ok) setAnalisis(d.analisis||"");
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setAnaProc(false);
   };
 
@@ -12065,7 +12091,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
           ...adminHeaders(adminKey)},body:JSON.stringify({estado})});
       if(r.status===401){ onNoAutorizado(); return; }
       if(r.ok){ setAbierta(null); cargar(); }
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
   };
 
   const marcarUsuario=async(userId,nivel)=>{
@@ -12081,8 +12107,8 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg(`✅ Cliente marcado como ${nivel}`);
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:`Cliente marcado como ${nivel}`, ok:true});
+    }catch(e){ setMsg({text:e.message, ok:false}); }
   };
 
   const COLOR={critica:Q.red,alta:"#FF8A3D",media:Q.gold,baja:Q.muted};
@@ -12103,8 +12129,9 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
         lados opuestos, escaleras de cuota baja, especialistas de nicho.
         El sistema avisa pero no bloquea: revisá antes de actuar.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center",fontFamily:F_BODY}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center",fontFamily:F_BODY}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {/* Semáforo */}
       <div style={{display:"flex",gap:7,marginBottom:12}}>
@@ -13098,7 +13125,7 @@ function TabFlash({ adminKey, onNoAutorizado }){
   const [ttl,setTtl]=useState("90");
   const [extra,setExtra]=useState("10");
   const [tope,setTope]=useState("0");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const cargar=async()=>{
@@ -13117,7 +13144,7 @@ function TabFlash({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const guardar=async(over)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const cuerpo={activo, ttl_min:parseInt(ttl)||90,
         extra_pct:parseFloat(extra)||0, tope_apuesta:parseInt(tope)||0,
@@ -13128,8 +13155,8 @@ function TabFlash({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||`Error ${r.status}`);
-      setMsg("✅ Guardado"); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Guardado", ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -13148,8 +13175,9 @@ function TabFlash({ adminKey, onNoAutorizado }){
         sobre el premio y vencimiento corto. Es lo que le da al bot una
         razón de ser que un enlace a la web no tiene.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <button onClick={()=>{const v=!activo; setActivo(v); guardar({activo:v});}}
         style={{width:"100%",
@@ -13263,7 +13291,7 @@ function TabMejora({ adminKey, onNoAutorizado }){
   const [pct,setPct]=useState("6");
   const [datos,setDatos]=useState(null);
   const [analisis,setAnalisis]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [anaProc,setAnaProc]=useState(false);
 
@@ -13278,7 +13306,7 @@ function TabMejora({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const guardar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/mejora`,{
         method:"POST",
@@ -13287,8 +13315,8 @@ function TabMejora({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg(`✅ Tope actualizado a ${d.pct}%`); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:`Tope actualizado a ${d.pct}%`, ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -13302,7 +13330,7 @@ function TabMejora({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
       if(r.ok) setAnalisis(d.analisis||"");
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setAnaProc(false);
   };
 
@@ -13321,8 +13349,9 @@ function TabMejora({ adminKey, onNoAutorizado }){
         boleto que el cliente trae de otra casa. Si con el tope no se llega
         a igualar, igual se le ofrece lo máximo alcanzable.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <GCard glow={Q.gold} style={{padding:16,marginBottom:12}}>
         <div style={{color:Q.muted,fontSize:11,marginBottom:6,
@@ -13366,7 +13395,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
   const [tabla,setTabla]=useState([]);
   const [activo,setActivo]=useState(false);
   const [cuotaMin,setCuotaMin]=useState("1.20");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   // Simulación sobre datos propios + lectura de la IA. Primero el
   // número, después la opinión: una opinión sin datos vale poco.
@@ -13392,7 +13421,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
         headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
         body:JSON.stringify({...cuerpo, simulacion:d})});
       if(r2.ok){ const d2=await r2.json(); setAnalisis(d2.analisis||""); }
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setSimProc(false);
   };
 
@@ -13412,7 +13441,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
   const guardar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/boost`,{
         method:"POST",
@@ -13423,8 +13452,8 @@ function TabBoost({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
-      setMsg("✅ Guardado"); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:"Guardado", ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -13442,8 +13471,9 @@ function TabBoost({ adminKey, onNoAutorizado }){
         Se paga <b style={{color:Q.text}}>solo si aciertan todas</b>: por eso
         es sostenible, la casa paga de más justo en el caso menos probable.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:10,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <button onClick={()=>setActivo(a=>!a)} style={{width:"100%",
         background:activo?`${Q.green}18`:"rgba(255,255,255,0.04)",
@@ -13598,7 +13628,7 @@ function TabBanners({ adminKey, onNoAutorizado }){
   const [lista,setLista]=useState([]);
   const [cargando,setCargando]=useState(true);
   const [subiendo,setSubiendo]=useState(false);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [nuevo,setNuevo]=useState({titulo:"",texto:"",link:""});
   const archivoRef=useRef(null);
 
@@ -13617,10 +13647,10 @@ function TabBanners({ adminKey, onNoAutorizado }){
     const f=e.target.files?.[0];
     if(!f) return;
     if(f.size > 2*1024*1024){
-      setMsg(`⚠️ Pesa ${Math.round(f.size/1024)} KB. El máximo es 2048 KB.`);
+      setMsg({text:`Pesa ${Math.round(f.size/1024)} KB. El máximo es 2048 KB.`, ok:false});
       e.target.value=""; return;
     }
-    setSubiendo(true); setMsg("");
+    setSubiendo(true); setMsg(null);
     try{
       const b64=await new Promise((ok,fallo)=>{
         const fr=new FileReader();
@@ -13637,11 +13667,11 @@ function TabBanners({ adminKey, onNoAutorizado }){
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
       if(r.ok&&d.ok){
-        setMsg(`✅ Subido (${d.peso_kb} KB)`);
+        setMsg({text:`Subido (${d.peso_kb} KB)`, ok:true});
         setNuevo({titulo:"",texto:"",link:""});
         cargar();
-      } else setMsg("⚠️ "+(d.detail||"No se pudo subir"));
-    }catch(err){ setMsg("⚠️ "+(err.message||"Error")); }
+      } else setMsg({text:d.detail||"No se pudo subir", ok:false});
+    }catch(err){ setMsg({text:err.message||"Error", ok:false}); }
     setSubiendo(false);
     if(archivoRef.current) archivoRef.current.value="";
   };
@@ -13653,9 +13683,9 @@ function TabBanners({ adminKey, onNoAutorizado }){
         headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
         body:JSON.stringify(b)});
       if(r.status===401){ onNoAutorizado(); return; }
-      setMsg(r.ok?"✅ Guardado":"⚠️ No se pudo guardar");
+      setMsg({text:r.ok?"Guardado":"No se pudo guardar", ok:r.ok});
       cargar();
-    }catch(e){ setMsg("⚠️ Error"); }
+    }catch(e){ setMsg({text:"Error", ok:false}); }
   };
 
   const borrar=async(id)=>{
@@ -13664,8 +13694,8 @@ function TabBanners({ adminKey, onNoAutorizado }){
       const r=await fetch(`${API}/api/admin/web/banners/${id}/borrar`,
         {method:"POST",headers:adminHeaders(adminKey)});
       if(r.status===401){ onNoAutorizado(); return; }
-      setMsg("✅ Borrado"); cargar();
-    }catch(e){ setMsg("⚠️ Error"); }
+      setMsg({text:"Borrado", ok:true}); cargar();
+    }catch(e){ setMsg({text:"Error", ok:false}); }
   };
 
   const cambiar=(id,campo,valor)=>setLista(l=>l.map(b=>
@@ -13685,8 +13715,9 @@ function TabBanners({ adminKey, onNoAutorizado }){
         Se muestran en el carrusel de /sitio. Hasta 8. Si no hay ninguno
         activo, el sitio usa las placas generadas y no queda un hueco.</div>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:12,
-        textAlign:"center"}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:12,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <GCard glow={Q.violet} style={{padding:16,marginBottom:18}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:10,
@@ -13808,7 +13839,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
       .catch(()=>{});
     // eslint-disable-next-line
   },[]);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
 
   const cargar=async()=>{
@@ -13830,7 +13861,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
   useEffect(()=>{ cargarTopes(); /* eslint-disable-next-line */ },[]);
 
   const guardar=async()=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/admin/riesgo/config`,{
         method:"POST",
@@ -13840,9 +13871,9 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
       });
       if(r.status===401){ onNoAutorizado(); return; }
       const d=await r.json();
-      if(r.ok&&d.ok){ setMsg("✅ Guardado"); cargar(); cargarTopes(); }
-      else setMsg("⚠️ "+(d.detail||"Error"));
-    }catch(e){ setMsg("⚠️ Error"); }
+      if(r.ok&&d.ok){ setMsg({text:"Guardado", ok:true}); cargar(); cargarTopes(); }
+      else setMsg({text:d.detail||"Error", ok:false});
+    }catch(e){ setMsg({text:"Error", ok:false}); }
     setProc(false);
   };
 
@@ -13922,8 +13953,9 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
 
         <Btn label={proc?"Guardando…":"Guardar"} onClick={guardar}
           color={Q.violet} full disabled={proc}/>
-        {msg&&<div style={{color:Q.muted,fontSize:12,marginTop:8,
-          textAlign:"center"}}>{msg}</div>}
+        {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12,marginTop:8,
+          textAlign:"center"}}>
+          <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
         {activo&&topeNum===0&&(
           <div style={{color:Q.amber,fontSize:11,marginTop:8,lineHeight:1.5}}>

@@ -1441,7 +1441,7 @@ function _colorMarca(nombre){
 
 function JuegoResponsableWeb({ user, onCerrar }){
   const [d,setD]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [editando,setEditando]=useState(null);
   const [valor,setValor]=useState("");
@@ -1455,7 +1455,7 @@ function JuegoResponsableWeb({ user, onCerrar }){
   useEffect(cargar,[user.id]);
 
   const guardar=async(tipo,periodo,quitar)=>{
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/jugador/limite`,{
         method:"POST",headers:{"Content-Type":"application/json"},
@@ -1463,9 +1463,9 @@ function JuegoResponsableWeb({ user, onCerrar }){
           monto:parseFloat(valor)||0, quitar:!!quitar})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"No se pudo");
-      setMsg(x.mensaje||"Listo"); setEditando(null); setValor("");
+      setMsg({text:x.mensaje||"Listo", ok:true}); setEditando(null); setValor("");
       cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -1484,8 +1484,8 @@ function JuegoResponsableWeb({ user, onCerrar }){
         body:JSON.stringify({user_id:user.id, plazo})});
       const x=await r.json();
       if(!r.ok) throw new Error(x.detail||"No se pudo");
-      setMsg(x.mensaje); cargar();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:x.mensaje, ok:true}); cargar();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -1512,10 +1512,11 @@ function JuegoResponsableWeb({ user, onCerrar }){
         </div>
 
         {msg&&(
-          <div style={{color:Q.cyan,fontSize:12.5,marginBottom:14,
+          <div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:14,
             lineHeight:1.55,padding:"11px 13px",
             background:`${Q.cyan}0D`,border:`1px solid ${Q.cyan}33`,
-            borderRadius:9,fontFamily:F_BODY}}>{msg}</div>
+            borderRadius:9,fontFamily:F_BODY}}>
+            <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>
         )}
 
         {d.autoexcluido&&(
@@ -3356,7 +3357,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
   const [posts,setPosts]=useState(null);
   const [abiertos,setAbiertos]=useState([]);
   const [texto,setTexto]=useState("");
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [verCom,setVerCom]=useState(null);
   // Comentarios de los desafíos, aparte de los del muro
@@ -3376,7 +3377,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
 
   const publicar=async()=>{
     if(!texto.trim()) return;
-    setProc(true); setMsg("");
+    setProc(true); setMsg(null);
     try{
       const r=await fetch(`${API}/api/muro/publicar`,{
         method:"POST",headers:{"Content-Type":"application/json"},
@@ -3384,7 +3385,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo publicar");
       setTexto(""); cargar();
-    }catch(e){ setMsg(e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
     setProc(false);
   };
 
@@ -3397,8 +3398,8 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
         body:JSON.stringify({user_id:user.id})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo");
-      setMsg("✅ "+(d.aviso||"Aceptado")); cargar(); onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:d.aviso||"Aceptado", ok:true}); cargar(); onCambio&&onCambio();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
   };
 
   const like=async(id)=>{
@@ -3418,7 +3419,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
       await fetch(`${API}/api/muro/denunciar`,{
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({user_id:user.id, post_id:id, motivo})});
-      setMsg("Gracias. Lo vamos a revisar.");
+      setMsg({text:"Gracias. Lo vamos a revisar.", ok:true});
     }catch(e){}
   };
 
@@ -3426,8 +3427,9 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
     <div>
       <PulsoDesafiosWeb user={user} onVerMias={onVerMias}/>
 
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:12,
-        textAlign:"center",lineHeight:1.45,fontFamily:F_BODY}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:12,
+        textAlign:"center",lineHeight:1.45,fontFamily:F_BODY}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <div style={{marginBottom:18}}>
         <textarea value={texto} onChange={e=>setTexto(e.target.value)}
@@ -3842,7 +3844,7 @@ function CrearDesafioWeb({ user, cfg, saldo, onListo }){
 
 function MisDesafiosWeb({ user, onCambio }){
   const [lista,setLista]=useState(null);
-  const [msg,setMsg]=useState("");
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
 
   const cargar=()=>{
     fetch(`${API}/api/p2p/mis-apuestas/${user.id}`)
@@ -3858,8 +3860,8 @@ function MisDesafiosWeb({ user, onCambio }){
         body:JSON.stringify({user_id:user.id, ganador})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo");
-      setMsg(d.mensaje||"Listo"); cargar(); onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+      setMsg({text:d.mensaje||"Listo", ok:true}); cargar(); onCambio&&onCambio();
+    }catch(e){ setMsg({text:e.message, ok:false}); }
   };
 
   const cancelar=async(id)=>{
@@ -3871,9 +3873,9 @@ function MisDesafiosWeb({ user, onCambio }){
         body:JSON.stringify({user_id:user.id})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo");
-      setMsg("Cancelado, te devolvimos el saldo");
+      setMsg({text:"Cancelado, te devolvimos el saldo", ok:true});
       cargar(); onCambio&&onCambio();
-    }catch(e){ setMsg("⚠️ "+e.message); }
+    }catch(e){ setMsg({text:e.message, ok:false}); }
   };
 
   const ETIQUETA={abierta:{t:"Esperando",c:Q.gold},
@@ -3896,8 +3898,9 @@ function MisDesafiosWeb({ user, onCambio }){
 
   return(
     <div>
-      {msg&&<div style={{color:Q.muted,fontSize:12.5,marginBottom:12,
-        textAlign:"center",lineHeight:1.5,fontFamily:F_BODY}}>{msg}</div>}
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:12,
+        textAlign:"center",lineHeight:1.5,fontFamily:F_BODY}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {lista.map(d=>{
         const e=ETIQUETA[d.estado]||{t:d.estado,c:Q.muted};
