@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
-import { oscuro as Q, F_BODY, F_MONO, RADII, SPACING, TEXT , ELEVATION } from "./theme";
+import { oscuro as Q, F_BODY, F_MONO, RADII, SPACING, TEXT , ELEVATION, inkOn } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import PageHeader from "./PageHeader";
@@ -88,11 +88,18 @@ function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=fa
       // kind of action it is, without drawing a frame around it.
       background:disabled?"rgba(255,255,255,0.04)":outline?"rgba(255,255,255,0.06)":`linear-gradient(135deg,${color},${color}CC)`,
       border:outline&&!disabled?"none":`1px solid ${disabled?Q.dim:color}`, borderRadius:RADII.md,
-      color:disabled?Q.muted:outline?color:"#fff",
+      // inkOn measures contrast against the fill and picks dark or light
+      // ink — a hardcoded "#fff" is unreadable on a light accent like
+      // Q.green. Do not special-case any one colour here; let the helper
+      // decide for all of them.
+      color:disabled?Q.muted:outline?color:inkOn(color),
       fontSize:fs, fontWeight:700, cursor:disabled?"not-allowed":"pointer",
       display:"flex", alignItems:"center", justifyContent:"center", gap:SPACING[8],
       fontFamily:F_BODY, textTransform:"uppercase",
-      boxShadow:(!outline&&!disabled)?`0 4px 14px ${color}33`:"none",
+      // A neutral shadow, not a coloured halo: ELEVATION is the
+      // prototype's panel-level shadow (18px offset, 32px blur) and
+      // reads as an oversized floating box under a button this small.
+      boxShadow:(!outline&&!disabled)?"0 4px 12px rgba(0,0,0,0.35)":"none",
     }}>
       {icon&&<span style={{fontSize:fs+2}}>{icon}</span>}{label}
     </button>
@@ -1475,29 +1482,43 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
           mostly cards. The rows sit straight on the page background,
           separated by a hairline instead, and the type goes up a step
           since there is no card padding fighting it for room. */}
+      {/* Cards mean you can go in, rows mean it already happened. Agencias
+          hoy opens into an agency on click — an entity list — so it gets
+          the same card grid TabUsuarios uses. Últimos movimientos is a
+          log of what already happened, read in time order and not
+          clicked, so it stays as rows. Do not re-merge these two
+          styles: they were identical before and read as one list. */}
       <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
         textTransform:"uppercase",marginBottom:SPACING[12],
         fontFamily:F_BODY}}><Store size={13}/> Agencias hoy</div>
       {ags.length===0&&<div style={{color:Q.muted,fontSize:12,marginBottom:SPACING[24],
         fontFamily:F_BODY}}>Sin agencias</div>}
-      {ags.map((a,i)=>(
-        <div key={a.code} onClick={()=>onIr&&onIr("agencias")}
-          style={{display:"flex",justifyContent:"space-between",cursor:"pointer",
-          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
-          borderBottom:i<ags.length-1?`1px solid ${Q.border}55`:"none"}}>
-          <div style={{minWidth:0,flex:1}}>
-            <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
-              fontFamily:F_BODY}}>{a.name} ›</div>
-            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
-              fontFamily:F_BODY}}>{a.code} · {a.tickets_hoy} tickets hoy</div>
-          </div>
-          <div style={{color:Q.green,fontWeight:700,fontSize:TEXT[16],flexShrink:0,
-            fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(a.cobrado_hoy)}</div>
-        </div>
-      ))}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",
+        gap:SPACING[12]}}>
+        {ags.map(a=>(
+          <GCard key={a.code} onClick={()=>onIr&&onIr("agencias")}
+            style={{padding:SPACING[12],cursor:"pointer"}}>
+            <div style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",gap:SPACING[8]}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
+                  fontFamily:F_BODY}}>{a.name}</div>
+                <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                  fontFamily:F_BODY}}>{a.code} · {a.tickets_hoy} tickets hoy</div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{color:Q.green,fontWeight:700,fontSize:TEXT[16],
+                  fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(a.cobrado_hoy)}</div>
+                <span style={{color:Q.muted,fontSize:16}}>›</span>
+              </div>
+            </div>
+          </GCard>
+        ))}
+      </div>
 
       <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
-        textTransform:"uppercase",marginTop:SPACING[24],marginBottom:SPACING[12],
+        textTransform:"uppercase",marginTop:SPACING[32],marginBottom:SPACING[12],
         fontFamily:F_BODY}}><Banknote size={13}/> Últimos movimientos</div>
       {movs.length===0&&<div style={{color:Q.muted,fontSize:12,
         fontFamily:F_BODY}}>Sin movimientos</div>}
@@ -1508,8 +1529,12 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
           <div style={{minWidth:0,flex:1}}>
             <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:600,fontSize:TEXT[15],
               fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</div>
+            {/* m.usuario can be absent (e.g. an agency-level movement with
+                no specific user attached) — was rendered as a bare
+                " · · " with the field silently empty. Drop the separator
+                when there is no value instead of always printing it. */}
             <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
-              fontFamily:F_BODY}}>{m.agencia} · {m.usuario} · {m.fecha}</div>
+              fontFamily:F_BODY}}>{m.agencia}{m.usuario?` · ${m.usuario}`:""} · {m.fecha}</div>
           </div>
           <div style={{color:m.tipo==="retiro"||m.tipo==="pago_premio"?Q.amber:Q.green,
             fontWeight:700,fontSize:TEXT[16],flexShrink:0,
@@ -2659,7 +2684,10 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
             )}
 
             {/* Bloqueo */}
-            <GCard glow={f.bloqueado?null:Q.red} style={{padding:SPACING[16],marginBottom:12}}>
+            {/* Glow follows the client's blocked state, not a button's
+                colour — a blocked account is the alarm-worthy state, not
+                a normal one. */}
+            <GCard glow={f.bloqueado?Q.red:null} style={{padding:SPACING[16],marginBottom:12}}>
               {f.bloqueado?(
                 <div>
                   <div style={{color:Q.muted,fontSize:12,marginBottom:8,
@@ -2674,7 +2702,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                     </div>
                     <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                        color={Q.amber} outline full/>
+                        color={Q.amber} full/>
                     </div>
                     <AsignarAgenciaAdmin adminKey={adminKey} userId={userId}
                       esDirecto={f.es_directo} agenciaActual={f.agencia}
@@ -2696,6 +2724,8 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                       color:Q.text,fontSize:14,marginBottom:10,
                       fontFamily:F_BODY}}/>
                   <div style={{display:"flex",gap:SPACING[8]}}>
+                    {/* Cancelar stays outline: it is the quiet half of this
+                        confirm pair, next to a filled "Sí, bloquear". */}
                     <Btn label="Cancelar" onClick={()=>{setConfirmBloq(false);setMotivo("");}}
                       outline color={Q.muted} full/>
                     <Btn label="Sí, bloquear" onClick={toggleBloqueo} color={Q.red}
@@ -2706,7 +2736,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
                     <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                        color={Q.amber} outline full/>
+                        color={Q.amber} full/>
                     </div>
                     <AsignarAgenciaAdmin adminKey={adminKey} userId={userId}
                       esDirecto={f.es_directo} agenciaActual={f.agencia}
@@ -2719,11 +2749,11 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
                     <div>
                       <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
-                        color={Q.red} outline full disabled={operando}/>
+                        color={Q.red} full disabled={operando}/>
                     </div>
                     <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                        color={Q.amber} outline full/>
+                        color={Q.amber} full/>
                     </div>
                     <AsignarAgenciaAdmin adminKey={adminKey} userId={userId}
                       esDirecto={f.es_directo} agenciaActual={f.agencia}
@@ -4372,11 +4402,11 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
                 </div>
                 <div>
                   <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                    color={Q.amber} outline full/>
+                    color={Q.amber} full/>
                 </div>
                 <div>
                   <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
-                    color={Q.violet} outline full/>
+                    color={Q.violet} full/>
                 </div>
               </div>
               {configOpen&&d.reporte&&(
