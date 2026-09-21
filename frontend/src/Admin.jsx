@@ -1448,14 +1448,21 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
               etiqueta="Neto en caja por día"/>}
       </GCard>
 
+      {/* Small single-figure stats used to sit in a `flex:1` row: with
+          only one of the two present it stretched to the full content
+          width to say one number. An auto-fit grid gives two columns
+          when both stats exist and lets a lone one settle at a sane
+          card width instead of the whole row. */}
       {(r.boletos_pendientes>0||r.sin_liquidar>0)&&(
-        <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
-          {r.boletos_pendientes>0&&<GCard style={{padding:SPACING[12],flex:1,textAlign:"center"}}>
+        <div style={{display:"grid",
+          gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",
+          gap:SPACING[12],marginBottom:12}}>
+          {r.boletos_pendientes>0&&<GCard style={{padding:SPACING[12],textAlign:"center"}}>
             <div style={{color:Q.amber,fontWeight:700,fontSize:18,
               fontFamily:F_BODY}}>{r.boletos_pendientes}</div>
             <div style={{color:Q.muted,fontSize:12}}>boletos sin cobrar</div>
           </GCard>}
-          {r.sin_liquidar>0&&<GCard style={{padding:SPACING[12],flex:1,textAlign:"center"}}>
+          {r.sin_liquidar>0&&<GCard style={{padding:SPACING[12],textAlign:"center"}}>
             <div style={{color:Q.cyan,fontWeight:700,fontSize:18,
               fontFamily:F_BODY}}>{r.sin_liquidar}</div>
             <div style={{color:Q.muted,fontSize:12}}>sin liquidar</div>
