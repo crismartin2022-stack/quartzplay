@@ -3604,8 +3604,21 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
       {ficha&&(
         <GCard glow={ficha.bloqueado?null:Q.red} style={{padding:SPACING[16],marginBottom:12}}>
           {ficha.bloqueado?(
-            <Btn label={proc?"...":"Desbloquear cliente"} onClick={toggleBloqueo}
-              color={Q.green} full disabled={proc}/>
+            /* Unblocking, resetting the password and linking Telegram are independent one-tap actions, so they share a line */
+            <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
+              <div style={{flex:"1 1 auto",minWidth:160}}>
+                <Btn label={proc?"...":"Desbloquear cliente"} onClick={toggleBloqueo}
+                  color={Q.green} full disabled={proc}/>
+              </div>
+              <div style={{flex:"1 1 auto",minWidth:190}}>
+                <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
+                  color={Q.amber} outline full/>
+              </div>
+              <div style={{flex:"1 1 auto",minWidth:170}}>
+                <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
+                  color={Q.cyan} outline full disabled={tgProc}/>
+              </div>
+            </div>
           ):confirmBloq?(
             <div>
               <div style={{color:Q.red,fontWeight:700,fontSize:13,marginBottom:6,
@@ -3625,17 +3638,36 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
                 <Btn label="Sí, bloquear" onClick={toggleBloqueo} color={Q.red}
                   full disabled={proc}/>
               </div>
+              <div style={{height:8}}/>
+              {/* Reset and Telegram are unrelated to this confirmation, so they get their own line below it */}
+              <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
+                <div style={{flex:"1 1 auto",minWidth:190}}>
+                  <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
+                    color={Q.amber} outline full/>
+                </div>
+                <div style={{flex:"1 1 auto",minWidth:170}}>
+                  <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
+                    color={Q.cyan} outline full disabled={tgProc}/>
+                </div>
+              </div>
             </div>
           ):(
-            <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
-              color={Q.red} outline full disabled={proc}/>
+            /* Blocking is destructive but is still a quick account action like the other two, so it shares the line too — flagged in the change report */
+            <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
+              <div style={{flex:"1 1 auto",minWidth:160}}>
+                <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
+                  color={Q.red} outline full disabled={proc}/>
+              </div>
+              <div style={{flex:"1 1 auto",minWidth:190}}>
+                <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
+                  color={Q.amber} outline full/>
+              </div>
+              <div style={{flex:"1 1 auto",minWidth:170}}>
+                <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
+                  color={Q.cyan} outline full disabled={tgProc}/>
+              </div>
+            </div>
           )}
-          <div style={{height:8}}/>
-          <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-            color={Q.amber} outline full/>
-          <div style={{height:8}}/>
-          <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
-            color={Q.cyan} outline full disabled={tgProc}/>
           {tgLink&&(
             <div style={{marginTop:10,padding:SPACING[12],background:`${Q.cyan}11`,
               border:`1px solid ${Q.cyan}`,borderRadius:RADII.md}}>
@@ -7404,14 +7436,21 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
                   </div>
                 ))}
               </div>
-              <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
-                color={Q.gold} full disabled={proc}/>
-              <div style={{height:8}}/>
-              <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                color={Q.amber} outline full/>
-              <div style={{height:8}}/>
-              <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
-                color={Q.violet} outline full/>
+              {/* Settling, resetting and configuring are independent one-tap actions on this account, so they share a line */}
+              <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
+                <div style={{flex:"1 1 auto",minWidth:170}}>
+                  <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
+                    color={Q.gold} full disabled={proc}/>
+                </div>
+                <div style={{flex:"1 1 auto",minWidth:190}}>
+                  <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
+                    color={Q.amber} outline full/>
+                </div>
+                <div style={{flex:"1 1 auto",minWidth:200}}>
+                  <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
+                    color={Q.violet} outline full/>
+                </div>
+              </div>
               {configOpen&&rep&&(
                 <div style={{marginTop:12,paddingTop:SPACING[12],borderTop:`1px solid ${Q.dim}`}}>
                   <ConfigurarCuentaAg agencia={agencia}
@@ -9081,10 +9120,16 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
 
       {editando&&(
         <div style={{marginTop:12}}>
-          <Btn label={<><Palette size={13}/> Editar imagen (crear placa)</>} onClick={()=>setEditando({...editando,_abrir:true})}
-            color={Q.violet} outline full/>
-          <div style={{height:8}}/>
-          <Btn label="✓ Listo" onClick={onListo} color={Q.green} full/>
+          {/* Editing the image and finishing are two independent choices at this step, so they share a line */}
+          <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
+            <div style={{flex:"1 1 auto",minWidth:220}}>
+              <Btn label={<><Palette size={13}/> Editar imagen (crear placa)</>} onClick={()=>setEditando({...editando,_abrir:true})}
+                color={Q.violet} outline full/>
+            </div>
+            <div style={{flex:"1 1 auto",minWidth:110}}>
+              <Btn label="✓ Listo" onClick={onListo} color={Q.green} full/>
+            </div>
+          </div>
         </div>
       )}
       {editando&&editando._abrir&&<EditorPlaca combo={editando}

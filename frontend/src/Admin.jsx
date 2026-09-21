@@ -2530,8 +2530,20 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                     fontFamily:F_BODY}}>
                     Bloqueado por {f.bloqueado_por||"—"}
                     {f.bloqueado_motivo?` · ${f.bloqueado_motivo}`:""}</div>
-                  <Btn label="Desbloquear cliente" onClick={toggleBloqueo}
-                    color={Q.green} full disabled={operando}/>
+                  {/* Unblocking, resetting the password and reassigning the agency are independent one-tap actions, so they share a line */}
+                  <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
+                    <div style={{flex:"1 1 auto",minWidth:170}}>
+                      <Btn label="Desbloquear cliente" onClick={toggleBloqueo}
+                        color={Q.green} full disabled={operando}/>
+                    </div>
+                    <div style={{flex:"1 1 auto",minWidth:190}}>
+                      <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
+                        color={Q.amber} outline full/>
+                    </div>
+                    <AsignarAgenciaAdmin adminKey={adminKey} userId={userId}
+                      esDirecto={f.es_directo} agenciaActual={f.agencia}
+                      onCambio={()=>{ if(onCambio) onCambio(); }}/>
+                  </div>
                 </div>
               ):confirmBloq?(
                 <div>
@@ -2553,17 +2565,36 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                     <Btn label="Sí, bloquear" onClick={toggleBloqueo} color={Q.red}
                       full disabled={operando}/>
                   </div>
+                  <div style={{height:8}}/>
+                  {/* Reset and agency reassignment are unrelated to this confirmation, so they get their own line below it */}
+                  <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
+                    <div style={{flex:"1 1 auto",minWidth:190}}>
+                      <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
+                        color={Q.amber} outline full/>
+                    </div>
+                    <AsignarAgenciaAdmin adminKey={adminKey} userId={userId}
+                      esDirecto={f.es_directo} agenciaActual={f.agencia}
+                      onCambio={()=>{ if(onCambio) onCambio(); }}/>
+                  </div>
                 </div>
               ):(
-                <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
-                  color={Q.red} outline full disabled={operando}/>
+                <div>
+                  {/* Blocking is destructive but is still a quick account action like the other two, so it shares the line too — flagged in the change report */}
+                  <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
+                    <div style={{flex:"1 1 auto",minWidth:170}}>
+                      <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
+                        color={Q.red} outline full disabled={operando}/>
+                    </div>
+                    <div style={{flex:"1 1 auto",minWidth:190}}>
+                      <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
+                        color={Q.amber} outline full/>
+                    </div>
+                    <AsignarAgenciaAdmin adminKey={adminKey} userId={userId}
+                      esDirecto={f.es_directo} agenciaActual={f.agencia}
+                      onCambio={()=>{ if(onCambio) onCambio(); }}/>
+                  </div>
+                </div>
               )}
-              <div style={{height:8}}/>
-              <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                color={Q.amber} outline full/>
-              <AsignarAgenciaAdmin adminKey={adminKey} userId={userId}
-                esDirecto={f.es_directo} agenciaActual={f.agencia}
-                onCambio={()=>{ if(onCambio) onCambio(); }}/>
             </GCard>
 
             {resetOpen&&<ResetPasswordAdmin adminKey={adminKey} userId={userId}
@@ -4216,14 +4247,21 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
                   </div>
                 ))}
               </div>
-              <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
-                color={Q.gold} full disabled={proc}/>
-              <div style={{height:8}}/>
-              <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                color={Q.amber} outline full/>
-              <div style={{height:8}}/>
-              <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
-                color={Q.violet} outline full/>
+              {/* Settling, resetting and configuring are independent one-tap actions on this account, so they share a line */}
+              <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
+                <div style={{flex:"1 1 auto",minWidth:170}}>
+                  <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
+                    color={Q.gold} full disabled={proc}/>
+                </div>
+                <div style={{flex:"1 1 auto",minWidth:190}}>
+                  <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
+                    color={Q.amber} outline full/>
+                </div>
+                <div style={{flex:"1 1 auto",minWidth:200}}>
+                  <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
+                    color={Q.violet} outline full/>
+                </div>
+              </div>
               {configOpen&&d.reporte&&(
                 <div style={{marginTop:12,paddingTop:SPACING[12],borderTop:`1px solid ${Q.dim}`}}>
                   <ConfigurarCuenta esAdmin adminKey={adminKey}
@@ -4461,16 +4499,17 @@ function AsignarAgenciaAdmin({ adminKey, userId, esDirecto, agenciaActual, onCam
     }catch(e){ setMsg({text:"Error",ok:false}); }
   };
 
+  // Collapsed state renders as one flex item so it can sit in the same
+  // row as the sibling account-action buttons instead of stacking below them.
   if(!abierto) return(
-    <>
-      <div style={{height:8}}/>
+    <div style={{flex:"1 1 auto",minWidth:200}}>
       <Btn label={esDirecto?<><Link size={13}/> Vincular a una agencia</>:<><RefreshCw size={13}/> Cambiar de agencia</>}
         onClick={()=>setAbierto(true)} color={Q.cyan} outline full/>
-    </>
+    </div>
   );
 
   return(
-    <div style={{marginTop:8,padding:SPACING[12],background:`${Q.cyan}0C`,
+    <div style={{marginTop:8,width:"100%",padding:SPACING[12],background:`${Q.cyan}0C`,
       border:`1px solid ${Q.cyan}55`,borderRadius:RADII.md}}>
       <div style={{color:Q.cyan,fontWeight:700,fontSize:13,marginBottom:8,
         fontFamily:F_BODY}}>Asignar agencia</div>
