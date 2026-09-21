@@ -5433,6 +5433,7 @@ function SidebarDesktop({ actual, onNav, onAyuda }){
 
 // ── HOME con destacados (combo del día + en vivo) ─────────────
 function ScreenHome({ user, onNav, onBet, refCode }){
+  const isDesktopShell = useDesktopShellWidth();
   const [combo,setCombo]=useState(null);
   const [live,setLive]=useState(null);
 
@@ -5578,11 +5579,18 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           la fila hace scroll horizontal y cada tarjeta mantiene su ancho
           fijo (152px, el mismo orden de magnitud que las dos tarjetas de
           antes) en vez de encogerse a un tercio del ancho. */}
-      <div style={{display:"flex",gap:SPACING[8],marginBottom:16,
+      {/* On the desktop shell the row has width to spare, so the three
+          cards share it as equal columns instead of staying phone-sized
+          and leaving the rest of the column empty — the same "mobile
+          inside desktop" the panels were just fixed for. */}
+      <div style={isDesktopShell ? {display:"grid",
+        gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:SPACING[16],
+        marginBottom:16} : {display:"flex",gap:SPACING[8],marginBottom:16,
         overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:SPACING[4],
         scrollSnapType:"x proximity"}}>
         <div onClick={()=>onNav("casino")} style={{position:"relative",overflow:"hidden",
-          flexShrink:0,width:152,height:168,cursor:"pointer",borderRadius:RADII.lg,
+          flexShrink:0,width:isDesktopShell?"auto":152,
+          height:isDesktopShell?232:168,cursor:"pointer",borderRadius:RADII.lg,
           scrollSnapAlign:"start",
           backgroundImage:"url(/brand/slot.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
           <div aria-hidden="true" style={{position:"absolute",inset:0,
@@ -5610,7 +5618,8 @@ function ScreenHome({ user, onNav, onBet, refCode }){
             NOMBRE.casino_vivo, the only other place in this file that
             labels this same casino_vivo destination. */}
         <div onClick={()=>onNav("casinovivo")} style={{position:"relative",overflow:"hidden",
-          flexShrink:0,width:152,height:168,cursor:"pointer",borderRadius:RADII.lg,
+          flexShrink:0,width:isDesktopShell?"auto":152,
+          height:isDesktopShell?232:168,cursor:"pointer",borderRadius:RADII.lg,
           scrollSnapAlign:"start",
           backgroundImage:"url(/brand/live-casino.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
           <div aria-hidden="true" style={{position:"absolute",inset:0,
@@ -5631,7 +5640,8 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           </div>
         </div>
         <div onClick={()=>onNav("desafios")} style={{position:"relative",overflow:"hidden",
-          flexShrink:0,width:152,height:168,cursor:"pointer",borderRadius:RADII.lg,
+          flexShrink:0,width:isDesktopShell?"auto":152,
+          height:isDesktopShell?232:168,cursor:"pointer",borderRadius:RADII.lg,
           scrollSnapAlign:"start",
           backgroundImage:"url(/brand/desafios.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
           <div aria-hidden="true" style={{position:"absolute",inset:0,
