@@ -20,14 +20,15 @@ function emojiIn(source) {
 }
 
 // Every emoji in this screen that the inventory gives an icon to. None of
-// them may survive in the file.
-const REPLACED = ["📊", "🔍", "🚫", "🎟️", "⏱", "💰", "✅", "🎫", "📸", "⚠️", "🛡️"];
+// them may survive in the file. 🤝 joined this list in the site slice
+// (odd/tasks/site-emoji-to-icons.md, T2): `Handshake` from lucide-react,
+// the same source App.jsx's T2 used for it, not a name in ICON_PATHS.
+const REPLACED = ["📊", "🔍", "🚫", "🎟️", "⏱", "💰", "✅", "🎫", "📸", "⚠️", "🛡️", "🤝"];
 
 // The emoji the set cannot draw yet. They stay until the icon exists,
 // because an approximation would be worse than an honest gap. Each is
 // listed in docs/icon-inventory.md under "What the set cannot draw yet".
 const AWAITING_AN_ICON = {
-  "🤝": 1, // handshake — Desafíos
   "🔁": 1, // repeat — Mantener selecciones
   "🌙": 1, // empty state — No hay combos ahora
   "🖼️": 1, // image — Galería
