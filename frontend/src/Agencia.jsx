@@ -3339,19 +3339,23 @@ function AltaCliente({ agencia, onListo, onCancel, onSesionExpirada }){
   );
 }
 
-function OtorgarBonoCliente({ agencia, userId }){
+// Used to manage its own trigger button and reveal its form inline below
+// it. The trigger now lives in FichaCliente's header row, so this opens
+// as its own modal instead — same centered-dialog convention as
+// ResetPassword (fixed backdrop, GCard, × close) — controlled from the
+// caller via `open`/`onCerrar`.
+function OtorgarBonoCliente({ agencia, userId, open, onCerrar }){
   const [bonos,setBonos]=useState([]);
   const [sel,setSel]=useState("");
   const [montoCarga,setMontoCarga]=useState("");
   const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
-  const [abierto,setAbierto]=useState(false);
 
   useEffect(()=>{
-    if(!abierto) return;
+    if(!open) return;
     fetch(`${API_URL}/api/agencias/me/bonos`,{headers:authHeaders(agencia.token)})
       .then(r=>r.ok?r.json():{bonos:[]}).then(d=>setBonos(d.bonos||[])).catch(()=>{});
-  },[abierto,agencia.token]);
+  },[open,agencia.token]);
 
   const bonoSel = bonos.find(b=>String(b.id)===String(sel));
   const otorgar=async()=>{
@@ -3371,47 +3375,50 @@ function OtorgarBonoCliente({ agencia, userId }){
     setProc(false);
   };
 
-  if(!abierto) return(
-    <>
-      <div style={{height:8}}/>
-      <Btn label={<><Gift size={13}/> Otorgar bono</>} onClick={()=>setAbierto(true)} color={Q.gold} full/>
-    </>
-  );
+  if(!open) return null;
 
   return(
-    <div style={{marginTop:10,padding:SPACING[12],background:`${Q.gold}0C`,
-      border:`1px solid ${Q.gold}55`,borderRadius:RADII.md}}>
-      <div style={{color:Q.gold,fontWeight:700,fontSize:13,marginBottom:8,
-        fontFamily:F_BODY}}><Gift size={14}/> Otorgar bono</div>
-      {bonos.length===0?(
-        <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
-          No hay bonos habilitados para tu agencia.</div>
-      ):(
-        <>
-          <select value={sel} onChange={e=>setSel(e.target.value)}
-            style={{width:"100%",background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px",color:Q.text,
-              fontSize:13,marginBottom:8,fontFamily:F_BODY}}>
-            <option value="">Elegí un bono</option>
-            {bonos.map(b=>(<option key={b.id} value={b.id}>
-              {b.nombre} ({b.tipo==="bienvenida"?ars(b.monto_fijo||0):`${b.porcentaje}%`})</option>))}
-          </select>
-          {bonoSel&&bonoSel.tipo==="carga"&&(
-            <input value={montoCarga} onChange={e=>setMontoCarga(e.target.value.replace(/\D/g,""))}
-              placeholder="Monto de la carga" inputMode="numeric"
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:220,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:SPACING[16]}}
+      onClick={onCerrar}>
+      <GCard onClick={e=>e.stopPropagation()}
+        style={{padding:SPACING[20],maxWidth:420,width:"100%"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{color:Q.gold,fontWeight:700,fontSize:15,
+            fontFamily:F_BODY}}><Gift size={15}/> Otorgar bono</div>
+          <button onClick={onCerrar} style={{background:"transparent",border:"none",
+            color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
+        </div>
+        {bonos.length===0?(
+          <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
+            No hay bonos habilitados para tu agencia.</div>
+        ):(
+          <>
+            <select value={sel} onChange={e=>setSel(e.target.value)}
               style={{width:"100%",background:"rgba(255,255,255,0.05)",
                 border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px",color:Q.text,
-                fontSize:13,marginBottom:8,fontFamily:F_BODY}}/>
-          )}
-          <div style={{display:"flex",gap:SPACING[8]}}>
-            <Btn label="Cerrar" onClick={()=>{setAbierto(false);setMsg(null);}} outline color={Q.muted} full/>
-            <Btn label={proc?"...":"Otorgar"} onClick={otorgar} color={Q.gold} full disabled={proc}/>
-          </div>
-        </>
-      )}
-      {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-        color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
+                fontSize:13,marginBottom:8,fontFamily:F_BODY}}>
+              <option value="">Elegí un bono</option>
+              {bonos.map(b=>(<option key={b.id} value={b.id}>
+                {b.nombre} ({b.tipo==="bienvenida"?ars(b.monto_fijo||0):`${b.porcentaje}%`})</option>))}
+            </select>
+            {bonoSel&&bonoSel.tipo==="carga"&&(
+              <input value={montoCarga} onChange={e=>setMontoCarga(e.target.value.replace(/\D/g,""))}
+                placeholder="Monto de la carga" inputMode="numeric"
+                style={{width:"100%",background:"rgba(255,255,255,0.05)",
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px",color:Q.text,
+                  fontSize:13,marginBottom:8,fontFamily:F_BODY}}/>
+            )}
+            <div style={{display:"flex",gap:SPACING[8]}}>
+              <Btn label="Cerrar" onClick={onCerrar} outline color={Q.muted} full/>
+              <Btn label={proc?"...":"Otorgar"} onClick={otorgar} color={Q.gold} full disabled={proc}/>
+            </div>
+          </>
+        )}
+        {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
+      </GCard>
     </div>
   );
 }
@@ -3419,6 +3426,7 @@ function OtorgarBonoCliente({ agencia, userId }){
 function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
   const [saldo,setSaldo]=useState(user.saldo);
   const [resetOpen,setResetOpen]=useState(false);
+  const [bonoOpen,setBonoOpen]=useState(false);
   const [tgLink,setTgLink]=useState(null);
   const [tgProc,setTgProc]=useState(false);
   const [tgCopiado,setTgCopiado]=useState(false);
@@ -3524,8 +3532,32 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
       borderTopLeftRadius:20,borderTopRightRadius:20,width:"100%",maxWidth:620,
       maxHeight:"90vh",overflowY:"auto",padding:SPACING[20],
       border:`1px solid ${Q.border}`,borderBottom:"none"}}>
-      <button onClick={onVolver} style={{background:"transparent",border:"none",
-        color:Q.muted,fontSize:22,cursor:"pointer",marginBottom:10,padding:0}}>‹ Volver</button>
+      {/* Account actions moved up next to Volver, small and right-aligned,
+          the way the original reference had them — instead of their own
+          card near the bottom. The row wraps on a narrow phone rather
+          than squashing four buttons into one line. */}
+      <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",
+        justifyContent:"space-between",gap:SPACING[8],marginBottom:12}}>
+        <button onClick={onVolver} style={{background:"transparent",border:"none",
+          color:Q.muted,fontSize:22,cursor:"pointer",padding:0}}>‹ Volver</button>
+        {ficha&&(
+          <div style={{display:"flex",flexWrap:"wrap",gap:SPACING[8],justifyContent:"flex-end"}}>
+            {ficha.bloqueado?(
+              <Btn label={proc?"...":"Desbloquear cliente"} onClick={toggleBloqueo}
+                color={Q.green} size="sm" disabled={proc}/>
+            ):(
+              <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
+                color={Q.red} size="sm" disabled={proc}/>
+            )}
+            <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
+              color={Q.amber} size="sm"/>
+            <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
+              color={Q.cyan} size="sm" disabled={tgProc}/>
+            <Btn label={<><Gift size={13}/> Otorgar bono</>} onClick={()=>setBonoOpen(true)}
+              color={Q.gold} size="sm"/>
+          </div>
+        )}
+      </div>
 
       <GCard style={{padding:SPACING[20],marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -3673,101 +3705,85 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         </div>
       </GCard>
 
-      {/* Bloqueo */}
-      {ficha&&(
-        // Glow follows the client's blocked state, not a button's colour —
-        // a blocked account is the alarm-worthy state, not a normal one.
-        <GCard glow={ficha.bloqueado?Q.red:null} style={{padding:SPACING[16],marginBottom:12}}>
-          {ficha.bloqueado?(
-            /* Unblocking, resetting the password and linking Telegram are independent one-tap actions, so they share a line */
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
-              <div>
-                <Btn label={proc?"...":"Desbloquear cliente"} onClick={toggleBloqueo}
-                  color={Q.green} full disabled={proc}/>
-              </div>
-              <div>
-                <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                  color={Q.amber} full/>
-              </div>
-              <div>
-                <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
-                  color={Q.cyan} full disabled={tgProc}/>
-              </div>
+      {/* Blocking needs a confirmation, so it gets its own modal — the
+          same centered-dialog convention ResetPassword already uses in
+          this file (fixed backdrop, GCard, × close). Unblocking has no
+          confirmation step and applies straight from the header button. */}
+      {confirmBloq&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:220,
+          display:"flex",alignItems:"center",justifyContent:"center",padding:SPACING[16]}}
+          onClick={()=>{setConfirmBloq(false);setMotivo("");}}>
+          <GCard glow={Q.red} onClick={e=>e.stopPropagation()}
+            style={{padding:SPACING[20],maxWidth:400,width:"100%"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <div style={{color:Q.text,fontWeight:700,fontSize:15,
+                fontFamily:F_BODY}}><Lock size={15}/> Bloquear cliente</div>
+              <button onClick={()=>{setConfirmBloq(false);setMotivo("");}} style={{background:"transparent",
+                border:"none",color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
             </div>
-          ):confirmBloq?(
-            <div>
-              <div style={{color:Q.red,fontWeight:700,fontSize:13,marginBottom:6,
-                fontFamily:F_BODY}}>¿Bloquear a {user.nombre}?</div>
-              <div style={{color:Q.muted,fontSize:12,marginBottom:8,
-                fontFamily:F_BODY}}>
-                No va a poder apostar hasta que lo desbloquees.</div>
-              <input value={motivo} onChange={e=>setMotivo(e.target.value)}
-                placeholder="Motivo del bloqueo"
-                style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
-                  color:Q.text,fontSize:14,marginBottom:10,
-                  fontFamily:F_BODY}}/>
-              <div style={{display:"flex",gap:SPACING[8]}}>
-                {/* Cancelar stays outline: it is the quiet half of this
-                    confirm pair, next to a filled "Sí, bloquear". */}
-                <Btn label="Cancelar" onClick={()=>{setConfirmBloq(false);setMotivo("");}}
-                  outline color={Q.muted} full/>
-                <Btn label="Sí, bloquear" onClick={toggleBloqueo} color={Q.red}
-                  full disabled={proc}/>
-              </div>
-              <div style={{height:8}}/>
-              {/* Reset and Telegram are unrelated to this confirmation, so they get their own line below it */}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
-                <div>
-                  <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                    color={Q.amber} full/>
-                </div>
-                <div>
-                  <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
-                    color={Q.cyan} full disabled={tgProc}/>
-                </div>
-              </div>
+            <div style={{color:Q.red,fontWeight:700,fontSize:13,marginBottom:6,
+              fontFamily:F_BODY}}>¿Bloquear a {user.nombre}?</div>
+            <div style={{color:Q.muted,fontSize:12,marginBottom:8,
+              fontFamily:F_BODY}}>
+              No va a poder apostar hasta que lo desbloquees.</div>
+            <input value={motivo} onChange={e=>setMotivo(e.target.value)}
+              placeholder="Motivo del bloqueo"
+              style={{width:"100%",background:"rgba(255,255,255,0.05)",
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
+                color:Q.text,fontSize:14,marginBottom:10,
+                fontFamily:F_BODY}}/>
+            <div style={{display:"flex",gap:SPACING[8]}}>
+              {/* Cancelar stays outline: it is the quiet half of this
+                  confirm pair, next to a filled "Sí, bloquear". */}
+              <Btn label="Cancelar" onClick={()=>{setConfirmBloq(false);setMotivo("");}}
+                outline color={Q.muted} full/>
+              <Btn label="Sí, bloquear" onClick={toggleBloqueo} color={Q.red}
+                full disabled={proc}/>
             </div>
-          ):(
-            /* Blocking is destructive but is still a quick account action like the other two, so it shares the line too — flagged in the change report */
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
-              <div>
-                <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
-                  color={Q.red} full disabled={proc}/>
-              </div>
-              <div>
-                <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                  color={Q.amber} full/>
-              </div>
-              <div>
-                <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
-                  color={Q.cyan} full disabled={tgProc}/>
-              </div>
-            </div>
-          )}
-          {tgLink&&(
-            <div style={{marginTop:10,padding:SPACING[12],background:`${Q.cyan}11`,
-              border:`1px solid ${Q.cyan}`,borderRadius:RADII.md}}>
-              <div style={{color:Q.text,fontSize:12,marginBottom:8,lineHeight:1.5,
-                fontFamily:F_BODY}}>
-                Mandale este link al cliente. Cuando lo abra en Telegram, su cuenta
-                de mostrador y su Telegram quedan unificadas (saldo sumado). Vence en 24hs.</div>
-              <div style={{display:"flex",gap:SPACING[8]}}>
-                <input readOnly value={tgLink.link} style={{flex:1,minWidth:0,
-                  background:"rgba(0,0,0,0.3)",border:`1px solid ${Q.border}`,borderRadius:RADII.md,
-                  padding:"8px 12px",color:Q.cyan,fontSize:12,
-                  fontFamily:F_BODY}}/>
-                <button onClick={()=>{try{navigator.clipboard.writeText(tgLink.link);
-                  setTgCopiado(true);setTimeout(()=>setTgCopiado(false),1500);}catch(e){}}}
-                  style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,
-                  padding:"8px 12px",cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
-                  fontFamily:F_BODY}}>{tgCopiado?"✓":"Copiar"}</button>
-              </div>
-            </div>
-          )}
-          <OtorgarBonoCliente agencia={agencia} userId={user.id}/>
-        </GCard>
+            {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
+              color:msg.ok?Q.green:Q.red,
+              fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
+          </GCard>
+        </div>
       )}
+
+      {/* Telegram's result used to reveal as a panel under the action
+          row; now that the action lives in the header, its result opens
+          as its own modal instead — same convention as above. */}
+      {tgLink&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:220,
+          display:"flex",alignItems:"center",justifyContent:"center",padding:SPACING[16]}}
+          onClick={()=>setTgLink(null)}>
+          <GCard onClick={e=>e.stopPropagation()}
+            style={{padding:SPACING[20],maxWidth:420,width:"100%"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <div style={{color:Q.text,fontWeight:700,fontSize:15,
+                fontFamily:F_BODY}}><Smartphone size={15}/> Conectar Telegram</div>
+              <button onClick={()=>setTgLink(null)} style={{background:"transparent",border:"none",
+                color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
+            </div>
+            <div style={{color:Q.text,fontSize:12,marginBottom:8,lineHeight:1.5,
+              fontFamily:F_BODY}}>
+              Mandale este link al cliente. Cuando lo abra en Telegram, su cuenta
+              de mostrador y su Telegram quedan unificadas (saldo sumado). Vence en 24hs.</div>
+            <div style={{display:"flex",gap:SPACING[8]}}>
+              <input readOnly value={tgLink.link} style={{flex:1,minWidth:0,
+                background:"rgba(0,0,0,0.3)",border:`1px solid ${Q.border}`,borderRadius:RADII.md,
+                padding:"8px 12px",color:Q.cyan,fontSize:12,
+                fontFamily:F_BODY}}/>
+              <button onClick={()=>{try{navigator.clipboard.writeText(tgLink.link);
+                setTgCopiado(true);setTimeout(()=>setTgCopiado(false),1500);}catch(e){}}}
+                style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,
+                padding:"8px 12px",cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
+                fontFamily:F_BODY}}>{tgCopiado?"✓":"Copiar"}</button>
+            </div>
+          </GCard>
+        </div>
+      )}
+
+      <OtorgarBonoCliente agencia={agencia} userId={user.id}
+        open={bonoOpen} onCerrar={()=>setBonoOpen(false)}/>
+
       {resetOpen&&<ResetPassword agencia={agencia} userId={user.id}
         nombre={user.nombre_completo||user.username||"el cliente"}
         onCerrar={()=>setResetOpen(false)}/>}
