@@ -1409,6 +1409,186 @@ async def admin_cierre(desde: str = "", hasta: str = "", export: str = "",
     }
 
 
+# ── SERIES DIARIAS — línea de tiempo de los paneles ────────────
+#
+# Los cierres de arriba dan UN total para todo el rango. El gráfico
+# necesita un punto por día, con ceros incluidos, para que la línea
+# no salte entre dos fechas lejanas como si el medio fuera continuo.
+#
+# El agrupado por día se hace en la base (GROUP BY <columna>::date,
+# la misma columna que ya filtran estos endpoints). El relleno de los
+# días sin filas se hace en Python después de la consulta: un GROUP BY
+# sólo devuelve los días con movimiento, así que hay que completar el
+# resto con 0 — la alternativa (generate_series) también es válida,
+# pero esto evita depender de una base real para probar el relleno.
+#
+# El rango está acotado a ~400 días: más que eso es barrer años enteros
+# por un gráfico, y se rechaza con un error claro en vez de intentarlo.
+
+METRICAS_SERIE = {"tickets", "apostado", "premios", "neto_caja"}
+_SERIE_RANGO_MAX_DIAS = 400
+
+
+def _serie_rango_valido(desde: str, hasta: str):
+    from datetime import date as _date
+    if not desde or not hasta:
+        raise HTTPException(400, "Faltan 'desde' y/o 'hasta' (YYYY-MM-DD)")
+    try:
+        d1 = _date.fromisoformat(desde)
+        d2 = _date.fromisoformat(hasta)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Fechas inválidas: usar YYYY-MM-DD")
+    if d2 < d1:
+        raise HTTPException(400, "'hasta' no puede ser anterior a 'desde'")
+    if (d2 - d1).days > _SERIE_RANGO_MAX_DIAS:
+        raise HTTPException(
+            400, f"Rango máximo: {_SERIE_RANGO_MAX_DIAS} días")
+    return d1, d2
+
+
+def _serie_dias_en_cero(d1, d2):
+    from datetime import timedelta
+    dias, d = {}, d1
+    while d <= d2:
+        dias[d.isoformat()] = 0.0
+        d += timedelta(days=1)
+    return dias
+
+
+async def _codes_de_rama_sin_influencers(conn, code):
+    """
+    Misma regla que agencia_cierre (rama por defecto) y el filtro
+    'agencia' de admin_cierre: la agencia + todo lo que cuelga de ella
+    por 'ruta', sin influencers. None si el code no existe.
+    """
+    yo = await agencia_por_code(conn, code)
+    if not yo:
+        return None
+    ruta = yo["ruta"] or yo["code"]
+    filas = await conn.fetch("""
+        SELECT code FROM agencias
+        WHERE (code=$1 OR ruta LIKE $2)
+          AND COALESCE(tipo,'agencia') <> 'influencer'
+    """, code, ruta + "/%")
+    return [f["code"] for f in filas]
+
+
+async def _serie_metrica(conn, metrica: str, codes: list, d1, d2):
+    """
+    Un punto por día entre d1 y d2 (ambos incluidos) para 'metrica',
+    sumando sólo las agencias en 'codes'. Cada expresión reutiliza
+    exactamente la que ya usa _calcular_ggr / _resumen_caja para que
+    el gráfico nunca contradiga el total que ya se muestra arriba.
+    """
+    valores = _serie_dias_en_cero(d1, d2)
+    if not codes:
+        return [{"fecha": f, "valor": v} for f, v in sorted(valores.items())]
+
+    if metrica == "tickets":
+        filas = await conn.fetch("""
+            SELECT b.created_at::date AS dia, COUNT(*) AS valor
+            FROM betslips b
+            JOIN users u ON u.id = b.user_id
+            WHERE u.creado_por = ANY($1)
+              AND b.created_at::date >= $2 AND b.created_at::date <= $3
+            GROUP BY b.created_at::date
+        """, codes, d1, d2)
+    elif metrica == "apostado":
+        # Misma expresión que _calcular_ggr: stake está en centavos.
+        filas = await conn.fetch("""
+            SELECT b.created_at::date AS dia,
+                   COALESCE(SUM(b.stake),0)/100.0 AS valor
+            FROM betslips b
+            JOIN users u ON u.id = b.user_id
+            WHERE u.creado_por = ANY($1)
+              AND b.created_at::date >= $2 AND b.created_at::date <= $3
+            GROUP BY b.created_at::date
+        """, codes, d1, d2)
+    elif metrica == "premios":
+        # Misma expresión que _calcular_ggr: agencia_movimientos con
+        # tipo='pago_premio' (no el 'premio' de caja, que es otro concepto).
+        filas = await conn.fetch("""
+            SELECT created_at::date AS dia, COALESCE(SUM(monto),0) AS valor
+            FROM agencia_movimientos
+            WHERE agencia_code = ANY($1) AND tipo = 'pago_premio'
+              AND created_at::date >= $2 AND created_at::date <= $3
+            GROUP BY created_at::date
+        """, codes, d1, d2)
+    else:  # neto_caja
+        # Misma clasificación que _resumen_caja: cargas menos retiros.
+        filas = await conn.fetch("""
+            SELECT created_at::date AS dia,
+                   COALESCE(SUM(monto) FILTER (
+                       WHERE lower(tipo) IN ('carga','carga_admin','carga_cliente')
+                   ),0)
+                 - COALESCE(SUM(monto) FILTER (
+                       WHERE lower(tipo) IN ('retiro','retiro_cliente')
+                   ),0) AS valor
+            FROM agencia_movimientos
+            WHERE agencia_code = ANY($1)
+              AND created_at::date >= $2 AND created_at::date <= $3
+            GROUP BY created_at::date
+        """, codes, d1, d2)
+
+    for f in filas:
+        valores[f["dia"].isoformat()] = float(f["valor"] or 0)
+
+    return [{"fecha": f, "valor": v} for f, v in sorted(valores.items())]
+
+
+@app.get("/api/admin/serie")
+async def admin_serie(metrica: str = "", desde: str = "", hasta: str = "",
+                      agencia: str = "", _=Depends(auth.require_admin)):
+    """
+    Serie diaria de una métrica para el gráfico de línea del panel admin.
+    Sin 'agencia', suma todo el sistema (sin influencers, igual que
+    /api/admin/cierre). Con 'agencia', esa agencia y su rama hacia abajo.
+    """
+    if metrica not in METRICAS_SERIE:
+        raise HTTPException(
+            400, f"Métrica inválida: '{metrica}'. Usar una de: "
+                 f"{', '.join(sorted(METRICAS_SERIE))}")
+    d1, d2 = _serie_rango_valido(desde, hasta)
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        if agencia:
+            codes = await _codes_de_rama_sin_influencers(conn, agencia.upper())
+            if codes is None:
+                raise HTTPException(404, "Agencia no encontrada")
+        else:
+            filas = await conn.fetch(
+                "SELECT code FROM agencias WHERE COALESCE(tipo,'agencia') <> 'influencer'")
+            codes = [f["code"] for f in filas]
+        puntos = await _serie_metrica(conn, metrica, codes, d1, d2)
+
+    return {"puntos": puntos}
+
+
+@app.get("/api/agencias/me/serie")
+async def agencia_serie(metrica: str = "", desde: str = "", hasta: str = "",
+                        agencia_code: str = Depends(requiere_agencia)):
+    """
+    Igual que /api/admin/serie pero acotado a la rama de la agencia
+    autenticada — el mismo alcance que /api/agencias/me/cierre: ella y
+    todo lo que cuelga por 'ruta', sin influencers. Nunca ve otra rama.
+    """
+    if metrica not in METRICAS_SERIE:
+        raise HTTPException(
+            400, f"Métrica inválida: '{metrica}'. Usar una de: "
+                 f"{', '.join(sorted(METRICAS_SERIE))}")
+    d1, d2 = _serie_rango_valido(desde, hasta)
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        codes = await _codes_de_rama_sin_influencers(conn, agencia_code)
+        if codes is None:
+            raise HTTPException(404, "Agencia no encontrada")
+        puntos = await _serie_metrica(conn, metrica, codes, d1, d2)
+
+    return {"puntos": puntos}
+
+
 # ── AUDITORÍA — historial de movimientos y apuestas ───────────
 from fastapi.responses import PlainTextResponse
 
