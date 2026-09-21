@@ -7998,7 +7998,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         backgroundSize:"28px 28px"}}/>
       <div style={isDesktop ? {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"12px 16px",display:"flex",alignItems:"center",flexShrink:0,
-        justifyContent:"space-between",zIndex:50,overflow:"hidden",
+        justifyContent:"space-between",zIndex:50,overflow:"hidden",minHeight:64,
         gridColumn:"2",gridRow:"1"} : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         padding:"12px 16px",display:"flex",alignItems:"center",flexShrink:0,
         justifyContent:"space-between",zIndex:50,overflow:"hidden"}}>
@@ -8039,8 +8039,9 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"}}>
         {TABS.map(t=>(
           <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
+            minWidth:0,
             background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
+            border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
             borderRadius:RADII.md,cursor:"pointer",
             color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
             fontFamily:F_BODY,
