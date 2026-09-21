@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, Component } from "react";
 import { getFrontendConfig } from "./config";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
-import { Handshake, Video, Zap, Gift } from "lucide-react";
+import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon } from "lucide-react";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -1047,7 +1047,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
                   overflow:"hidden",textOverflow:"ellipsis",
                   whiteSpace:"nowrap"}}>
                   {r.terminal&&(
-                    <span style={{color:Q.cyan,marginRight:4}}>🖥️</span>
+                    <span style={{color:Q.cyan,marginRight:4}}><Monitor size={12}/></span>
                   )}
                   {r.cliente} · {r.resumen}</div>
                 <div style={{color:Q.dim,fontSize:12,marginTop:1}}>
@@ -1192,7 +1192,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
       {step==="retiro"&&retiro&&(
         <GCard glow={Q.gold} style={{padding:SPACING[20],marginBottom:12}}>
           <div style={{color:Q.gold,fontWeight:800,fontSize:16,marginBottom:6,
-            fontFamily:F_BODY}}>💸 Retiro para pagar</div>
+            fontFamily:F_BODY}}><Banknote size={16}/> Retiro para pagar</div>
           <div style={{color:Q.muted,fontSize:13,marginBottom:16}}>
             El cliente solicitó un retiro y viene a cobrar en efectivo.
           </div>
@@ -1456,7 +1456,7 @@ function FlujoManual({ agencia }){
       {bbFeature.bet_builder&&(
         <div style={{background:`${Q.violet}12`,border:`1px solid ${Q.violet}55`,borderRadius:RADII.md,
           padding:"8px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:SPACING[8]}}>
-          <span style={{fontSize:16}}>🛠️</span>
+          <Wrench size={16}/>
           <div>
             <div style={{color:Q.violet2||Q.violet,fontWeight:700,fontSize:12,
               fontFamily:F_BODY}}>Bet Builder activo</div>
@@ -1582,7 +1582,7 @@ function FlujoManual({ agencia }){
 
           {prematchDeportes&&prematchDeportes.length===0&&(
             <GCard style={{padding:SPACING[24],textAlign:"center"}}>
-              <div style={{fontSize:28,marginBottom:8}}>📭</div>
+              <div style={{marginBottom:8}}><Inbox size={28} color={Q.muted}/></div>
               <div style={{color:Q.muted,fontSize:12,
                 fontFamily:F_BODY}}>
                 No hay eventos con cuotas en este momento
@@ -1720,7 +1720,7 @@ function FlujoManual({ agencia }){
                   {picks.length} picks · <span style={{color:Q.cyan}}>{fmt(totOdd)}x</span>
                   <span style={{color:Q.dim,fontSize:12,marginLeft:5}}>
                     {verPicks?"▲":"▼"}</span>
-                  {mismoPartido&&<span style={{color:Q.gold,fontSize:12,marginLeft:6}}>🔗 mismo partido</span>}
+                  {mismoPartido&&<span style={{color:Q.gold,fontSize:12,marginLeft:6}}><Link size={11}/> mismo partido</span>}
                 </div>
                 <div style={{color:Q.green,fontSize:12}}>Ret: {ars(Math.round(monto*totOdd))}</div>
               </div>
@@ -1799,8 +1799,8 @@ function DoneScreen({ slip, titulo, color, tipo, onReset }){
   const imprimir=()=>{ if(printTicket(slip, tipo)) setPrinted(true); };
   return(
     <GCard glow={color} style={{padding:SPACING[24],textAlign:"center"}}>
-      <div style={{fontSize:52,marginBottom:10}}>
-        {color===Q.green?"✅":color===Q.amber?"💵":"🎉"}
+      <div style={{marginBottom:10}}>
+        {color===Q.green?<Icon name="circle-check" size={52} color={color}/>:color===Q.amber?<Icon name="wallet-cards" size={52} color={color}/>:<PartyPopper size={52} color={color}/>}
       </div>
       <div style={{color,fontWeight:900,fontSize:20,
         fontFamily:F_BODY,marginBottom:6}}>{titulo}</div>
@@ -1827,7 +1827,7 @@ function DoneScreen({ slip, titulo, color, tipo, onReset }){
           border:`1px solid ${printed?Q.border:Q.violet}`,borderRadius:RADII.lg,padding:SPACING[16],
           color:printed?Q.muted:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",
           fontFamily:F_BODY,textTransform:"uppercase",
-        }}>🖨️ {printed?"Reimprimir":"Imprimir ticket"}</button>
+        }}><Printer size={14}/> {printed?"Reimprimir":"Imprimir ticket"}</button>
       </div>
       <Btn label="NUEVA OPERACIÓN" onClick={onReset} color={color} full size="lg"/>
     </GCard>
@@ -2188,7 +2188,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
           background:"rgba(255,255,255,0.02)"}}>
           <input type="file" accept="image/*" multiple onChange={elegirArchivo}
             style={{display:"none"}}/>
-          <div style={{fontSize:26,marginBottom:4}}>🖼️</div>
+          <div style={{marginBottom:4}}><ImageIcon size={26}/></div>
           <div style={{color:Q.text,fontWeight:700,fontSize:12,
             fontFamily:F_BODY}}>
             {imagenes.length>0?"Agregar más":"Desde galería"}</div>
@@ -2276,7 +2276,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
                 border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:RADII.md,
                 padding:"8px 12px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
                 fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
-                {corrigiendo===i?"✕ Cerrar":"✏️ Está mal / Corregir"}
+                {corrigiendo===i?"✕ Cerrar":<><Pencil size={12}/> Está mal / Corregir</>}
               </button>
               {corrigiendo===i&&(
                 <CorregirPick pick={p} token={agencia.token}
@@ -2487,7 +2487,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
             <div style={{marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                 <span style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-                  fontFamily:F_BODY}}>🏢 Sub-agencias</span>
+                  fontFamily:F_BODY}}><Building2 size={12}/> Sub-agencias</span>
                 <button onClick={()=>{setTodosSubs(v=>!v); if(!todosSubs)setDestSubs([]);}}
                   style={{background:todosSubs?`${Q.green}22`:"rgba(255,255,255,0.05)",
                     border:`1px solid ${todosSubs?Q.green:Q.border}`,borderRadius:RADII.md,
@@ -2512,7 +2512,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                 <span style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-                  fontFamily:F_BODY}}>🌟 Influencers</span>
+                  fontFamily:F_BODY}}><Star size={12}/> Influencers</span>
                 <button onClick={()=>{setTodosInfs(v=>!v); if(!todosInfs)setDestInfs([]);}}
                   style={{background:todosInfs?`${Q.green}22`:"rgba(255,255,255,0.05)",
                     border:`1px solid ${todosInfs?Q.green:Q.border}`,borderRadius:RADII.md,
@@ -2696,7 +2696,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
         fontFamily:F_BODY}}>Cargando...</div>}
       {combos&&combos.length===0&&(
         <GCard style={{padding:SPACING[24],textAlign:"center"}}>
-          <div style={{fontSize:26,marginBottom:8}}>📋</div>
+          <div style={{marginBottom:8}}><Icon name="clipboard-list" size={26} color={Q.muted}/></div>
           <div style={{color:Q.muted,fontSize:13,
             fontFamily:F_BODY}}>
             Todavía no hay combos</div>
@@ -2716,7 +2716,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                 <div style={{color:Q.text,fontWeight:600,fontSize:13,
                   fontFamily:F_BODY}}>{c.nombre}
                   {esCasa&&<span style={{background:`${Q.gold}22`,border:`1px solid ${Q.gold}`,
-                    borderRadius:RADII.md,padding:"4px 8px",fontSize:12,color:Q.gold,marginLeft:6}}>🏛️ De la casa</span>}</div>
+                    borderRadius:RADII.md,padding:"4px 8px",fontSize:12,color:Q.gold,marginLeft:6}}><Icon name="landmark" size={11}/> De la casa</span>}</div>
                 <div style={{color:Q.muted,fontSize:12}}>
                   {picks.length} picks · {fmt(c.odd_total)}x</div>
               </div>
@@ -2780,7 +2780,7 @@ function MisCombosAgencia({ agencia, onVolver, onSesionExpirada }){
                         color:Q.text,fontSize:13,fontWeight:700,
                         fontFamily:F_BODY}}/>
                   </div>
-                  <Btn label={cobrando===c.id?"COBRANDO...":`💵 Cobrar ${ars(monto)}`}
+                  <Btn label={cobrando===c.id?"COBRANDO...":<><Icon name="wallet-cards" size={13}/> Cobrar {ars(monto)}</>}
                     onClick={()=>cobrarCombo(c)} color={Q.green} full disabled={cobrando===c.id}/>
                   {!esCasa&&(
                     <button onClick={()=>borrar(c.id)} style={{width:"100%",marginTop:8,
@@ -2943,7 +2943,7 @@ function CombosIA({ agencia, onSesionExpirada }){
 
       {combos&&combos.length===0&&!cargando&&(
         <GCard style={{padding:SPACING[24],textAlign:"center"}}>
-          <div style={{fontSize:26,marginBottom:8}}>🌙</div>
+          <div style={{marginBottom:8}}><Moon size={26} color={Q.muted}/></div>
           <div style={{color:Q.muted,fontSize:13,
             fontFamily:F_BODY}}>
             No hay combos disponibles ahora
@@ -3071,7 +3071,7 @@ function Clientes({ agencia, onSesionExpirada }){
               fontSize:14,flex:1,minWidth:0,
               fontFamily:F_BODY}}/>
         </div>
-        <Btn label="🔒" onClick={()=>setVerBloqueos(true)} color={Q.red} size="sm"/>
+        <Btn label={<Lock size={14} role="img" aria-label="Bloqueos"/>} onClick={()=>setVerBloqueos(true)} color={Q.red} size="sm"/>
         <Btn label="+ Nuevo" onClick={()=>setAlta(true)} color={Q.violet} size="sm"/>
       </div>
 
@@ -3100,7 +3100,7 @@ function Clientes({ agencia, onSesionExpirada }){
                 <span style={{color:Q.text,fontWeight:600,fontSize:14,
                   fontFamily:F_BODY,overflow:"hidden",
                   textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.nombre}</span>
-                {u.tiene_telegram&&<span style={{color:Q.cyan,fontSize:12}}>✈️</span>}
+                {u.tiene_telegram&&<span style={{color:Q.cyan,fontSize:12}}><Send size={11}/></span>}
               </div>
               {/* El usuario con el que entra al sitio: el cajero lo
                   necesita a mano cuando el cliente lo olvida. */}
@@ -3151,7 +3151,7 @@ function ImpresionesRama({ agencia, onCerrar, onSesionExpirada }){
         <div style={{display:"flex",justifyContent:"space-between",
           alignItems:"center",marginBottom:16}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:16,
-            fontFamily:F_BODY}}>🖨️ Impresiones de mi rama</div>
+            fontFamily:F_BODY}}><Printer size={16}/> Impresiones de mi rama</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:26,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
@@ -3168,7 +3168,7 @@ function ImpresionesRama({ agencia, onCerrar, onSesionExpirada }){
                   {im.referencia?<span style={{color:Q.cyan,fontWeight:400}}> · {im.referencia}</span>:null}</div>
                 <div style={{color:Q.muted,fontSize:12}}>{im.agencia} · por {im.quien} · {im.fecha}</div>
               </div>
-              <span style={{fontSize:16}}>🖨️</span>
+              <Printer size={16}/>
             </div>
           </GCard>
         ))}
@@ -3196,7 +3196,7 @@ function BloqueosRama({ agencia, onCerrar, onSesionExpirada }){
         <div style={{display:"flex",justifyContent:"space-between",
           alignItems:"center",marginBottom:16}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:16,
-            fontFamily:F_BODY}}>🔒 Bloqueos de mi rama</div>
+            fontFamily:F_BODY}}><Lock size={16}/> Bloqueos de mi rama</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:26,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
@@ -3210,7 +3210,7 @@ function BloqueosRama({ agencia, onCerrar, onSesionExpirada }){
             <GCard key={i} glow={esBloqueo?Q.red:Q.green} style={{padding:"12px 12px",marginBottom:6}}>
               <div style={{color:esBloqueo?Q.red:Q.green,fontWeight:700,fontSize:12,
                 fontFamily:F_BODY}}>
-                {esBloqueo?"🔒 Bloqueó":"✅ Desbloqueó"}{" "}
+                {esBloqueo?<><Lock size={12}/> Bloqueó</>:<><Icon name="circle-check" size={12}/> Desbloqueó</>}{" "}
                 <span style={{color:Q.text}}>{b.nombre}</span>
                 <span style={{color:Q.muted,fontWeight:400}}> ({b.tipo})</span></div>
               <div style={{color:Q.muted,fontSize:12,marginTop:2}}>por {b.quien} · {b.fecha}</div>
@@ -3484,7 +3484,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
               textOverflow:"ellipsis"}}>{user.nombre}</div>
             <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
               {user.documento?`Doc ${user.documento}`:"Sin documento"}
-              {user.tiene_telegram?" · Telegram ✈️":""}
+              {user.tiene_telegram?<> · Telegram <Send size={11}/></>:""}
             </div>
           </div>
           <div style={{textAlign:"right",flexShrink:0}}>
@@ -3497,7 +3497,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         {ficha?.bloqueado&&(
           <div style={{marginTop:10,paddingTop:SPACING[12],borderTop:`1px solid ${Q.dim}`,
             color:Q.red,fontSize:12,fontFamily:F_BODY}}>
-            🔒 Bloqueado por {ficha.bloqueado_por||"—"}
+            <Lock size={12}/> Bloqueado por {ficha.bloqueado_por||"—"}
             {ficha.bloqueado_motivo?` · ${ficha.bloqueado_motivo}`:""}
           </div>
         )}
@@ -3535,7 +3535,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
 
       <GCard style={{padding:SPACING[16],marginBottom:12}}>
         <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
-          {[["carga","➕ Cargar",Q.green],["retiro","➖ Retirar",Q.amber]].map(([k,l,c])=>(
+          {[["carga",<><Icon name="plus" size={13}/> Cargar</>,Q.green],["retiro",<><Minus size={13}/> Retirar</>,Q.amber]].map(([k,l,c])=>(
             <button key={k} onClick={()=>setModo(k)} style={{
               flex:1,background:modo===k?`${c}22`:"rgba(255,255,255,0.04)",
               border:`1.5px solid ${modo===k?c:Q.border}`,borderRadius:RADII.md,
@@ -3611,14 +3611,14 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
               </div>
             </div>
           ):(
-            <Btn label="🔒 Bloquear cliente" onClick={toggleBloqueo}
+            <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
               color={Q.red} outline full disabled={proc}/>
           )}
           <div style={{height:8}}/>
-          <Btn label="🔑 Resetear contraseña" onClick={()=>setResetOpen(true)}
+          <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
             color={Q.amber} outline full/>
           <div style={{height:8}}/>
-          <Btn label={tgProc?"...":"📲 Conectar Telegram"} onClick={conectarTelegram}
+          <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
             color={Q.cyan} outline full disabled={tgProc}/>
           {tgLink&&(
             <div style={{marginTop:10,padding:SPACING[12],background:`${Q.cyan}11`,
@@ -4142,8 +4142,8 @@ function SelectorSonido(){
       <div style={{color:Q.muted,fontSize:12,marginBottom:5,
         fontFamily:F_BODY}}>Sonido de alertas</div>
       <div style={{display:"flex",gap:SPACING[8]}}>
-        {[["off","🔇 Sin sonido"],["urgente","🔔 Solo urgentes"],
-          ["suave","🔊 Todas"]].map(([k,l])=>(
+        {[["off",<><VolumeX size={13}/> Sin sonido</>],["urgente",<><Bell size={13}/> Solo urgentes</>],
+          ["suave",<><Volume2 size={13}/> Todas</>]].map(([k,l])=>(
           <button key={k} onClick={()=>cambiar(k)} style={{flex:1,
             background:nivel===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${nivel===k?Q.violet:Q.border}`,
@@ -4411,7 +4411,7 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
         alignItems:"center",marginBottom:10}}>
         <div>
           <div style={{color:Q.text,fontWeight:700,fontSize:15,
-            fontFamily:F_BODY}}>🎧 Soporte</div>
+            fontFamily:F_BODY}}><Headphones size={15}/> Soporte</div>
           <div style={{color:Q.muted,fontSize:12}}>
             Consultas de tus clientes</div>
         </div>
@@ -4420,9 +4420,9 @@ function SoporteAgencia({ agencia, onSesionExpirada }){
             try{ localStorage.setItem("qp_sop_sonido", n?"1":"0"); }catch(e){}
             return n;
           })} title="Sonido al llegar un caso"
-          style={{background:"transparent",border:"none",fontSize:17,
+          style={{background:"transparent",border:"none",
             cursor:"pointer",opacity:sonido?1:0.4}}>
-          {sonido?"🔔":"🔕"}</button>
+          <Bell size={17}/></button>
       </div>
 
       {derivados>0&&(
@@ -4813,7 +4813,7 @@ function Terminales({ agencia, onSesionExpirada }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:3,
-        fontFamily:F_BODY}}>🖥️ Terminales</div>
+        fontFamily:F_BODY}}><Monitor size={15}/> Terminales</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Cada pantalla del local con su QR. El cliente lo escanea, arma
@@ -4963,12 +4963,12 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:3,
-        fontFamily:F_BODY}}>🤖 Tu asesor</div>
+        fontFamily:F_BODY}}><Bot size={15}/> Tu asesor</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Lee tus números y te dice qué mirar. Solo ve lo de tu red.</div>
 
-      <Btn label={cargando?"Analizando…":"🔄 Analizar mi negocio"}
+      <Btn label={cargando?"Analizando…":<><RefreshCw size={13}/> Analizar mi negocio</>}
         onClick={analizar} color={Q.violet} full disabled={cargando}/>
 
       {d&&(
@@ -5763,7 +5763,7 @@ function HistorialCashout({ agencia, onSesionExpirada }){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,
           fontFamily:F_BODY}}><Icon name="wallet-cards" size={14}/> Cash outs de la rama</div>
-        <Btn label={cargando?"...":"Actualizar"} onClick={cargar} outline color={Q.muted} size="sm"/>
+        <Btn label={cargando?"...":"↻ Actualizar"} onClick={cargar} outline color={Q.muted} size="sm"/>
       </div>
       <AlertaError mensaje={err}/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:SPACING[8],marginBottom:14}}>
@@ -5852,7 +5852,7 @@ function Historial({ agencia, onSesionExpirada }){
         alignItems:"center",marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,
           fontFamily:F_BODY}}>Historial</div>
-        <Btn label={cargando?"...":"Actualizar"} onClick={cargar}
+        <Btn label={cargando?"...":"↻ Actualizar"} onClick={cargar}
           outline color={Q.muted} size="sm"/>
       </div>
 
@@ -6031,7 +6031,7 @@ function Cierres({ agencia, onSesionExpirada }){
   return(
     <div>
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
-        {[["resumen","📊 Resumen"],["caja","🧾 Caja"],["movs","💸 Movs"],["apuestas","🎫 Apuestas"],["digital","🏦 Digital"],["combos","⚡ Combos"],["impresiones","🖨️ Impres."]].map(([k,l])=>(
+        {[["resumen",<><Icon name="chart-no-axes-combined" size={13}/> Resumen</>],["caja",<><Icon name="receipt-text" size={13}/> Caja</>],["movs",<><Banknote size={13}/> Movs</>],["apuestas",<><Icon name="receipt-text" size={13}/> Apuestas</>],["digital",<><Icon name="landmark" size={13}/> Digital</>],["combos",<><Zap size={13}/> Combos</>],["impresiones",<><Printer size={13}/> Impres.</>]].map(([k,l])=>(
           <button key={k} onClick={()=>setVista(k)} style={{flex:1,
             background:vista===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:RADII.md,
@@ -6375,7 +6375,7 @@ function Cierres({ agencia, onSesionExpirada }){
                   <div style={{display:"flex",justifyContent:"space-between",
                     alignItems:"center",marginTop:6}}>
                     <span style={{color:Q.muted,fontSize:12,
-                      fontFamily:F_BODY}}>🌟 Comisión influencers</span>
+                      fontFamily:F_BODY}}><Star size={12}/> Comisión influencers</span>
                     <span style={{color:Q.gold,fontWeight:700,fontSize:13,
                       fontFamily:F_BODY}}>−{ars(res.total.comision_influencers)}</span>
                   </div>
@@ -6480,7 +6480,7 @@ function Cierres({ agencia, onSesionExpirada }){
                 alignItems:"center",marginBottom:6}}>
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>
-                  {a.es_mia?"⭐ ":""}{a.name}</div>
+                  {a.es_mia?<><Star size={12}/> </>:""}{a.name}</div>
                 <div style={{color:Q.gold,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>Com {ars(a.comision)}</div>
               </div>
@@ -6596,10 +6596,10 @@ function Cierres({ agencia, onSesionExpirada }){
                   {c.es_ia
                     ?<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
                         borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
-                        color:Q.violet2,marginLeft:6}}>🤖 IA</span>
+                        color:Q.violet2,marginLeft:6}}><Bot size={12}/> IA</span>
                     :<span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,
                         borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
-                        color:Q.cyan,marginLeft:6}}>✍️ Manual</span>}
+                        color:Q.cyan,marginLeft:6}}><PenLine size={12}/> Manual</span>}
                   {!c.visible&&<span style={{color:Q.muted,fontSize:12,marginLeft:5}}>oculto</span>}
                 </div>
                 <div style={{color:Q.muted,fontSize:12}}>{c.creado_por||c.origen} · {c.fecha}</div>
@@ -6627,7 +6627,7 @@ function Cierres({ agencia, onSesionExpirada }){
                     {im.referencia?<span style={{color:Q.cyan,fontWeight:400}}> · {im.referencia}</span>:null}</div>
                   <div style={{color:Q.muted,fontSize:12}}>{im.agencia} · por {im.quien} · {im.fecha}</div>
                 </div>
-                <span style={{fontSize:16}}>🖨️</span>
+                <Printer size={16}/>
               </div>
             </GCard>
           );
@@ -6700,7 +6700,7 @@ function ConectarTelegramAgencia({ agencia }){
   return(
     <GCard glow={Q.cyan} style={{padding:SPACING[20],marginBottom:12}}>
       <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:6,
-        fontFamily:F_BODY}}>📲 Conectar Telegram</div>
+        fontFamily:F_BODY}}><Smartphone size={14}/> Conectar Telegram</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:12,lineHeight:1.5,
         fontFamily:F_BODY}}>
         Conectá tu Telegram para recibir los avisos de la agencia
@@ -6750,7 +6750,7 @@ function CambiarMiPassword({ agencia, obligado=false, onListo }){
     <GCard glow={obligado?Q.amber:Q.violet} style={{padding:SPACING[20],marginBottom:12}}>
       <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:8,
         fontFamily:F_BODY}}>
-        {obligado?"🔑 Cambiá tu contraseña para continuar":"🔑 Cambiar mi contraseña"}</div>
+        {obligado?<><Key size={14}/> Cambiá tu contraseña para continuar</>:<><Key size={14}/> Cambiar mi contraseña</>}</div>
       {obligado&&<div style={{color:Q.amber,fontSize:12,marginBottom:12,lineHeight:1.4,
         fontFamily:F_BODY}}>
         Es tu primer ingreso. Por seguridad, elegí una contraseña nueva.</div>}
@@ -6898,7 +6898,7 @@ function EnVivo({ agencia }){
           {lastUpdate&&<span style={{color:Q.dim,fontSize:12}}>{lastUpdate}</span>}
           <button onClick={fetchLive} style={{background:"transparent",
             border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"4px 12px",
-            color:Q.muted,fontSize:12,cursor:"pointer"}}>🔄</button>
+            color:Q.muted,fontSize:12,cursor:"pointer"}}>↻ Actualizar</button>
         </div>
       </div>
 
@@ -7130,7 +7130,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}>🌟 Influencers</div>
+          fontFamily:F_BODY}}><Star size={15}/> Influencers</div>
         <Btn label={showForm?"Cancelar":"+ Nuevo"} onClick={()=>setShowForm(s=>!s)}
           color={Q.violet} size="sm"/>
       </div>
@@ -7139,7 +7139,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
         onListo={()=>{setShowForm(false);cargar();}} onSesionExpirada={onSesionExpirada}/>}
 
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
-        {[["mios","🌟 Míos"],["costos","💸 Cuestan"],["escaneos","📸 Escaneos"]].map(([k,l])=>(
+        {[["mios",<><Star size={13}/> Míos</>],["costos",<><Banknote size={13}/> Cuestan</>],["escaneos",<><Icon name="scan-line" size={13}/> Escaneos</>]].map(([k,l])=>(
           <button key={k} onClick={()=>setVista(k)} style={{flex:1,
             background:vista===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:RADII.md,
@@ -7192,7 +7192,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
                     <div style={{color:Q.muted,fontSize:12}}>
                       {inf.combos} combos · {inf.jugadas} jugadas</div>
                     {inf.parent_name&&<div style={{color:Q.violet2,fontSize:12,marginTop:1}}>
-                      🏢 {inf.parent_name}</div>}
+                      <Building2 size={11}/> {inf.parent_name}</div>}
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
                     <div style={{color:Q.gold,fontWeight:700,fontSize:14,
@@ -7311,7 +7311,7 @@ function CrearInfluencerAgencia({ agencia, onListo, onSesionExpirada }){
   return(
     <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
-        fontFamily:F_BODY}}>🌟 Nuevo influencer</div>
+        fontFamily:F_BODY}}><Star size={14}/> Nuevo influencer</div>
       {[["name","Nombre"],["username","Usuario"],["password","Contraseña (8+)"]].map(([k,l])=>(
         <input key={k} value={form[k]} type={k==="password"?"password":"text"}
           onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={l}
@@ -7385,7 +7385,7 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
         maxHeight:"90vh",overflowY:"auto",padding:SPACING[20],border:`1px solid ${Q.border}`,borderBottom:"none"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:16,
-            fontFamily:F_BODY}}>🌟 {rep?rep.name:code}</div>
+            fontFamily:F_BODY}}><Star size={15}/> {rep?rep.name:code}</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:26,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
@@ -7412,7 +7412,7 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
               <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
                 color={Q.gold} full disabled={proc}/>
               <div style={{height:8}}/>
-              <Btn label="🔑 Resetear contraseña" onClick={()=>setResetOpen(true)}
+              <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                 color={Q.amber} outline full/>
               <div style={{height:8}}/>
               <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
@@ -7579,7 +7579,7 @@ function ConfigurarCuentaAg({ agencia, cuenta, onCambio, onSesionExpirada }){
           Los permisos se definen al crear la sub-agencia. */}
       <div style={{color:Q.dim,fontSize:12,marginBottom:10,
         fontFamily:F_BODY}}>El % no puede superar el tuyo.</div>
-      <Btn label={proc?"GUARDANDO...":"💾 Guardar configuración"} onClick={guardar}
+      <Btn label={proc?"GUARDANDO...":<><Save size={13}/> Guardar configuración</>} onClick={guardar}
         color={Q.violet} full disabled={proc}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
@@ -7619,7 +7619,7 @@ function ResetPassword({ agencia, code, userId, nombre, esAdmin=false, onCerrar 
         style={{padding:SPACING[20],maxWidth:400,width:"100%"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:15,
-            fontFamily:F_BODY}}>🔑 Resetear contraseña</div>
+            fontFamily:F_BODY}}><Key size={15}/> Resetear contraseña</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
@@ -7684,7 +7684,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,
-          fontFamily:F_BODY}}>🏢 Mis agencias</div>
+          fontFamily:F_BODY}}><Building2 size={15}/> Mis agencias</div>
         <Btn label={showForm?"Cancelar":"+ Nueva"} onClick={()=>setShowForm(s=>!s)}
           color={Q.violet} size="sm"/>
       </div>
@@ -7717,10 +7717,10 @@ function MisAgencias({ agencia, onSesionExpirada }){
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>
                   {"— ".repeat(Math.max(0,(a.nivel||0)-(agencia.nivel||0)-1))}{a.name}
-                  {bloqueada&&<span style={{color:Q.red,fontSize:12}}> 🔒</span>}</div>
+                  {bloqueada&&<span style={{color:Q.red,fontSize:12}}> <Lock size={11}/></span>}</div>
                 <div style={{color:Q.muted,fontSize:12}}>{a.code} · GGR {fmt(a.pct_ggr)}% · Ventas {fmt(a.pct_ventas)}%</div>
                 {a.parent_code&&<div style={{color:Q.violet2,fontSize:12,marginTop:1}}>
-                  🏢 {a.parent_code===agencia.code
+                  <Building2 size={11}/> {a.parent_code===agencia.code
                     ? agencia.name
                     : ((arbol.agencias.find(x=>x.code===a.parent_code)||{}).name||a.parent_code)}</div>}
                 {a.username&&(
@@ -7742,7 +7742,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
                 <button onClick={()=>setResetPara({code:a.code,nombre:a.name})} style={{background:`${Q.amber}18`,
                   border:`1px solid ${Q.amber}`,borderRadius:RADII.sm,padding:"4px 12px",cursor:"pointer",
                   color:Q.amber,fontSize:12,fontWeight:700,
-                  fontFamily:F_BODY}}>🔑 Clave</button>
+                  fontFamily:F_BODY}}><Key size={11}/> Clave</button>
                 <button onClick={()=>setConfigPara(a)} style={{background:`${Q.violet}18`,
                   border:`1px solid ${Q.violet}`,borderRadius:RADII.sm,padding:"4px 12px",cursor:"pointer",
                   color:Q.violet2,fontSize:12,fontWeight:700,
@@ -7807,7 +7807,7 @@ function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
   return(
     <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
-        fontFamily:F_BODY}}>🏢 Nueva sub-agencia</div>
+        fontFamily:F_BODY}}><Building2 size={14}/> Nueva sub-agencia</div>
       {[["name","Nombre"],["username","Usuario"],["password","Contraseña (8+)"]].map(([k,l])=>(
         <input key={k} value={form[k]} type={k==="password"?"password":"text"}
           onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={l}
@@ -7961,8 +7961,8 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
     {k:"combos",   l:<><Zap size={12}/> Combos IA</>},
     {k:"mejorar",  l:<><Icon name="scan-line" size={12}/> Mejorar</>},
     {k:"clientes", l:<><Icon name="users" size={12}/> Clientes</>},
-    {k:"misagencias", l:"🏢 Mis agencias"},
-    {k:"influencers", l:"🌟 Influencers"},
+    {k:"misagencias", l:<><Building2 size={12}/> Mis agencias</>},
+    {k:"influencers", l:<><Star size={12}/> Influencers</>},
     {k:"historial",l:"Historial"},
     {k:"cashout",  l:<><Icon name="wallet-cards" size={12}/> Cash out</>},
     {k:"bonos",    l:<><Gift size={12}/> Bonos</>},
@@ -8298,7 +8298,7 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
           marginBottom:12}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:16,
-            fontFamily:F_BODY}}>🎨 Editor de placa</div>
+            fontFamily:F_BODY}}><Palette size={16}/> Editor de placa</div>
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:28,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
@@ -8339,7 +8339,7 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
                   borderRadius:RADII.md,padding:"8px",color:Q.text,cursor:"pointer",fontSize:13}}>A−</button>
               <button onClick={borrarSel}
                 style={{flex:1,background:`${Q.red}22`,border:`1px solid ${Q.red}`,
-                  borderRadius:RADII.md,padding:"8px",color:Q.red,cursor:"pointer",fontSize:13}}>🗑</button>
+                  borderRadius:RADII.md,padding:"8px",color:Q.red,cursor:"pointer",fontSize:13}}><Trash2 size={13} role="img" aria-label="Borrar"/></button>
             </div>
           </GCard>
         )}
@@ -8399,7 +8399,7 @@ function EditorPlaca({ combo, codigoRef, link, onCerrar }){
         </div>
 
         <div style={{display:"flex",gap:SPACING[8]}}>
-          <Btn label="📲 Compartir" onClick={compartir} color={Q.violet} full/>
+          <Btn label={<><Smartphone size={13}/> Compartir</>} onClick={compartir} color={Q.violet} full/>
           <Btn label={<><Icon name="arrow-down-left" size={13}/> Descargar</>} onClick={descargar} color={Q.gold} full/>
         </div>
         <div style={{color:Q.dim,fontSize:12,textAlign:"center",marginTop:8,
@@ -8451,12 +8451,12 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
             border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"12px",cursor:"pointer",
             color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
             fontFamily:F_BODY}}>
-            {copiado==="tg"?"✅ Copiado":"📲 Copiar link de escáner (Telegram)"}</button>
+            {copiado==="tg"?<><Icon name="circle-check" size={12}/> Copiado</>:<><Smartphone size={12}/> Copiar link de escáner (Telegram)</>}</button>
           <button onClick={()=>copiar(linkScanWeb,"web")} style={{background:`${Q.violet}18`,
             border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"12px",cursor:"pointer",
             color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
             fontFamily:F_BODY}}>
-            {copiado==="web"?"✅ Copiado":"🌐 Copiar link de escáner (web)"}</button>
+            {copiado==="web"?<><Icon name="circle-check" size={12}/> Copiado</>:<><Globe size={12}/> Copiar link de escáner (web)</>}</button>
         </div>
       </GCard>
 
@@ -8521,7 +8521,7 @@ function InfluencerPanel({ agencia, onLogout, onSesionExpirada }){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
         padding:"16px 0 12px"}}>
         <div style={{color:Q.text,fontWeight:800,fontSize:18,
-          fontFamily:F_BODY}}>🌟 {agencia.name}</div>
+          fontFamily:F_BODY}}><Star size={18}/> {agencia.name}</div>
         <button onClick={onLogout} style={{background:"transparent",
           border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
           color:Q.muted,fontSize:12,cursor:"pointer",
@@ -8529,7 +8529,7 @@ function InfluencerPanel({ agencia, onLogout, onSesionExpirada }){
       </div>
 
       <div style={{display:"flex",gap:SPACING[8],marginBottom:14}}>
-        {[["panel","📊 Mi panel"],["combos","⚡ Mis combos"],["ia","🤖 Combos IA"],["escaner","📸 Escáner"]].map(([k,l])=>(
+        {[["panel",<><Icon name="chart-no-axes-combined" size={13}/> Mi panel</>],["combos",<><Zap size={13}/> Mis combos</>],["ia",<><Bot size={13}/> Combos IA</>],["escaner",<><Icon name="scan-line" size={13}/> Escáner</>]].map(([k,l])=>(
           <button key={k} onClick={()=>setTab(k)} style={{flex:1,
             background:tab===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${tab===k?Q.violet:Q.border}`,borderRadius:RADII.md,
@@ -8589,12 +8589,12 @@ function InfluencerHome({ agencia, onSesionExpirada }){
             border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"12px",cursor:"pointer",
             color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
             fontFamily:F_BODY}}>
-            {copiado==="tg"?"✅ Copiado":"📲 Copiar link de Telegram"}</button>
+            {copiado==="tg"?<><Icon name="circle-check" size={12}/> Copiado</>:<><Smartphone size={12}/> Copiar link de Telegram</>}</button>
           <button onClick={()=>copiar(linkWeb,"web")} style={{background:`${Q.violet}18`,
             border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"12px",cursor:"pointer",
             color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
             fontFamily:F_BODY}}>
-            {copiado==="web"?"✅ Copiado":"🌐 Copiar link web"}</button>
+            {copiado==="web"?<><Icon name="circle-check" size={12}/> Copiado</>:<><Globe size={12}/> Copiar link web</>}</button>
         </div>
         <div style={{color:Q.dim,fontSize:12,marginTop:8,
           fontFamily:F_BODY}}>
@@ -8697,7 +8697,7 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>{c.nombre}
                   {c.es_ia&&<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
-                    borderRadius:RADII.md,padding:"4px 8px",fontSize:12,color:Q.violet2,marginLeft:6}}>🤖 IA</span>}
+                    borderRadius:RADII.md,padding:"4px 8px",fontSize:12,color:Q.violet2,marginLeft:6}}><Bot size={12}/> IA</span>}
                   {c.expirado&&<span style={{background:`${Q.amber}22`,border:`1px solid ${Q.amber}`,
                     borderRadius:RADII.md,padding:"4px 8px",fontSize:12,color:Q.amber,marginLeft:6}}>expirado</span>}
                   {!c.expirado&&c.estado==="activo"&&<span style={{background:`${Q.green}22`,border:`1px solid ${Q.green}`,
@@ -8721,12 +8721,12 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
                     border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
-                    {copiado===`tg${c.id}`?"✅ Copiado":"📲 Link Telegram con tu firma"}</button>
+                    {copiado===`tg${c.id}`?<><Icon name="circle-check" size={12}/> Copiado</>:<><Smartphone size={12}/> Link Telegram con tu firma</>}</button>
                   <button onClick={()=>copiar(linkWeb,`web${c.id}`)} style={{background:`${Q.violet}18`,
                     border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
-                    {copiado===`web${c.id}`?"✅ Copiado":"🌐 Link web con tu firma"}</button>
+                    {copiado===`web${c.id}`?<><Icon name="circle-check" size={12}/> Copiado</>:<><Globe size={12}/> Link web con tu firma</>}</button>
                   <button onClick={()=>copiar(ref,`ref${c.id}`)} style={{background:"rgba(255,255,255,0.05)",
                     border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.muted,fontSize:12,fontWeight:700,textAlign:"left",
@@ -8737,17 +8737,17 @@ function InfluencerCombosIA({ agencia, onSesionExpirada }){
                     style={{background:`${Q.green}18`,border:`1px solid ${Q.green}`,borderRadius:RADII.md,
                     padding:"8px",cursor:"pointer",color:Q.green,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
-                    {copiado===`txt${c.id}`?"✅ Texto copiado":"📝 Copiar texto para redes"}</button>
+                    {copiado===`txt${c.id}`?<><Icon name="circle-check" size={12}/> Texto copiado</>:<><FileText size={12}/> Copiar texto para redes</>}</button>
                   <button onClick={()=>descargarPlacaCombo(c,ref,linkTg)}
                     style={{background:`${Q.gold}18`,border:`1px solid ${Q.gold}`,borderRadius:RADII.md,
                     padding:"8px",cursor:"pointer",color:Q.gold,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
-                    🖼️ Descargar placa (imagen)</button>
+                    <ImageIcon size={12}/> Descargar placa (imagen)</button>
                   <button onClick={()=>setEditando(c)}
                     style={{background:`${Q.violet}18`,border:`1px solid ${Q.violet}`,borderRadius:RADII.md,
                     padding:"8px",cursor:"pointer",color:Q.violet2,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
-                    🎨 Editar imagen (crear placa)</button>
+                    <Palette size={12}/> Editar imagen (crear placa)</button>
                 </div>
               </div>
             )}
@@ -8844,12 +8844,12 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
                     border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.cyan,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
-                    {copiado===`tg${c.id}`?"✅ Copiado":"📲 Link Telegram con tu firma"}</button>
+                    {copiado===`tg${c.id}`?<><Icon name="circle-check" size={12}/> Copiado</>:<><Smartphone size={12}/> Link Telegram con tu firma</>}</button>
                   <button onClick={()=>copiar(linkWeb,`web${c.id}`)} style={{background:`${Q.violet}18`,
                     border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.violet2,fontSize:12,fontWeight:700,textAlign:"left",
                     fontFamily:F_BODY}}>
-                    {copiado===`web${c.id}`?"✅ Copiado":"🌐 Link web con tu firma"}</button>
+                    {copiado===`web${c.id}`?<><Icon name="circle-check" size={12}/> Copiado</>:<><Globe size={12}/> Link web con tu firma</>}</button>
                   <button onClick={()=>copiar(codOut,`ref${c.id}`)} style={{background:"rgba(255,255,255,0.05)",
                     border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px",cursor:"pointer",
                     color:Q.muted,fontSize:12,fontWeight:700,textAlign:"left",
@@ -8860,17 +8860,17 @@ function InfluencerCombos({ agencia, onSesionExpirada }){
                     style={{background:`${Q.green}18`,border:`1px solid ${Q.green}`,borderRadius:RADII.md,
                     padding:"8px",cursor:"pointer",color:Q.green,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
-                    {copiado===`txt${c.id}`?"✅ Texto copiado":"📝 Copiar texto para redes"}</button>
+                    {copiado===`txt${c.id}`?<><Icon name="circle-check" size={12}/> Texto copiado</>:<><FileText size={12}/> Copiar texto para redes</>}</button>
                   <button onClick={()=>descargarPlacaCombo(c,ref,linkTg)}
                     style={{background:`${Q.gold}18`,border:`1px solid ${Q.gold}`,borderRadius:RADII.md,
                     padding:"8px",cursor:"pointer",color:Q.gold,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
-                    🖼️ Descargar placa (imagen)</button>
+                    <ImageIcon size={12}/> Descargar placa (imagen)</button>
                   <button onClick={()=>setEditando(c)}
                     style={{background:`${Q.violet}18`,border:`1px solid ${Q.violet}`,borderRadius:RADII.md,
                     padding:"8px",cursor:"pointer",color:Q.violet2,fontSize:12,fontWeight:700,
                     textAlign:"left",fontFamily:F_BODY}}>
-                    🎨 Editar imagen (Instagram)</button>
+                    <Palette size={12}/> Editar imagen (Instagram)</button>
                 </div>
               </div>
             )}
@@ -8992,7 +8992,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
         </GCard>
       )}
 
-      <Btn label={proc?"GUARDANDO...":"💾 Crear combo"} onClick={guardar}
+      <Btn label={proc?"GUARDANDO...":<><Save size={13}/> Crear combo</>} onClick={guardar}
         color={Q.violet} full disabled={proc||picks.length===0}/>
       {msg&&<div style={{fontSize:12,marginTop:8,
         color:msg.ok?Q.green:Q.red,
@@ -9000,7 +9000,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
 
       {editando&&(
         <div style={{marginTop:12}}>
-          <Btn label="🎨 Editar imagen (crear placa)" onClick={()=>setEditando({...editando,_abrir:true})}
+          <Btn label={<><Palette size={13}/> Editar imagen (crear placa)</>} onClick={()=>setEditando({...editando,_abrir:true})}
             color={Q.violet} outline full/>
           <div style={{height:8}}/>
           <Btn label="✓ Listo" onClick={onListo} color={Q.green} full/>
@@ -9137,7 +9137,7 @@ export default function QuartzAgencia(){
       ) : agencia.debe_cambiar_pass ? (
         <div style={{maxWidth:440,margin:"0 auto",padding:"40px 16px"}}>
           <div style={{textAlign:"center",marginBottom:20}}>
-            <div style={{fontSize:44,marginBottom:8}}>🔐</div>
+            <div style={{marginBottom:8}}><Lock size={44}/></div>
             <div style={{color:Q.text,fontWeight:800,fontSize:18,
               fontFamily:F_BODY}}>Bienvenido/a {agencia.name}</div>
           </div>

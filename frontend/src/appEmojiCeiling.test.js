@@ -106,16 +106,22 @@ describe("Agencia.jsx does not gain emoji back", () => {
   const counts = emojiCounts(AGENCIA);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
 
-  // The exact count the agency slice (T1 + T2) leaves behind, measured
-  // directly from source (docs/icon-inventory.md's 281/73 for this screen
-  // was taken at an earlier revision and no longer matches; this guard
-  // trusts a fresh scan over that document's summary numbers).
+  // odd/tasks/finish-icon-migration.md's T2 retired the row rule and
+  // migrated every site that renders in the interface. What is left is
+  // text that leaves the application: the WhatsApp share message
+  // (textoCombo), the canvas fillText calls that draw a downloadable
+  // placa image (descargarPlacaCombo, EditorPlaca's layers and its
+  // 12-glyph sticker pool), the print window's raw HTML
+  // (abrirVentanaImpresion), two <option> contents, one code comment, one
+  // embedded mid-message aside, and the plain-string setOkMsg/setErr/
+  // setRespuesta calls outside the {text,ok} contract's named scope
+  // (same exclusion the player and site slices used).
   test("total emoji uses do not rise above what this migration leaves behind", () => {
-    expect(total).toBeLessThanOrEqual(157);
+    expect(total).toBeLessThanOrEqual(35);
   });
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
-    expect(counts.size).toBeLessThanOrEqual(56);
+    expect(counts.size).toBeLessThanOrEqual(19);
   });
 });
 
