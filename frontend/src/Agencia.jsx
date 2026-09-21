@@ -3072,14 +3072,18 @@ function Clientes({ agencia, onSesionExpirada }){
   useEffect(()=>{ buscar(""); // eslint-disable-next-line
   },[]);
 
-  // `sel` used to swap the whole screen for <FichaCliente/> via an early
-  // return, which threw away the list (and the search text) the moment
-  // it closed. FichaCliente now draws itself as a fixed-position sheet
-  // with its own backdrop and close button, so it renders as an overlay
-  // on top of the list below instead — closing it needs no re-render of
-  // the list. Same reasoning for `alta`: it now sits inline above the
-  // search bar, like AltaCliente's admin counterpart, instead of
-  // replacing the screen.
+  // Deliberate exception to the sheet/modal convention used everywhere
+  // else in this file (and to admin's own FichaCliente, which genuinely
+  // is a short sheet and stays one). This detail view is dense — the
+  // cash desk, the stats row, the header actions and two logs — and a
+  // modal squeezed all of it into one narrow column. A full view gives
+  // it the width it needs, the way it worked before it was briefly
+  // converted to a modal; a modal is right for a short detail, not a
+  // workspace. `buscar(q)` on the way back re-fetches the list with
+  // whatever search text was active.
+  if(sel) return <FichaCliente agencia={agencia} user={sel}
+    onVolver={()=>{setSel(null);buscar(q);}} onSesionExpirada={onSesionExpirada}/>;
+
   return(
     <div>
       <PageHeader icon={<Icon name="users"/>} title="Clientes"
@@ -3163,9 +3167,6 @@ function Clientes({ agencia, onSesionExpirada }){
 
       {verBloqueos&&<BloqueosRama agencia={agencia}
         onCerrar={()=>setVerBloqueos(false)} onSesionExpirada={onSesionExpirada}/>}
-
-      {sel&&<FichaCliente agencia={agencia} user={sel}
-        onVolver={()=>{setSel(null);buscar(q);}} onSesionExpirada={onSesionExpirada}/>}
     </div>
   );
 }
@@ -3519,19 +3520,14 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
   const tipoTxt={carga:"Carga",retiro:"Retiro",pago_premio:"Premio pagado",ajuste:"Ajuste"};
   const tipoColor={carga:Q.green,retiro:Q.amber,pago_premio:Q.violet2,ajuste:Q.muted};
 
-  // Used to render as the whole screen in place of the client list, which
-  // threw the list (and the search box) away the moment it closed. It now
-  // draws itself as a fixed-position sheet, same convention as
-  // BloqueosRama and admin's own FichaCliente, so it opens as an overlay
-  // and the list underneath stays untouched.
+  // Deliberate exception: this renders as a full view, not the
+  // fixed-position sheet the rest of this file (and admin's own
+  // FichaCliente) uses. A modal squeezed the cash desk, the stats row,
+  // the header actions and two logs into one narrow column — too dense
+  // a detail view for that width. The caller (`Clientes`) opens this
+  // with an early return, same as before the sheet conversion.
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",
-      zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}
-      onClick={onVolver}>
-    <div onClick={e=>e.stopPropagation()} style={{background:Q.deep,
-      borderTopLeftRadius:20,borderTopRightRadius:20,width:"100%",maxWidth:620,
-      maxHeight:"90vh",overflowY:"auto",padding:SPACING[20],
-      border:`1px solid ${Q.border}`,borderBottom:"none"}}>
+    <div>
       {/* Account actions moved up next to Volver, small and right-aligned,
           the way the original reference had them — instead of their own
           card near the bottom. The row wraps on a narrow phone rather
@@ -3848,7 +3844,6 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
           </div>
         </div>
       ))}
-    </div>
     </div>
   );
 }
