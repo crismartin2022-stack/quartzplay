@@ -7,7 +7,7 @@ import CameraCapture from "./CameraCapture";
 import { oscuro as Q, F_BODY } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
-import { Zap, Gift } from "lucide-react";
+import { Zap, Gift, Handshake, Video } from "lucide-react";
 
 const ars  = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt  = n => Number(n||0).toFixed(2);
@@ -7015,7 +7015,7 @@ function TabDesafios({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
-        fontFamily:F_BODY}}>🤝 Desafíos</div>
+        fontFamily:F_BODY}}><Handshake size={14}/> Desafíos</div>
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Apuestas entre jugadores. La casa no arriesga: cobra comisión
@@ -7690,13 +7690,13 @@ function HistorialAdmin({ adminKey, onNoAutorizado }){
     color:Q.text,fontSize:13,minWidth:0,
     fontFamily:F_BODY};
 
-  const ICONO={deportivas:"⚽",casino:"🎰",casino_vivo:"🎥"};
+  const ICONO={deportivas:<Icon name="trophy" size={13}/>,casino:<Icon name="spade" size={13}/>,casino_vivo:<Video size={13}/>};
 
   return(
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>
-        📋 Historial de juegos</div>
+        <Icon name="clipboard-list" size={14}/> Historial de juegos</div>
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Todo lo jugado con fecha y hora. Cuando alguien reclama, acá
@@ -7727,8 +7727,8 @@ function HistorialAdmin({ adminKey, onNoAutorizado }){
 
       <div style={{display:"flex",gap:5,marginBottom:10,
         overflowX:"auto"}}>
-        {[["","Todo"],["deportivas","⚽ Deportivas"],
-          ["casino","🎰 Casino"]].map(([k,l])=>(
+        {[["","Todo"],["deportivas",<><Icon name="trophy" size={12}/> Deportivas</>],
+          ["casino",<><Icon name="spade" size={12}/> Casino</>]].map(([k,l])=>(
           <button key={k} onClick={()=>setTipo(k)}
             style={{background:tipo===k?`${Q.violet}28`:"transparent",
               border:`1px solid ${tipo===k?Q.violet:Q.border}`,
@@ -7851,7 +7851,7 @@ function Liquidacion({ adminKey, onNoAutorizado }){
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>
-        💵 Liquidación</div>
+        <Icon name="wallet-cards" size={14}/> Liquidación</div>
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Cuánto se le paga a cada agencia cruzando todos los productos.</div>
@@ -8356,7 +8356,7 @@ function ReporteJuegos({ adminKey, onNoAutorizado }){
           {d.aviso&&(
             <div style={{color:Q.amber,fontSize:11.5,marginBottom:10,
               lineHeight:1.5,fontFamily:F_BODY}}>
-              ⚠️ {d.aviso}</div>
+              <Icon name="triangle-alert" size={12}/> {d.aviso}</div>
           )}
 
           {d.juegos.length===0&&(
@@ -8471,7 +8471,7 @@ function LogosCasino({ adminKey, onNoAutorizado }){
           padding:"11px",color:Q.cyan,fontSize:12.5,fontWeight:700,
           cursor:"pointer",marginBottom:12,
           fontFamily:F_BODY}}>
-        ⚡ Asignar los que coinciden</button>
+        <Zap size={13}/> Asignar los que coinciden</button>
 
       {(d.marcas||[]).map(m=>(
         <div key={m.marca} style={{padding:"9px 0",
@@ -8736,7 +8736,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
 
       <div style={{display:"flex",gap:6,marginBottom:12,
         overflowX:"auto"}}>
-        {[["todos","Todos"],["slots","🎰 Slots"],["vivo","🎥 En vivo"],
+        {[["todos","Todos"],["slots",<><Icon name="spade" size={12}/> Slots</>],["vivo",<><Video size={12}/> En vivo</>],
           ["apagados","Apagados"]].map(([k,l])=>(
           <button key={k} onClick={()=>setFiltro(k)}
             style={{background:filtro===k?`${Q.violet}33`:"transparent",
@@ -8776,7 +8776,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
               <div style={{color:p.activo?Q.text:Q.dim,fontSize:12.5,
                 fontWeight:600,
                 fontFamily:F_BODY}}>
-                {p.es_vivo&&"🎥 "}{p.marca}</div>
+                {p.es_vivo&&<Video size={11}/>} {p.marca}</div>
               <div style={{color:Q.dim,fontSize:9.5,marginTop:2}}>
                 {p.juegos} juegos
                 {p.jugadas_30d>0&&` · ${p.jugadas_30d.toLocaleString("es-AR")} jugadas`}
@@ -9172,7 +9172,7 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
       {msg&&<div style={{color:Q.muted,fontSize:12,marginBottom:10,
         textAlign:"center"}}>{msg}</div>}
 
-      <Btn label={proc?"Revisando…":"🔍 Revisar ahora"}
+      <Btn label={proc?"Revisando…":<><Icon name="search" size={13}/> Revisar ahora</>}
         onClick={()=>cargar(true)} color={Q.cyan} full disabled={proc}/>
 
       <div style={{color:Q.dim,fontSize:10.5,margin:"8px 0 14px",
@@ -9316,7 +9316,7 @@ function TabCasinoProveedor({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
-        fontFamily:F_BODY}}>🎰 Proveedor de casino</div>
+        fontFamily:F_BODY}}><Icon name="spade" size={14}/> Proveedor de casino</div>
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Conexión con 44neoluck para traer los juegos y abrir partidas.</div>
@@ -9458,7 +9458,7 @@ function Rendimiento({ adminKey, onNoAutorizado }){
       <div style={{display:"flex",justifyContent:"space-between",
         alignItems:"baseline",marginBottom:4}}>
         <span style={{color:Q.text,fontWeight:800,fontSize:15,
-          fontFamily:F_BODY}}>📈 Rendimiento</span>
+          fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={14}/> Rendimiento</span>
         <button onClick={reiniciar}
           style={{background:"transparent",border:"none",color:Q.dim,
             fontSize:10.5,cursor:"pointer"}}>reiniciar</button>
@@ -9517,7 +9517,7 @@ function Rendimiento({ adminKey, onNoAutorizado }){
             padding:"10px 6px",color:Q.cyan,fontSize:11.5,
             fontWeight:700,cursor:"pointer",
             fontFamily:F_BODY}}>
-          ⚡ Rápida</button>
+          <Zap size={13}/> Rápida</button>
         <button onClick={()=>correrCarga(80,8)} disabled={cargando}
           style={{flex:1,background:`${Q.amber}14`,
             border:`1px solid ${Q.amber}55`,borderRadius:8,
@@ -9797,7 +9797,7 @@ function TabTester({ adminKey, onNoAutorizado }){
           color:conEscritura?Q.amber:Q.muted,fontSize:12.5,
           fontWeight:conEscritura?700:400,textAlign:"left",
           fontFamily:F_BODY}}>
-        {conEscritura?"⚠️ Con creación de datos":"Solo lectura"}
+        {conEscritura?<><Icon name="triangle-alert" size={12}/> Con creación de datos</>:"Solo lectura"}
         <div style={{color:Q.dim,fontSize:10,marginTop:3,
           fontWeight:400,lineHeight:1.4}}>
           {conEscritura
@@ -9815,7 +9815,7 @@ function TabTester({ adminKey, onNoAutorizado }){
             fontFamily:F_BODY}}/>
       )}
 
-      <Btn label={proc?"Probando…":"▶ Correr las pruebas"}
+      <Btn label={proc?"Probando…":<><Icon name="play" size={13}/> Correr las pruebas</>}
         onClick={correr} color={Q.violet} full disabled={proc}/>
 
       {res&&(
@@ -9927,14 +9927,14 @@ function TabResponsable({ adminKey, onNoAutorizado }){
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>
-        🛡️ Juego responsable</div>
+        <Icon name="shield-check" size={14}/> Juego responsable</div>
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Lo que exige cualquier jurisdicción regulada. Es lo primero
         que mira un certificador.</div>
 
       <div style={{display:"flex",gap:6,marginBottom:14}}>
-        {[["config","⚙️ Config"],["auditoria","📋 Auditoría"]].map(([k,l])=>(
+        {[["config",<><Icon name="sliders-horizontal" size={12}/> Config</>],["auditoria",<><Icon name="clipboard-list" size={12}/> Auditoría</>]].map(([k,l])=>(
           <button key={k} onClick={()=>setSolapa(k)}
             style={{background:solapa===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${solapa===k?Q.violet:Q.border}`,
@@ -10030,7 +10030,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
                   cadena se rompe y queda a la vista.</div>
                 {aud.aviso&&(
                   <div style={{color:Q.red,fontSize:11.5,marginTop:8,
-                    lineHeight:1.5}}>⚠️ {aud.aviso}</div>
+                    lineHeight:1.5}}><Icon name="triangle-alert" size={12}/> {aud.aviso}</div>
                 )}
               </GCard>
 
@@ -10908,7 +10908,7 @@ function TabProductos({ adminKey, onNoAutorizado }){
   };
   useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
 
-  const ICONO={deportivas:"⚽", casino:"🎰", ruleta:"🎡"};
+  const ICONO={deportivas:<Icon name="trophy" size={13}/>, casino:<Icon name="spade" size={13}/>, ruleta:"🎡"};
   const NOMBRE={deportivas:"Deportivas", casino:"Casino", ruleta:"Ruleta"};
   const inp={background:"rgba(255,255,255,0.05)",
     border:`1px solid ${Q.border}`,borderRadius:8,padding:"9px 11px",
@@ -10918,7 +10918,7 @@ function TabProductos({ adminKey, onNoAutorizado }){
   return(
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
-        fontFamily:F_BODY}}>📊 Por producto</div>
+        fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={14}/> Por producto</div>
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
         lineHeight:1.5,fontFamily:F_BODY}}>
         Todo lo jugado, separado por producto y sumado. El GGR es lo
@@ -11247,10 +11247,10 @@ function TabSoporte({ adminKey, onNoAutorizado }){
               <div style={{color:Q.text,fontWeight:700,fontSize:12.5,
                 fontFamily:F_BODY}}>
                 {t.motivo==="sensible"&&(
-                  <span style={{color:Q.red,marginRight:4}}>🔴</span>
+                  <span style={{color:Q.red,marginRight:4}}><Icon name="circle-dot" size={11}/></span>
                 )}
                 {t.derivado&&t.motivo!=="sensible"&&(
-                  <span style={{color:Q.gold,marginRight:4}}>🟡</span>
+                  <span style={{color:Q.gold,marginRight:4}}><Icon name="circle-dot" size={11}/></span>
                 )}
                 {t.cliente}</div>
               <div style={{color:Q.muted,fontSize:10.5,marginTop:2,
@@ -11618,7 +11618,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                   <div style={{color:Q.text,fontWeight:700,fontSize:12.5,
                     fontFamily:F_BODY}}>
                     <span style={{color:NIVEL[a.nivel]}}>
-                      {a.nivel==="urgente"?"🔴":a.nivel==="aviso"?"🟡":"🔵"}
+                      <Icon name="circle-dot" size={12}/>
                     </span> {a.titulo}</div>
                   {a.cuerpo&&(
                     <div style={{color:Q.muted,fontSize:11,marginTop:3,
@@ -11714,7 +11714,7 @@ function ChatOperador({ adminKey, onNoAutorizado }){
     <div style={{display:"flex",flexDirection:"column",
       height:"calc(100dvh - 210px)",minHeight:340}}>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:3,
-        fontFamily:F_BODY}}>💬 Consultas</div>
+        fontFamily:F_BODY}}><Icon name="message-circle" size={14}/> Consultas</div>
       <div style={{color:Q.muted,fontSize:11.5,marginBottom:10,
         lineHeight:1.5,fontFamily:F_BODY}}>
         Preguntá sobre el sistema: dónde está cada cosa, qué significa
