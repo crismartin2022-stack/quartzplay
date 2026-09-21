@@ -1031,7 +1031,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
                 ({reservas.length})</span></div>
             <button onClick={cargarReservas} style={{background:"transparent",
               border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"4px 12px",
-              color:Q.muted,fontSize:12,cursor:"pointer"}}>↻</button>
+              color:Q.muted,fontSize:12,cursor:"pointer"}}>↻ Actualizar</button>
           </div>
 
           {reservas.map(r=>(

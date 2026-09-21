@@ -6524,7 +6524,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
         alignItems:"center",marginBottom:14}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,
           fontFamily:F_BODY}}>Diagnóstico</div>
-        <Btn label={loading?"...":"Actualizar"} onClick={cargar}
+        <Btn label={loading?"...":"↻ Actualizar"} onClick={cargar}
           outline color={Q.muted} size="sm"/>
       </div>
 
@@ -13907,7 +13907,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
           </div>
           <button onClick={cargar} style={{background:"transparent",
             border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
-            color:Q.muted,fontSize:12,cursor:"pointer"}}>Actualizar</button>
+            color:Q.muted,fontSize:12,cursor:"pointer"}}>↻ Actualizar</button>
         </div>
 
         <div style={{color:Q.muted,fontSize:12,marginBottom:4,
