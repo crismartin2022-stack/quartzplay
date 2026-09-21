@@ -190,7 +190,7 @@ function HBadge({ label, color=Q.violet }){
     <span style={{
       background:`linear-gradient(135deg,${color}33,${color}11)`,
       border:`1px solid ${color}66`, borderRadius:20,
-      padding:"2px 10px", fontSize:9, fontWeight:700, color,
+      padding:"2px 10px", fontSize:12, fontWeight:700, color,
       letterSpacing:0.5, fontFamily:F_BODY,
     }}>{label}</span>
   );
@@ -211,7 +211,7 @@ function LiveDot({ color=Q.pink }){
     <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
       <span style={{width:6,height:6,borderRadius:"50%",background:color,
         boxShadow:`0 0 6px ${color}`,animation:"qPulse 1.2s ease-in-out infinite",display:"inline-block"}}/>
-      <span style={{color,fontSize:9,fontWeight:700,letterSpacing:1,fontFamily:F_BODY}}>LIVE</span>
+      <span style={{color,fontSize:12,fontWeight:700,letterSpacing:1,fontFamily:F_BODY}}>LIVE</span>
     </span>
   );
 }
@@ -258,7 +258,7 @@ function BotMsg({ children, time="9:41" }){
         <BrandMark size={16} style={{marginBottom:4}}/>
         <GCard style={{padding:"14px"}}>
           {children}
-          <div style={{textAlign:"right",marginTop:6,color:Q.muted,fontSize:9,
+          <div style={{textAlign:"right",marginTop:6,color:Q.muted,fontSize:12,
             fontFamily:F_BODY}}>{time} ✓✓</div>
         </GCard>
       </div>
@@ -272,7 +272,7 @@ function UserMsg({ children, time="9:41" }){
       <GCard glow={Q.violet} style={{padding:"12px 14px",maxWidth:"75%",
         background:`linear-gradient(135deg,${Q.violet}22,${Q.cyan}08)`}}>
         <div style={{color:Q.text,fontSize:13,fontFamily:F_BODY}}>{children}</div>
-        <div style={{textAlign:"right",marginTop:4,color:Q.muted,fontSize:9}}>{time} ✓✓</div>
+        <div style={{textAlign:"right",marginTop:4,color:Q.muted,fontSize:12}}>{time} ✓✓</div>
       </GCard>
     </div>
   );
@@ -321,7 +321,7 @@ function TgHeader({ title, sub, onBack }){
         fontSize:20,flexShrink:0,boxShadow:`0 0 14px ${Q.violet}66`}}>⬡</div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,fontFamily:F_BODY}}>{title}</div>
-        {sub&&<div style={{color:Q.green,fontSize:11,marginTop:1}}>{sub}</div>}
+        {sub&&<div style={{color:Q.green,fontSize:12,marginTop:1}}>{sub}</div>}
       </div>
     </div>
   );
@@ -420,7 +420,7 @@ function OddsButtons({ ev, market, bets, onToggle, live=false }){
   }
 
   if(!outcomes.length) return(
-    <div style={{textAlign:"center",color:Q.dim,fontSize:10,padding:"6px 0",
+    <div style={{textAlign:"center",color:Q.dim,fontSize:12,padding:"6px 0",
       fontFamily:F_BODY}}>No disponible</div>
   );
 
@@ -436,13 +436,13 @@ function OddsButtons({ ev, market, bets, onToggle, live=false }){
             borderRadius:8,padding:"7px 3px",cursor:"pointer",textAlign:"center",
             transition:"all 0.13s",
           }}>
-            <div style={{color:sel?inkOn(color):Q.dim,fontSize:8.5,fontFamily:F_BODY,
+            <div style={{color:sel?inkOn(color):Q.dim,fontSize:12,fontFamily:F_BODY,
               fontWeight:600,letterSpacing:0.6,
               marginBottom:1,lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",
               whiteSpace:"nowrap",maxWidth:"100%"}}>{o.short||o.label}</div>
             <div style={{color:sel?inkOn(color):Q.gold,fontWeight:700,fontSize:17,
               lineHeight:1.05,fontFamily:F_NUM}}>{fmt(o.val)}</div>
-            {live&&<div style={{color:sel?inkOn(color):Q.pink,fontSize:7,marginTop:1,
+            {live&&<div style={{color:sel?inkOn(color):Q.pink,fontSize:12,marginTop:1,
               fontWeight:700}}>● LIVE</div>}
           </button>
         );
@@ -468,7 +468,7 @@ function AllMarketsView({ ev, bets, onToggle }){
     <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${Q.dim}`}}>
       {availableMkts.map(mkt=>(
         <div key={mkt} style={{marginBottom:8}}>
-          <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",
+          <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
             letterSpacing:1,fontFamily:F_BODY,marginBottom:5}}>
             {mktLabels[mkt]||mkt}
           </div>
@@ -640,7 +640,7 @@ function EstadisticasPartido({ ev, onCerrar }){
             <div style={{color:Q.gold,fontWeight:900,fontSize:32,
               fontFamily:F_BODY}}>
               {stats.marcador.home} - {stats.marcador.away}</div>
-            <div style={{color:Q.muted,fontSize:11,fontFamily:F_BODY}}>
+            <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
               {stats.estado==="live"?<><Icon name="circle-dot" size={11}/> En vivo</>:stats.estado==="closed"?"Finalizado":stats.estado}</div>
           </div>
         )}
@@ -673,7 +673,7 @@ function EstadisticasPartido({ ev, onCerrar }){
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                     <span style={{color:Q.text,fontSize:13,fontWeight:700,
                       fontFamily:F_BODY}}>{s.home}{s.unidad}</span>
-                    <span style={{color:Q.muted,fontSize:11,
+                    <span style={{color:Q.muted,fontSize:12,
                       fontFamily:F_BODY}}>{s.label}</span>
                     <span style={{color:Q.text,fontSize:13,fontWeight:700,
                       fontFamily:F_BODY}}>{s.away}{s.unidad}</span>
@@ -700,7 +700,7 @@ function EstadisticasPartido({ ev, onCerrar }){
             )}
             {previa&&Array.isArray(previa.head_to_head)&&previa.head_to_head.length>0&&(
               <div>
-                <div style={{color:Q.muted,fontSize:11,marginBottom:8,textTransform:"uppercase",
+                <div style={{color:Q.muted,fontSize:12,marginBottom:8,textTransform:"uppercase",
                   letterSpacing:1,fontFamily:F_BODY}}>Últimos enfrentamientos</div>
                 {previa.head_to_head.map((h,i)=>(
                   <div key={i} style={{display:"flex",justifyContent:"space-between",
@@ -728,7 +728,7 @@ function EstadisticasPartidoBoton({ ev }){
     <>
       <button onClick={()=>setAbierto(true)} style={{width:"100%",marginTop:6,
         background:ov(0.04),border:`1px solid ${Q.cyan}44`,borderRadius:8,
-        padding:"6px",cursor:"pointer",color:Q.cyan,fontSize:10,fontWeight:700,
+        padding:"6px",cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
         fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={10}/> Estadísticas y análisis</button>
       {abierto&&<EstadisticasPartido ev={ev} onCerrar={()=>setAbierto(false)}/>}
     </>
@@ -767,7 +767,7 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
 
   if(!claves.length && !cargando)
     return (
-      <div style={{color:Q.dim,fontSize:11,padding:"10px 0",textAlign:"center",
+      <div style={{color:Q.dim,fontSize:12,padding:"10px 0",textAlign:"center",
         fontFamily:F_BODY}}>
         {aviso||"Sin mercados disponibles"}
       </div>
@@ -781,7 +781,7 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
         const muchos = resultados.length > 6;
         return(
           <div key={k} style={{marginBottom:10}}>
-            <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",
+            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
               letterSpacing:1,fontFamily:F_BODY,
               marginBottom:5,display:"flex",justifyContent:"space-between"}}>
               <span>{tituloMercado(k)}</span>
@@ -808,7 +808,7 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
                       display:"flex",alignItems:"center",
                       justifyContent:"space-between",gap:6,minWidth:0,
                     }}>
-                    <span style={{color:Q.muted,fontSize:10,
+                    <span style={{color:Q.muted,fontSize:12,
                       fontFamily:F_BODY,
                       overflow:"hidden",textOverflow:"ellipsis",
                       whiteSpace:"nowrap",flex:1,textAlign:"left"}}>{etiqueta}</span>
@@ -824,7 +824,7 @@ function MercadosEvento({ ev, bets, onToggle, color=Q.violet }){
         );
       })}
       {cargando&&(
-        <div style={{color:Q.dim,fontSize:10,textAlign:"center",padding:"6px 0",
+        <div style={{color:Q.dim,fontSize:12,textAlign:"center",padding:"6px 0",
           fontFamily:F_BODY}}>
           Buscando córners, tarjetas y goleadores...
         </div>
@@ -872,7 +872,7 @@ function FloatingBetslip({ bets, onBet, onClear, onLocal, color=Q.violet,
             <span style={{color:Q.green,fontWeight:700,fontSize:12,fontFamily:F_BODY}}>
               {ars(Math.round(monto*tot*(1+(boostInfo?.pct||0)/100)))}
               {boostInfo?.pct>0&&(
-                <span style={{color:Q.gold,fontSize:10,marginLeft:3}}>
+                <span style={{color:Q.gold,fontSize:12,marginLeft:3}}>
                   +{boostInfo.pct}%</span>
               )}
             </span>
@@ -884,7 +884,7 @@ function FloatingBetslip({ bets, onBet, onClear, onLocal, color=Q.violet,
             que convierte "combinar es más riesgo" en "combinar paga". */}
         {boostInfo?.siguiente&&(
           <div style={{background:`${Q.gold}14`,border:`1px solid ${Q.gold}44`,
-            borderRadius:8,padding:"6px 9px",marginBottom:8,fontSize:10.5,
+            borderRadius:8,padding:"6px 9px",marginBottom:8,fontSize:12,
             color:Q.gold,fontFamily:F_BODY}}>
             🚀 Sumá {boostInfo.siguiente.picks-boostInfo.cuentan}{" "}
             {boostInfo.siguiente.picks-boostInfo.cuentan===1?"selección":"selecciones"}
@@ -893,7 +893,7 @@ function FloatingBetslip({ bets, onBet, onClear, onLocal, color=Q.violet,
         )}
         {boostInfo?.pct>0&&!boostInfo?.siguiente&&(
           <div style={{background:`${Q.gold}14`,border:`1px solid ${Q.gold}44`,
-            borderRadius:8,padding:"6px 9px",marginBottom:8,fontSize:10.5,
+            borderRadius:8,padding:"6px 9px",marginBottom:8,fontSize:12,
             color:Q.gold,fontFamily:F_BODY}}>
             🚀 Potencializador +{boostInfo.pct}% · se paga si acertás todas
           </div>
@@ -905,14 +905,14 @@ function FloatingBetslip({ bets, onBet, onClear, onLocal, color=Q.violet,
               flex:1,background:monto===v?`${color}33`:ov(0.04),
               border:`1px solid ${monto===v?color:Q.border}`,
               borderRadius:8,padding:"5px 2px",cursor:"pointer",
-              color:monto===v?color:Q.muted,fontSize:9,fontWeight:monto===v?700:400,
+              color:monto===v?color:Q.muted,fontSize:12,fontWeight:monto===v?700:400,
               fontFamily:F_BODY,
             }}>{v>=1000?`$${v/1000}K`:`$${v}`}</button>
           ))}
         </div>
         {/* Campo libre: las fichas rápidas son atajos, no un límite */}
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-          <span style={{color:Q.dim,fontSize:10,flexShrink:0}}>Otro:</span>
+          <span style={{color:Q.dim,fontSize:12,flexShrink:0}}>Otro:</span>
           <input type="number" inputMode="numeric" min="0" value={monto}
             onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
             aria-label="Monto a apostar"
@@ -931,7 +931,7 @@ function FloatingBetslip({ bets, onBet, onClear, onLocal, color=Q.violet,
           }} style={{
             background:ov(0.04),border:`1px solid ${Q.border}`,
             borderRadius:12,padding:"0 12px",cursor:genCodigo?"wait":"pointer",color:Q.muted,
-            fontSize:11,fontFamily:F_BODY,whiteSpace:"nowrap",
+            fontSize:12,fontFamily:F_BODY,whiteSpace:"nowrap",
           }}>{genCodigo?"...":"🏪 Local"}</button>
         </div>
       </GCard>
@@ -1029,7 +1029,7 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
               background:!sport?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:ov(0.04),
               border:`1px solid ${!sport?Q.cyan:Q.border}`,borderRadius:20,
               padding:"5px 12px",cursor:"pointer",color:!sport?Q.cyan:Q.muted,
-              fontSize:10,fontWeight:!sport?700:400,fontFamily:F_BODY,
+              fontSize:12,fontWeight:!sport?700:400,fontFamily:F_BODY,
               whiteSpace:"nowrap",flexShrink:0,
             }}>Todos</button>
             {displaySports.map(s=>(
@@ -1037,7 +1037,7 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
                 background:sport===s.name?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:ov(0.04),
                 border:`1px solid ${sport===s.name?Q.cyan:Q.border}`,borderRadius:20,
                 padding:"5px 12px",cursor:"pointer",color:sport===s.name?Q.cyan:Q.muted,
-                fontSize:10,fontWeight:sport===s.name?700:400,fontFamily:F_BODY,
+                fontSize:12,fontWeight:sport===s.name?700:400,fontFamily:F_BODY,
                 whiteSpace:"nowrap",flexShrink:0,
               }}>{s.icon} {s.name}</button>
             ))}
@@ -1074,7 +1074,7 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
                           whiteSpace:"nowrap"}}>
                           {ev.h} <span style={{color:Q.dim}}>vs</span> {ev.a}
                         </div>
-                        <div style={{color:Q.muted,fontSize:10,marginTop:2}}>{horaLocal(ev)}</div>
+                        <div style={{color:Q.muted,fontSize:12,marginTop:2}}>{horaLocal(ev)}</div>
                       </div>
                       <TeamLogo name={ev.a} size={26}/>
                     </div>
@@ -1087,7 +1087,7 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
                   <button onClick={()=>toggleExpand(ev.id)} style={{
                     width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
                     borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,
-                    fontSize:10,marginTop:6,fontFamily:F_BODY,
+                    fontSize:12,marginTop:6,fontFamily:F_BODY,
                   }}>
                     {expandedEvents[ev.id]?"▲ Menos mercados":"▼ Todos los mercados"}
                   </button>
@@ -1110,7 +1110,7 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
                 <span style={{color:Q.cyan,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>Sportradar · {srPartidos.length} partidos</span>
                 <span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}55`,
-                  borderRadius:6,padding:"1px 7px",fontSize:9,color:Q.cyan,
+                  borderRadius:6,padding:"1px 7px",fontSize:12,color:Q.cyan,
                   fontFamily:F_BODY}}>NUEVO</span>
               </div>
               {srPartidos
@@ -1123,14 +1123,14 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
                       <span style={{color:Q.text,fontSize:12,fontWeight:600,
                         fontFamily:F_BODY}}>{p.home}</span>
                     </div>
-                    <span style={{color:Q.dim,fontSize:10}}>vs</span>
+                    <span style={{color:Q.dim,fontSize:12}}>vs</span>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <span style={{color:Q.text,fontSize:12,fontWeight:600,
                         fontFamily:F_BODY}}>{p.away}</span>
                       <TeamLogo name={p.away} size={20}/>
                     </div>
                   </div>
-                  {p.pais&&<div style={{color:Q.dim,fontSize:9,marginBottom:6,
+                  {p.pais&&<div style={{color:Q.dim,fontSize:12,marginBottom:6,
                     fontFamily:F_BODY}}>{p.pais}</div>}
                   <div style={{display:"flex",gap:5}}>
                     {[["home",p.home_odd,"L"],["draw",p.draw_odd,"E"],["away",p.away_odd,"V"]].map(([tipo,odd,lbl])=>(
@@ -1143,7 +1143,7 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
                         border:`1px solid ${bets.find(b=>b.id===p.id&&b.label===(lbl==="L"?p.home:lbl==="E"?"Empate":p.away))?Q.cyan:Q.border}`,
                         borderRadius:8,padding:"8px 4px",cursor:"pointer",
                         display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                        <span style={{color:Q.dim,fontSize:9,
+                        <span style={{color:Q.dim,fontSize:12,
                           fontFamily:F_BODY}}>{lbl}</span>
                         <span style={{color:Q.text,fontSize:13,fontWeight:700,
                           fontFamily:F_BODY}}>{odd}</span>
@@ -1154,7 +1154,7 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
                     <>
                       <button onClick={()=>setSrExpand(e=>({...e,[p.id]:!e[p.id]}))}
                         style={{width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
-                        borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,fontSize:10,
+                        borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,fontSize:12,
                         marginTop:6,fontFamily:F_BODY}}>
                         {srExpand[p.id]?"▲ Menos mercados":`▼ Más mercados (${p.mercados.filter(m=>m.market!=="1x2").length})`}
                       </button>
@@ -1169,7 +1169,7 @@ function ScreenPrematch({ onAction, onBet, onLocal, moneda, betsIniciales,
                               border:`1px solid ${bets.find(b=>b.id===p.id&&b.label===m.label)?Q.cyan:Q.border}`,
                               borderRadius:8,padding:"6px 10px",cursor:"pointer",
                               display:"flex",alignItems:"center",gap:6}}>
-                              <span style={{color:Q.muted,fontSize:10,
+                              <span style={{color:Q.muted,fontSize:12,
                                 fontFamily:F_BODY}}>{m.label}</span>
                               <span style={{color:Q.text,fontSize:12,fontWeight:700,
                                 fontFamily:F_BODY}}>{m.odd}</span>
@@ -1253,9 +1253,9 @@ function ScreenLive({ onAction, onBet, onLocal, moneda, betsIniciales,
               </span>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              {lastUpdate&&<span style={{color:Q.dim,fontSize:10}}>{lastUpdate}</span>}
+              {lastUpdate&&<span style={{color:Q.dim,fontSize:12}}>{lastUpdate}</span>}
               <button onClick={fetchLive} style={{background:"transparent",border:`1px solid ${Q.border}`,
-                borderRadius:8,padding:"4px 8px",cursor:"pointer",color:Q.muted,fontSize:10}}>🔄</button>
+                borderRadius:8,padding:"4px 8px",cursor:"pointer",color:Q.muted,fontSize:12}}>🔄</button>
             </div>
           </div>
 
@@ -1274,8 +1274,8 @@ function ScreenLive({ onAction, onBet, onLocal, moneda, betsIniciales,
               {/* Header con score */}
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
                 <LiveDot/>
-                {ev.minute&&<span style={{color:Q.muted,fontSize:11}}>{ev.minute}</span>}
-                {ev.minuteLong&&<span style={{color:Q.dim,fontSize:10}}>{ev.minuteLong}</span>}
+                {ev.minute&&<span style={{color:Q.muted,fontSize:12}}>{ev.minute}</span>}
+                {ev.minuteLong&&<span style={{color:Q.dim,fontSize:12}}>{ev.minuteLong}</span>}
               </div>
 
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}
@@ -1292,7 +1292,7 @@ function ScreenLive({ onAction, onBet, onLocal, moneda, betsIniciales,
                   <div style={{fontFamily:F_BODY,fontWeight:900,fontSize:30,color:Q.pink}}>
                     {ev.homeScore}<span style={{color:Q.dim}}>:</span>{ev.awayScore}
                   </div>
-                  <div style={{color:Q.pink,fontSize:9,fontFamily:F_BODY,letterSpacing:1}}>EN CURSO</div>
+                  <div style={{color:Q.pink,fontSize:12,fontFamily:F_BODY,letterSpacing:1}}>EN CURSO</div>
                 </div>
                 <div style={{textAlign:"center",flex:1,minWidth:0}}>
                   <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
@@ -1318,12 +1318,12 @@ function ScreenLive({ onAction, onBet, onLocal, moneda, betsIniciales,
                         border:`1.5px solid ${bets.some(b=>b.id===ev.id&&b.label===o.label)?Q.pink:Q.border}`,
                         borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",transition:"all 0.2s",
                       }}>
-                        <div style={{color:Q.muted,fontSize:9,
+                        <div style={{color:Q.muted,fontSize:12,
                           fontFamily:F_BODY,overflow:"hidden",
                           textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.label}</div>
                         <div style={{color:bets.some(b=>b.id===ev.id&&b.label===o.label)?Q.pink:o.c,
                           fontWeight:700,fontSize:15,fontFamily:F_BODY}}>{fmt(o.val)}</div>
-                        <div style={{color:Q.pink,fontSize:8}}>◉ LIVE</div>
+                        <div style={{color:Q.pink,fontSize:12}}>◉ LIVE</div>
                       </button>
                     ))}
                   </div>
@@ -1331,7 +1331,7 @@ function ScreenLive({ onAction, onBet, onLocal, moneda, betsIniciales,
                   <button onClick={()=>toggleExpand(ev.id)} style={{
                     width:"100%",background:"transparent",border:`1px solid ${Q.dim}`,
                     borderRadius:8,padding:"5px",cursor:"pointer",color:Q.dim,
-                    fontSize:10,marginTop:6,fontFamily:F_BODY,
+                    fontSize:12,marginTop:6,fontFamily:F_BODY,
                   }}>
                     {expandedEvents[ev.id]?"▲ Menos mercados":"▼ Todos los mercados"}
                   </button>
@@ -1340,7 +1340,7 @@ function ScreenLive({ onAction, onBet, onLocal, moneda, betsIniciales,
                   )}
                 </>
               ):(
-                <div style={{textAlign:"center",color:Q.dim,fontSize:11,padding:"8px 0",
+                <div style={{textAlign:"center",color:Q.dim,fontSize:12,padding:"8px 0",
                   fontFamily:F_BODY}}>Cuotas en vivo no disponibles</div>
               )}
             </GCard>
@@ -1441,7 +1441,7 @@ function GenerarCombo({ moneda, onUsar, userId }){
     <GCard style={{padding:14,marginBottom:12}}>
       <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:3,
         fontFamily:F_BODY}}>🎲 Armá tu combinada</div>
-      <div style={{color:Q.muted,fontSize:11,marginBottom:10,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:10,
         lineHeight:1.5}}>
         Elegí el estilo y el sistema te arma una con partidos de hoy.
         {cupo&&` Te quedan ${cupo.quedan} de ${cupo.tope} hoy.`}</div>
@@ -1453,25 +1453,25 @@ function GenerarCombo({ moneda, onUsar, userId }){
               style={{flex:1,background:perfil===k?`${Q.violet}33`:ov(0.04),
                 border:`1px solid ${perfil===k?Q.violet:Q.border}`,
                 borderRadius:9,padding:"9px 4px",cursor:"pointer",
-                color:perfil===k?Q.cyan:Q.muted,fontSize:10.5,
+                color:perfil===k?Q.cyan:Q.muted,fontSize:12,
                 fontWeight:perfil===k?700:400,lineHeight:1.3,
                 fontFamily:F_BODY}}>
-              {l}<br/><span style={{fontSize:8.5,color:Q.dim}}>{d}</span>
+              {l}<br/><span style={{fontSize:12,color:Q.dim}}>{d}</span>
             </button>
           ))}
         </div>
       )}
 
       {cupo&&cupo.quedan<=0&&(
-        <div style={{color:Q.amber,fontSize:11.5,textAlign:"center",
+        <div style={{color:Q.amber,fontSize:12,textAlign:"center",
           padding:"8px 0",lineHeight:1.5}}>
           Ya generaste {cupo.tope} combinadas hoy. Volvé mañana.</div>
       )}
 
-      {proc&&<div style={{color:Q.muted,fontSize:11.5,textAlign:"center",
+      {proc&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
         padding:"8px 0"}}>Armando…</div>}
 
-      {err&&<div style={{color:Q.red,fontSize:11.5,textAlign:"center",
+      {err&&<div style={{color:Q.red,fontSize:12,textAlign:"center",
         padding:"8px 0"}}>{err}</div>}
 
       {combo&&!proc&&(
@@ -1484,7 +1484,7 @@ function GenerarCombo({ moneda, onUsar, userId }){
               justifyContent:"space-between",alignItems:"baseline",gap:8,
               padding:"5px 0",borderTop:`1px solid ${Q.border}`}}>
               <div style={{minWidth:0,flex:1}}>
-                <div style={{color:Q.dim,fontSize:9.5}}>
+                <div style={{color:Q.dim,fontSize:12}}>
                   {p.h} — {p.a}</div>
                 <div style={{color:Q.text,fontSize:12,fontWeight:600}}>
                   {p.sel}</div>
@@ -1496,7 +1496,7 @@ function GenerarCombo({ moneda, onUsar, userId }){
           <div style={{display:"flex",justifyContent:"space-between",
             alignItems:"baseline",paddingTop:8,marginTop:4,
             borderTop:`1px solid ${Q.border}`}}>
-            <span style={{color:Q.muted,fontSize:11}}>Cuota total</span>
+            <span style={{color:Q.muted,fontSize:12}}>Cuota total</span>
             <span style={{color:Q.gold,fontWeight:900,fontSize:19,
               fontFamily:F_BODY}}>
               {combo.odd_total.toFixed(2)}x</span>
@@ -1579,7 +1579,7 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
             fontFamily:F_BODY}}>
             No hay combos disponibles ahora
           </div>
-          <div style={{color:Q.dim,fontSize:11,marginTop:4}}>
+          <div style={{color:Q.dim,fontSize:12,marginTop:4}}>
             Se arman con los partidos del día
           </div>
         </GCard>
@@ -1617,10 +1617,10 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
                 color:inkOn(Q.violet, Q.cyan)}}><Zap size={16}/></div>
               <div>
                 <div style={{color:Q.text,fontWeight:700,fontSize:14,fontFamily:F_BODY}}>AI Combos del día</div>
-                <div style={{color:Q.muted,fontSize:11}}>{realCombos?"Datos reales":"Generados por IAQP IA"}</div>
+                <div style={{color:Q.muted,fontSize:12}}>{realCombos?"Datos reales":"Generados por IAQP IA"}</div>
               </div>
             </div>
-            {loading&&<div style={{color:Q.muted,fontSize:11}}>Cargando...</div>}
+            {loading&&<div style={{color:Q.muted,fontSize:12}}>Cargando...</div>}
             {realCombos&&<HBadge label="REAL" color={Q.green}/>}
             {refCode&&<HBadge label={`via @${refCode}`} color={Q.violet}/>}
           </div>
@@ -1647,8 +1647,8 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
                 border:`1px solid ${sel===c.id?Q.cyan:Q.border}`,
                 borderRadius:10,padding:"8px 4px",cursor:"pointer",textAlign:"center",
               }}>
-                <div style={{color:sel===c.id?Q.cyan:Q.muted,fontSize:10,fontWeight:700,fontFamily:F_BODY}}>{(c.name||c.nombre||"Combo").replace("AI ","")}</div>
-                <div style={{color:Q.gold,fontSize:11,fontWeight:700,fontFamily:F_BODY,marginTop:2}}>
+                <div style={{color:sel===c.id?Q.cyan:Q.muted,fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{(c.name||c.nombre||"Combo").replace("AI ","")}</div>
+                <div style={{color:Q.gold,fontSize:12,fontWeight:700,fontFamily:F_BODY,marginTop:2}}>
                   {(c.picks||[]).reduce((a,p)=>a*(p.odd||1),1).toFixed(2)}x
                 </div>
               </button>
@@ -1667,10 +1667,10 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div style={{flex:1,marginRight:8}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                      {p.live&&<><LiveDot/><span style={{color:Q.muted,fontSize:9}}>{p.min?`Min ${p.min}'`:p.set?`Set ${p.set}`:""}</span></>}
+                      {p.live&&<><LiveDot/><span style={{color:Q.muted,fontSize:12}}>{p.min?`Min ${p.min}'`:p.set?`Set ${p.set}`:""}</span></>}
                       <HBadge label={p.mkt} color={Q.dim}/>
                     </div>
-                    <div style={{color:Q.muted,fontSize:10,marginBottom:1}}>{p.h} vs {p.a}</div>
+                    <div style={{color:Q.muted,fontSize:12,marginBottom:1}}>{p.h} vs {p.a}</div>
                     <div style={{color:Q.text,fontWeight:700,fontSize:13,fontFamily:F_BODY}}>{p.sel}</div>
                   </div>
                   <div style={{color:Q.cyan,fontWeight:900,fontSize:18,fontFamily:F_BODY}}>{fmt(p.odd)}</div>
@@ -1678,10 +1678,10 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
               </GCard>
             ))}
             <NDiv color={Q.violet}/>
-            {combo.note&&<div style={{color:Q.muted,fontSize:11,fontStyle:"italic",marginBottom:10}}>💡 {combo.note}</div>}
+            {combo.note&&<div style={{color:Q.muted,fontSize:12,fontStyle:"italic",marginBottom:10}}>💡 {combo.note}</div>}
             {/* Monto: ANTES de la fila de cuota. Debajo quedaba fuera
                 del alto de la tarjeta y no se veía. */}
-            <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",
+            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
               letterSpacing:1,marginBottom:4}}>Monto a apostar</div>
             <div style={{display:"flex",gap:5,marginBottom:6}}>
               {montosDe(moneda).map(v=>(
@@ -1689,7 +1689,7 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
                   flex:1,background:stake===v?`${Q.violet}33`:ov(0.04),
                   border:`1px solid ${stake===v?Q.violet:Q.border}`,
                   borderRadius:8,padding:"7px 2px",cursor:"pointer",
-                  color:stake===v?Q.cyan:Q.muted,fontSize:11,
+                  color:stake===v?Q.cyan:Q.muted,fontSize:12,
                   fontWeight:stake===v?700:400,fontFamily:F_BODY,
                 }}>{v>=1000?`$${v/1000}K`:`$${v}`}</button>
               ))}
@@ -1704,11 +1704,11 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
 
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <div>
-                <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1}}>Cuota total</div>
+                <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1}}>Cuota total</div>
                 <div style={{color:Q.gold,fontWeight:900,fontSize:24,fontFamily:F_BODY}}>{fmt(tot)}x</div>
               </div>
               <div style={{textAlign:"right"}}>
-                <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",letterSpacing:1}}>Retorno</div>
+                <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1}}>Retorno</div>
                 <div style={{color:Q.green,fontWeight:900,fontSize:22,fontFamily:F_BODY}}>{ars(Math.round(stake*tot))}</div>
               </div>
             </div>
@@ -1752,16 +1752,16 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
                     cursor:generando?"wait":"pointer",
                     fontFamily:F_BODY,
                   }}>{generando?"Generando...":"🏪 Generar código para local"}</button>
-                  {genError&&<div style={{color:Q.red,fontSize:11,marginTop:6,
+                  {genError&&<div style={{color:Q.red,fontSize:12,marginTop:6,
                     textAlign:"center",fontFamily:F_BODY}}>{genError}</div>}
                   </>
                 ):(
                   <GCard glow={Q.green} style={{padding:"12px",textAlign:"center"}}>
-                    <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>Código generado</div>
+                    <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>Código generado</div>
                     <div style={{color:Q.cyan,fontWeight:900,fontSize:20,fontFamily:F_BODY,letterSpacing:2}}>
                       {codeGenerated[sel]}
                     </div>
-                    <div style={{color:Q.muted,fontSize:10,marginTop:4}}>Mostralo en el local para apostar en efectivo</div>
+                    <div style={{color:Q.muted,fontSize:12,marginTop:4}}>Mostralo en el local para apostar en efectivo</div>
                   </GCard>
                 )}
               </div>
@@ -1803,7 +1803,7 @@ function ScreenBetConfirmed({ bets, stake, odd, code, onAction, onRepetir, userI
             {bets.map((b,i)=>(
               <div key={i} style={{padding:"6px 0",borderBottom:`1px solid ${Q.dim}`}}>
                 <div style={{display:"flex",justifyContent:"space-between"}}>
-                  <span style={{color:Q.muted,fontSize:11}}>{b.h} vs {b.a}</span>
+                  <span style={{color:Q.muted,fontSize:12}}>{b.h} vs {b.a}</span>
                   <span style={{color:Q.cyan,fontWeight:700,fontSize:12,fontFamily:F_BODY}}>{fmt(b.odd)}</span>
                 </div>
                 <div style={{color:Q.text,fontSize:12,fontWeight:600,fontFamily:F_BODY}}>{b.label}</div>
@@ -1824,7 +1824,7 @@ function ScreenBetConfirmed({ bets, stake, odd, code, onAction, onRepetir, userI
                 que llevar al mostrador. */}
             <CodigoReserva code={code}/>
           </GCard>
-          <div style={{color:Q.amber,fontSize:11,marginBottom:10,fontFamily:F_BODY}}>
+          <div style={{color:Q.amber,fontSize:12,marginBottom:10,fontFamily:F_BODY}}>
             <Icon name="clock-3" size={13}/> El boleto queda reservado 24 horas. Pagalo en efectivo en la agencia.
           </div>
           {/* Repetir: vuelve a Deportes con las mismas selecciones ya
@@ -1893,13 +1893,13 @@ function CashOutBtn({ code, moneda, onHecho }){
   if(estado==="ok") return(
     <div style={{marginTop:8,padding:"8px 10px",borderRadius:9,
       background:`${Q.green}18`,border:`1px solid ${Q.green}`,
-      color:Q.green,fontSize:11,fontWeight:700,textAlign:"center",
+      color:Q.green,fontSize:12,fontWeight:700,textAlign:"center",
       fontFamily:F_BODY}}>✓ {msg}</div>
   );
 
   if(estado==="confirmar") return(
     <div style={{marginTop:8}}>
-      <div style={{color:Q.muted,fontSize:10,marginBottom:6,textAlign:"center",
+      <div style={{color:Q.muted,fontSize:12,marginBottom:6,textAlign:"center",
         fontFamily:F_BODY}}>
         Retirás ahora: <span style={{color:Q.gold,fontWeight:800,fontSize:13}}>{money(valor,mon)}</span></div>
       <div style={{display:"flex",gap:6}}>
@@ -1918,11 +1918,11 @@ function CashOutBtn({ code, moneda, onHecho }){
 
   if(estado==="error") return(
     <div style={{marginTop:8}}>
-      <div style={{color:Q.red,fontSize:10,textAlign:"center",marginBottom:4,
+      <div style={{color:Q.red,fontSize:12,textAlign:"center",marginBottom:4,
         fontFamily:F_BODY}}>{msg}</div>
       <button onClick={consultar} style={{width:"100%",background:"transparent",
         border:`1px solid ${Q.border}`,borderRadius:9,padding:"8px",color:Q.muted,
-        fontSize:11,cursor:"pointer",fontFamily:F_BODY}}>Reintentar</button>
+        fontSize:12,cursor:"pointer",fontFamily:F_BODY}}>Reintentar</button>
     </div>
   );
 
@@ -1998,7 +1998,7 @@ function ScreenMyBets({ onAction, user }){
                   <div style={{color:Q.text,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY,marginBottom:2,
                     overflow:"hidden",textOverflow:"ellipsis"}}>{b.resumen}</div>
-                  <div style={{color:Q.muted,fontSize:10}}>
+                  <div style={{color:Q.muted,fontSize:12}}>
                     {b.fecha} · {fmt(b.odd_total)}x · {b.picks.length} picks
                   </div>
                 </div>
@@ -2006,7 +2006,7 @@ function ScreenMyBets({ onAction, user }){
                   color={colores[b.status]||Q.muted}/>
               </div>
               <div style={{display:"flex",justifyContent:"space-between"}}>
-                <span style={{color:Q.muted,fontSize:11}}>
+                <span style={{color:Q.muted,fontSize:12}}>
                   Apostado: <span style={{color:Q.text,fontWeight:700,
                     fontFamily:F_BODY}}>{ars(b.stake)}</span>
                 </span>
@@ -2079,7 +2079,7 @@ function CorregirPickApp({ pick, onAplicar, onQuitar }){
   return(
     <div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${Q.dim}`}}>
       {(pick.home_real||pick.away_real)&&(
-        <div style={{color:Q.muted,fontSize:9,marginBottom:6,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:6,
           fontFamily:F_BODY}}>
           En nuestro sistema: <span style={{color:Q.cyan}}>{pick.home_real} vs {pick.away_real}</span>
         </div>
@@ -2087,7 +2087,7 @@ function CorregirPickApp({ pick, onAplicar, onQuitar }){
       {/* Candidatos parecidos (cuando no encontró el partido) */}
       {(pick.candidatos&&pick.candidatos.length>0)&&(
         <div style={{marginBottom:10}}>
-          <div style={{color:Q.amber,fontSize:10,marginBottom:6,
+          <div style={{color:Q.amber,fontSize:12,marginBottom:6,
             fontFamily:F_BODY}}>
             ¿Quisiste decir alguno de estos?
           </div>
@@ -2102,7 +2102,7 @@ function CorregirPickApp({ pick, onAplicar, onQuitar }){
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:ov(0.05),border:`1px solid ${Q.border}`,
                     borderRadius:7,padding:"5px 9px",cursor:"pointer",
-                    color:Q.cyan,fontSize:11,fontWeight:600,
+                    color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
                 ))}
@@ -2117,24 +2117,24 @@ function CorregirPickApp({ pick, onAplicar, onQuitar }){
           background:modo==="seleccion"?`${Q.violet}33`:ov(0.04),
           border:`1px solid ${modo==="seleccion"?Q.violet:Q.border}`,borderRadius:7,
           padding:"6px",cursor:"pointer",color:modo==="seleccion"?Q.cyan:Q.muted,
-          fontSize:10,fontWeight:700,fontFamily:F_BODY}}>Selección</button>
+          fontSize:12,fontWeight:700,fontFamily:F_BODY}}>Selección</button>
         <button onClick={()=>setModo("partido")} style={{flex:1,
           background:modo==="partido"?`${Q.violet}33`:ov(0.04),
           border:`1px solid ${modo==="partido"?Q.violet:Q.border}`,borderRadius:7,
           padding:"6px",cursor:"pointer",color:modo==="partido"?Q.cyan:Q.muted,
-          fontSize:10,fontWeight:700,fontFamily:F_BODY}}>Otro partido</button>
+          fontSize:12,fontWeight:700,fontFamily:F_BODY}}>Otro partido</button>
       </div>
 
       {modo==="seleccion"&&(
         <div>
-          {opciones.length===0&&<div style={{color:Q.muted,fontSize:10,marginBottom:6,
+          {opciones.length===0&&<div style={{color:Q.muted,fontSize:12,marginBottom:6,
             fontFamily:F_BODY}}>Sin opciones. Probá "Otro partido".</div>}
           {opciones.map((op,k)=>(
             <button key={k} onClick={()=>elegirOpcion(op)} style={{width:"100%",
               display:"flex",justifyContent:"space-between",alignItems:"center",
               background:ov(0.04),border:`1px solid ${Q.border}`,
               borderRadius:7,padding:"8px 10px",marginBottom:4,cursor:"pointer"}}>
-              <span style={{color:Q.text,fontSize:11,
+              <span style={{color:Q.text,fontSize:12,
                 fontFamily:F_BODY}}>{op.sel}</span>
               <span style={{color:Q.cyan,fontWeight:700,fontSize:12,
                 fontFamily:F_BODY}}>{fmt(op.odd)}</span>
@@ -2154,20 +2154,20 @@ function CorregirPickApp({ pick, onAplicar, onQuitar }){
                 color:Q.text,fontSize:14,fontFamily:F_BODY}}/>
             <button onClick={buscarEventos} style={{background:`${Q.violet}33`,
               border:`1px solid ${Q.violet}`,borderRadius:7,padding:"0 12px",
-              cursor:"pointer",color:Q.cyan,fontSize:11,fontWeight:700,
+              cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
               fontFamily:F_BODY}}>{buscando?"...":"Ir"}</button>
           </div>
           {encontrados.map((ev,k)=>(
             <div key={k} style={{background:ov(0.03),
               border:`1px solid ${Q.dim}`,borderRadius:7,padding:"7px 9px",marginBottom:5}}>
-              <div style={{color:Q.text,fontSize:11,fontWeight:600,marginBottom:5,
+              <div style={{color:Q.text,fontSize:12,fontWeight:600,marginBottom:5,
                 fontFamily:F_BODY}}>{ev.home} vs {ev.away}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                 {(ev.opciones||[]).map((op,j)=>(
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:ov(0.05),border:`1px solid ${Q.border}`,
                     borderRadius:6,padding:"4px 8px",cursor:"pointer",
-                    color:Q.cyan,fontSize:10,fontWeight:600,
+                    color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
                 ))}
@@ -2185,7 +2185,7 @@ function CorregirPickApp({ pick, onAplicar, onQuitar }){
             color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
         <button onClick={onQuitar} style={{background:`${Q.pink}18`,
           border:`1px solid ${Q.pink}`,borderRadius:7,padding:"7px 11px",
-          cursor:"pointer",color:Q.pink,fontSize:10,fontWeight:700,
+          cursor:"pointer",color:Q.pink,fontSize:12,fontWeight:700,
           fontFamily:F_BODY}}>Quitar</button>
       </div>
     </div>
@@ -2359,7 +2359,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
       <BotMsg time="">
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,
           fontFamily:F_BODY}}><Icon name="scan-line" size={13}/> Mejorar mi apuesta</div>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:12,lineHeight:1.4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:12,lineHeight:1.4,
           fontFamily:F_BODY}}>
           Subí la captura de una apuesta de otro sitio. La leemos y te decimos
           si podemos igualarla o mejorarla con nuestras cuotas.
@@ -2373,7 +2373,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
                   objectFit:"cover",borderRadius:7,border:`1px solid ${Q.border}`}}/>
                 <button onClick={()=>quitarImagen(i)} style={{position:"absolute",
                   top:-5,right:-5,width:18,height:18,borderRadius:"50%",padding:0,
-                  background:Q.pink,border:"none",color:inkOn(Q.pink),fontSize:10,
+                  background:Q.pink,border:"none",color:inkOn(Q.pink),fontSize:12,
                   cursor:"pointer",lineHeight:1}}>✕</button>
               </div>
             ))}
@@ -2386,7 +2386,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
             borderRadius:12,padding:"18px 10px",textAlign:"center",
             cursor:"pointer"}}>
             <div style={{marginBottom:4}}><Icon name="camera" size={24} color={Q.text}/></div>
-            <div style={{color:Q.text,fontWeight:700,fontSize:11,
+            <div style={{color:Q.text,fontWeight:700,fontSize:12,
               fontFamily:F_BODY}}>Sacar foto</div>
           </button>
           <label style={{flex:1,border:`2px dashed ${Q.border}`,borderRadius:12,
@@ -2395,7 +2395,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
               style={{display:"none"}}/>
             <div style={{marginBottom:4,lineHeight:0}}>
               <ImageIcon size={24} color={Q.text} aria-hidden="true"/></div>
-            <div style={{color:Q.text,fontWeight:700,fontSize:11,
+            <div style={{color:Q.text,fontWeight:700,fontSize:12,
               fontFamily:F_BODY}}>
               {imagenes.length>0?"Agregar más":"Galería"}</div>
           </label>
@@ -2429,14 +2429,14 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
 
         {res&&(
           <div style={{marginTop:12}}>
-            <div style={{color:Q.muted,fontSize:11,marginBottom:8,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:8,
               fontFamily:F_BODY}}>
               Leímos {res.picks_total} · podemos tomar {res.picks_ok}
             </div>
             {res.faltan_picks&&(
               <div style={{background:`${Q.red}12`,border:`1px solid ${Q.red}66`,
                 borderRadius:9,padding:"9px 11px",marginBottom:10,color:Q.red,
-                fontSize:11,lineHeight:1.4,fontFamily:F_BODY}}>
+                fontSize:12,lineHeight:1.4,fontFamily:F_BODY}}>
                 <Icon name="triangle-alert" size={13}/> El cupón marca cuota {fmt(res.total_odd_cupon)} pero con lo leído
                 no llegamos. Falta algún partido — agregá otra foto.
               </div>
@@ -2447,7 +2447,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
             <div style={{background:`${Q.amber}12`,
               border:`1px solid ${Q.amber}44`,borderRadius:9,
               padding:"9px 11px",marginBottom:10,color:Q.amber,
-              fontSize:11,lineHeight:1.45,
+              fontSize:12,lineHeight:1.45,
               fontFamily:F_BODY}}>
               Revisá que los partidos y las selecciones sean los
               correctos antes de confirmar. Si algo no coincide,
@@ -2464,24 +2464,24 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
                     <div style={{color:Q.text,fontWeight:600,fontSize:12,
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
                       fontFamily:F_BODY}}>{p.home} vs {p.away}</div>
-                    <div style={{color:Q.muted,fontSize:10}}>{p.selection}</div>
+                    <div style={{color:Q.muted,fontSize:12}}>{p.selection}</div>
                     {/* `selection` is the line we quote. Saying which
                         line the ticket asked for is what keeps the two
                         numbers below from reading as the same bet. */}
                     {p.selection_leida&&(
-                      <div style={{color:Q.amber,fontSize:10,lineHeight:1.35,
+                      <div style={{color:Q.amber,fontSize:12,lineHeight:1.35,
                         fontFamily:F_BODY}}>
                         Cotizamos esta línea · en tu boleto decía {p.selection_leida}
                       </div>
                     )}
                   </div>
                   <span style={{background:`${est.c}22`,border:`1px solid ${est.c}`,
-                    borderRadius:16,padding:"1px 7px",fontSize:8,fontWeight:700,
+                    borderRadius:16,padding:"1px 7px",fontSize:12,fontWeight:700,
                     color:est.c,flexShrink:0,whiteSpace:"nowrap",
                     fontFamily:F_BODY}}>{est.t}</span>
                 </div>
 
-                <div style={{display:"flex",gap:10,fontSize:11,marginBottom:6,
+                <div style={{display:"flex",gap:10,fontSize:12,marginBottom:6,
                   fontFamily:F_BODY}}>
                   {p.odd_original&&<span style={{color:Q.dim}}>Origen {fmt(p.odd_original)}</span>}
                   {p.odd_final&&<span style={{color:est.c,fontWeight:700}}>
@@ -2491,7 +2491,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
                   background:corrigiendo===i?`${Q.cyan}22`:"transparent",
                   border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:8,
                   padding:"5px 10px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
-                  fontSize:10,fontWeight:700,fontFamily:F_BODY}}>
+                  fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                   {corrigiendo===i?"✕ Cerrar":"✏️ Está mal"}</button>
                 {corrigiendo===i&&(
                   <CorregirPickApp pick={p}
@@ -2505,7 +2505,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
             {res.picks_ok<res.picks_total&&(
               <div style={{background:`${Q.amber}12`,border:`1px solid ${Q.amber}55`,
                 borderRadius:10,padding:"9px 12px",margin:"8px 0",color:Q.amber,
-                fontSize:11,lineHeight:1.4,fontFamily:F_BODY}}>
+                fontSize:12,lineHeight:1.4,fontFamily:F_BODY}}>
                 <Icon name="triangle-alert" size={13}/> Hay selecciones que no tenemos. Podés armar la combinada con
                 las {res.picks_ok} que sí, desde Prematch.
               </div>
@@ -2534,7 +2534,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
                     o reservar, en vez de un camino aparte. */}
                 <div style={{marginBottom:10}}>
                   <label htmlFor="qp-stake-mejorar" style={{display:"block",
-                    color:Q.muted,fontSize:11,marginBottom:5,
+                    color:Q.muted,fontSize:12,marginBottom:5,
                     fontFamily:F_BODY}}>
                     Monto a apostar
                     {user?.saldo!=null&&(
@@ -2581,7 +2581,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
                     cursor:"pointer",marginBottom:8,
                     fontFamily:F_BODY}}>
                   Descartar y empezar de nuevo</button>
-                <div style={{color:Q.muted,fontSize:10,lineHeight:1.4,textAlign:"center",
+                <div style={{color:Q.muted,fontSize:12,lineHeight:1.4,textAlign:"center",
                   fontFamily:F_BODY}}>
                   Con el código jugás acá o lo llevás a una agencia.</div>
               </GCard>
@@ -2589,19 +2589,19 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
 
             {boleto&&(
               <GCard glow={Q.gold} style={{padding:18,marginTop:6,textAlign:"center"}}>
-                <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",
+                <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
                   letterSpacing:1,marginBottom:8,
                   fontFamily:F_BODY}}>Tu código de jugada</div>
                 <div style={{color:Q.gold,fontWeight:900,fontSize:32,letterSpacing:2,
                   fontFamily:F_BODY}}>{boleto.code}</div>
                 <div style={{color:Q.cyan,fontWeight:700,fontSize:16,marginTop:6,
                   fontFamily:F_BODY}}>Cuota {fmt(boleto.odd_total||res.cuota_total)}x</div>
-                <div style={{color:Q.muted,fontSize:11,marginTop:12,lineHeight:1.5,
+                <div style={{color:Q.muted,fontSize:12,marginTop:12,lineHeight:1.5,
                   fontFamily:F_BODY}}>
                   📲 Anotá o captura este código.<br/>
                   Llevalo a una agencia para pagar y jugar,
                   o cargalo desde el bot.</div>
-                {refCode&&<div style={{color:Q.violet2,fontSize:10,marginTop:8,
+                {refCode&&<div style={{color:Q.violet2,fontSize:12,marginTop:8,
                   fontFamily:F_BODY}}>
                   Jugada de @{refCode}</div>}
               </GCard>
@@ -2641,7 +2641,7 @@ class CazaError extends Component {
             <Icon name="triangle-alert" size={15}/> Algo falló en esta pantalla</div>
           <div style={{color:Q.muted,fontSize:12,marginBottom:8}}>
             {String(this.state.err&&this.state.err.message||this.state.err).slice(0,200)}</div>
-          <div style={{color:Q.dim,fontSize:9,marginBottom:16,whiteSpace:"pre-wrap",
+          <div style={{color:Q.dim,fontSize:12,marginBottom:16,whiteSpace:"pre-wrap",
             fontFamily:"monospace",maxHeight:200,overflow:"auto"}}>
             {String(this.state.err&&this.state.err.stack||"").slice(0,500)}</div>
           <button onClick={()=>this.setState({err:null})}
@@ -2712,7 +2712,7 @@ function HojaConfirmar({ picks, stake, odd, user, onCerrar, onListo }){
       <div style={{flex:1,minWidth:0}}>
         <div style={{color:deshabilitado?Q.muted:Q.text,fontWeight:700,fontSize:14,
           fontFamily:F_BODY}}>{titulo}</div>
-        <div style={{color:Q.muted,fontSize:11,marginTop:2,fontFamily:F_BODY,
+        <div style={{color:Q.muted,fontSize:12,marginTop:2,fontFamily:F_BODY,
           lineHeight:1.35}}>{detalle}</div>
       </div>
       {disponible!=null&&(
@@ -2720,7 +2720,7 @@ function HojaConfirmar({ picks, stake, odd, user, onCerrar, onListo }){
           color:deshabilitado?Q.dim:color,whiteSpace:"nowrap"}}>
           {money(disponible,mon)}</div>
       )}
-      {enviando===modo&&<span style={{color:Q.muted,fontSize:11}}>…</span>}
+      {enviando===modo&&<span style={{color:Q.muted,fontSize:12}}>…</span>}
     </button>
   );
 
@@ -2822,15 +2822,15 @@ function CodigoReserva({ code, compacto=false, vence=null }){
       padding:compacto?"10px 12px":"14px",marginTop:8,
       display:"flex",alignItems:"center",gap:12}}>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:9,letterSpacing:1.4,color:Q.dim,
+        <div style={{fontSize:12,letterSpacing:1.4,color:Q.dim,
           fontWeight:700}}>CÓDIGO DE RESERVA</div>
         <div onClick={copiar} style={{fontFamily:F_BODY,
           fontSize:compacto?26:32,fontWeight:700,color:Q.gold,
           letterSpacing:1.5,lineHeight:1.1,cursor:"pointer"}}>
           {code}</div>
-        <div style={{fontSize:10,color:copiado?Q.green:Q.muted,marginTop:2}}>
+        <div style={{fontSize:12,color:copiado?Q.green:Q.muted,marginTop:2}}>
           {copiado?"✓ Copiado":"Tocá para copiar · Presentalo en la agencia"}</div>
-        {vence&&<div style={{fontSize:9.5,color:Q.amber,marginTop:2}}>
+        {vence&&<div style={{fontSize:12,color:Q.amber,marginTop:2}}>
           Vence {vence}</div>}
       </div>
       <img alt={`Código QR ${code}`} loading="lazy"
@@ -2998,7 +2998,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
         <div>
           <div style={{color:Q.text,fontWeight:700,fontSize:14}}>
             <Icon name="message-circle" size={13}/> Ayuda</div>
-          <div style={{color:Q.muted,fontSize:10.5}}>
+          <div style={{color:Q.muted,fontSize:12}}>
             {derivado?"Te va a responder tu agencia"
                      :"Preguntá lo que necesites"}</div>
         </div>
@@ -3021,11 +3021,11 @@ function ChatSoporte({ userId, origen, onCerrar }){
       {contacto&&(contacto.whatsapp||contacto.telegram)&&(
         <div style={{background:`${Q.gold}12`,border:`1px solid ${Q.gold}44`,
           borderRadius:10,padding:"10px 12px",marginBottom:9}}>
-          <div style={{color:Q.gold,fontSize:11.5,fontWeight:700,
+          <div style={{color:Q.gold,fontSize:12,fontWeight:700,
             marginBottom:6}}>
             {derivado?"Tu consulta necesita a una persona"
                      :"Hablá con tu agencia"}</div>
-          <div style={{color:Q.muted,fontSize:10.5,marginBottom:8,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:8,
             lineHeight:1.45}}>
             {derivado
               ? <>{contacto.agencia} ya la recibió
@@ -3039,14 +3039,14 @@ function ChatSoporte({ userId, origen, onCerrar }){
                 target="_blank" rel="noreferrer"
                 style={{background:"#25D36622",border:"1px solid #25D366",
                   borderRadius:8,padding:"7px 13px",color:"#25D366",
-                  fontSize:11.5,fontWeight:700,textDecoration:"none"}}>
+                  fontSize:12,fontWeight:700,textDecoration:"none"}}>
                 WhatsApp</a>
             )}
             {contacto.telegram&&(
               <a href={contacto.telegram} target="_blank" rel="noreferrer"
                 style={{background:"#2AABEE22",border:"1px solid #2AABEE",
                   borderRadius:8,padding:"7px 13px",color:"#2AABEE",
-                  fontSize:11.5,fontWeight:700,textDecoration:"none"}}>
+                  fontSize:12,fontWeight:700,textDecoration:"none"}}>
                 Telegram</a>
             )}
           </div>
@@ -3055,7 +3055,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
 
       <div style={{flex:1,overflowY:"auto",marginBottom:9,minHeight:120}}>
         {msgs.length===0&&!proc&&(
-          <div style={{color:Q.dim,fontSize:11.5,padding:"14px 4px",
+          <div style={{color:Q.dim,fontSize:12,padding:"14px 4px",
             lineHeight:1.6}}>
             Escribime lo que necesites: tu saldo, cómo cobrar un premio,
             por qué salió una apuesta. Si hace falta, te paso con tu
@@ -3074,7 +3074,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
               color:m.error?Q.red:Q.text,fontSize:12.5,lineHeight:1.55,
               whiteSpace:"pre-wrap"}}>
               {AUTOR[m.autor]&&m.autor!=="ia"&&(
-                <div style={{color:Q.cyan,fontSize:9,fontWeight:700,
+                <div style={{color:Q.cyan,fontSize:12,fontWeight:700,
                   marginBottom:3}}>{AUTOR[m.autor].toUpperCase()}</div>
               )}
               {m.texto}
@@ -3082,7 +3082,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
           </div>
         ))}
         {proc&&(
-          <div style={{color:Q.muted,fontSize:11.5,padding:"4px 2px"}}>
+          <div style={{color:Q.muted,fontSize:12,padding:"4px 2px"}}>
             Escribiendo…</div>
         )}
         <div ref={finRef}/>
@@ -3229,19 +3229,19 @@ function HistorialJuegos({ user, onCerrar }){
               <GCard style={{padding:14,marginBottom:12}}>
                 <div style={{display:"flex",gap:10}}>
                   <div style={{flex:1}}>
-                    <div style={{color:Q.muted,fontSize:10}}>Apostado</div>
+                    <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
                     <div style={{color:Q.text,fontWeight:800,fontSize:16,
                       fontFamily:F_BODY}}>
                       {d.total.apostado.toLocaleString("es-AR")}</div>
                   </div>
                   <div style={{flex:1}}>
-                    <div style={{color:Q.muted,fontSize:10}}>Cobrado</div>
+                    <div style={{color:Q.muted,fontSize:12}}>Cobrado</div>
                     <div style={{color:Q.green,fontWeight:800,fontSize:16,
                       fontFamily:F_BODY}}>
                       {d.total.cobrado.toLocaleString("es-AR")}</div>
                   </div>
                   <div style={{flex:1}}>
-                    <div style={{color:Q.muted,fontSize:10}}>Resultado</div>
+                    <div style={{color:Q.muted,fontSize:12}}>Resultado</div>
                     <div style={{color:d.total.resultado>=0?Q.green:Q.red,
                       fontWeight:800,fontSize:16,
                       fontFamily:F_BODY}}>
@@ -3249,7 +3249,7 @@ function HistorialJuegos({ user, onCerrar }){
                       {d.total.resultado.toLocaleString("es-AR")}</div>
                   </div>
                 </div>
-                <div style={{color:Q.dim,fontSize:9.5,marginTop:7}}>
+                <div style={{color:Q.dim,fontSize:12,marginTop:7}}>
                   Últimos 30 días · los desafíos van en IACOIN y no se
                   suman acá</div>
               </GCard>
@@ -3293,12 +3293,12 @@ function HistorialJuegos({ user, onCerrar }){
                     overflow:"hidden",textOverflow:"ellipsis",
                     whiteSpace:"nowrap",
                     fontFamily:F_BODY}}>{m.titulo}</div>
-                  <div style={{color:Q.dim,fontSize:9.5,marginTop:2}}>
+                  <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                     {NOMBRE[m.tipo]}{m.detalle&&` · ${m.detalle}`}
                     {" · "}{m.fecha}</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{color:Q.muted,fontSize:11,
+                  <div style={{color:Q.muted,fontSize:12,
                     fontFamily:F_BODY}}>
                     −{m.apostado.toLocaleString("es-AR",
                       {maximumFractionDigits:2})}</div>
@@ -3345,7 +3345,7 @@ function HistorialJuegos({ user, onCerrar }){
                     whiteSpace:"nowrap",
                     fontFamily:F_BODY}}>
                     {j.en_vivo&&<><Video size={11}/> </>}{j.juego}</div>
-                  <div style={{color:Q.dim,fontSize:9.5,marginTop:2}}>
+                  <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                     {j.jugadas} jugadas · {j.ultima}</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
@@ -3355,7 +3355,7 @@ function HistorialJuegos({ user, onCerrar }){
                     {j.resultado>=0?"+":""}
                     {j.resultado.toLocaleString("es-AR",
                       {maximumFractionDigits:0})}</div>
-                  <div style={{color:Q.dim,fontSize:9}}>
+                  <div style={{color:Q.dim,fontSize:12}}>
                     de {j.apostado.toLocaleString("es-AR",
                       {maximumFractionDigits:0})}</div>
                 </div>
@@ -3482,12 +3482,12 @@ function JuegoResponsable({ user, onCerrar }){
                     <div style={{minWidth:0,flex:1}}>
                       <div style={{color:Q.text,fontSize:13,fontWeight:600,
                         fontFamily:F_BODY}}>{label}</div>
-                      <div style={{color:l?Q.cyan:Q.dim,fontSize:11.5,
+                      <div style={{color:l?Q.cyan:Q.dim,fontSize:12,
                         marginTop:2,fontFamily:F_BODY}}>
                         {l ? `${l.monto.toLocaleString("es-AR")} por día`
                            : "sin límite"}</div>
                       {l?.pendiente!=null&&(
-                        <div style={{color:Q.amber,fontSize:10.5,
+                        <div style={{color:Q.amber,fontSize:12,
                           marginTop:3,lineHeight:1.4}}>
                           {l.pendiente===-1
                             ? `Se quita el ${l.pendiente_desde}`
@@ -3499,7 +3499,7 @@ function JuegoResponsable({ user, onCerrar }){
                         setValor(l?String(l.monto):""); }}
                       style={{background:`${Q.violet}22`,
                         border:`1px solid ${Q.violet}66`,borderRadius:8,
-                        padding:"7px 13px",color:Q.cyan,fontSize:11.5,
+                        padding:"7px 13px",color:Q.cyan,fontSize:12,
                         cursor:"pointer",flexShrink:0}}>
                       {l?"Cambiar":"Poner"}</button>
                   </div>
@@ -3587,7 +3587,7 @@ function JuegoResponsable({ user, onCerrar }){
           </div>
         )}
 
-        <div style={{color:Q.dim,fontSize:11,marginTop:20,
+        <div style={{color:Q.dim,fontSize:12,marginTop:20,
           lineHeight:1.6,textAlign:"center",
           fontFamily:F_BODY}}>
           Si el juego dejó de ser un entretenimiento, hablar ayuda.<br/>
@@ -3791,7 +3791,7 @@ function ScreenCasino({ user, vivo }){
           fontFamily:F_BODY}}>{err}</div>
       )}
 
-      <div style={{color:Q.dim,fontSize:10.5,marginBottom:9,
+      <div style={{color:Q.dim,fontSize:12,marginBottom:9,
         fontFamily:F_BODY}}>
         {filtrados.length.toLocaleString("es-AR")}{" "}
         {filtrados.length===1?"juego":"juegos"}</div>
@@ -3814,7 +3814,7 @@ function ScreenCasino({ user, vivo }){
               <div style={{position:"absolute",inset:0,display:"flex",
                 alignItems:"center",justifyContent:"center",
                 padding:"6px",textAlign:"center",color:Q.dim,
-                fontSize:9.5,lineHeight:1.3,
+                fontSize:12,lineHeight:1.3,
                 fontFamily:F_BODY}}>{j.titulo}</div>
               {j.imagen&&(
                 <img src={j.imagen} alt={j.titulo} loading="lazy"
@@ -3827,7 +3827,7 @@ function ScreenCasino({ user, vivo }){
               {j.marca&&(
                 <div style={{position:"absolute",left:0,bottom:0,
                   background:_colorMarca(j.marca),color:"#fff",
-                  fontSize:7.5,fontWeight:700,padding:"2px 5px",
+                  fontSize:12,fontWeight:700,padding:"2px 5px",
                   borderTopRightRadius:6,letterSpacing:0.3,
                   maxWidth:"85%",overflow:"hidden",
                   textOverflow:"ellipsis",whiteSpace:"nowrap",
@@ -3838,10 +3838,10 @@ function ScreenCasino({ user, vivo }){
                   display:"flex",alignItems:"center",
                   justifyContent:"center",
                   background:"rgba(0,0,0,.6)",color:Q.cyan,
-                  fontSize:11}}>Abriendo…</div>
+                  fontSize:12}}>Abriendo…</div>
               )}
             </div>
-            <div style={{color:Q.text,fontSize:10.5,marginTop:4,
+            <div style={{color:Q.text,fontSize:12,marginTop:4,
               lineHeight:1.3,display:"-webkit-box",
               WebkitLineClamp:2,WebkitBoxOrient:"vertical",
               overflow:"hidden",
@@ -3934,7 +3934,7 @@ function ScreenDesafios({ user, onAction }){
           padding:"13px 15px",cursor:"pointer",display:"flex",
           justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <div style={{color:Q.muted,fontSize:10,letterSpacing:0.5}}>
+          <div style={{color:Q.muted,fontSize:12,letterSpacing:0.5}}>
             TU SALDO PARA DESAFÍOS</div>
           <div style={{color:Q.gold,fontWeight:900,fontSize:22,
             fontFamily:F_BODY}}>
@@ -4016,24 +4016,24 @@ function ComentariosDesafio({ desafioId, user, onNuevo }){
     <div style={{marginTop:8,paddingTop:9,
       borderTop:`1px solid ${Q.border}`}}>
       {lista===null&&(
-        <div style={{color:Q.dim,fontSize:11,textAlign:"center",
+        <div style={{color:Q.dim,fontSize:12,textAlign:"center",
           padding:"6px 0"}}>Cargando…</div>
       )}
       {(lista||[]).map(c=>(
         <div key={c.id} style={{marginBottom:7}}>
-          <span style={{color:Q.cyan,fontSize:11,fontWeight:600}}>
+          <span style={{color:Q.cyan,fontSize:12,fontWeight:600}}>
             {c.autor}</span>
-          <span style={{color:Q.dim,fontSize:9,marginLeft:5}}>{c.hace}</span>
+          <span style={{color:Q.dim,fontSize:12,marginLeft:5}}>{c.hace}</span>
           <div style={{color:Q.muted,fontSize:12,lineHeight:1.45}}>
             {c.texto}</div>
         </div>
       ))}
       {lista&&lista.length===0&&(
-        <div style={{color:Q.dim,fontSize:11,marginBottom:6,
+        <div style={{color:Q.dim,fontSize:12,marginBottom:6,
           lineHeight:1.45}}>
           Todavía nadie comentó. Rompé el hielo.</div>
       )}
-      {err&&<div style={{color:Q.red,fontSize:11,marginBottom:5,
+      {err&&<div style={{color:Q.red,fontSize:12,marginBottom:5,
         lineHeight:1.4}}>{err}</div>}
       <div style={{display:"flex",gap:6}}>
         <input value={texto} onChange={e=>setTexto(e.target.value)}
@@ -4088,7 +4088,7 @@ function PulsoDesafios({ user, onVerMias }){
             {p.mis_tomados===1
               ? "Te tomaron un desafío"
               : `Te tomaron ${p.mis_tomados} desafíos`}</div>
-          <div style={{color:Q.muted,fontSize:11,marginTop:2,
+          <div style={{color:Q.muted,fontSize:12,marginTop:2,
             fontFamily:F_BODY}}>
             Tocá para verlo</div>
         </div>
@@ -4106,7 +4106,7 @@ function PulsoDesafios({ user, onVerMias }){
                 background:Q.green,display:"inline-block"}}/>
             )}
             {p.conectados}</div>
-          <div style={{color:Q.muted,fontSize:9.5,
+          <div style={{color:Q.muted,fontSize:12,
             fontFamily:F_BODY}}>conectados</div>
         </div>
         <div style={{flex:1,background:"rgba(255,255,255,0.04)",
@@ -4114,7 +4114,7 @@ function PulsoDesafios({ user, onVerMias }){
           padding:"9px 11px"}}>
           <div style={{color:Q.cyan,fontWeight:800,fontSize:17,
             fontFamily:F_BODY}}>{p.abiertos}</div>
-          <div style={{color:Q.muted,fontSize:9.5,
+          <div style={{color:Q.muted,fontSize:12,
             fontFamily:F_BODY}}>esperando</div>
         </div>
         <div style={{flex:1,background:"rgba(255,255,255,0.04)",
@@ -4122,7 +4122,7 @@ function PulsoDesafios({ user, onVerMias }){
           padding:"9px 11px"}}>
           <div style={{color:Q.gold,fontWeight:800,fontSize:17,
             fontFamily:F_BODY}}>{p.tomados_hoy}</div>
-          <div style={{color:Q.muted,fontSize:9.5,
+          <div style={{color:Q.muted,fontSize:12,
             fontFamily:F_BODY}}>tomados hoy</div>
         </div>
       </div>
@@ -4131,22 +4131,22 @@ function PulsoDesafios({ user, onVerMias }){
         <div style={{background:"rgba(255,255,255,0.03)",
           border:`1px solid ${Q.border}`,borderRadius:11,
           padding:"11px 13px"}}>
-          <div style={{color:Q.muted,fontSize:9.5,letterSpacing:0.6,
+          <div style={{color:Q.muted,fontSize:12,letterSpacing:0.6,
             marginBottom:7,fontFamily:F_BODY}}>
             LO ÚLTIMO</div>
           {p.actividad.map((a,i)=>(
             <div key={i} style={{padding:"5px 0",
               borderTop:i?`1px solid ${Q.border}`:"none"}}>
               <div style={{display:"flex",gap:6,alignItems:"baseline"}}>
-                <span style={{fontSize:10,flexShrink:0}}>
+                <span style={{fontSize:12,flexShrink:0}}>
                   {a.tipo==="tomado"?"🤝":"👀"}</span>
-                <span style={{color:Q.text,fontSize:11.5,lineHeight:1.4,
+                <span style={{color:Q.text,fontSize:12,lineHeight:1.4,
                   minWidth:0,flex:1,
                   fontFamily:F_BODY}}>{a.texto}</span>
-                <span style={{color:Q.dim,fontSize:9,flexShrink:0}}>
+                <span style={{color:Q.dim,fontSize:12,flexShrink:0}}>
                   {a.hace}</span>
               </div>
-              <div style={{color:Q.muted,fontSize:10.5,marginTop:1,
+              <div style={{color:Q.muted,fontSize:12,marginTop:1,
                 marginLeft:16,overflow:"hidden",
                 textOverflow:"ellipsis",whiteSpace:"nowrap",
                 fontFamily:F_BODY}}>
@@ -4264,7 +4264,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
 
       {abiertos.length>0&&(
         <div style={{marginBottom:16}}>
-          <div style={{color:Q.muted,fontSize:10.5,letterSpacing:0.5,
+          <div style={{color:Q.muted,fontSize:12,letterSpacing:0.5,
             marginBottom:8}}>DESAFÍOS ESPERANDO</div>
           {abiertos.map(a=>(
             <GCard key={a.id} glow={Q.gold} style={{padding:13,marginBottom:8}}>
@@ -4272,28 +4272,28 @@ function MuroDesafios({ user, onCambio, onVerMias }){
                 lineHeight:1.4,fontFamily:F_BODY}}>
                 {a.titulo}</div>
               {a.descripcion&&(
-                <div style={{color:Q.muted,fontSize:11,marginTop:3,
+                <div style={{color:Q.muted,fontSize:12,marginTop:3,
                   lineHeight:1.45}}>{a.descripcion}</div>
               )}
-              <div style={{color:Q.dim,fontSize:10,marginTop:5}}>
+              <div style={{color:Q.dim,fontSize:12,marginTop:5}}>
                 {a.creador} · {a.hace}</div>
 
               <div style={{display:"flex",gap:10,marginTop:9,
                 paddingTop:9,borderTop:`1px solid ${Q.border}`}}>
                 <div style={{flex:1}}>
-                  <div style={{color:Q.muted,fontSize:9.5}}>Él pone</div>
+                  <div style={{color:Q.muted,fontSize:12}}>Él pone</div>
                   <div style={{color:Q.text,fontWeight:700,fontSize:14,
                     fontFamily:F_BODY}}>
                     {a.pone_el_creador.toLocaleString("es-AR")}</div>
                 </div>
                 <div style={{flex:1}}>
-                  <div style={{color:Q.muted,fontSize:9.5}}>Vos ponés</div>
+                  <div style={{color:Q.muted,fontSize:12}}>Vos ponés</div>
                   <div style={{color:Q.cyan,fontWeight:700,fontSize:14,
                     fontFamily:F_BODY}}>
                     {a.tenes_que_poner.toLocaleString("es-AR")}</div>
                 </div>
                 <div style={{flex:1}}>
-                  <div style={{color:Q.muted,fontSize:9.5}}>Si ganás</div>
+                  <div style={{color:Q.muted,fontSize:12}}>Si ganás</div>
                   <div style={{color:Q.green,fontWeight:700,fontSize:14,
                     fontFamily:F_BODY}}>
                     +{a.podes_ganar.toLocaleString("es-AR")}</div>
@@ -4304,7 +4304,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
                 <div style={{marginTop:9,padding:"10px",textAlign:"center",
                   background:"rgba(255,255,255,0.03)",
                   border:`1px dashed ${Q.border}`,borderRadius:9,
-                  color:Q.muted,fontSize:11.5,lineHeight:1.45}}>
+                  color:Q.muted,fontSize:12,lineHeight:1.45}}>
                   Es tuyo · esperando que alguien lo tome</div>
               ) : (
               <button onClick={()=>aceptar(a.id)}
@@ -4315,7 +4315,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
                   cursor:"pointer",fontFamily:F_BODY}}>
                 Aceptar el desafío</button>
               )}
-              <div style={{color:Q.dim,fontSize:9.5,textAlign:"center",
+              <div style={{color:Q.dim,fontSize:12,textAlign:"center",
                 marginTop:5}}>
                 Comisión {a.comision_pct}% sobre lo que pone cada uno</div>
               {/* La conversación alrededor del desafío. Es lo que
@@ -4324,7 +4324,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
                   comDesafio===a.id?null:a.id)}
                 style={{width:"100%",marginTop:8,background:"none",
                   border:"none",cursor:"pointer",color:Q.muted,
-                  fontSize:11.5,padding:"4px 0"}}>
+                  fontSize:12,padding:"4px 0"}}>
                 <Icon name="message-circle" size={11}/> {a.comentarios>0
                   ? `${a.comentarios} ${a.comentarios===1?"comentario":"comentarios"}`
                   : "Comentar"}</button>
@@ -4359,7 +4359,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
             alignItems:"baseline",marginBottom:5}}>
             <span style={{color:Q.cyan,fontSize:12,fontWeight:700,
               fontFamily:F_BODY}}>{p.autor}</span>
-            <span style={{color:Q.dim,fontSize:9.5}}>{p.hace}</span>
+            <span style={{color:Q.dim,fontSize:12}}>{p.hace}</span>
           </div>
 
           {p.texto&&(
@@ -4372,7 +4372,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
               background:"rgba(255,255,255,0.03)",borderRadius:8}}>
               {p.picks.slice(0,4).map((k,i)=>(
                 <div key={i} style={{display:"flex",
-                  justifyContent:"space-between",fontSize:11,
+                  justifyContent:"space-between",fontSize:12,
                   padding:"2px 0",color:Q.muted}}>
                   <span style={{minWidth:0,flex:1,overflow:"hidden",
                     textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
@@ -4402,7 +4402,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
             {!p.es_mio&&(
               <button onClick={()=>denunciar(p.id)}
                 style={{background:"none",border:"none",cursor:"pointer",
-                  color:Q.dim,fontSize:11,padding:0,marginLeft:"auto"}}>
+                  color:Q.dim,fontSize:12,padding:0,marginLeft:"auto"}}>
                 Reportar</button>
             )}
           </div>
@@ -4452,14 +4452,14 @@ function Comentarios({ postId, user, onNuevo }){
       borderTop:`1px solid ${Q.border}`}}>
       {(lista||[]).map(c=>(
         <div key={c.id} style={{marginBottom:7}}>
-          <span style={{color:Q.cyan,fontSize:11,fontWeight:600}}>
+          <span style={{color:Q.cyan,fontSize:12,fontWeight:600}}>
             {c.autor}</span>
-          <span style={{color:Q.dim,fontSize:9,marginLeft:5}}>{c.hace}</span>
+          <span style={{color:Q.dim,fontSize:12,marginLeft:5}}>{c.hace}</span>
           <div style={{color:Q.muted,fontSize:12,lineHeight:1.4,
             fontFamily:F_BODY}}>{c.texto}</div>
         </div>
       ))}
-      {err&&<div style={{color:Q.red,fontSize:11,marginBottom:5,
+      {err&&<div style={{color:Q.red,fontSize:12,marginBottom:5,
         lineHeight:1.4}}>{err}</div>}
       <div style={{display:"flex",gap:6,marginTop:6}}>
         <input value={texto} onChange={e=>setTexto(e.target.value)}
@@ -4558,17 +4558,17 @@ function CrearDesafio({ user, cfg, saldo, onListo }){
         lineHeight:1.45}}>
         <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Proponé algo concreto y decí cuánto ponés. Si alguien lo toma,
         el que acierta se lleva el pozo.</div>
 
-      <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>
+      <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
         ¿Qué apostás?</div>
       <input value={titulo} onChange={e=>setTitulo(e.target.value)}
         placeholder="River le gana a Boca" style={inp}/>
 
-      <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>
+      <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
         Detalles (opcional)</div>
       <textarea value={desc} onChange={e=>setDesc(e.target.value)}
         rows={2} placeholder="Cuanto más claro, menos discusiones después"
@@ -4576,14 +4576,14 @@ function CrearDesafio({ user, cfg, saldo, onListo }){
 
       <div style={{display:"flex",gap:8}}>
         <div style={{flex:1}}>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
             Yo pongo</div>
           <input value={pongo} inputMode="decimal"
             onChange={e=>setPongo(e.target.value.replace(/[^\d.]/g,""))}
             placeholder="0" style={inp}/>
         </div>
         <div style={{flex:1}}>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
             El otro pone</div>
           <input value={pido} inputMode="decimal"
             onChange={e=>setPido(e.target.value.replace(/[^\d.]/g,""))}
@@ -4591,7 +4591,7 @@ function CrearDesafio({ user, cfg, saldo, onListo }){
         </div>
       </div>
 
-      <div style={{color:Q.dim,fontSize:10.5,marginTop:-4,marginBottom:12,
+      <div style={{color:Q.dim,fontSize:12,marginTop:-4,marginBottom:12,
         lineHeight:1.45}}>
         Tenés {saldo.toLocaleString("es-AR",{maximumFractionDigits:2})} IACOIN
         {cfg&&` · entre ${cfg.monto_min} y ${cfg.monto_max} por lado`}</div>
@@ -4629,7 +4629,7 @@ function CrearDesafio({ user, cfg, saldo, onListo }){
           <div style={{color:Q.gold,fontSize:12,fontWeight:700,
             marginBottom:7,fontFamily:F_BODY}}>
             Ya hay alguien esperando</div>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:9,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:9,
             lineHeight:1.5}}>
             Si tomás uno de estos empieza ahora, en vez de esperar a
             que alguien tome el tuyo.</div>
@@ -4638,7 +4638,7 @@ function CrearDesafio({ user, cfg, saldo, onListo }){
               borderTop:`1px solid ${Q.border}`}}>
               <div style={{color:Q.text,fontSize:12.5,lineHeight:1.4}}>
                 {c.titulo}</div>
-              <div style={{color:Q.dim,fontSize:10,marginTop:2}}>
+              <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                 {c.creador} · él pone {c.el_pone.toLocaleString("es-AR")} ·
                 vos {c.vos_ponés.toLocaleString("es-AR")}</div>
               <button onClick={()=>aceptarExistente(c.id)} disabled={proc}
@@ -4666,7 +4666,7 @@ function CrearDesafio({ user, cfg, saldo, onListo }){
           fontFamily:F_BODY}}>
         {proc?"Creando…":"Publicar desafío"}</button>
 
-      <div style={{color:Q.dim,fontSize:10,textAlign:"center",marginTop:8,
+      <div style={{color:Q.dim,fontSize:12,textAlign:"center",marginTop:8,
         lineHeight:1.5}}>
         Tu saldo queda retenido hasta que alguien lo tome o venza.</div>
     </div>
@@ -4745,12 +4745,12 @@ function MisDesafios({ user, onCambio }){
                 <div style={{color:Q.text,fontSize:13,fontWeight:600,
                   lineHeight:1.4,fontFamily:F_BODY}}>
                   {d.titulo}</div>
-                <div style={{color:Q.dim,fontSize:10,marginTop:3}}>
+                <div style={{color:Q.dim,fontSize:12,marginTop:3}}>
                   Pusiste {d.puse.toLocaleString("es-AR")}
                   {d.rival&&` · contra ${d.rival}`} · {d.hace}</div>
               </div>
               <span style={{background:`${e.c}22`,border:`1px solid ${e.c}66`,
-                borderRadius:14,padding:"2px 9px",fontSize:9,
+                borderRadius:14,padding:"2px 9px",fontSize:12,
                 color:e.c,flexShrink:0,whiteSpace:"nowrap",
                 fontWeight:700}}>{e.t}</span>
             </div>
@@ -4767,7 +4767,7 @@ function MisDesafios({ user, onCambio }){
             {d.estado==="tomada"&&!d.disputa&&(
               <div style={{marginTop:10,paddingTop:9,
                 borderTop:`1px solid ${Q.border}`}}>
-                <div style={{color:Q.muted,fontSize:11,marginBottom:7,
+                <div style={{color:Q.muted,fontSize:12,marginBottom:7,
                   lineHeight:1.45}}>
                   Cuando termine, decinos quién ganó. Si los dos
                   coinciden se paga solo.</div>
@@ -4796,7 +4796,7 @@ function MisDesafios({ user, onCambio }){
             {d.disputa&&d.disputa_estado==="abierta"&&(
               <div style={{marginTop:9,padding:"9px 11px",
                 background:`${Q.amber}12`,border:`1px solid ${Q.amber}44`,
-                borderRadius:8,color:Q.amber,fontSize:11,lineHeight:1.5,
+                borderRadius:8,color:Q.amber,fontSize:12,lineHeight:1.5,
                 fontFamily:F_BODY}}>
                 No coincidieron. Lo está revisando nuestro equipo y te
                 avisamos. Tu saldo sigue retenido.</div>
@@ -4868,23 +4868,23 @@ function PanelIacoin({ user, saldo, onCambio }){
   return(
     <div>
       <GCard glow={Q.gold} style={{padding:15,marginBottom:12}}>
-        <div style={{color:Q.muted,fontSize:10,letterSpacing:0.5,
+        <div style={{color:Q.muted,fontSize:12,letterSpacing:0.5,
           marginBottom:7}}>COTIZACIÓN</div>
         <div style={{display:"flex",gap:12}}>
           <div style={{flex:1}}>
-            <div style={{color:Q.muted,fontSize:10.5}}>Comprás a</div>
+            <div style={{color:Q.muted,fontSize:12}}>Comprás a</div>
             <div style={{color:Q.text,fontWeight:800,fontSize:16,
               fontFamily:F_BODY}}>
               {cot.compra.toLocaleString("es-AR")}</div>
           </div>
           <div style={{flex:1}}>
-            <div style={{color:Q.muted,fontSize:10.5}}>Vendés a</div>
+            <div style={{color:Q.muted,fontSize:12}}>Vendés a</div>
             <div style={{color:Q.muted,fontWeight:700,fontSize:16,
               fontFamily:F_BODY}}>
               {cot.venta.toLocaleString("es-AR")}</div>
           </div>
         </div>
-        <div style={{color:Q.dim,fontSize:10,marginTop:7,lineHeight:1.45}}>
+        <div style={{color:Q.dim,fontSize:12,marginTop:7,lineHeight:1.45}}>
           1 IACOIN por {saldo.moneda}. Actualizado {cot.desde}.</div>
       </GCard>
 
@@ -4906,7 +4906,7 @@ function PanelIacoin({ user, saldo, onCambio }){
         lineHeight:1.45}}>
         <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
-      <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>
+      <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
         Cuántos IACOIN</div>
       <input value={cantidad} inputMode="decimal"
         onChange={e=>setCantidad(e.target.value.replace(/[^\d.]/g,""))}
@@ -4923,7 +4923,7 @@ function PanelIacoin({ user, saldo, onCambio }){
             style={{flex:1,background:"rgba(255,255,255,0.04)",
               border:`1px solid ${Q.border}`,borderRadius:7,
               padding:"8px 4px",cursor:"pointer",color:Q.muted,
-              fontSize:11.5,fontFamily:F_BODY}}>{v}</button>
+              fontSize:12,fontFamily:F_BODY}}>{v}</button>
         ))}
       </div>
 
@@ -4937,10 +4937,10 @@ function PanelIacoin({ user, saldo, onCambio }){
               fontWeight:800,fontSize:16,
               fontFamily:F_BODY}}>
               {total.toLocaleString("es-AR",{maximumFractionDigits:2})}
-              <span style={{color:Q.muted,fontSize:11,fontWeight:400,
+              <span style={{color:Q.muted,fontSize:12,fontWeight:400,
                 marginLeft:4}}>{saldo.moneda}</span></span>
           </div>
-          <div style={{color:Q.dim,fontSize:10,marginTop:5}}>
+          <div style={{color:Q.dim,fontSize:12,marginTop:5}}>
             {modo==="comprar"
               ?`Tenés ${saldo.saldo_local.toLocaleString("es-AR")} ${saldo.moneda}`
               :`Tenés ${saldo.iacoin.toLocaleString("es-AR",{maximumFractionDigits:2})} IACOIN`}</div>
@@ -4960,18 +4960,18 @@ function PanelIacoin({ user, saldo, onCambio }){
 
       {(saldo?.movimientos||[]).length>0&&(
         <GCard style={{padding:13,marginTop:14}}>
-          <div style={{color:Q.muted,fontSize:10,letterSpacing:0.5,
+          <div style={{color:Q.muted,fontSize:12,letterSpacing:0.5,
             marginBottom:8}}>ÚLTIMOS MOVIMIENTOS</div>
           {saldo.movimientos.map((m,i)=>(
             <div key={i} style={{display:"flex",
-              justifyContent:"space-between",fontSize:11.5,
+              justifyContent:"space-between",fontSize:12,
               padding:"5px 0",
               borderTop:i?`1px solid ${Q.border}`:"none"}}>
               <span style={{color:Q.muted}}>
                 {{compra:"Compra",venta:"Venta",premio:"Ganaste",
                   retencion:"Desafío",devolucion:"Devolución"}[m.tipo]
                   ||m.tipo}
-                <span style={{color:Q.dim,fontSize:9.5,marginLeft:5}}>
+                <span style={{color:Q.dim,fontSize:12,marginLeft:5}}>
                   {m.hace}</span></span>
               <span style={{color:m.cantidad>=0?Q.green:Q.muted,
                 fontFamily:F_BODY}}>
@@ -5133,7 +5133,7 @@ function BotonCompartir({ picks, odd, code, refCode, compacto, userId }){
         {copiado ? "✓ Copiado al portapapeles" : <><Icon name="arrow-up-right" size={13}/> Compartir mi jugada</>}
       </button>
       {premio&&!copiado&&(
-        <div style={{color:Q.dim,fontSize:10.5,textAlign:"center",
+        <div style={{color:Q.dim,fontSize:12,textAlign:"center",
           marginTop:5,lineHeight:1.45}}>
           {premio.texto} Se acredita para apostar.</div>
       )}
@@ -5171,42 +5171,42 @@ function ProbabilidadApuesta({ picks, stake, moneda }){
       <div style={{display:"flex",justifyContent:"space-between",
         alignItems:"center",gap:8}}>
         <div style={{minWidth:0,flex:1}}>
-          <div style={{color:Q.muted,fontSize:10.5}}>
+          <div style={{color:Q.muted,fontSize:12}}>
             Probabilidad según el mercado</div>
           <div style={{color:c,fontWeight:800,fontSize:19,marginTop:1}}>
             {pct >= 10 ? pct.toFixed(0) : pct.toFixed(1)}%
             {datos.uno_cada>2&&(
-              <span style={{color:Q.muted,fontSize:11,fontWeight:400,
+              <span style={{color:Q.muted,fontSize:12,fontWeight:400,
                 marginLeft:7}}>
                 1 de cada {datos.uno_cada.toLocaleString("es-AR")}</span>
             )}
           </div>
         </div>
-        <span style={{color:Q.dim,fontSize:11,flexShrink:0}}>
+        <span style={{color:Q.dim,fontSize:12,flexShrink:0}}>
           {abierto?"▲":"▼"}</span>
       </div>
 
       {abierto&&(
         <div style={{marginTop:9,paddingTop:9,
           borderTop:`1px solid ${Q.border}`}}>
-          <div style={{color:Q.text,fontSize:11.5,lineHeight:1.55,
+          <div style={{color:Q.text,fontSize:12,lineHeight:1.55,
             marginBottom:9}}>{datos.lectura}</div>
 
           {datos.picks.map((p,i)=>(
             <div key={i} style={{display:"flex",
               justifyContent:"space-between",alignItems:"baseline",
               gap:8,padding:"3px 0"}}>
-              <span style={{color:Q.muted,fontSize:10.5,minWidth:0,
+              <span style={{color:Q.muted,fontSize:12,minWidth:0,
                 flex:1,overflow:"hidden",textOverflow:"ellipsis",
                 whiteSpace:"nowrap"}}>{p.seleccion||p.evento}</span>
               <span style={{color:p.probabilidad>=50?Q.green
                 :(p.probabilidad>=25?Q.gold:Q.red),
-                fontSize:11,flexShrink:0}}>
+                fontSize:12,flexShrink:0}}>
                 {p.probabilidad.toFixed(0)}%</span>
             </div>
           ))}
 
-          <div style={{color:Q.dim,fontSize:9.5,marginTop:9,
+          <div style={{color:Q.dim,fontSize:12,marginTop:9,
             lineHeight:1.45}}>{datos.nota}</div>
         </div>
       )}
@@ -5254,7 +5254,7 @@ function AvisosBanner({ destino, agenciaCode }){
       <div style={{minWidth:0,flex:1}}>
         <div style={{color:c,fontWeight:700,fontSize:12}}>{a.titulo}</div>
         {a.cuerpo&&(
-          <div style={{color:Q.text,fontSize:11,marginTop:3,
+          <div style={{color:Q.text,fontSize:12,marginTop:3,
             lineHeight:1.5}}>{a.cuerpo}</div>
         )}
       </div>
@@ -5298,7 +5298,7 @@ function BarraSuperior({ user, onNav }){
       <div style={{flex:1}}/>
       {user?.saldo!=null&&(
         <div style={{textAlign:"right",lineHeight:1}}>
-          <div style={{fontSize:8,letterSpacing:1.4,color:Q.dim,fontWeight:700,
+          <div style={{fontSize:12,letterSpacing:1.4,color:Q.dim,fontWeight:700,
             fontFamily:F_BODY}}>SALDO</div>
           <div style={{fontFamily:F_NUM,fontSize:19,fontWeight:700,color:Q.gold,
             marginTop:2}}>{money(user.saldo,mon)}</div>
@@ -5348,7 +5348,7 @@ function BarraInferior({ actual, onNav, onAyuda }){
         {on&&<span aria-hidden="true" style={{position:"absolute",top:0,
           width:16,height:3,borderRadius:2,background:Q.gold}}/>}
         <Ico d={ICONOS[it.k]} on={on} size={19}/>
-        <span style={{fontSize:10,lineHeight:1.15,whiteSpace:"nowrap",
+        <span style={{fontSize:12,lineHeight:1.15,whiteSpace:"nowrap",
           fontWeight:on?700:600,color:on?Q.gold:Q.dim,
           fontFamily:F_BODY}}>{it.l}</span>
       </button>
@@ -5380,7 +5380,7 @@ function BarraInferior({ actual, onNav, onAyuda }){
             {ICONOS.camara}
           </svg>
         </span>
-        <span style={{fontSize:10,lineHeight:1.15,whiteSpace:"nowrap",
+        <span style={{fontSize:12,lineHeight:1.15,whiteSpace:"nowrap",
           fontWeight:700,color:activoBB?Q.gold:Q.text,
           fontFamily:F_BODY}}>Bet Best</span>
       </button>
@@ -5445,11 +5445,11 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         <Mascot size={275} style={{position:"absolute",right:-33,bottom:-56,
           opacity:0.96,zIndex:2,clipPath:"inset(0 0 13% 0)"}}/>
         <div style={{position:"relative"}}>
-          <div style={{fontSize:9,letterSpacing:2,fontWeight:800,color:Q.gold,
+          <div style={{fontSize:12,letterSpacing:2,fontWeight:800,color:Q.gold,
             fontFamily:F_BODY}}>BET BEST</div>
           <div style={{fontFamily:F_NUM,fontSize:27,fontWeight:700,color:inkOn(Q.violet2,Q.violet),
             lineHeight:1.02,marginTop:5}}>Sacale una foto<br/>a tu boleto</div>
-          <div style={{fontSize:11.5,color:inkOn(Q.violet2,Q.violet),opacity:.8,marginTop:7,lineHeight:1.4,
+          <div style={{fontSize:12,color:inkOn(Q.violet2,Q.violet),opacity:.8,marginTop:7,lineHeight:1.4,
             maxWidth:230,fontFamily:F_BODY}}>
             Leemos las selecciones y te decimos si podemos pagarte una cuota mejor.</div>
           <div style={{marginTop:12,display:"inline-flex",alignItems:"center",gap:7,
@@ -5476,7 +5476,7 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           background:`linear-gradient(135deg,${Q.gold}14,${Q.violet}08)`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
-              <div style={{display:"flex",alignItems:"center",gap:4,color:Q.gold,fontSize:10,
+              <div style={{display:"flex",alignItems:"center",gap:4,color:Q.gold,fontSize:12,
                 textTransform:"uppercase",letterSpacing:1.5,
                 fontWeight:700,fontFamily:F_BODY}}>
                 <Gift size={12} color={Q.gold} aria-hidden="true"/>Saldo bono</div>
@@ -5485,16 +5485,16 @@ function ScreenHome({ user, onNav, onBet, refCode }){
             </div>
             {user?.rollover_pendiente>0&&(
               <div style={{textAlign:"right"}}>
-                <div style={{color:Q.muted,fontSize:9,textTransform:"uppercase",
+                <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
                   fontFamily:F_BODY}}>Para liberar</div>
                 <div style={{color:Q.cyan,fontWeight:700,fontSize:14,
                   fontFamily:F_BODY}}>{money(user.rollover_pendiente,mon)}</div>
-                <div style={{color:Q.dim,fontSize:9,
+                <div style={{color:Q.dim,fontSize:12,
                   fontFamily:F_BODY}}>por apostar</div>
               </div>
             )}
           </div>
-          <div style={{color:Q.muted,fontSize:10,marginTop:8,lineHeight:1.4,
+          <div style={{color:Q.muted,fontSize:12,marginTop:8,lineHeight:1.4,
             fontFamily:F_BODY}}>
             Jugá tu bono. Cuando completes lo que falta apostar, pasa a tu saldo retirable.</div>
         </GCard>
@@ -5516,7 +5516,7 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           <Icon name="spade" size={24} color={inkOn(Q.violet,Q.violet2)} style={{marginBottom:3}}/>
           <div style={{color:inkOn(Q.violet,Q.violet2),fontWeight:800,fontSize:14,
             fontFamily:F_BODY}}>Casino</div>
-          <div style={{color:inkOn(Q.violet,Q.violet2),opacity:.72,fontSize:10.5,
+          <div style={{color:inkOn(Q.violet,Q.violet2),opacity:.72,fontSize:12,
             marginTop:2,lineHeight:1.35,
             fontFamily:F_BODY}}>
             Tragamonedas y mesas</div>
@@ -5527,7 +5527,7 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           <Video size={24} color={inkOn(Q.pink,Q.gold)} style={{marginBottom:3}} aria-hidden="true"/>
           <div style={{color:inkOn(Q.pink,Q.gold),fontWeight:800,fontSize:14,
             fontFamily:F_BODY}}>En vivo</div>
-          <div style={{color:inkOn(Q.pink,Q.gold),opacity:.72,fontSize:10.5,
+          <div style={{color:inkOn(Q.pink,Q.gold),opacity:.72,fontSize:12,
             marginTop:2,lineHeight:1.35,
             fontFamily:F_BODY}}>
             Mesas con crupier</div>
@@ -5543,7 +5543,7 @@ function ScreenHome({ user, onNav, onBet, refCode }){
             <div style={{minWidth:0}}>
               <div style={{color:inkOn(Q.violet,Q.cyan),fontWeight:800,fontSize:14,
                 fontFamily:F_BODY}}>Desafíos</div>
-              <div style={{color:inkOn(Q.violet,Q.cyan),opacity:.75,fontSize:10.5,
+              <div style={{color:inkOn(Q.violet,Q.cyan),opacity:.75,fontSize:12,
                 marginTop:1,lineHeight:1.35,
                 fontFamily:F_BODY}}>
                 Apostá contra otros jugadores</div>
@@ -5570,8 +5570,8 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           {(combo.picks||[]).slice(0,3).map((p,i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",
               fontFamily:F_BODY}}>
-              <span style={{color:Q.muted,fontSize:11}}>{p.h||p.home} vs {p.a||p.away}</span>
-              <span style={{color:Q.cyan,fontSize:11,fontWeight:600}}>{p.sel} · {fmt(p.odd)}</span>
+              <span style={{color:Q.muted,fontSize:12}}>{p.h||p.home} vs {p.a||p.away}</span>
+              <span style={{color:Q.cyan,fontSize:12,fontWeight:600}}>{p.sel} · {fmt(p.odd)}</span>
             </div>
           ))}
           <div style={{marginTop:10,textAlign:"center",color:Q.gold,fontSize:12,fontWeight:700,
@@ -5607,11 +5607,11 @@ function ScreenHome({ user, onNav, onBet, refCode }){
               padding:"11px 13px",marginBottom:7,cursor:"pointer"}}>
             <div style={{display:"flex",justifyContent:"space-between",
               alignItems:"baseline",marginBottom:6}}>
-              <span style={{color:Q.dim,fontSize:9.5,
+              <span style={{color:Q.dim,fontSize:12,
                 fontFamily:F_BODY}}>
                 {m.icon} {m.liga}</span>
               {m.scoreStr&&(
-                <span style={{color:Q.gold,fontSize:11,fontWeight:700,
+                <span style={{color:Q.gold,fontSize:12,fontWeight:700,
                   fontFamily:F_BODY}}>{m.scoreStr}</span>
               )}
             </div>
@@ -5626,7 +5626,7 @@ function ScreenHome({ user, onNav, onBet, refCode }){
                     background:"rgba(255,255,255,0.04)",
                     border:`1px solid ${Q.border}`,borderRadius:7,
                     padding:"6px 4px",textAlign:"center",minWidth:0}}>
-                    <div style={{color:Q.muted,fontSize:9,
+                    <div style={{color:Q.muted,fontSize:12,
                       overflow:"hidden",textOverflow:"ellipsis",
                       whiteSpace:"nowrap"}}>{n}</div>
                     <div style={{color:Q.gold,fontSize:13,
@@ -5691,14 +5691,14 @@ function CargaDigitalBox({ user, moneda }){
     <GCard glow={Q.green} style={{padding:16,marginBottom:10}}>
       <div style={{color:Q.green,fontWeight:800,fontSize:14,marginBottom:8,textAlign:"center",
         fontFamily:F_BODY}}>Transferí a este CVU</div>
-      <div style={{color:Q.muted,fontSize:11,textAlign:"center",marginBottom:8,
+      <div style={{color:Q.muted,fontSize:12,textAlign:"center",marginBottom:8,
         fontFamily:F_BODY}}>
         Desde tu CUIT, ${res.monto?.toLocaleString("es-AR")}. Se acredita solo al llegar.</div>
       <div style={{background:ov(0.06),border:`1px solid ${Q.green}`,
         borderRadius:10,padding:"12px",textAlign:"center",marginBottom:6}}>
         <div style={{color:Q.text,fontWeight:900,fontSize:18,letterSpacing:1,
           fontFamily:F_BODY,wordBreak:"break-all"}}>{res.cvu}</div>
-        {res.alias&&<div style={{color:Q.muted,fontSize:11,marginTop:4}}>Alias: {res.alias}</div>}
+        {res.alias&&<div style={{color:Q.muted,fontSize:12,marginTop:4}}>Alias: {res.alias}</div>}
       </div>
       <button onClick={()=>{setEstado("idle");setAbierto(false);setMonto("");setCuit("");setRes(null);}}
         style={{width:"100%",background:"transparent",border:`1px solid ${Q.border}`,
@@ -5728,7 +5728,7 @@ function CargaDigitalBox({ user, moneda }){
         style={{width:"100%",background:ov(0.05),border:`1px solid ${Q.border}`,
           borderRadius:11,padding:"12px 15px",color:Q.text,fontSize:16,marginBottom:8,
           fontFamily:F_BODY}}/>
-      {msg&&<div style={{color:Q.red,fontSize:11,marginBottom:8,textAlign:"center",
+      {msg&&<div style={{color:Q.red,fontSize:12,marginBottom:8,textAlign:"center",
         fontFamily:F_BODY}}>{msg}</div>}
       <div style={{display:"flex",gap:8}}>
         <button onClick={()=>{setAbierto(false);setMsg("");}} style={{flex:1,background:"transparent",
@@ -5803,7 +5803,7 @@ function RetiroDigitalBox({ user, moneda, saldo }){
         style={{width:"100%",background:ov(0.05),border:`1px solid ${Q.border}`,
           borderRadius:11,padding:"12px 15px",color:Q.text,fontSize:16,marginBottom:8,
           fontFamily:F_BODY}}/>
-      {msg&&<div style={{color:Q.red,fontSize:11,marginBottom:8,textAlign:"center",
+      {msg&&<div style={{color:Q.red,fontSize:12,marginBottom:8,textAlign:"center",
         fontFamily:F_BODY}}>{msg}</div>}
       <div style={{display:"flex",gap:8}}>
         <button onClick={()=>{setAbierto(false);setMsg("");}} style={{flex:1,background:"transparent",
@@ -5872,7 +5872,7 @@ function RetiroBox({ moneda, saldo, onHecho }){
     <GCard glow={Q.gold} style={{padding:16,marginBottom:10}}>
       <div style={{color:Q.gold,fontWeight:700,fontSize:14,marginBottom:8,
         fontFamily:F_BODY}}><Icon name="wallet-cards" size={13}/> Retirar en mostrador</div>
-      <div style={{color:Q.muted,fontSize:11,marginBottom:10,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:10,
         fontFamily:F_BODY}}>
         Se descuenta de tu saldo y te damos un código para cobrar en efectivo en tu agencia.</div>
       <input value={monto} onChange={e=>setMonto(e.target.value.replace(/\D/g,""))}
@@ -5881,7 +5881,7 @@ function RetiroBox({ moneda, saldo, onHecho }){
           border:`1px solid ${Q.border}`,borderRadius:11,padding:"12px 15px",
           color:Q.text,fontSize:18,marginBottom:10,
           fontFamily:F_BODY}}/>
-      {msg&&<div style={{color:Q.red,fontSize:11,marginBottom:8,textAlign:"center",
+      {msg&&<div style={{color:Q.red,fontSize:12,marginBottom:8,textAlign:"center",
         fontFamily:F_BODY}}>{msg}</div>}
       <div style={{display:"flex",gap:8}}>
         <button onClick={()=>{setAbierto(false);setMsg("");setEstado("idle");}}
@@ -5977,7 +5977,7 @@ function VincularBox({ moneda, onHecho }){
     <GCard glow={Q.cyan} style={{padding:16,marginBottom:10}}>
       <div style={{color:Q.cyan,fontWeight:700,fontSize:14,marginBottom:8,
         fontFamily:F_BODY}}><Link size={13}/> Vincular cuenta</div>
-      <div style={{color:Q.muted,fontSize:11,marginBottom:10,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:10,
         fontFamily:F_BODY}}>
         Si tenés saldo cargado en una agencia, ingresá el teléfono con el que te registraron.</div>
       <input value={tel} onChange={e=>setTel(e.target.value)}
@@ -5986,7 +5986,7 @@ function VincularBox({ moneda, onHecho }){
           border:`1px solid ${Q.border}`,borderRadius:11,padding:"12px 15px",
           color:Q.text,fontSize:16,marginBottom:10,
           fontFamily:F_BODY}}/>
-      {msg&&<div style={{color:Q.red,fontSize:11,marginBottom:8,textAlign:"center",
+      {msg&&<div style={{color:Q.red,fontSize:12,marginBottom:8,textAlign:"center",
         fontFamily:F_BODY}}>{msg}</div>}
       <div style={{display:"flex",gap:8}}>
         <button onClick={()=>{setAbierto(false);setMsg("");setEstado("idle");}}
@@ -6021,7 +6021,7 @@ function ScreenCuenta({ user, onNav, onJR, onHist }){
     <div style={{padding:"14px 12px 20px"}}>
       <GCard glow={Q.violet} style={{padding:18,marginBottom:14,
         background:`linear-gradient(135deg,${Q.violet}18,${Q.cyan}0C)`}}>
-        <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1.5,
+        <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1.5,
           fontFamily:F_BODY}}>Mi cuenta</div>
         <div style={{color:Q.text,fontWeight:800,fontSize:17,marginTop:2,
           fontFamily:F_BODY}}>{user?.nombre||"Jugador"}</div>
@@ -6052,7 +6052,7 @@ function ScreenCuenta({ user, onNav, onJR, onHist }){
             <div>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,
                 fontFamily:F_BODY}}>{m.tipo||m.detalle||"Movimiento"}</div>
-              <div style={{color:Q.muted,fontSize:9}}>{m.fecha||""}</div>
+              <div style={{color:Q.muted,fontSize:12}}>{m.fecha||""}</div>
             </div>
             <div style={{color:(m.monto||0)>=0?Q.green:Q.red,fontWeight:700,fontSize:13,
               fontFamily:F_BODY}}>{(m.monto||0)>=0?"+":""}{money(m.monto,mon)}</div>
@@ -6060,7 +6060,7 @@ function ScreenCuenta({ user, onNav, onJR, onHist }){
         </GCard>
       ))}
 
-      <div style={{color:Q.dim,fontSize:11,textAlign:"center",marginTop:16,lineHeight:1.5,
+      <div style={{color:Q.dim,fontSize:12,textAlign:"center",marginTop:16,lineHeight:1.5,
         fontFamily:F_BODY}}>
         Para cargar saldo, acercate a tu agencia.</div>
       {/* Juego responsable: tiene que estar visible y accesible, no
@@ -6074,7 +6074,7 @@ function ScreenCuenta({ user, onNav, onJR, onHist }){
             fontFamily:F_BODY}}>
           <div style={{color:Q.text,fontSize:13.5,fontWeight:600}}>
             <Icon name="clipboard-list" size={13}/> Mi historial</div>
-          <div style={{color:Q.muted,fontSize:11,marginTop:3,
+          <div style={{color:Q.muted,fontSize:12,marginTop:3,
             lineHeight:1.45}}>
             Todo lo que jugaste, con fecha y hora</div>
         </button>
@@ -6088,7 +6088,7 @@ function ScreenCuenta({ user, onNav, onJR, onHist }){
             fontFamily:F_BODY}}>
           <div style={{color:Q.text,fontSize:13.5,fontWeight:600}}>
             <Icon name="shield-check" size={13}/> Juego responsable</div>
-          <div style={{color:Q.muted,fontSize:11,marginTop:3,
+          <div style={{color:Q.muted,fontSize:12,marginTop:3,
             lineHeight:1.45}}>
             Poné tus límites o cerrá tu cuenta por un tiempo</div>
         </button>
@@ -6211,22 +6211,22 @@ function ScreenRegistro({ user, onListo }){
           Con tus datos podés jugar y conectar tu saldo</div>
       </div>
 
-      <div style={{color:Q.muted,fontSize:11,marginBottom:3,marginLeft:2,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:3,marginLeft:2,
         fontFamily:F_BODY}}>Nombre y apellido</div>
       <input value={nombre} onChange={e=>setNombre(e.target.value)} style={inp}
         placeholder="Tu nombre completo"/>
 
-      <div style={{color:Q.muted,fontSize:11,marginBottom:3,marginLeft:2,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:3,marginLeft:2,
         fontFamily:F_BODY}}>Teléfono</div>
       <input value={telefono} onChange={e=>setTelefono(e.target.value)} style={inp}
         placeholder="Ej: 11 2345 6789" inputMode="tel"/>
 
-      <div style={{color:Q.muted,fontSize:11,marginBottom:3,marginLeft:2,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:3,marginLeft:2,
         fontFamily:F_BODY}}>Email (opcional)</div>
       <input value={email} onChange={e=>setEmail(e.target.value)} style={inp}
         placeholder="tu@email.com" inputMode="email"/>
 
-      <div style={{color:Q.muted,fontSize:11,marginBottom:3,marginLeft:2,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:3,marginLeft:2,
         fontFamily:F_BODY}}>Moneda</div>
       <select value={moneda} onChange={e=>setMoneda(e.target.value)}
         style={{...inp,color:moneda?Q.text:Q.muted}}>
@@ -6339,13 +6339,13 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
           <button onClick={()=>setSport(null)} style={{
             background:!sport?`${Q.violet}44`:ov(0.04),
             border:`1px solid ${!sport?Q.cyan:Q.border}`,borderRadius:20,padding:"5px 12px",
-            cursor:"pointer",color:!sport?Q.cyan:Q.muted,fontSize:10,fontWeight:700,
+            cursor:"pointer",color:!sport?Q.cyan:Q.muted,fontSize:12,fontWeight:700,
             whiteSpace:"nowrap",flexShrink:0,fontFamily:F_BODY}}>Todos</button>
           {sports.map(sp=>(
             <button key={sp.name} onClick={()=>setSport(sp.name)} style={{
               background:sport===sp.name?`${Q.violet}44`:ov(0.04),
               border:`1px solid ${sport===sp.name?Q.cyan:Q.border}`,borderRadius:20,padding:"5px 12px",
-              cursor:"pointer",color:sport===sp.name?Q.cyan:Q.muted,fontSize:10,fontWeight:700,
+              cursor:"pointer",color:sport===sp.name?Q.cyan:Q.muted,fontSize:12,fontWeight:700,
               whiteSpace:"nowrap",flexShrink:0,fontFamily:F_BODY}}>
               {sp.icon} {sp.name}</button>
           ))}
@@ -6369,7 +6369,7 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
                         fontFamily:F_BODY,whiteSpace:"nowrap",
                         overflow:"hidden",textOverflow:"ellipsis"}}>
                         {ev.h||ev.home} vs {ev.a||ev.away}</div>
-                      <div style={{color:Q.muted,fontSize:10}}>{horaLocal(ev)}</div>
+                      <div style={{color:Q.muted,fontSize:12}}>{horaLocal(ev)}</div>
                     </div>
                     <TeamLogo name={ev.a||ev.away} size={24}/>
                   </div>
@@ -6377,7 +6377,7 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
                 <OddsButtons ev={ev} market="h2h" bets={picks} onToggle={toggle}/>
                 <button onClick={()=>toggleExpand(ev.id)} style={{width:"100%",
                   background:"transparent",border:`1px solid ${Q.dim}`,borderRadius:8,padding:"5px",
-                  cursor:"pointer",color:Q.dim,fontSize:10,marginTop:6,
+                  cursor:"pointer",color:Q.dim,fontSize:12,marginTop:6,
                   fontFamily:F_BODY}}>
                   {expandedEvents[ev.id]?"▲ Menos mercados":"▼ Todos los mercados"}</button>
                 {expandedEvents[ev.id]&&<MercadosEvento ev={ev} bets={picks} onToggle={toggle}/>}
@@ -6398,7 +6398,7 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
           <div style={{color:Q.text,fontWeight:700,fontSize:14,
             fontFamily:F_BODY}}><Icon name="ticket" size={13}/> Tu apuesta · {picks.length} {picks.length===1?"pick":"picks"}</div>
           {picks.length>0&&<button onClick={onLimpiar} style={{background:"transparent",border:"none",
-            color:Q.red,fontSize:11,cursor:"pointer",fontFamily:F_BODY}}>Vaciar</button>}
+            color:Q.red,fontSize:12,cursor:"pointer",fontFamily:F_BODY}}>Vaciar</button>}
         </div>
 
         {picks.length===0?(
@@ -6414,7 +6414,7 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
                     <div style={{color:Q.text,fontSize:12,fontWeight:600,
                       fontFamily:F_BODY,whiteSpace:"nowrap",
                       overflow:"hidden",textOverflow:"ellipsis"}}>{p.h} vs {p.a}</div>
-                    <div style={{color:Q.cyan,fontSize:11,
+                    <div style={{color:Q.cyan,fontSize:12,
                       fontFamily:F_BODY}}>{p.label} · {parseFloat(p.odd).toFixed(2)}</div>
                   </div>
                   <button onClick={()=>onQuitar(p.id,p.label)} style={{background:"transparent",
@@ -6431,7 +6431,7 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
 
             {mismoPartido&&margenAplicado>0&&(
               <div style={{background:`${Q.cyan}0C`,border:`1px solid ${Q.cyan}44`,borderRadius:8,
-                padding:"7px 10px",marginBottom:8,fontSize:10,color:Q.cyan,lineHeight:1.4,
+                padding:"7px 10px",marginBottom:8,fontSize:12,color:Q.cyan,lineHeight:1.4,
                 fontFamily:F_BODY}}>
                 🔗 Combinada del mismo partido · cuota ajustada por correlación</div>
             )}
@@ -6677,10 +6677,10 @@ export default function QuartzSports(){
               background:screen===s.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
               border:`1px solid ${screen===s.k?Q.violet:Q.border}`,
               borderRadius:20,padding:"3px 9px",cursor:"pointer",
-              color:screen===s.k?Q.cyan:Q.muted,fontSize:9,fontWeight:screen===s.k?700:400,
+              color:screen===s.k?Q.cyan:Q.muted,fontSize:12,fontWeight:screen===s.k?700:400,
               fontFamily:F_BODY,whiteSpace:"nowrap",
             }}>{s.l}</button>
-            {i<arr.length-1&&<span style={{color:Q.dim,fontSize:9}}>›</span>}
+            {i<arr.length-1&&<span style={{color:Q.dim,fontSize:12}}>›</span>}
           </div>
         ))}
       </div>}

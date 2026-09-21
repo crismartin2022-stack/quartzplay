@@ -52,7 +52,7 @@ function HBadge({ label, color=Q.violet }){
     <span style={{
       background:`linear-gradient(135deg,${color}33,${color}11)`,
       border:`1px solid ${color}66`, borderRadius:20,
-      padding:"2px 10px", fontSize:9, fontWeight:700, color,
+      padding:"2px 10px", fontSize:12, fontWeight:700, color,
       letterSpacing:0.5, fontFamily:F_BODY,
     }}>{label}</span>
   );
@@ -83,13 +83,13 @@ function KPI({ label, value, sub, color=Q.violet, icon, trend, onClick }){
     <GCard glow={color} onClick={onClick} style={{padding:"12px 14px"}}>
       <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
         {icon&&<span style={{fontSize:16}}>{icon}</span>}
-        <span style={{color:Q.muted,fontSize:8,fontWeight:600,letterSpacing:1,
+        <span style={{color:Q.muted,fontSize:12,fontWeight:600,letterSpacing:1,
           textTransform:"uppercase",fontFamily:F_BODY}}>{label}</span>
       </div>
       <div style={{color,fontWeight:900,fontSize:16,fontFamily:F_BODY,
         textShadow:`0 0 10px ${color}55`}}>{value}</div>
-      {sub&&<div style={{color:Q.dim,fontSize:9,marginTop:3,fontFamily:F_BODY}}>{sub}</div>}
-      {trend&&<div style={{color:trend>0?Q.green:Q.red,fontSize:9,marginTop:3,
+      {sub&&<div style={{color:Q.dim,fontSize:12,marginTop:3,fontFamily:F_BODY}}>{sub}</div>}
+      {trend&&<div style={{color:trend>0?Q.green:Q.red,fontSize:12,marginTop:3,
         fontWeight:700,fontFamily:F_BODY}}>
         {trend>0?"▲":"▼"} {Math.abs(trend)}% vs ayer
       </div>}
@@ -100,7 +100,7 @@ function KPI({ label, value, sub, color=Q.violet, icon, trend, onClick }){
 function Input({ label, value, onChange, type="text", placeholder="" }){
   return(
     <div style={{marginBottom:12}}>
-      {label&&<div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
+      {label&&<div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
         letterSpacing:1,fontFamily:F_BODY,marginBottom:5}}>{label}</div>}
       <input type={type} value={value} onChange={e=>onChange(e.target.value)}
         placeholder={placeholder}
@@ -146,7 +146,7 @@ function AvisoMock(){
   return(
     <div style={{background:`${Q.amber}12`,border:`1px solid ${Q.amber}55`,
       borderRadius:10,padding:"8px 12px",marginBottom:12,
-      color:Q.amber,fontSize:11,fontFamily:F_BODY}}>
+      color:Q.amber,fontSize:12,fontFamily:F_BODY}}>
       Datos de ejemplo — esta sección todavía no está conectada a la base.
     </div>
   );
@@ -190,7 +190,7 @@ function AdminLogin({ onLogin }){
             fontFamily:F_BODY}}>Panel Administrador</div>
         </div>
         <GCard glow={Q.violet} style={{padding:28}}>
-          <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
+          <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
             letterSpacing:1,fontFamily:F_BODY,marginBottom:6}}>
             Clave admin
           </div>
@@ -479,7 +479,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
             {"— ".repeat(a.nivel||0)}{a.name} ({a.code})</option>
         ))}
       </select>
-      {filtroAg&&<div style={{color:Q.cyan,fontSize:11,marginBottom:10,
+      {filtroAg&&<div style={{color:Q.cyan,fontSize:12,marginBottom:10,
         fontFamily:F_BODY}}>
         Mostrando esa agencia y toda su rama hacia abajo ·{" "}
         <span onClick={()=>{setFiltroAg("");setBuscar("");}}
@@ -498,7 +498,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
           ))}
         </select>
       )}
-      {filtroCli&&<div style={{color:Q.gold,fontSize:11,marginBottom:10,
+      {filtroCli&&<div style={{color:Q.gold,fontSize:12,marginBottom:10,
         fontFamily:F_BODY}}>
         Viendo solo ese cliente ·{" "}
         <span onClick={()=>setFiltroCli("")}
@@ -559,19 +559,19 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   cajero recibió y pagó en mano. */}
               {caja.operativa&&(caja.operativa.entro>0||caja.operativa.salio>0)&&(
                 <GCard glow={Q.cyan} style={{padding:16,marginBottom:12}}>
-                  <div style={{color:Q.muted,fontSize:11,marginBottom:10,
+                  <div style={{color:Q.muted,fontSize:12,marginBottom:10,
                     fontFamily:F_BODY}}>
                     Efectivo del mostrador</div>
 
                   <div style={{display:"flex",gap:10,marginBottom:10}}>
                     <div style={{flex:1}}>
-                      <div style={{color:Q.muted,fontSize:10}}>Entró</div>
+                      <div style={{color:Q.muted,fontSize:12}}>Entró</div>
                       <div style={{color:Q.green,fontWeight:800,fontSize:17,
                         fontFamily:F_BODY}}>
                         {ars(caja.operativa.entro)}</div>
                     </div>
                     <div style={{flex:1}}>
-                      <div style={{color:Q.muted,fontSize:10}}>Salió</div>
+                      <div style={{color:Q.muted,fontSize:12}}>Salió</div>
                       <div style={{color:Q.red,fontWeight:800,fontSize:17,
                         fontFamily:F_BODY}}>
                         {ars(caja.operativa.salio)}</div>
@@ -601,7 +601,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                         <span style={{color:Q.muted,
                           fontFamily:F_BODY}}>
                           {l}
-                          <span style={{color:Q.dim,fontSize:9,
+                          <span style={{color:Q.dim,fontSize:12,
                             marginLeft:6}}>{det}</span></span>
                         <span style={{color:v>=0?Q.green:Q.red,
                           fontFamily:F_BODY}}>
@@ -611,7 +611,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   </div>
 
                   {caja.operativa.anulados.cantidad>0&&(
-                    <div style={{color:Q.dim,fontSize:10.5,marginBottom:8,
+                    <div style={{color:Q.dim,fontSize:12,marginBottom:8,
                       lineHeight:1.45}}>
                       No se cuentan {caja.operativa.anulados.cantidad}{" "}
                       {caja.operativa.anulados.cantidad===1
@@ -633,7 +633,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   </div>
                   {(caja.operativa.cargas?.total>0
                     ||caja.operativa.retiros?.total>0)&&(
-                    <div style={{color:Q.dim,fontSize:10,marginTop:7,
+                    <div style={{color:Q.dim,fontSize:12,marginTop:7,
                       lineHeight:1.5,
                       fontFamily:F_BODY}}>
                       Las cargas y retiros son efectivo del mostrador
@@ -644,24 +644,24 @@ function TabCierre({ adminKey, onNoAutorizado }){
               )}
 
               <GCard glow={Q.green} style={{padding:16,marginBottom:12}}>
-                <div style={{color:Q.muted,fontSize:11,marginBottom:8,
+                <div style={{color:Q.muted,fontSize:12,marginBottom:8,
                   fontFamily:F_BODY}}>
                   Billetera de los clientes · {caja.desde===caja.hasta?caja.desde
                     :`${caja.desde} a ${caja.hasta}`}
                   {filtroAg?` · ${filtroAg} y su rama`:" · todas"}
-                  <div style={{color:Q.dim,fontSize:9.5,marginTop:3,
+                  <div style={{color:Q.dim,fontSize:12,marginTop:3,
                     lineHeight:1.4}}>
                     Solo cargas y retiros de saldo. El efectivo del
                     mostrador, con ventas y premios, está arriba.</div></div>
                 <div style={{display:"flex",gap:10,marginBottom:12}}>
                   <div style={{flex:1}}>
-                    <div style={{color:Q.muted,fontSize:10}}>Cargas</div>
+                    <div style={{color:Q.muted,fontSize:12}}>Cargas</div>
                     <div style={{color:Q.green,fontWeight:800,fontSize:20,
                       fontFamily:F_BODY}}>
                       {ars(caja.total.cargas)}</div>
                   </div>
                   <div style={{flex:1}}>
-                    <div style={{color:Q.muted,fontSize:10}}>Retiros</div>
+                    <div style={{color:Q.muted,fontSize:12}}>Retiros</div>
                     <div style={{color:Q.amber,fontWeight:800,fontSize:20,
                       fontFamily:F_BODY}}>
                       {ars(caja.total.descargas)}</div>
@@ -678,7 +678,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                     {ars(caja.total.neto_caja)}</span>
                 </div>
                 {caja.total.premios_pagados>0&&(
-                  <div style={{color:Q.muted,fontSize:10.5,marginTop:6}}>
+                  <div style={{color:Q.muted,fontSize:12,marginTop:6}}>
                     Premios pagados aparte: {ars(caja.total.premios_pagados)}</div>
                 )}
               </GCard>
@@ -687,10 +687,10 @@ function TabCierre({ adminKey, onNoAutorizado }){
                 <div style={{display:"flex",justifyContent:"space-between",
                   alignItems:"baseline"}}>
                   <div>
-                    <div style={{color:Q.muted,fontSize:11,
+                    <div style={{color:Q.muted,fontSize:12,
                       fontFamily:F_BODY}}>
                       Saldo de los jugadores</div>
-                    <div style={{color:Q.dim,fontSize:10}}>
+                    <div style={{color:Q.dim,fontSize:12}}>
                       {caja.total.clientes} clientes con cuenta</div>
                   </div>
                   <div style={{textAlign:"right"}}>
@@ -698,18 +698,18 @@ function TabCierre({ adminKey, onNoAutorizado }){
                       fontFamily:F_BODY}}>
                       {ars(caja.total.saldo_clientes)}</div>
                     {caja.total.bono_clientes>0&&(
-                      <div style={{color:Q.gold,fontSize:11}}>
+                      <div style={{color:Q.gold,fontSize:12}}>
                         + {ars(caja.total.bono_clientes)} en bonos</div>
                     )}
                   </div>
                 </div>
-                <div style={{color:Q.amber,fontSize:10.5,marginTop:10,
+                <div style={{color:Q.amber,fontSize:12,marginTop:10,
                   lineHeight:1.5,fontFamily:F_BODY}}>
                   Es plata de los jugadores, no ganancia: un pasivo. La
                   utilidad está en el Resumen.</div>
               </GCard>
 
-              <div style={{color:Q.muted,fontSize:11,marginBottom:6,
+              <div style={{color:Q.muted,fontSize:12,marginBottom:6,
                 fontFamily:F_BODY}}>Por agencia</div>
               {(caja.agencias||[]).filter(a=>a.movimientos>0||a.clientes>0)
                 .map(a=>(
@@ -719,7 +719,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                     <div style={{minWidth:0,flex:1}}>
                       <div style={{color:Q.text,fontSize:12.5,fontWeight:700,
                         fontFamily:F_BODY}}>{a.name}</div>
-                      <div style={{color:Q.muted,fontSize:10,marginTop:1}}>
+                      <div style={{color:Q.muted,fontSize:12,marginTop:1}}>
                         {a.code} · {a.clientes} clientes · {a.movimientos} movs</div>
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
@@ -727,12 +727,12 @@ function TabCierre({ adminKey, onNoAutorizado }){
                         fontWeight:800,fontSize:14,
                         fontFamily:F_BODY}}>
                         {ars(a.neto_caja)}</div>
-                      <div style={{color:Q.dim,fontSize:9.5}}>
+                      <div style={{color:Q.dim,fontSize:12}}>
                         +{ars(a.cargas)} / −{ars(a.descargas)}</div>
                     </div>
                   </div>
                   {a.saldo_clientes>0&&(
-                    <div style={{color:Q.cyan,fontSize:10,marginTop:5,
+                    <div style={{color:Q.cyan,fontSize:12,marginTop:5,
                       paddingTop:5,borderTop:`1px solid ${Q.border}`}}>
                       Saldo de sus jugadores: {ars(a.saldo_clientes)}</div>
                   )}
@@ -741,7 +741,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
 
               {(caja.movimientos||[]).length>0&&(
                 <>
-                  <div style={{color:Q.muted,fontSize:11,margin:"14px 0 6px",
+                  <div style={{color:Q.muted,fontSize:12,margin:"14px 0 6px",
                     fontFamily:F_BODY}}>
                     Detalle ({caja.movimientos.length})</div>
                   {caja.movimientos.map((m,i)=>{
@@ -755,7 +755,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                           <div style={{color:Q.text,fontSize:12,
                             overflow:"hidden",textOverflow:"ellipsis",
                             whiteSpace:"nowrap"}}>{m.cliente}</div>
-                          <div style={{color:Q.dim,fontSize:9.5}}>
+                          <div style={{color:Q.dim,fontSize:12}}>
                             {m.fecha} · {m.agencia} · {m.tipo}</div>
                         </div>
                         <div style={{color:esCarga?Q.green:Q.amber,
@@ -780,7 +780,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
         <div>
           <GCard glow={Q.violet} style={{padding:16,marginBottom:12,
             background:`linear-gradient(135deg,${Q.violet}12,${Q.cyan}06)`}}>
-            <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
+            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
               letterSpacing:1,marginBottom:10,
               fontFamily:F_BODY}}>
               {data.es_cliente?`Rentabilidad · ${data.cliente_nombre}`
@@ -791,7 +791,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                 ["GGR",data.global.ggr,Q.green],
                 ["Comisiones",data.global.comisiones,Q.amber]].map(([l,v,c])=>(
                 <div key={l}>
-                  <div style={{color:Q.muted,fontSize:10}}>{l}</div>
+                  <div style={{color:Q.muted,fontSize:12}}>{l}</div>
                   <div style={{color:c,fontWeight:800,fontSize:17,
                     fontFamily:F_BODY}}>{ars(v)}</div>
                 </div>
@@ -821,7 +821,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   fontFamily:F_BODY}}>
                   Neto final
                   {data.casino&&data.casino.ggr!==0&&(
-                    <span style={{color:Q.dim,fontSize:9.5,marginLeft:5}}>
+                    <span style={{color:Q.dim,fontSize:12,marginLeft:5}}>
                       solo deportivas</span>
                   )}</span>
                 <span style={{color:data.global.neto_final>=0?Q.green:Q.red,
@@ -851,7 +851,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                 </div>
               ))}
               {data.casino.error&&(
-                <div style={{color:Q.red,fontSize:10.5,marginTop:6,
+                <div style={{color:Q.red,fontSize:12,marginTop:6,
                   lineHeight:1.45}}>
                   No se pudo calcular del todo: {data.casino.error}</div>
               )}
@@ -861,17 +861,17 @@ function TabCierre({ adminKey, onNoAutorizado }){
           {/* El resultado de toda la operación */}
           {data.total&&(
             <GCard glow={Q.cyan} style={{padding:16,marginBottom:12}}>
-              <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+              <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
                 marginBottom:8}}>TOTAL DE LA OPERACIÓN</div>
               <div style={{display:"flex",gap:10,marginBottom:10}}>
                 <div style={{flex:1}}>
-                  <div style={{color:Q.muted,fontSize:10}}>Apostado</div>
+                  <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
                   <div style={{color:Q.text,fontWeight:800,fontSize:16,
                     fontFamily:F_BODY}}>
                     {ars(data.total.apostado)}</div>
                 </div>
                 <div style={{flex:1}}>
-                  <div style={{color:Q.muted,fontSize:10}}>GGR</div>
+                  <div style={{color:Q.muted,fontSize:12}}>GGR</div>
                   <div style={{color:data.total.ggr>=0?Q.green:Q.red,
                     fontWeight:800,fontSize:16,
                     fontFamily:F_BODY}}>
@@ -906,7 +906,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                     </div>
                   )}
                   {data.bonos.recompensas>0&&(
-                    <div style={{color:Q.dim,fontSize:10,marginTop:3}}>
+                    <div style={{color:Q.dim,fontSize:12,marginTop:3}}>
                       Incluye {ars(data.bonos.recompensas)} de recompensas
                       por compartir</div>
                   )}
@@ -920,7 +920,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   fontFamily:F_BODY}}>
                   Neto de todo
                   {data.total.margen_pct!=null&&(
-                    <span style={{color:Q.dim,fontSize:10,marginLeft:6}}>
+                    <span style={{color:Q.dim,fontSize:12,marginLeft:6}}>
                       margen {data.total.margen_pct}%</span>
                   )}</span>
                 <span style={{color:data.total.neto_final>=0?Q.green:Q.red,
@@ -945,7 +945,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
               background:`linear-gradient(135deg,${Q.violet}10,${Q.cyan}06)`}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
                 fontFamily:F_BODY}}><Icon name="sliders-horizontal" size={14}/> Liquidación automática</div>
-              <div style={{color:Q.muted,fontSize:11,marginBottom:10,
+              <div style={{color:Q.muted,fontSize:12,marginBottom:10,
                 fontFamily:F_BODY}}>
                 Genera liquidaciones de agencias e influencers al cierre del período.
                 No paga: deja el registro para que lo revises.</div>
@@ -977,7 +977,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
               background:`linear-gradient(135deg,${Q.gold}10,${Q.violet}06)`}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
                 fontFamily:F_BODY}}><Icon name="wallet-cards" size={14}/> Liquidación de comisiones</div>
-              <div style={{color:Q.muted,fontSize:11,marginBottom:10,
+              <div style={{color:Q.muted,fontSize:12,marginBottom:10,
                 fontFamily:F_BODY}}>
                 Genera la liquidación de {filtroAg} para el período elegido.</div>
               <div style={{display:"flex",gap:8}}>
@@ -995,7 +995,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
 
           <div style={{display:"flex",justifyContent:"space-between",
             alignItems:"center",marginBottom:8}}>
-            <span style={{color:Q.muted,fontSize:11,textTransform:"uppercase",
+            <span style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
               letterSpacing:1,fontFamily:F_BODY}}>Por agencia</span>
             <Btn label={<><Icon name="arrow-down-left" size={13}/> CSV</>} onClick={exportar} color={Q.cyan} size="sm"/>
           </div>
@@ -1010,7 +1010,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                 <div style={{color:Q.gold,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>Com {ars(a.comision)}</div>
               </div>
-              <div style={{display:"flex",gap:12,fontSize:11,
+              <div style={{display:"flex",gap:12,fontSize:12,
                 fontFamily:F_BODY}}>
                 <span style={{color:Q.muted}}>Apostado <span style={{color:Q.cyan}}>{ars(a.apostado)}</span></span>
                 <span style={{color:Q.muted}}>Premios <span style={{color:Q.pink}}>{ars(a.premios)}</span></span>
@@ -1025,7 +1025,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
       {vista==="movimientos"&&<>
         <div style={{display:"flex",justifyContent:"space-between",
           alignItems:"center",marginBottom:8}}>
-          <span style={{color:Q.muted,fontSize:11,textTransform:"uppercase",
+          <span style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
             letterSpacing:1,fontFamily:F_BODY}}>
             Movimientos {filtroAg?"de la rama":"del sistema"}</span>
           <Btn label={<><Icon name="arrow-down-left" size={13}/> CSV</>} onClick={exportarMovs} color={Q.cyan} size="sm"/>
@@ -1050,14 +1050,14 @@ function TabCierre({ adminKey, onNoAutorizado }){
                     {tipoTxt}
                     {m.origen==="cliente"&&m.cliente?<span style={{color:Q.cyan}}> · {m.cliente}</span>:null}
                   </div>
-                  <div style={{color:Q.muted,fontSize:10}}>
+                  <div style={{color:Q.muted,fontSize:12}}>
                     {m.agencia} · {m.fecha}{m.por?` · por ${m.por}`:""}</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{color:pos?Q.green:Q.amber,fontWeight:700,fontSize:14,
                     fontFamily:F_BODY}}>
                     {pos?"+":""}{ars(m.monto)}</div>
-                  {m.saldo!=null&&<div style={{color:Q.dim,fontSize:9}}>saldo {ars(m.saldo)}</div>}
+                  {m.saldo!=null&&<div style={{color:Q.dim,fontSize:12}}>saldo {ars(m.saldo)}</div>}
                 </div>
               </div>
             </GCard>
@@ -1066,7 +1066,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
       </>}
 
       {vista==="apuestas"&&<>
-        <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",
+        <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
           letterSpacing:1,marginBottom:8,marginLeft:4,
           fontFamily:F_BODY}}>
           Apuestas {filtroCli?"del cliente":filtroAg?"de la rama":"del sistema"}</div>
@@ -1088,13 +1088,13 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   <div style={{color:Q.text,fontWeight:700,fontSize:12,
                     fontFamily:F_BODY}}>{a.code}
                     <span style={{color:Q.cyan,fontWeight:400}}> · {a.cliente}</span></div>
-                  <div style={{color:Q.muted,fontSize:10}}>
+                  <div style={{color:Q.muted,fontSize:12}}>
                     {a.agencia} · {a.fecha} · {a.picks.length} sel.</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{color:col,fontWeight:700,fontSize:12,
                     fontFamily:F_BODY}}>{a.status}</div>
-                  <div style={{color:Q.muted,fontSize:10}}>
+                  <div style={{color:Q.muted,fontSize:12}}>
                     {ars(a.stake)} · {fmt(a.odd)}x</div>
                 </div>
               </div>
@@ -1102,7 +1102,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
               {abierta&&(
                 <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${Q.dim}`}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,
-                    fontSize:11,fontFamily:F_BODY}}>
+                    fontSize:12,fontFamily:F_BODY}}>
                     <span style={{color:Q.muted}}>Monto <span style={{color:Q.cyan}}>{ars(a.stake)}</span></span>
                     <span style={{color:Q.muted}}>Cuota <span style={{color:Q.violet2}}>{fmt(a.odd)}x</span></span>
                     <span style={{color:Q.muted}}>Premio <span style={{color:Q.green}}>{ars(a.premio)}</span></span>
@@ -1110,18 +1110,18 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   {a.picks.map((p,j)=>(
                     <div key={j} style={{background:"rgba(255,255,255,0.03)",
                       borderRadius:8,padding:"8px 10px",marginBottom:5}}>
-                      <div style={{color:Q.text,fontSize:11,fontWeight:600,
+                      <div style={{color:Q.text,fontSize:12,fontWeight:600,
                         fontFamily:F_BODY}}>
                         {p.home||p.equipo_local||""}{(p.home||p.away)?" vs ":""}{p.away||p.equipo_visitante||""}</div>
-                      <div style={{color:Q.muted,fontSize:10,marginTop:2}}>
+                      <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
                         {p.market||p.mercado||p.tipo||"—"}: <span style={{color:Q.cyan}}>
                         {p.selection||p.seleccion||p.pick||"—"}</span>
                         {p.odd||p.cuota?<span style={{color:Q.violet2}}> @ {fmt(p.odd||p.cuota)}</span>:null}</div>
-                      {(p.resultado||p.result)&&<div style={{color:col,fontSize:9,marginTop:2,
+                      {(p.resultado||p.result)&&<div style={{color:col,fontSize:12,marginTop:2,
                         fontFamily:F_BODY}}>{p.resultado||p.result}</div>}
                     </div>
                   ))}
-                  {a.picks.length===0&&<div style={{color:Q.muted,fontSize:11,
+                  {a.picks.length===0&&<div style={{color:Q.muted,fontSize:12,
                     fontFamily:F_BODY}}>Sin detalle de selecciones</div>}
                 </div>
               )}
@@ -1131,7 +1131,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
       </>}
 
       {vista==="cashout"&&<>
-        <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",
+        <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
           letterSpacing:1,marginBottom:8,marginLeft:4,
           fontFamily:F_BODY}}>
           Cash outs {filtroAg?"de la rama":"del sistema"}</div>
@@ -1150,11 +1150,11 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   <div style={{color:Q.text,fontWeight:700,fontSize:12,
                     fontFamily:F_BODY}}>{c.code}
                     <span style={{color:Q.cyan,fontWeight:400}}> · {c.cliente}</span></div>
-                  <div style={{color:Q.muted,fontSize:10}}>
+                  <div style={{color:Q.muted,fontSize:12}}>
                     {c.agencia} · {c.fecha}{c.pagado_por?` · pagó ${c.pagado_por}`:""}</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{color:col,fontWeight:700,fontSize:11,
+                  <div style={{color:col,fontWeight:700,fontSize:12,
                     fontFamily:F_BODY}}>{rot}</div>
                   <div style={{color:Q.gold,fontWeight:700,fontSize:12,
                     fontFamily:F_BODY}}>{ars(c.valor)} {c.moneda}</div>
@@ -1166,7 +1166,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
       </>}
 
       {vista==="combos"&&<>
-        <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",
+        <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
           letterSpacing:1,marginBottom:8,marginLeft:4,
           fontFamily:F_BODY}}>
           Combos generados {filtroAg?"de la rama":"del sistema"}</div>
@@ -1183,14 +1183,14 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   fontFamily:F_BODY}}>{c.nombre||"Combo"}
                   {c.es_ia
                     ?<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
-                        borderRadius:12,padding:"1px 7px",fontSize:9,fontWeight:700,
+                        borderRadius:12,padding:"1px 7px",fontSize:12,fontWeight:700,
                         color:Q.violet2,marginLeft:6}}>🤖 IA</span>
                     :<span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,
-                        borderRadius:12,padding:"1px 7px",fontSize:9,fontWeight:700,
+                        borderRadius:12,padding:"1px 7px",fontSize:12,fontWeight:700,
                         color:Q.cyan,marginLeft:6}}>✍️ Manual</span>}
-                  {!c.visible&&<span style={{color:Q.muted,fontSize:9,marginLeft:5}}>oculto</span>}
+                  {!c.visible&&<span style={{color:Q.muted,fontSize:12,marginLeft:5}}>oculto</span>}
                 </div>
-                <div style={{color:Q.muted,fontSize:10}}>
+                <div style={{color:Q.muted,fontSize:12}}>
                   {c.creado_por||c.origen} · {c.fecha}</div>
               </div>
               <div style={{color:Q.green,fontWeight:700,fontSize:14,flexShrink:0,
@@ -1229,9 +1229,9 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   <div style={{color:Q.gold,fontWeight:800,fontSize:15,
                     fontFamily:F_BODY}}>{ars(l.comision_total)}</div>
                 </div>
-                <div style={{color:Q.muted,fontSize:10,marginBottom:4}}>
+                <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
                   {l.desde} → {l.hasta} · generada {l.fecha}</div>
-                <div style={{display:"flex",gap:12,fontSize:11,
+                <div style={{display:"flex",gap:12,fontSize:12,
                   fontFamily:F_BODY}}>
                   <span style={{color:Q.muted}}>Apostado <span style={{color:Q.cyan}}>{ars(l.apostado)}</span></span>
                   <span style={{color:Q.muted}}>GGR <span style={{color:Q.green}}>{ars(l.ggr)}</span></span>
@@ -1296,7 +1296,7 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
             fontFamily:F_BODY}}>{ars(r.neto_hoy)}</span>
         </div>
         <div style={{display:"flex",justifyContent:"space-between"}}>
-          <span style={{color:Q.muted,fontSize:11}}>Premios pagados hoy</span>
+          <span style={{color:Q.muted,fontSize:12}}>Premios pagados hoy</span>
           <span style={{color:Q.pink,fontSize:13,
             fontFamily:F_BODY}}>{ars(r.premios_hoy)}</span>
         </div>
@@ -1307,12 +1307,12 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
           {r.boletos_pendientes>0&&<GCard style={{padding:12,flex:1,textAlign:"center"}}>
             <div style={{color:Q.amber,fontWeight:700,fontSize:18,
               fontFamily:F_BODY}}>{r.boletos_pendientes}</div>
-            <div style={{color:Q.muted,fontSize:10}}>boletos sin cobrar</div>
+            <div style={{color:Q.muted,fontSize:12}}>boletos sin cobrar</div>
           </GCard>}
           {r.sin_liquidar>0&&<GCard style={{padding:12,flex:1,textAlign:"center"}}>
             <div style={{color:Q.cyan,fontWeight:700,fontSize:18,
               fontFamily:F_BODY}}>{r.sin_liquidar}</div>
-            <div style={{color:Q.muted,fontSize:10}}>sin liquidar</div>
+            <div style={{color:Q.muted,fontSize:12}}>sin liquidar</div>
           </GCard>}
         </div>
       )}
@@ -1330,7 +1330,7 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
             <div>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,
                 fontFamily:F_BODY}}>{a.name} ›</div>
-              <div style={{color:Q.muted,fontSize:10}}>{a.code} · {a.tickets_hoy} tickets hoy</div>
+              <div style={{color:Q.muted,fontSize:12}}>{a.code} · {a.tickets_hoy} tickets hoy</div>
             </div>
             <div style={{color:Q.green,fontWeight:700,fontSize:13,
               fontFamily:F_BODY}}>{ars(a.cobrado_hoy)}</div>
@@ -1350,8 +1350,8 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
             <div style={{minWidth:0,flex:1}}>
               <span style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
                 fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</span>
-              <span style={{color:Q.muted,fontSize:11}}> · {m.agencia} · {m.usuario}</span>
-              <div style={{color:Q.dim,fontSize:10}}>{m.fecha}</div>
+              <span style={{color:Q.muted,fontSize:12}}> · {m.agencia} · {m.usuario}</span>
+              <div style={{color:Q.dim,fontSize:12}}>{m.fecha}</div>
             </div>
             <div style={{color:m.tipo==="retiro"||m.tipo==="pago_premio"?Q.amber:Q.green,
               fontWeight:700,fontSize:13,flexShrink:0,
@@ -1415,17 +1415,17 @@ function TabCombos({ adminKey, onNoAutorizado }){
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:Q.text,fontWeight:600,fontSize:13,
                 fontFamily:F_BODY}}>{c.nombre}</div>
-              <div style={{color:Q.muted,fontSize:11}}>
+              <div style={{color:Q.muted,fontSize:12}}>
                 {c.picks.length} picks · {fmt(c.odd_total)}x ·
                 {c.origen==="admin"?" Casa":" "+c.creado_por}</div>
             </div>
             <button onClick={()=>borrar(c.id)} style={{background:`${Q.red}18`,
               border:`1px solid ${Q.red}`,borderRadius:8,padding:"5px 10px",
-              cursor:"pointer",color:Q.red,fontSize:11,fontWeight:700,flexShrink:0,
+              cursor:"pointer",color:Q.red,fontSize:12,fontWeight:700,flexShrink:0,
               fontFamily:F_BODY}}>Borrar</button>
           </div>
           {c.origen==="admin"&&(
-            <div style={{color:Q.dim,fontSize:10,
+            <div style={{color:Q.dim,fontSize:12,
               fontFamily:F_BODY}}>
               Agencias: {c.agencias}</div>
           )}
@@ -1534,7 +1534,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
           color:Q.text,fontSize:16,marginBottom:12,
           fontFamily:F_BODY}}/>
 
-      <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",letterSpacing:1,
+      <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
         marginBottom:6,fontFamily:F_BODY}}>Dónde se muestra</div>
       <div style={{display:"flex",gap:6,marginBottom:8}}>
         {[["Box",destBox,setDestBox],["App",destApp,setDestApp],
@@ -1581,13 +1581,13 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
           {destinatarios.subs.length>0&&(
             <div style={{marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                <span style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
+                <span style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
                   fontFamily:F_BODY}}>🏢 Agencias</span>
                 <button onClick={()=>{setTodosSubs(v=>!v); if(!todosSubs)setDestSubs([]);}}
                   style={{background:todosSubs?`${Q.green}22`:"rgba(255,255,255,0.05)",
                     border:`1px solid ${todosSubs?Q.green:Q.border}`,borderRadius:8,
                     padding:"4px 10px",cursor:"pointer",color:todosSubs?Q.green:Q.muted,
-                    fontSize:10,fontWeight:700,fontFamily:F_BODY}}>
+                    fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                   {todosSubs?"✓ Todas":"Todas"}</button>
               </div>
               {!todosSubs&&<div style={{display:"flex",flexWrap:"wrap",gap:6}}>
@@ -1596,7 +1596,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                     style={{background:destSubs.includes(x.code)?`${Q.violet}33`:"rgba(255,255,255,0.04)",
                       border:`1px solid ${destSubs.includes(x.code)?Q.violet:Q.border}`,borderRadius:8,
                       padding:"6px 10px",cursor:"pointer",color:destSubs.includes(x.code)?Q.text:Q.muted,
-                      fontSize:11,fontFamily:F_BODY}}>
+                      fontSize:12,fontFamily:F_BODY}}>
                     {destSubs.includes(x.code)?"✓ ":""}{x.name}</button>
                 ))}
               </div>}
@@ -1606,13 +1606,13 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
           {destinatarios.influencers.length>0&&(
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                <span style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
+                <span style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
                   fontFamily:F_BODY}}>🌟 Influencers</span>
                 <button onClick={()=>{setTodosInfs(v=>!v); if(!todosInfs)setDestInfs([]);}}
                   style={{background:todosInfs?`${Q.green}22`:"rgba(255,255,255,0.05)",
                     border:`1px solid ${todosInfs?Q.green:Q.border}`,borderRadius:8,
                     padding:"4px 10px",cursor:"pointer",color:todosInfs?Q.green:Q.muted,
-                    fontSize:10,fontWeight:700,fontFamily:F_BODY}}>
+                    fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                   {todosInfs?"✓ Todos":"Todos"}</button>
               </div>
               {!todosInfs&&<div style={{display:"flex",flexWrap:"wrap",gap:6}}>
@@ -1621,7 +1621,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                     style={{background:destInfs.includes(x.code)?`${Q.violet}33`:"rgba(255,255,255,0.04)",
                       border:`1px solid ${destInfs.includes(x.code)?Q.violet:Q.border}`,borderRadius:8,
                       padding:"6px 10px",cursor:"pointer",color:destInfs.includes(x.code)?Q.text:Q.muted,
-                      fontSize:11,fontFamily:F_BODY}}>
+                      fontSize:12,fontFamily:F_BODY}}>
                     {destInfs.includes(x.code)?"✓ ":""}{x.name}</button>
                 ))}
               </div>}
@@ -1662,7 +1662,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                       background:tiene(ev,opt.l)?`${Q.cyan}33`:"rgba(255,255,255,0.04)",
                       border:`1.5px solid ${tiene(ev,opt.l)?Q.cyan:Q.border}`,
                       borderRadius:8,padding:"6px 3px",cursor:"pointer",textAlign:"center"}}>
-                      <div style={{color:Q.muted,fontSize:8,overflow:"hidden",
+                      <div style={{color:Q.muted,fontSize:12,overflow:"hidden",
                         textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{opt.l}</div>
                       <div style={{color:tiene(ev,opt.l)?Q.cyan:Q.text,fontWeight:700,
                         fontSize:13,fontFamily:F_BODY}}>{opt.o}</div>
@@ -1728,7 +1728,7 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
   return(
     <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${Q.dim}`}}>
       {(pick.home_real||pick.away_real)&&(
-        <div style={{color:Q.muted,fontSize:10,marginBottom:8,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:8,
           fontFamily:F_BODY}}>
           En el sistema: <span style={{color:Q.cyan}}>{pick.home_real} vs {pick.away_real}</span>
         </div>
@@ -1736,7 +1736,7 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
       {/* Candidatos parecidos (cuando no encontró el partido) */}
       {(pick.candidatos&&pick.candidatos.length>0)&&(
         <div style={{marginBottom:10}}>
-          <div style={{color:Q.amber,fontSize:10,marginBottom:6,
+          <div style={{color:Q.amber,fontSize:12,marginBottom:6,
             fontFamily:F_BODY}}>
             ¿Quisiste decir alguno de estos?
           </div>
@@ -1751,7 +1751,7 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
                     borderRadius:7,padding:"5px 9px",cursor:"pointer",
-                    color:Q.cyan,fontSize:11,fontWeight:600,
+                    color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
                 ))}
@@ -1766,17 +1766,17 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
           background:modo==="seleccion"?`${Q.violet}33`:"rgba(255,255,255,0.04)",
           border:`1px solid ${modo==="seleccion"?Q.violet:Q.border}`,borderRadius:8,
           padding:"7px",cursor:"pointer",color:modo==="seleccion"?Q.cyan:Q.muted,
-          fontSize:11,fontWeight:700,fontFamily:F_BODY}}>Selección</button>
+          fontSize:12,fontWeight:700,fontFamily:F_BODY}}>Selección</button>
         <button onClick={()=>setModo("partido")} style={{flex:1,
           background:modo==="partido"?`${Q.violet}33`:"rgba(255,255,255,0.04)",
           border:`1px solid ${modo==="partido"?Q.violet:Q.border}`,borderRadius:8,
           padding:"7px",cursor:"pointer",color:modo==="partido"?Q.cyan:Q.muted,
-          fontSize:11,fontWeight:700,fontFamily:F_BODY}}>Otro partido</button>
+          fontSize:12,fontWeight:700,fontFamily:F_BODY}}>Otro partido</button>
       </div>
 
       {modo==="seleccion"&&(
         <div>
-          {opciones.length===0&&<div style={{color:Q.muted,fontSize:11,marginBottom:8,
+          {opciones.length===0&&<div style={{color:Q.muted,fontSize:12,marginBottom:8,
             fontFamily:F_BODY}}>Sin opciones. Probá "Otro partido".</div>}
           {opciones.map((op,k)=>(
             <button key={k} onClick={()=>elegirOpcion(op)} style={{width:"100%",
@@ -1816,7 +1816,7 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
                   <button key={j} onClick={()=>elegirNuevo(ev,op)} style={{
                     background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
                     borderRadius:7,padding:"5px 9px",cursor:"pointer",
-                    color:Q.cyan,fontSize:11,fontWeight:600,
+                    color:Q.cyan,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>
                     {op.sel} · {fmt(op.odd)}</button>
                 ))}
@@ -1834,7 +1834,7 @@ function CorregirPickAdmin({ pick, adminKey, onAplicar, onQuitar }){
             color:Q.text,fontSize:13,fontFamily:F_BODY}}/>
         <button onClick={onQuitar} style={{background:`${Q.red}18`,
           border:`1px solid ${Q.red}`,borderRadius:8,padding:"8px 12px",
-          cursor:"pointer",color:Q.red,fontSize:11,fontWeight:700,
+          cursor:"pointer",color:Q.red,fontSize:12,fontWeight:700,
           fontFamily:F_BODY}}>Quitar</button>
       </div>
     </div>
@@ -1939,7 +1939,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                 objectFit:"cover",borderRadius:8,border:`1px solid ${Q.border}`}}/>
               <button onClick={()=>quitarImg(i)} style={{position:"absolute",
                 top:-6,right:-6,width:20,height:20,borderRadius:"50%",
-                background:Q.red,border:"none",color:"#fff",fontSize:11,
+                background:Q.red,border:"none",color:"#fff",fontSize:12,
                 cursor:"pointer",lineHeight:1}}>✕</button>
             </div>
           ))}
@@ -1992,7 +1992,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
             <GCard key={i} style={{padding:"10px 12px",marginBottom:6}}>
               <div style={{color:Q.text,fontSize:12,fontWeight:600,
                 fontFamily:F_BODY}}>{p.home} vs {p.away}</div>
-              <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>{p.selection}</div>
+              <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>{p.selection}</div>
               <div style={{display:"flex",gap:12,fontSize:12,marginBottom:6,
                 fontFamily:F_BODY}}>
                 {p.odd_original&&<span style={{color:Q.dim}}>Origen {fmt(p.odd_original)}</span>}
@@ -2005,7 +2005,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                 background:corrigiendo===i?`${Q.cyan}22`:"transparent",
                 border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:8,
                 padding:"5px 10px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
-                fontSize:10,fontWeight:700,fontFamily:F_BODY}}>
+                fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                 {corrigiendo===i?"✕ Cerrar":"✏️ Está mal / Corregir"}</button>
               {corrigiendo===i&&(
                 <CorregirPickAdmin pick={p} adminKey={adminKey}
@@ -2024,7 +2024,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                   color:Q.text,fontSize:16,marginBottom:10,
                   fontFamily:F_BODY}}/>
 
-              <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
+              <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
                 letterSpacing:1,marginBottom:5,
                 fontFamily:F_BODY}}>Qué cuota usar</div>
               <div style={{display:"flex",gap:6,marginBottom:10}}>
@@ -2032,17 +2032,17 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                   background:usarAjustada?`${Q.green}22`:"rgba(255,255,255,0.04)",
                   border:`1.5px solid ${usarAjustada?Q.green:Q.border}`,borderRadius:9,
                   padding:"9px",cursor:"pointer",color:usarAjustada?Q.green:Q.muted,
-                  fontSize:11,fontWeight:700,
+                  fontSize:12,fontWeight:700,
                   fontFamily:F_BODY}}>Nuestra (ajustada)</button>
                 <button onClick={()=>setUsarAjustada(false)} style={{flex:1,
                   background:!usarAjustada?`${Q.amber}22`:"rgba(255,255,255,0.04)",
                   border:`1.5px solid ${!usarAjustada?Q.amber:Q.border}`,borderRadius:9,
                   padding:"9px",cursor:"pointer",color:!usarAjustada?Q.amber:Q.muted,
-                  fontSize:11,fontWeight:700,
+                  fontSize:12,fontWeight:700,
                   fontFamily:F_BODY}}>Original</button>
               </div>
 
-              <div style={{color:Q.muted,fontSize:10,textTransform:"uppercase",
+              <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
                 letterSpacing:1,marginBottom:5,
                 fontFamily:F_BODY}}>Dónde publicar</div>
               <div style={{display:"flex",gap:6,marginBottom:12}}>
@@ -2052,7 +2052,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
                     background:v?`${Q.violet}33`:"rgba(255,255,255,0.04)",
                     border:`1.5px solid ${v?Q.violet:Q.border}`,borderRadius:9,
                     padding:"9px",cursor:"pointer",color:v?Q.cyan:Q.muted,
-                    fontSize:11,fontWeight:v?700:400,
+                    fontSize:12,fontWeight:v?700:400,
                     fontFamily:F_BODY}}>{v?"✓ ":""}{l}</button>
                 ))}
               </div>
@@ -2092,15 +2092,15 @@ function CodigoReserva({ code, compacto=false, vence=null }){
       padding:compacto?"10px 12px":"14px",marginTop:8,
       display:"flex",alignItems:"center",gap:12}}>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:9,letterSpacing:1.4,color:Q.dim,
+        <div style={{fontSize:12,letterSpacing:1.4,color:Q.dim,
           fontWeight:700}}>CÓDIGO DE RESERVA</div>
         <div onClick={copiar} style={{fontFamily:F_BODY,
           fontSize:compacto?26:32,fontWeight:700,color:Q.gold,
           letterSpacing:1.5,lineHeight:1.1,cursor:"pointer"}}>
           {code}</div>
-        <div style={{fontSize:10,color:copiado?Q.green:Q.muted,marginTop:2}}>
+        <div style={{fontSize:12,color:copiado?Q.green:Q.muted,marginTop:2}}>
           {copiado?"✓ Copiado":"Tocá para copiar · Presentalo en la agencia"}</div>
-        {vence&&<div style={{fontSize:9.5,color:Q.amber,marginTop:2}}>
+        {vence&&<div style={{fontSize:12,color:Q.amber,marginTop:2}}>
           Vence {vence}</div>}
       </div>
       <img alt={`Código QR ${code}`} loading="lazy"
@@ -2167,7 +2167,7 @@ function DetalleApuesta({ code, adminKey, onCerrar, onNoAutorizado }){
             {(d.picks||[]).map((p,i)=>(
               <div key={i} style={{padding:"9px 0",
                 borderTop:`1px solid ${Q.border}`}}>
-                <div style={{color:Q.muted,fontSize:10.5}}>
+                <div style={{color:Q.muted,fontSize:12}}>
                   {p.home} — {p.away}</div>
                 <div style={{display:"flex",justifyContent:"space-between",
                   alignItems:"baseline",gap:8,marginTop:2}}>
@@ -2178,7 +2178,7 @@ function DetalleApuesta({ code, adminKey, onCerrar, onNoAutorizado }){
                     {Number(p.odd||0).toFixed(2)}</span>
                 </div>
                 {p.event_id&&(
-                  <div style={{color:Q.dim,fontSize:9,marginTop:2}}>
+                  <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                     id {String(p.event_id).slice(0,26)}</div>
                 )}
               </div>
@@ -2198,7 +2198,7 @@ function DetalleApuesta({ code, adminKey, onCerrar, onNoAutorizado }){
             </div>
 
             {!(d.picks||[]).some(p=>p.event_id)&&(
-              <div style={{marginTop:12,color:Q.amber,fontSize:10.5,
+              <div style={{marginTop:12,color:Q.amber,fontSize:12,
                 lineHeight:1.5}}>
                 Esta apuesta no guardó el identificador del evento, así que
                 la liquidación automática no la puede cruzar por ID. Hay que
@@ -2317,21 +2317,21 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                 <div>
                   <div style={{color:Q.text,fontWeight:700,fontSize:18,
                     fontFamily:F_BODY}}>{f.nombre}</div>
-                  <div style={{color:Q.muted,fontSize:11,marginTop:2}}>
+                  <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
                     {f.es_directo
                       ? "📱 Cliente de Telegram (sin agencia)"
                       : `${f.agencia_nombre} (${f.agencia})`}
                     {f.telefono?` · ${f.telefono}`:""}</div>
-                  <div style={{color:Q.dim,fontSize:10,marginTop:1}}>
+                  <div style={{color:Q.dim,fontSize:12,marginTop:1}}>
                     Cliente desde {f.creado}</div>
                 </div>
                 {f.es_directo&&<span style={{background:`${Q.cyan}22`,
                   border:`1px solid ${Q.cyan}`,borderRadius:20,padding:"3px 10px",
-                  fontSize:10,fontWeight:700,color:Q.cyan,
+                  fontSize:12,fontWeight:700,color:Q.cyan,
                   fontFamily:F_BODY}}>📱 DIRECTO</span>}
                 {f.bloqueado&&<span style={{background:`${Q.red}22`,
                   border:`1px solid ${Q.red}`,borderRadius:20,padding:"3px 10px",
-                  fontSize:10,fontWeight:700,color:Q.red,
+                  fontSize:12,fontWeight:700,color:Q.red,
                   fontFamily:F_BODY}}>🔒 BLOQUEADO</span>}
               </div>
               <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${Q.dim}`,
@@ -2348,22 +2348,22 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
               <GCard style={{padding:"10px",textAlign:"center"}}>
                 <div style={{color:Q.cyan,fontWeight:700,fontSize:14,
                   fontFamily:F_BODY}}>{ars(f.rendimiento.apostado)}</div>
-                <div style={{color:Q.muted,fontSize:9}}>Apostado</div>
+                <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
               </GCard>
               <GCard style={{padding:"10px",textAlign:"center"}}>
                 <div style={{color:Q.violet2,fontWeight:700,fontSize:14,
                   fontFamily:F_BODY}}>{ars(f.rendimiento.ganado)}</div>
-                <div style={{color:Q.muted,fontSize:9}}>Ganado</div>
+                <div style={{color:Q.muted,fontSize:12}}>Ganado</div>
               </GCard>
               <GCard style={{padding:"10px",textAlign:"center"}}>
                 <div style={{color:f.rendimiento.neto_cliente>=0?Q.green:Q.red,
                   fontWeight:700,fontSize:14,fontFamily:F_BODY}}>
                   {ars(f.rendimiento.neto_cliente)}</div>
-                <div style={{color:Q.muted,fontSize:9}}>Neto</div>
+                <div style={{color:Q.muted,fontSize:12}}>Neto</div>
               </GCard>
             </div>
             <div style={{display:"flex",gap:8,marginBottom:14,
-              fontSize:11,fontFamily:F_BODY}}>
+              fontSize:12,fontFamily:F_BODY}}>
               <span style={{color:Q.green}}>{f.rendimiento.ganadas} ganadas</span>
               <span style={{color:Q.red}}>{f.rendimiento.perdidas} perdidas</span>
               <span style={{color:Q.amber}}>{f.rendimiento.pendientes} pendientes</span>
@@ -2379,7 +2379,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                   <span style={{color:Q.text,fontWeight:700,fontSize:13,
                     fontFamily:F_BODY}}>
                     <Icon name="wallet-cards" size={14}/> Movimientos de saldo</span>
-                  <span style={{color:Q.dim,fontSize:10}}>
+                  <span style={{color:Q.dim,fontSize:12}}>
                     +{ars(f.cargado||0)} / −{ars(f.retirado||0)}</span>
                 </div>
                 {(f.movimientos||[]).slice(0,8).map((m,i)=>(
@@ -2393,7 +2393,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                         {{carga:"Carga",retiro:"Retiro",
                           descarga:"Retiro",
                           pago_premio:"Premio pagado"}[m.tipo]||m.tipo}</div>
-                      <div style={{color:Q.dim,fontSize:9.5}}>
+                      <div style={{color:Q.dim,fontSize:12}}>
                         {m.fecha}{m.operador&&` · ${m.operador}`}
                         {m.detalle&&` · ${m.detalle}`}</div>
                     </div>
@@ -2416,7 +2416,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
               {(f.apuestas||[]).length>6&&(
                 <button onClick={()=>setTodasApuestas(v=>!v)}
                   style={{background:"transparent",border:"none",color:Q.cyan,
-                    fontSize:11,fontWeight:700,cursor:"pointer",padding:0}}>
+                    fontSize:12,fontWeight:700,cursor:"pointer",padding:0}}>
                   {todasApuestas?"Ver menos":`Ver las ${f.apuestas.length}`}</button>
               )}
             </div>
@@ -2447,14 +2447,14 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                     <div style={{minWidth:0,flex:1}}>
                       <div style={{color:Q.text,fontWeight:700,fontSize:12.5,
                         fontFamily:F_BODY}}>{a.code}</div>
-                      <div style={{color:Q.muted,fontSize:10,marginTop:2}}>
+                      <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
                         {a.fecha} · cuota {Number(a.odd||0).toFixed(2)}</div>
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
                       <div style={{color:Q.text,fontSize:12,
                         fontFamily:F_BODY}}>
                         {ars(a.stake)}</div>
-                      <div style={{color:col,fontSize:10,fontWeight:700}}>
+                      <div style={{color:col,fontSize:12,fontWeight:700}}>
                         {etiqueta}</div>
                     </div>
                     <span style={{color:Q.dim,fontSize:14}}>›</span>
@@ -2499,7 +2499,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
             <GCard glow={f.bloqueado?Q.green:Q.red} style={{padding:14,marginBottom:12}}>
               {f.bloqueado?(
                 <div>
-                  <div style={{color:Q.muted,fontSize:11,marginBottom:8,
+                  <div style={{color:Q.muted,fontSize:12,marginBottom:8,
                     fontFamily:F_BODY}}>
                     Bloqueado por {f.bloqueado_por||"—"}
                     {f.bloqueado_motivo?` · ${f.bloqueado_motivo}`:""}</div>
@@ -2511,7 +2511,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                   <div style={{color:Q.red,fontWeight:700,fontSize:13,marginBottom:8,
                     fontFamily:F_BODY}}>
                     ¿Bloquear a {f.nombre}?</div>
-                  <div style={{color:Q.muted,fontSize:11,marginBottom:8,
+                  <div style={{color:Q.muted,fontSize:12,marginBottom:8,
                     fontFamily:F_BODY}}>
                     No va a poder apostar hasta que lo desbloquees.</div>
                   <input value={motivo} onChange={e=>setMotivo(e.target.value)}
@@ -2560,11 +2560,11 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{color:Q.text,fontSize:12,fontWeight:600,
                       fontFamily:F_BODY}}>{b.code}</div>
-                    <div style={{color:Q.muted,fontSize:10}}>
+                    <div style={{color:Q.muted,fontSize:12}}>
                       {ars(b.stake)} · {fmt(b.odd)}x · {b.fecha}</div>
                   </div>
                   <span style={{background:`${e.c}22`,border:`1px solid ${e.c}`,
-                    borderRadius:20,padding:"2px 8px",fontSize:9,fontWeight:700,
+                    borderRadius:20,padding:"2px 8px",fontSize:12,fontWeight:700,
                     color:e.c,flexShrink:0,
                     fontFamily:F_BODY}}>{e.t}</span>
                 </div>
@@ -2701,9 +2701,9 @@ function TabClientes({ adminKey, onNoAutorizado }){
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:Q.text,fontWeight:600,fontSize:13,
                 fontFamily:F_BODY}}>{c.nombre}
-                {c.bloqueado&&<span style={{color:Q.red,fontSize:10,marginLeft:6}}>🔒 bloqueado</span>}
+                {c.bloqueado&&<span style={{color:Q.red,fontSize:12,marginLeft:6}}>🔒 bloqueado</span>}
               </div>
-              <div style={{color:Q.muted,fontSize:10}}>
+              <div style={{color:Q.muted,fontSize:12}}>
                 {c.agencia_nombre} ({c.agencia}) · {c.fecha}</div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
@@ -2747,7 +2747,7 @@ function TabArbol({ adminKey, onNoAutorizado }){
     <div>
       <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
         fontFamily:F_BODY}}><Icon name="network" size={14}/> Árbol de agencias</div>
-      <div style={{color:Q.muted,fontSize:11,marginBottom:14,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:14,
         fontFamily:F_BODY}}>
         {ags.length} agencias en total. La sangría muestra la jerarquía.
       </div>
@@ -2767,18 +2767,18 @@ function TabArbol({ adminKey, onNoAutorizado }){
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>
                   {a.nivel>0?"└ ":""}{a.name}</div>
-                <div style={{color:Q.muted,fontSize:10,marginTop:1}}>
+                <div style={{color:Q.muted,fontSize:12,marginTop:1}}>
                   {a.code} · {a.moneda} · nivel {a.nivel}
                   {a.parent_code
                     ? ` · cuelga de ${(ags.find(x=>x.code===a.parent_code)||{}).name||a.parent_code}`
                     : " · raíz"}</div>
               </div>
               <div style={{textAlign:"right",flexShrink:0}}>
-                <div style={{color:Q.cyan,fontSize:11,fontWeight:700,
+                <div style={{color:Q.cyan,fontSize:12,fontWeight:700,
                   fontFamily:F_BODY}}>GGR {fmt(a.pct_ggr)}%</div>
-                <div style={{color:Q.violet2,fontSize:11,
+                <div style={{color:Q.violet2,fontSize:12,
                   fontFamily:F_BODY}}>Ventas {fmt(a.pct_ventas)}%</div>
-                <div style={{color:(a.saldo_cc||0)>=0?Q.green:Q.red,fontSize:11,
+                <div style={{color:(a.saldo_cc||0)>=0?Q.green:Q.red,fontSize:12,
                   fontWeight:700,fontFamily:F_BODY}}>
                   CC {ars(a.saldo_cc)}</div>
               </div>
@@ -2991,7 +2991,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
             background:!fDeporte?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${!fDeporte?Q.violet:Q.border}`,borderRadius:8,
             padding:"7px 13px",cursor:"pointer",whiteSpace:"nowrap",
-            color:!fDeporte?Q.cyan:Q.muted,fontSize:11.5,
+            color:!fDeporte?Q.cyan:Q.muted,fontSize:12,
             fontWeight:!fDeporte?700:400,
             fontFamily:F_BODY}}>Todos</button>
           {catalogo.map(c=>(
@@ -3002,10 +3002,10 @@ function TabEventos({ adminKey, onNoAutorizado }){
               border:`1px solid ${fDeporte===c.key?Q.violet:Q.border}`,
               borderRadius:8,padding:"7px 13px",cursor:"pointer",
               whiteSpace:"nowrap",color:fDeporte===c.key?Q.cyan:Q.muted,
-              fontSize:11.5,fontWeight:fDeporte===c.key?700:400,
+              fontSize:12,fontWeight:fDeporte===c.key?700:400,
               fontFamily:F_BODY}}>
               {c.icon||""} {c.nombre}
-              <span style={{color:Q.dim,fontSize:9,marginLeft:4}}>
+              <span style={{color:Q.dim,fontSize:12,marginLeft:4}}>
                 {c.eventos}</span></button>
           ))}
         </div>
@@ -3050,7 +3050,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
               fontFamily:F_BODY}}>
               <Icon name="triangle-alert" size={13}/> {bloqueos.length} {bloqueos.length===1?"bloqueo activo"
                 :"bloqueos activos"}</span>
-            <span style={{color:Q.muted,fontSize:11}}>
+            <span style={{color:Q.muted,fontSize:12}}>
               {verBloqueos?"▲":"▼"}</span>
           </div>
 
@@ -3059,12 +3059,12 @@ function TabEventos({ adminKey, onNoAutorizado }){
               justifyContent:"space-between",alignItems:"center",gap:8,
               padding:"8px 0",borderTop:`1px solid ${Q.border}`,marginTop:8}}>
               <div style={{minWidth:0,flex:1}}>
-                <div style={{color:Q.text,fontSize:11.5,
+                <div style={{color:Q.text,fontSize:12,
                   fontFamily:F_BODY}}>
                   {b.objeto==="deporte"?`Deporte: ${b.sport_key}`
                     :(b.etiqueta||b.event_id)}
                   {b.mercado?` · ${b.mercado}`:""}</div>
-                <div style={{color:Q.dim,fontSize:9.5,marginTop:1}}>
+                <div style={{color:Q.dim,fontSize:12,marginTop:1}}>
                   {b.alcance==="global"?"Todo el sistema"
                     :`${b.agencia_nombre||b.agencia}${b.alcance==="rama"
                         ?" y su rama":""}`}
@@ -3074,7 +3074,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
               <button onClick={()=>quitar(b.id)} style={{
                 background:"transparent",border:`1px solid ${Q.green}66`,
                 borderRadius:7,padding:"5px 11px",cursor:"pointer",
-                color:Q.green,fontSize:10,flexShrink:0,
+                color:Q.green,fontSize:12,flexShrink:0,
                 fontFamily:F_BODY}}>Quitar</button>
             </div>
           ))}
@@ -3092,11 +3092,11 @@ function TabEventos({ adminKey, onNoAutorizado }){
               justifyContent:"space-between",alignItems:"center",gap:8,
               padding:"7px 0",borderTop:`1px solid ${Q.border}`}}>
               <div style={{minWidth:0,flex:1}}>
-                <div style={{color:Q.text,fontSize:11.5,
+                <div style={{color:Q.text,fontSize:12,
                   fontFamily:F_BODY}}>
                   {a.etiqueta||a.event_id}
                   {a.mercado?` · ${a.mercado}`:""}</div>
-                <div style={{color:Q.dim,fontSize:9.5,marginTop:1}}>
+                <div style={{color:Q.dim,fontSize:12,marginTop:1}}>
                   {a.cuota_fija?`fija en ${a.cuota_fija}`
                     :`${a.ajuste_pct}%`}
                   {a.alcance==="global"?" · todos"
@@ -3106,7 +3106,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
               <button onClick={()=>quitarAjuste(a.id)} style={{
                 background:"transparent",border:`1px solid ${Q.border}`,
                 borderRadius:7,padding:"5px 11px",cursor:"pointer",
-                color:Q.muted,fontSize:10,flexShrink:0,
+                color:Q.muted,fontSize:12,flexShrink:0,
                 fontFamily:F_BODY}}>Quitar</button>
             </div>
           ))}
@@ -3146,14 +3146,14 @@ function TabEventos({ adminKey, onNoAutorizado }){
                   {bloq&&<span style={{color:Q.red,marginRight:4}}><Icon name="triangle-alert" size={11}/></span>}
                   {!bloq&&aju&&<span style={{color:Q.amber,marginRight:4}}>📉</span>}
                   {ev.home} vs {ev.away}</div>
-                <div style={{color:Q.muted,fontSize:10,flexShrink:0}}>
+                <div style={{color:Q.muted,fontSize:12,flexShrink:0}}>
                   {ev.minute||ev.time}</div>
               </div>
               <div style={{display:"flex",gap:6}}>
                 {[["1",ev.L],["X",ev.E],["2",ev.V]].map(([l,v])=>(
                   <div key={l} style={{flex:1,textAlign:"center",
                     background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"6px 2px"}}>
-                    <div style={{color:Q.muted,fontSize:9}}>{l}</div>
+                    <div style={{color:Q.muted,fontSize:12}}>{l}</div>
                     <div style={{color:v?Q.cyan:Q.dim,fontWeight:700,fontSize:13,
                       fontFamily:F_BODY}}>{v?fmt(v):"—"}</div>
                   </div>
@@ -3164,7 +3164,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                 <div style={{display:"flex",justifyContent:"space-between",
                   alignItems:"center",marginTop:7,paddingTop:7,
                   borderTop:`1px solid ${Q.border}`,gap:8}}>
-                  <div style={{color:Q.amber,fontSize:10,minWidth:0,flex:1}}>
+                  <div style={{color:Q.amber,fontSize:12,minWidth:0,flex:1}}>
                     Cuota {aju.cuota_fija?`fijada en ${aju.cuota_fija}`
                       :`bajada ${Math.abs(aju.ajuste_pct)}%`}
                     {aju.alcance!=="global"?` · ${aju.agencia}`:" · para todos"}
@@ -3172,7 +3172,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                   <button onClick={()=>quitarAjuste(aju.id)} style={{
                     background:"transparent",border:`1px solid ${Q.border}`,
                     borderRadius:7,padding:"4px 10px",cursor:"pointer",
-                    color:Q.muted,fontSize:10,flexShrink:0,
+                    color:Q.muted,fontSize:12,flexShrink:0,
                     fontFamily:F_BODY}}>Quitar</button>
                 </div>
               )}
@@ -3187,7 +3187,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                       [ev.event_id]:!v[ev.event_id]}))}
                     style={{display:"flex",justifyContent:"space-between",
                       alignItems:"center",cursor:"pointer"}}>
-                    <span style={{color:Q.muted,fontSize:10.5,
+                    <span style={{color:Q.muted,fontSize:12,
                       fontFamily:F_BODY}}>
                       {ev.mercados.length} mercados
                       {mercadosBloqueados(ev.event_id).length>0&&(
@@ -3196,7 +3196,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                           {mercadosBloqueados(ev.event_id).length>1?"s":""}</span>
                       )}
                     </span>
-                    <span style={{color:Q.dim,fontSize:10}}>
+                    <span style={{color:Q.dim,fontSize:12}}>
                       {verMercados[ev.event_id]?"▲":"▼"}</span>
                   </div>
 
@@ -3212,7 +3212,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                             style={{background:`${Q.red}18`,
                               border:`1px solid ${Q.red}`,borderRadius:7,
                               padding:"5px 10px",cursor:"pointer",
-                              color:Q.red,fontSize:10.5,
+                              color:Q.red,fontSize:12,
                               fontFamily:F_BODY}}>
                             <Icon name="triangle-alert" size={12}/> {m}</button>
                         ):(
@@ -3222,7 +3222,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                             style={{background:"rgba(255,255,255,0.04)",
                               border:`1px solid ${Q.border}`,borderRadius:7,
                               padding:"5px 10px",cursor:"pointer",
-                              color:Q.muted,fontSize:10.5,
+                              color:Q.muted,fontSize:12,
                               fontFamily:F_BODY}}>
                             {m}</button>
                         );
@@ -3236,7 +3236,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                 <div style={{display:"flex",justifyContent:"space-between",
                   alignItems:"center",marginTop:7,paddingTop:7,
                   borderTop:`1px solid ${Q.border}`,gap:8}}>
-                  <div style={{color:Q.red,fontSize:10,minWidth:0,flex:1}}>
+                  <div style={{color:Q.red,fontSize:12,minWidth:0,flex:1}}>
                     Bloqueado {bloq.alcance==="global"?"para todos"
                       :`en ${bloq.agencia}${bloq.alcance==="rama"?" y su rama":""}`}
                     {bloq.modo!=="ambos"?` · solo ${bloq.modo}`:""}
@@ -3244,7 +3244,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                   <button onClick={()=>quitar(bloq.id)} style={{
                     background:"transparent",border:`1px solid ${Q.green}66`,
                     borderRadius:7,padding:"4px 10px",cursor:"pointer",
-                    color:Q.green,fontSize:10,flexShrink:0,
+                    color:Q.green,fontSize:12,flexShrink:0,
                     fontFamily:F_BODY}}>Habilitar</button>
                 </div>
               ):(
@@ -3261,7 +3261,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                   style={{width:"100%",marginTop:7,background:"transparent",
                     border:`1px solid ${Q.border}`,borderRadius:7,
                     padding:"6px",cursor:ev.event_id?"pointer":"not-allowed",
-                    color:ev.event_id?Q.muted:Q.dim,fontSize:10.5,
+                    color:ev.event_id?Q.muted:Q.dim,fontSize:12,
                     fontFamily:F_BODY}}>
                   {ev.event_id?"🚫 Bloquear / limitar":"sin identificador"}</button>
               )}
@@ -3287,7 +3287,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                 <div style={{color:Q.text,fontWeight:800,fontSize:15,
                   fontFamily:F_BODY}}>
                   {panel.etiqueta}</div>
-                <div style={{color:Q.muted,fontSize:10.5}}>{panel.liga}</div>
+                <div style={{color:Q.muted,fontSize:12}}>{panel.liga}</div>
               </div>
               <button onClick={()=>setPanel(null)} style={{
                 background:"transparent",border:"none",color:Q.muted,
@@ -3298,7 +3298,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                 así que conviene saber la exposición antes de decidir:
                 si hay mucho en juego, el bloqueo llega tarde. */}
             {expo?.cargando&&(
-              <div style={{color:Q.muted,fontSize:11,textAlign:"center",
+              <div style={{color:Q.muted,fontSize:12,textAlign:"center",
                 padding:"8px 0",marginBottom:10,
                 fontFamily:F_BODY}}>
                 Revisando apuestas…</div>
@@ -3314,14 +3314,14 @@ function TabEventos({ adminKey, onNoAutorizado }){
                     fontFamily:F_BODY}}>
                     <Icon name="triangle-alert" size={12}/> {expo.total} {expo.total===1?"apuesta viva"
                       :"apuestas vivas"}</span>
-                  <span style={{color:Q.dim,fontSize:10}}>
+                  <span style={{color:Q.dim,fontSize:12}}>
                     apostado {ars(expo.apostado)}</span>
                 </div>
 
                 <div style={{display:"flex",justifyContent:"space-between",
                   alignItems:"baseline",paddingBottom:8,marginBottom:8,
                   borderBottom:`1px solid ${Q.border}`}}>
-                  <span style={{color:Q.muted,fontSize:11}}>
+                  <span style={{color:Q.muted,fontSize:12}}>
                     Si ganan todas, la casa paga</span>
                   <span style={{color:Q.red,fontWeight:800,fontSize:16,
                     fontFamily:F_BODY}}>
@@ -3330,7 +3330,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
 
                 {(expo.por_seleccion||[]).map(x=>(
                   <div key={x.seleccion} style={{display:"flex",
-                    justifyContent:"space-between",fontSize:10.5,
+                    justifyContent:"space-between",fontSize:12,
                     padding:"2px 0",color:Q.muted}}>
                     <span>{x.seleccion} · {x.apuestas}</span>
                     <span style={{color:Q.text,
@@ -3342,11 +3342,11 @@ function TabEventos({ adminKey, onNoAutorizado }){
                 {(expo.por_agencia||[]).length>0&&(
                   <div style={{marginTop:8,paddingTop:8,
                     borderTop:`1px solid ${Q.border}`}}>
-                    <div style={{color:Q.dim,fontSize:9,letterSpacing:0.6,
+                    <div style={{color:Q.dim,fontSize:12,letterSpacing:0.6,
                       marginBottom:3}}>ORIGEN</div>
                     {expo.por_agencia.map(a=>(
                       <div key={a.code} style={{display:"flex",
-                        justifyContent:"space-between",fontSize:10.5,
+                        justifyContent:"space-between",fontSize:12,
                         padding:"2px 0",color:Q.muted}}>
                         <span>{a.nombre} · {a.apuestas}</span>
                         <span style={{color:Q.text,
@@ -3360,11 +3360,11 @@ function TabEventos({ adminKey, onNoAutorizado }){
                 {(expo.top_clientes||[]).length>0&&(
                   <div style={{marginTop:8,paddingTop:8,
                     borderTop:`1px solid ${Q.border}`}}>
-                    <div style={{color:Q.dim,fontSize:9,letterSpacing:0.6,
+                    <div style={{color:Q.dim,fontSize:12,letterSpacing:0.6,
                       marginBottom:3}}>QUIÉNES</div>
                     {expo.top_clientes.slice(0,5).map((c,i)=>(
                       <div key={i} style={{display:"flex",
-                        justifyContent:"space-between",fontSize:10.5,
+                        justifyContent:"space-between",fontSize:12,
                         padding:"2px 0",color:Q.muted}}>
                         <span>{c.nombre}{c.apuestas>1?` (${c.apuestas})`:""}</span>
                         <span style={{color:Q.text,
@@ -3376,18 +3376,18 @@ function TabEventos({ adminKey, onNoAutorizado }){
                 )}
 
                 {(expo.avisos||[]).map((a,i)=>(
-                  <div key={i} style={{color:Q.red,fontSize:10.5,marginTop:8,
+                  <div key={i} style={{color:Q.red,fontSize:12,marginTop:8,
                     lineHeight:1.45,
                     fontFamily:F_BODY}}>▸ {a}</div>
                 ))}
 
-                <div style={{color:Q.dim,fontSize:9.5,marginTop:8,
+                <div style={{color:Q.dim,fontSize:12,marginTop:8,
                   lineHeight:1.45}}>{expo.nota}</div>
               </div>
             )}
 
             {expo&&!expo.cargando&&!expo.error&&expo.total===0&&(
-              <div style={{color:Q.green,fontSize:11,marginBottom:12,
+              <div style={{color:Q.green,fontSize:12,marginBottom:12,
                 textAlign:"center",
                 fontFamily:F_BODY}}>
                 Sin apuestas vivas en este evento</div>
@@ -3413,7 +3413,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
 
             {panel.accion==="ajustar"&&(
               <>
-                <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+                <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
                   marginBottom:5}}>CUÁNTO BAJAR</div>
                 <div style={{display:"flex",gap:6,marginBottom:10}}>
                   {[-10,-20,-30,-50].map(v=>(
@@ -3432,7 +3432,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
 
                 <div style={{display:"flex",alignItems:"center",gap:8,
                   marginBottom:12}}>
-                  <span style={{color:Q.muted,fontSize:11,flexShrink:0}}>
+                  <span style={{color:Q.muted,fontSize:12,flexShrink:0}}>
                     O cuota fija:</span>
                   <input value={panel.cuota_fija||""} inputMode="decimal"
                     onChange={e=>setPanel(p=>({...p,
@@ -3446,7 +3446,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                       fontFamily:F_BODY}}/>
                 </div>
 
-                <div style={{color:Q.dim,fontSize:10.5,marginBottom:12,
+                <div style={{color:Q.dim,fontSize:12,marginBottom:12,
                   lineHeight:1.5,fontFamily:F_BODY}}>
                   El ajuste solo puede bajar la cuota. Se aplica al crear
                   el boleto, así que el cliente ve la cuota ya ajustada.</div>
@@ -3454,7 +3454,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
             )}
 
             {/* Qué se bloquea */}
-            {panel.accion!=="ajustar"&&<div style={{color:Q.muted,fontSize:10,
+            {panel.accion!=="ajustar"&&<div style={{color:Q.muted,fontSize:12,
               letterSpacing:0.8,marginBottom:5}}>QUÉ SE BLOQUEA</div>}
             {panel.accion!=="ajustar"&&
             <div style={{display:"flex",gap:6,marginBottom:12}}>
@@ -3466,7 +3466,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                     :"rgba(255,255,255,0.04)",
                   border:`1px solid ${panel.objeto===k?Q.violet:Q.border}`,
                   borderRadius:8,padding:"9px 4px",cursor:"pointer",
-                  color:panel.objeto===k?Q.cyan:Q.muted,fontSize:10.5,
+                  color:panel.objeto===k?Q.cyan:Q.muted,fontSize:12,
                   fontWeight:panel.objeto===k?700:400,
                   fontFamily:F_BODY}}>{l}</button>
               ))}
@@ -3474,12 +3474,12 @@ function TabEventos({ adminKey, onNoAutorizado }){
 
             {panel.accion!=="ajustar"&&panel.objeto==="mercado"&&(
               <>
-                <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+                <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
                   marginBottom:5}}>CUÁL MERCADO</div>
                 <div style={{display:"flex",gap:5,flexWrap:"wrap",
                   marginBottom:12}}>
                   {(panel.mercados||[]).length===0&&(
-                    <div style={{color:Q.dim,fontSize:11}}>
+                    <div style={{color:Q.dim,fontSize:12}}>
                       Este evento no informa sus mercados.</div>
                   )}
                   {(panel.mercados||[]).map(m=>(
@@ -3488,7 +3488,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                         :"rgba(255,255,255,0.04)",
                       border:`1px solid ${panel.mercado===m?Q.violet:Q.border}`,
                       borderRadius:7,padding:"6px 11px",cursor:"pointer",
-                      color:panel.mercado===m?Q.cyan:Q.muted,fontSize:11,
+                      color:panel.mercado===m?Q.cyan:Q.muted,fontSize:12,
                       fontFamily:F_BODY}}>{m}</button>
                   ))}
                 </div>
@@ -3496,7 +3496,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
             )}
 
             {/* Dónde aplica */}
-            <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+            <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
               marginBottom:5}}>DÓNDE APLICA</div>
             <div style={{display:"flex",gap:6,marginBottom:10}}>
               {[["global","Todo el sistema"],["rama","Una rama"],
@@ -3507,7 +3507,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                     :"rgba(255,255,255,0.04)",
                   border:`1px solid ${panel.alcance===k?Q.violet:Q.border}`,
                   borderRadius:8,padding:"9px 4px",cursor:"pointer",
-                  color:panel.alcance===k?Q.cyan:Q.muted,fontSize:10.5,
+                  color:panel.alcance===k?Q.cyan:Q.muted,fontSize:12,
                   fontWeight:panel.alcance===k?700:400,
                   fontFamily:F_BODY}}>{l}</button>
               ))}
@@ -3529,7 +3529,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
             )}
 
             {/* Cuándo */}
-            <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+            <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
               marginBottom:5}}>CUÁNDO</div>
             <div style={{display:"flex",gap:6,marginBottom:12}}>
               {[["ambos","Siempre"],["prematch","Solo previa"],
@@ -3540,7 +3540,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
                     :"rgba(255,255,255,0.04)",
                   border:`1px solid ${panel.modo===k?Q.violet:Q.border}`,
                   borderRadius:8,padding:"9px 4px",cursor:"pointer",
-                  color:panel.modo===k?Q.cyan:Q.muted,fontSize:10.5,
+                  color:panel.modo===k?Q.cyan:Q.muted,fontSize:12,
                   fontWeight:panel.modo===k?700:400,
                   fontFamily:F_BODY}}>{l}</button>
               ))}
@@ -3556,7 +3556,7 @@ function TabEventos({ adminKey, onNoAutorizado }){
 
             <div style={{background:`${Q.amber}12`,
               border:`1px solid ${Q.amber}44`,borderRadius:8,
-              padding:"9px 11px",marginBottom:12,fontSize:10.5,
+              padding:"9px 11px",marginBottom:12,fontSize:12,
               color:Q.amber,lineHeight:1.5,
               fontFamily:F_BODY}}>
               {panel.accion==="ajustar"
@@ -3616,7 +3616,7 @@ function TabDash(){
 
       <GCard glow={Q.green} style={{padding:16,marginBottom:12,
         background:`linear-gradient(135deg,${Q.green}10,${Q.violet}06)`}}>
-        <div style={{color:Q.muted,fontSize:9,letterSpacing:2,textTransform:"uppercase",
+        <div style={{color:Q.muted,fontSize:12,letterSpacing:2,textTransform:"uppercase",
           fontFamily:F_BODY,marginBottom:3}}>NET WIN 30 DÍAS</div>
         <div style={{color:Q.green,fontWeight:900,fontSize:26,
           fontFamily:F_BODY,textShadow:`0 0 14px ${Q.green}66`}}>
@@ -3655,7 +3655,7 @@ function TabDash(){
             <div>
               <div style={{color:Q.violet2,fontWeight:700,fontSize:12,
                 fontFamily:F_BODY}}>@{inf.influencer_code}</div>
-              <div style={{color:Q.muted,fontSize:10}}>
+              <div style={{color:Q.muted,fontSize:12}}>
                 {inf.clics} clics · {inf.registros} registros · {inf.apuestas} apuestas
               </div>
             </div>
@@ -3710,7 +3710,7 @@ function HistorialImpresiones({ adminKey, onCerrar, onNoAutorizado }){
                   fontFamily:F_BODY}}>
                   {tipoTxt[im.tipo]||im.tipo}
                   {im.referencia?<span style={{color:Q.cyan,fontWeight:400}}> · {im.referencia}</span>:null}</div>
-                <div style={{color:Q.muted,fontSize:10}}>
+                <div style={{color:Q.muted,fontSize:12}}>
                   {im.agencia} · por {im.quien} · {im.fecha}</div>
               </div>
               <span style={{fontSize:16}}>🖨️</span>
@@ -3766,11 +3766,11 @@ function HistorialBloqueos({ adminKey, onCerrar, onNoAutorizado }){
                     {esBloqueo?"🔒 Bloqueó":"✅ Desbloqueó"}{" "}
                     <span style={{color:Q.text}}>{b.nombre}</span>
                     <span style={{color:Q.muted,fontWeight:400}}> ({b.tipo})</span>
-                    {b.cascada&&<span style={{color:Q.amber,fontSize:9,marginLeft:5}}>EN CASCADA</span>}
+                    {b.cascada&&<span style={{color:Q.amber,fontSize:12,marginLeft:5}}>EN CASCADA</span>}
                   </div>
-                  <div style={{color:Q.muted,fontSize:10,marginTop:2}}>
+                  <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
                     por {b.quien} · {b.fecha}</div>
-                  {b.motivo&&<div style={{color:Q.dim,fontSize:11,marginTop:4,
+                  {b.motivo&&<div style={{color:Q.dim,fontSize:12,marginTop:4,
                     fontStyle:"italic",fontFamily:F_BODY}}>
                     "{b.motivo}"</div>}
                 </div>
@@ -3809,8 +3809,8 @@ function ArbolVisual({ agencias, onElegir, onCerrar }){
         marginBottom:nodo.hijos.length?8:6,minWidth:150}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:12,
           fontFamily:F_BODY}}>{nodo.name}</div>
-        <div style={{color:Q.muted,fontSize:9}}>{nodo.code} · {nodo.moneda}</div>
-        <div style={{color:(nodo.saldo_cc||0)>=0?Q.green:Q.red,fontSize:11,fontWeight:700,
+        <div style={{color:Q.muted,fontSize:12}}>{nodo.code} · {nodo.moneda}</div>
+        <div style={{color:(nodo.saldo_cc||0)>=0?Q.green:Q.red,fontSize:12,fontWeight:700,
           fontFamily:F_BODY}}>{ars(nodo.saldo_cc)}</div>
       </button>
       {nodo.hijos.length>0&&(
@@ -3843,7 +3843,7 @@ function ArbolVisual({ agencias, onElegir, onCerrar }){
           <button onClick={onCerrar} style={{background:"transparent",border:"none",
             color:Q.muted,fontSize:26,cursor:"pointer",lineHeight:1}}>×</button>
         </div>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:16,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:16,
           fontFamily:F_BODY}}>
           Tocá cualquier agencia para ir a ella.</div>
         <div style={{overflowX:"auto"}}>
@@ -3944,7 +3944,7 @@ function TabInfluencers({ adminKey, onNoAutorizado }){
                 <div key={l} style={{textAlign:"center"}}>
                   <div style={{color:c,fontWeight:800,fontSize:15,
                     fontFamily:F_BODY}}>{ars(v)}</div>
-                  <div style={{color:Q.muted,fontSize:9}}>{l}</div>
+                  <div style={{color:Q.muted,fontSize:12}}>{l}</div>
                 </div>
               ))}
             </div>
@@ -3961,16 +3961,16 @@ function TabInfluencers({ adminKey, onNoAutorizado }){
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontWeight:700,fontSize:13,
                     fontFamily:F_BODY}}>{inf.name}
-                    <span style={{color:Q.muted,fontWeight:400,fontSize:10}}> · {inf.codigo_ref}</span></div>
-                  <div style={{color:Q.muted,fontSize:10}}>
+                    <span style={{color:Q.muted,fontWeight:400,fontSize:12}}> · {inf.codigo_ref}</span></div>
+                  <div style={{color:Q.muted,fontSize:12}}>
                     {inf.combos} combos · {inf.jugadas} jugadas · GGR {fmt(inf.pct_ggr)}%/Vta {fmt(inf.pct_ventas)}%</div>
-                  {inf.parent_name&&<div style={{color:Q.violet2,fontSize:10,marginTop:1}}>
+                  {inf.parent_name&&<div style={{color:Q.violet2,fontSize:12,marginTop:1}}>
                     🏢 {inf.parent_name}</div>}
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{color:Q.gold,fontWeight:700,fontSize:14,
                     fontFamily:F_BODY}}>{ars(inf.comision)}</div>
-                  <div style={{color:Q.muted,fontSize:9}}>comisión ›</div>
+                  <div style={{color:Q.muted,fontSize:12}}>comisión ›</div>
                 </div>
               </div>
             </GCard>
@@ -3997,7 +3997,7 @@ function VistaEscaneos({ data }){
           <GCard key={l} style={{padding:"14px 8px",textAlign:"center"}}>
             <div style={{color:c,fontWeight:800,fontSize:18,
               fontFamily:F_BODY}}>{v}</div>
-            <div style={{color:Q.muted,fontSize:9,marginTop:2}}>{l}</div>
+            <div style={{color:Q.muted,fontSize:12,marginTop:2}}>{l}</div>
           </GCard>
         ))}
       </div>
@@ -4009,14 +4009,14 @@ function VistaEscaneos({ data }){
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,
                 fontFamily:F_BODY}}>{d.name}
-                <span style={{color:Q.muted,fontWeight:400,fontSize:10}}> · {d.codigo_ref}</span></div>
-              <div style={{color:Q.muted,fontSize:10}}>
+                <span style={{color:Q.muted,fontWeight:400,fontSize:12}}> · {d.codigo_ref}</span></div>
+              <div style={{color:Q.muted,fontSize:12}}>
                 {d.escaneos} escaneos · {d.jugadas} jugaron · cuota prom {fmt(d.cuota_prom)}x</div>
             </div>
             <div style={{textAlign:"right",flexShrink:0}}>
               <div style={{color:d.conversion>=30?Q.green:d.conversion>=10?Q.gold:Q.muted,
                 fontWeight:700,fontSize:16,fontFamily:F_BODY}}>{d.conversion}%</div>
-              <div style={{color:Q.muted,fontSize:9}}>conversión</div>
+              <div style={{color:Q.muted,fontSize:12}}>conversión</div>
             </div>
           </div>
         </GCard>
@@ -4061,7 +4061,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
       {[["name","Nombre","Juan Tips"],["username","Usuario","juantips"],
         ["password","Contraseña (8+)","••••••••"]].map(([k,l,ph])=>(
         <div key={k} style={{marginBottom:8}}>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>{l}</div>
           <input value={form[k]} type={k==="password"?"password":"text"}
             onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={ph}
@@ -4071,7 +4071,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
         </div>
       ))}
       <div style={{marginBottom:8}}>
-        <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>Cuelga de (vacío = del admin)</div>
         <select value={form.parent_code} onChange={e=>setForm(f=>({...f,parent_code:e.target.value}))}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
@@ -4084,7 +4084,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
         </select>
       </div>
       <div style={{marginBottom:8}}>
-        <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>Dónde valen sus links</div>
         <select value={form.alcance} onChange={e=>setForm(f=>({...f,alcance:e.target.value}))}
           style={{width:"100%",background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
@@ -4095,7 +4095,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
           <option value="rama">Toda su rama</option>
           <option value="global">Cualquier lado + Telegram</option>
         </select>
-        <div style={{color:Q.dim,fontSize:10,marginTop:4,
+        <div style={{color:Q.dim,fontSize:12,marginTop:4,
           fontFamily:F_BODY}}>
           {form.parent_code
             ?"Con agencia asignada, por defecto solo juega en esa agencia."
@@ -4103,7 +4103,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
       </div>
       <div style={{display:"flex",gap:8,marginBottom:8}}>
         <div style={{flex:1}}>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>% GGR</div>
           <input value={form.pct_ggr} onChange={e=>setForm(f=>({...f,pct_ggr:e.target.value}))}
             placeholder="10" inputMode="decimal"
@@ -4112,7 +4112,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
               fontFamily:F_BODY}}/>
         </div>
         <div style={{flex:1}}>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>% Ventas</div>
           <input value={form.pct_ventas} onChange={e=>setForm(f=>({...f,pct_ventas:e.target.value}))}
             placeholder="3" inputMode="decimal"
@@ -4179,7 +4179,7 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
         {d&&(
           <div>
             <GCard glow={Q.gold} style={{padding:14,marginBottom:12}}>
-              <div style={{color:Q.muted,fontSize:10,marginBottom:8,
+              <div style={{color:Q.muted,fontSize:12,marginBottom:8,
                 fontFamily:F_BODY}}>Código: {rep.codigo_ref}</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
                 {[["Ventas",rep.apostado,Q.cyan],["GGR",rep.ggr,Q.green],
@@ -4187,7 +4187,7 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
                   <div key={l} style={{textAlign:"center"}}>
                     <div style={{color:c,fontWeight:800,fontSize:15,
                       fontFamily:F_BODY}}>{ars(v)}</div>
-                    <div style={{color:Q.muted,fontSize:9}}>{l}</div>
+                    <div style={{color:Q.muted,fontSize:12}}>{l}</div>
                   </div>
                 ))}
               </div>
@@ -4216,7 +4216,7 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
                 nombre={d.reporte?d.reporte.name:code} onCerrar={()=>setResetOpen(false)}/>}
             </GCard>
 
-            <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
+            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
               marginBottom:8,fontFamily:F_BODY}}>Combos ({d.combos.length})</div>
             {d.combos.map(c=>(
               <GCard key={c.id} style={{padding:"9px 12px",marginBottom:5}}>
@@ -4224,8 +4224,8 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{color:Q.text,fontSize:12,fontWeight:600,
                       fontFamily:F_BODY}}>{c.nombre}
-                      {c.codigo&&<span style={{color:Q.cyan,fontSize:10}}> · {c.codigo}</span>}</div>
-                    <div style={{color:Q.muted,fontSize:10}}>{c.fecha}</div>
+                      {c.codigo&&<span style={{color:Q.cyan,fontSize:12}}> · {c.codigo}</span>}</div>
+                    <div style={{color:Q.muted,fontSize:12}}>{c.fecha}</div>
                   </div>
                   <div style={{color:Q.green,fontWeight:700,fontSize:13,
                     fontFamily:F_BODY}}>{fmt(c.odd)}x</div>
@@ -4233,7 +4233,7 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
               </GCard>
             ))}
 
-            <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
+            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
               margin:"12px 0 8px",fontFamily:F_BODY}}>Jugadas ({d.jugadas.length})</div>
             {d.jugadas.length===0&&<div style={{color:Q.muted,fontSize:12,
               fontFamily:F_BODY}}>Sin jugadas en el período</div>}
@@ -4244,9 +4244,9 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{color:Q.text,fontSize:12,fontWeight:600,
                     fontFamily:F_BODY}}>{j.code}</div>
-                  <div style={{color:Q.muted,fontSize:10}}>{j.cliente} · {ars(j.stake)} · {fmt(j.odd)}x · {j.fecha}</div>
+                  <div style={{color:Q.muted,fontSize:12}}>{j.cliente} · {ars(j.stake)} · {fmt(j.odd)}x · {j.fecha}</div>
                 </div>
-                <span style={{color:Q.muted,fontSize:11,flexShrink:0}}>{j.status}</span>
+                <span style={{color:Q.muted,fontSize:12,flexShrink:0}}>{j.status}</span>
               </div>
             ))}
           </div>
@@ -4324,9 +4324,9 @@ function TabAgencias({ adminKey, onNoAutorizado }){
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>
                   {a.nivel>0?"└ ":""}{a.name}
-                  {a.status!=="active"&&<span style={{color:Q.red,fontSize:9,marginLeft:6}}>SUSP</span>}
+                  {a.status!=="active"&&<span style={{color:Q.red,fontSize:12,marginLeft:6}}>SUSP</span>}
                 </div>
-                <div style={{color:Q.muted,fontSize:10}}>
+                <div style={{color:Q.muted,fontSize:12}}>
                   {a.code}
                   {a.username&&<> · <span style={{color:Q.cyan}}>
                     @{a.username}</span></>}
@@ -4349,7 +4349,7 @@ function TabAgencias({ adminKey, onNoAutorizado }){
               {/* Clientes de esta agencia */}
               <div style={{display:"flex",justifyContent:"space-between",
                 alignItems:"center",margin:"12px 0 8px"}}>
-                <span style={{color:Q.muted,fontSize:11,textTransform:"uppercase",
+                <span style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
                   letterSpacing:1,fontFamily:F_BODY}}>
                   Clientes de {a.name}</span>
                 <Btn label="+ Cliente" onClick={()=>setShowCrearCliente(true)}
@@ -4376,9 +4376,9 @@ function TabAgencias({ adminKey, onNoAutorizado }){
                     <div style={{minWidth:0,flex:1}}>
                       <div style={{color:Q.text,fontWeight:600,fontSize:12,
                         fontFamily:F_BODY}}>{c.nombre}
-                        {c.bloqueado&&<span style={{color:Q.red,fontSize:9,marginLeft:5}}>🔒</span>}
+                        {c.bloqueado&&<span style={{color:Q.red,fontSize:12,marginLeft:5}}>🔒</span>}
                       </div>
-                      <div style={{color:Q.muted,fontSize:10}}>{c.fecha}</div>
+                      <div style={{color:Q.muted,fontSize:12}}>{c.fecha}</div>
                     </div>
                     <div style={{color:Q.green,fontWeight:700,fontSize:13,
                       fontFamily:F_BODY}}>{ars(c.balance)} ›</div>
@@ -4575,31 +4575,31 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
 
   return(
     <div>
-      <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:4,
         fontFamily:F_BODY}}>
         Usuario: <span style={{color:Q.dim}}>{cuenta.username||"—"} (no editable)</span></div>
 
-      <div style={{color:Q.muted,fontSize:10,marginBottom:2,marginTop:8,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:2,marginTop:8,
         fontFamily:F_BODY}}>Nombre</div>
       <input value={name} onChange={e=>setName(e.target.value)} style={inpStyle}/>
 
       {!esInf&&<>
-        <div style={{color:Q.muted,fontSize:10,marginBottom:2,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:2,
           fontFamily:F_BODY}}>Dirección</div>
         <input value={address} onChange={e=>setAddress(e.target.value)} style={inpStyle}/>
-        <div style={{color:Q.muted,fontSize:10,marginBottom:2,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:2,
           fontFamily:F_BODY}}>Teléfono</div>
         <input value={phone} onChange={e=>setPhone(e.target.value)} style={inpStyle}/>
       </>}
 
       <div style={{display:"flex",gap:8}}>
         <div style={{flex:1}}>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:2,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:2,
             fontFamily:F_BODY}}>% GGR</div>
           <input value={ggr} onChange={e=>setGgr(e.target.value)} inputMode="decimal" style={inpStyle}/>
         </div>
         <div style={{flex:1}}>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:2,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:2,
             fontFamily:F_BODY}}>% Ventas</div>
           <input value={ventas} onChange={e=>setVentas(e.target.value)} inputMode="decimal" style={inpStyle}/>
         </div>
@@ -4610,14 +4610,14 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
       {!esInf&&(
         <div style={{display:"flex",gap:8}}>
           <div style={{flex:1}}>
-            <div style={{color:Q.muted,fontSize:10,marginBottom:2,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:2,
               fontFamily:F_BODY}}>% GGR casino</div>
             <input value={ggrCasino}
               onChange={e=>setGgrCasino(e.target.value)}
               inputMode="decimal" style={inpStyle}/>
           </div>
           <div style={{flex:1}}>
-            <div style={{color:Q.muted,fontSize:10,marginBottom:2,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:2,
               fontFamily:F_BODY}}>% Desafíos</div>
             <input value={pctDesafios}
               onChange={e=>setPctDesafios(e.target.value)}
@@ -4626,7 +4626,7 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
         </div>
       )}
       {!esInf&&(
-        <div style={{color:Q.dim,fontSize:9.5,marginTop:-4,marginBottom:6,
+        <div style={{color:Q.dim,fontSize:12,marginTop:-4,marginBottom:6,
           lineHeight:1.5,fontFamily:F_BODY}}>
           Casino solo sobre GGR. Desafíos es sobre la comisión que
           cobra la casa, no sobre lo apostado.</div>
@@ -4634,7 +4634,7 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
 
       {!esInf&&(
         <>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:2,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:2,
             fontFamily:F_BODY}}>Permisos de la agencia</div>
           <select value={permiso} onChange={e=>setPermiso(e.target.value)}
             style={{...inpStyle,color:Q.text}}>
@@ -4647,7 +4647,7 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
       )}
       {esInf&&(
         <>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:2,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:2,
             fontFamily:F_BODY}}>Dónde valen sus links</div>
           <select value={alcance} onChange={e=>setAlcance(e.target.value)}
             style={{...inpStyle,color:alcance?Q.text:Q.muted}}>
@@ -4659,7 +4659,7 @@ function ConfigurarCuenta({ cuenta, esAdmin, adminKey, token, onCambio, onNoAuto
         </>
       )}
 
-      <div style={{color:Q.dim,fontSize:10,marginBottom:10,
+      <div style={{color:Q.dim,fontSize:12,marginBottom:10,
         fontFamily:F_BODY}}>
         El % no puede superar el del padre.</div>
 
@@ -4774,12 +4774,12 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
             background:ver===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${ver===k?Q.violet:Q.border}`,borderRadius:8,
             padding:"7px 4px",cursor:"pointer",color:ver===k?Q.cyan:Q.muted,
-            fontSize:11,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
+            fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
         ))}
         <button onClick={()=>setResetOpen(true)} style={{flex:1,
           background:`${Q.amber}18`,border:`1px solid ${Q.amber}`,borderRadius:8,
           padding:"7px 4px",cursor:"pointer",color:Q.amber,
-          fontSize:11,fontWeight:700,fontFamily:F_BODY}}>🔑 Clave</button>
+          fontSize:12,fontWeight:700,fontFamily:F_BODY}}>🔑 Clave</button>
       </div>
 
       {ver==="anular"&&(
@@ -4787,7 +4787,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
           <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:6,
             fontFamily:F_BODY}}>
             Permiso para anular apuestas</div>
-          <div style={{color:Q.muted,fontSize:11.5,lineHeight:1.55,
+          <div style={{color:Q.muted,fontSize:12,lineHeight:1.55,
             marginBottom:12,fontFamily:F_BODY}}>
             Sirve para que el cajero corrija un error propio, no para que
             el cliente se arrepienta. Solo se puede dentro de los 5 minutos
@@ -4800,7 +4800,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
             <div style={{color:puedeAnular?Q.green:Q.muted,fontWeight:700,
               fontSize:12.5,fontFamily:F_BODY}}>
               {puedeAnular ? "Habilitada" : "Sin permiso"}</div>
-            <div style={{color:Q.dim,fontSize:10.5,marginTop:2}}>
+            <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
               {agencia.code} · {agencia.name}</div>
           </div>
 
@@ -4828,7 +4828,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
           </div>
 
           {anulaRama&&(
-            <div style={{color:Q.amber,fontSize:10.5,marginTop:10,
+            <div style={{color:Q.amber,fontSize:12,marginTop:10,
               lineHeight:1.5,fontFamily:F_BODY}}>
               Ojo: esto pisa lo que tenga configurado cada agencia de la
               rama, incluidas las que hayas ajustado a mano.</div>
@@ -4840,7 +4840,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
             <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:6,
               fontFamily:F_BODY}}>
               Permiso para hacer cash out</div>
-            <div style={{color:Q.muted,fontSize:11.5,lineHeight:1.55,
+            <div style={{color:Q.muted,fontSize:12,lineHeight:1.55,
               marginBottom:12,fontFamily:F_BODY}}>
               Cerrar una apuesta antes de que termine, a un valor calculado.
               Le gusta al cliente pero achica el margen: conviene darlo a
@@ -4867,7 +4867,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
                 cursor:"pointer",color:Q.red,fontSize:12.5,fontWeight:700,
                 fontFamily:F_BODY}}>Quitar</button>
             </div>
-            <div style={{color:Q.dim,fontSize:10,marginTop:8,
+            <div style={{color:Q.dim,fontSize:12,marginTop:8,
               fontFamily:F_BODY}}>
               Usa el mismo interruptor de rama de arriba.</div>
           </div>
@@ -5006,7 +5006,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
     <div>
       <div style={{display:"flex",gap:8,marginBottom:10}}>
         <div style={{flex:1}}>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>% GGR</div>
           <input value={ggr} onChange={e=>setGgr(e.target.value)} inputMode="decimal"
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
@@ -5014,7 +5014,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
               color:Q.text,fontSize:16,fontFamily:F_BODY}}/>
         </div>
         <div style={{flex:1}}>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>% Ventas</div>
           <input value={ven} onChange={e=>setVen(e.target.value)} inputMode="decimal"
             style={{width:"100%",background:"rgba(255,255,255,0.05)",
@@ -5024,7 +5024,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       </div>
 
       <div style={{marginBottom:12}}>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>
           % sobre la comisión de desafíos</div>
         <input value={pctDes} onChange={e=>setPctDes(e.target.value)}
@@ -5033,7 +5033,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
             border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
             color:Q.text,fontSize:16,
             fontFamily:F_BODY}}/>
-        <div style={{color:Q.dim,fontSize:10.5,marginTop:5,lineHeight:1.5,
+        <div style={{color:Q.dim,fontSize:12,marginTop:5,lineHeight:1.5,
           fontFamily:F_BODY}}>
           En desafíos la casa no arriesga: cobra comisión por juntar a
           los dos jugadores. Esto es lo que le toca a la agencia de
@@ -5041,7 +5041,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
       </div>
 
       <div style={{marginBottom:12}}>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>% GGR de casino</div>
         <input value={ggrCas} onChange={e=>setGgrCas(e.target.value)}
           inputMode="decimal"
@@ -5049,7 +5049,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
             border:`1px solid ${Q.border}`,borderRadius:9,padding:"9px 12px",
             color:Q.text,fontSize:16,
             fontFamily:F_BODY}}/>
-        <div style={{color:Q.dim,fontSize:10.5,marginTop:5,lineHeight:1.5,
+        <div style={{color:Q.dim,fontSize:12,marginTop:5,lineHeight:1.5,
           fontFamily:F_BODY}}>
           El casino se liquida aparte y solo sobre GGR. No hay comisión
           por volumen: el mismo saldo puede jugarse muchas veces sin que
@@ -5066,7 +5066,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
           <div style={{color:Q.text,fontWeight:700,fontSize:13,
             marginBottom:3,fontFamily:F_BODY}}>
             Productos habilitados</div>
-          <div style={{color:Q.dim,fontSize:10.5,marginBottom:9,
+          <div style={{color:Q.dim,fontSize:12,marginBottom:9,
             lineHeight:1.45}}>
             Alcanza también a las agencias que cuelgan de ella.</div>
 
@@ -5085,7 +5085,7 @@ function ComisionAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
                   fontFamily:F_BODY}}>
                 <span style={{color:apagado?Q.dim:Q.text,fontSize:13,
                   fontWeight:600}}>{c.icono} {c.nombre}</span>
-                <span style={{color:apagado?Q.red:Q.green,fontSize:11.5,
+                <span style={{color:apagado?Q.red:Q.green,fontSize:12,
                   fontWeight:700}}>
                   {apagado?"Sin acceso":"Habilitado"}</span>
               </button>
@@ -5132,7 +5132,7 @@ function CrearClienteAdmin({ adminKey, agencia, onListo, onCancel, onNoAutorizad
 
   return(
     <GCard glow={Q.cyan} style={{padding:12,marginBottom:8}}>
-      {!agencia&&<div style={{color:Q.muted,fontSize:10,marginBottom:8,lineHeight:1.4,
+      {!agencia&&<div style={{color:Q.muted,fontSize:12,marginBottom:8,lineHeight:1.4,
         fontFamily:F_BODY}}>
         <Icon name="landmark" size={11}/> Cliente propio del admin (sin agencia).</div>}
       <input value={nombre} onChange={e=>setNombre(e.target.value)}
@@ -5204,7 +5204,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
       {[["name","Nombre","Agencia Norte"],["username","Usuario","norte1"],
         ["password","Contraseña","••••••••"]].map(([k,l,ph])=>(
         <div key={k} style={{marginBottom:8}}>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>{l}</div>
           <input value={form[k]} type={k==="password"?"password":"text"}
             onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={ph}
@@ -5214,7 +5214,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
         </div>
       ))}
       <div style={{marginBottom:8}}>
-        <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>Cuelga de (vacío = raíz)</div>
         <select value={form.parent_code}
           onChange={e=>setForm(f=>({...f,parent_code:e.target.value}))}
@@ -5230,7 +5230,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
       </div>
       <div style={{display:"flex",gap:8,marginBottom:8}}>
         <div style={{flex:1}}>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>% GGR</div>
           <input value={form.pct_ggr} onChange={e=>setForm(f=>({...f,pct_ggr:e.target.value}))}
             placeholder="15" inputMode="decimal"
@@ -5239,7 +5239,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
               color:Q.text,fontSize:16,fontFamily:F_BODY}}/>
         </div>
         <div style={{flex:1}}>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>% Ventas</div>
           <input value={form.pct_ventas} onChange={e=>setForm(f=>({...f,pct_ventas:e.target.value}))}
             placeholder="5" inputMode="decimal"
@@ -5250,7 +5250,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
       </div>
       {!form.parent_code&&(
         <div style={{marginBottom:10}}>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>Moneda</div>
           <select value={form.moneda}
             onChange={e=>setForm(f=>({...f,moneda:e.target.value}))}
@@ -5264,7 +5264,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
         </div>
       )}
       <div style={{marginBottom:10}}>
-        <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>Permisos de la agencia</div>
         <select value={form.permiso}
           onChange={e=>setForm(f=>({...f,permiso:e.target.value}))}
@@ -5348,7 +5348,7 @@ function TabUsuarios({ adminKey, onNoAutorizado }){
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,
                 fontFamily:F_BODY}}>{u.nombre_completo||u.nombre||u.username}</div>
-              <div style={{color:Q.muted,fontSize:10}}>
+              <div style={{color:Q.muted,fontSize:12}}>
                 {u.creado_por==="admin"?"🏛️ Admin":`🏢 ${u.creado_por||"—"}`}
                 {u.telefono?` · ${u.telefono}`:""}</div>
             </div>
@@ -5360,7 +5360,7 @@ function TabUsuarios({ adminKey, onNoAutorizado }){
                 fontWeight:700,fontSize:14,
                 fontFamily:F_BODY}}>
                 {ars(u.saldo!=null?u.saldo:(u.balance||0))}</div>
-              <div style={{color:Q.muted,fontSize:9}}>saldo ›</div>
+              <div style={{color:Q.muted,fontSize:12}}>saldo ›</div>
             </div>
           </div>
         </GCard>
@@ -5594,43 +5594,43 @@ function TabBonos({ adminKey, onNoAutorizado }){
               background:form.tipo===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
               border:`1px solid ${form.tipo===k?Q.violet:Q.border}`,borderRadius:9,
               padding:"9px 4px",cursor:"pointer",color:form.tipo===k?Q.violet2||Q.violet:Q.muted,
-              fontSize:11,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
+              fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
           ))}
         </div>
         {form.tipo==="bienvenida"?(
           <>
-            <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4,
               fontFamily:F_BODY}}>Monto fijo del bono</div>
             <input value={form.monto_fijo} onChange={e=>setForm(f=>({...f,monto_fijo:e.target.value.replace(/\D/g,"")}))}
               placeholder="Ej: 1000" inputMode="numeric" style={inp}/>
           </>
         ):(
           <>
-            <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4,
               fontFamily:F_BODY}}>Porcentaje sobre la carga (%)</div>
             <input value={form.porcentaje} onChange={e=>setForm(f=>({...f,porcentaje:e.target.value}))}
               placeholder="Ej: 20" inputMode="decimal" style={inp}/>
-            <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4,
               fontFamily:F_BODY}}>Tope del bono (máximo)</div>
             <input value={form.tope} onChange={e=>setForm(f=>({...f,tope:e.target.value.replace(/\D/g,"")}))}
               placeholder="Ej: 5000" inputMode="numeric" style={inp}/>
           </>
         )}
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>Rollover (veces a apostar antes de retirar)</div>
         <input value={form.rollover} onChange={e=>setForm(f=>({...f,rollover:e.target.value}))}
           placeholder="Ej: 5" inputMode="decimal" style={inp}/>
 
         <div style={{borderTop:`1px solid ${Q.border}`,margin:"10px 0",paddingTop:10}}>
-          <div style={{color:Q.cyan,fontSize:11,fontWeight:700,marginBottom:8,
+          <div style={{color:Q.cyan,fontSize:12,fontWeight:700,marginBottom:8,
             fontFamily:F_BODY}}><Icon name="shield-alert" size={14}/> Condiciones de riesgo</div>
 
-          <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>Depósito mínimo para activarlo</div>
           <input value={form.deposito_minimo} onChange={e=>setForm(f=>({...f,deposito_minimo:e.target.value.replace(/\\D/g,"")}))}
             placeholder="Ej: 500 (0 = sin mínimo)" inputMode="numeric" style={inp}/>
 
-          <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>Cuota mínima para que la apuesta cuente al rollover</div>
           <input value={form.cuota_minima} onChange={e=>setForm(f=>({...f,cuota_minima:e.target.value}))}
             placeholder="Ej: 1.50" inputMode="decimal" style={inp}/>
@@ -5638,11 +5638,11 @@ function TabBonos({ adminKey, onNoAutorizado }){
           {/* Quién paga cuando el bono se libere. Mientras es bono,
               nadie puso nada: el costo aparece al cumplirse el
               rollover, que es cuando la plata pasa a ser del cliente. */}
-          <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>Quién paga este bono</div>
           <div style={{display:"flex",gap:8,marginBottom:6}}>
             <div style={{flex:1}}>
-              <div style={{color:Q.dim,fontSize:10,marginBottom:3}}>
+              <div style={{color:Q.dim,fontSize:12,marginBottom:3}}>
                 La casa (%)</div>
               <input value={form.pct_paga_casa} inputMode="decimal"
                 onChange={e=>{
@@ -5655,7 +5655,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                 }} style={inp}/>
             </div>
             <div style={{flex:1}}>
-              <div style={{color:Q.dim,fontSize:10,marginBottom:3}}>
+              <div style={{color:Q.dim,fontSize:12,marginBottom:3}}>
                 La agencia (%)</div>
               <input value={form.pct_paga_agencia} inputMode="decimal"
                 onChange={e=>{
@@ -5675,7 +5675,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                 style={{flex:1,background:"rgba(255,255,255,0.04)",
                   border:`1px solid ${Q.border}`,borderRadius:7,
                   padding:"7px 4px",cursor:"pointer",color:Q.muted,
-                  fontSize:10.5,
+                  fontSize:12,
                   fontFamily:F_BODY}}>{l}</button>
             ))}
           </div>
@@ -5685,7 +5685,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
           {revision&&(
             <GCard glow={revision.graves>0?Q.red:Q.cyan}
               style={{padding:13,marginBottom:12}}>
-              <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+              <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
                 marginBottom:7}}>QUÉ IMPLICA ESTE BONO</div>
 
               <div style={{display:"flex",justifyContent:"space-between",
@@ -5701,7 +5701,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                 <span style={{color:Q.cyan,
                   fontFamily:F_BODY}}>
                   {ars(revision.resumen.reparto.casa)}
-                  <span style={{color:Q.dim,fontSize:10}}>
+                  <span style={{color:Q.dim,fontSize:12}}>
                     {" "}({revision.resumen.reparto.pct_casa}%)</span></span>
               </div>
               {revision.resumen.reparto.pct_agencia>0&&(
@@ -5711,7 +5711,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                   <span style={{color:Q.gold,
                     fontFamily:F_BODY}}>
                     {ars(revision.resumen.reparto.agencia)}
-                    <span style={{color:Q.dim,fontSize:10}}>
+                    <span style={{color:Q.dim,fontSize:12}}>
                       {" "}({revision.resumen.reparto.pct_agencia}%)</span></span>
                 </div>
               )}
@@ -5724,7 +5724,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                   {ars(revision.resumen.debe_apostar)}</span>
               </div>
 
-              <div style={{color:Q.dim,fontSize:10,marginTop:7,
+              <div style={{color:Q.dim,fontSize:12,marginTop:7,
                 lineHeight:1.5}}>{revision.resumen.cuando_se_paga}</div>
 
               {(revision.avisos||[]).length>0&&(
@@ -5733,7 +5733,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                   {revision.avisos.map((a,i)=>(
                     <div key={i} style={{
                       color:a.sev==="alta"?Q.red:Q.amber,
-                      fontSize:11,lineHeight:1.5,marginBottom:5,
+                      fontSize:12,lineHeight:1.5,marginBottom:5,
                       fontFamily:F_BODY}}>
                       <Icon name="circle-dot" size={12} color={a.sev==="alta"?Q.red:Q.gold}/> {a.texto}</div>
                   ))}
@@ -5742,7 +5742,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
             </GCard>
           )}
 
-          <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>Evento que dispara el bono</div>
           <select value={form.evento} onChange={e=>setForm(f=>({...f,evento:e.target.value}))} style={inp}>
             <option value="primer_deposito">Primer depósito del cliente</option>
@@ -5758,10 +5758,10 @@ function TabBonos({ adminKey, onNoAutorizado }){
               Requiere verificación de identidad</span>
           </label>
 
-          <div style={{color:Q.gold,fontSize:11,fontWeight:700,marginTop:8,marginBottom:6,
+          <div style={{color:Q.gold,fontSize:12,fontWeight:700,marginTop:8,marginBottom:6,
             fontFamily:F_BODY}}><Icon name="triangle-alert" size={14}/> Mitigaciones (recomendadas por IA)</div>
 
-          <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>Stake máximo por apuesta durante rollover</div>
           <div style={{display:"flex",gap:6,marginBottom:8}}>
             <select value={form.stake_max_tipo} onChange={e=>setForm(f=>({...f,stake_max_tipo:e.target.value}))}
@@ -5774,12 +5774,12 @@ function TabBonos({ adminKey, onNoAutorizado }){
               style={{...inp,marginBottom:0,flex:1}}/>
           </div>
 
-          <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>Cuota máxima (techo, opcional)</div>
           <input value={form.cuota_maxima} onChange={e=>setForm(f=>({...f,cuota_maxima:e.target.value}))}
             placeholder="Ej: 5.00 (vacío = sin techo)" inputMode="decimal" style={inp}/>
 
-          <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>Mercados excluidos (separados por coma)</div>
           <input value={form.mercados_excluidos} onChange={e=>setForm(f=>({...f,mercados_excluidos:e.target.value}))}
             placeholder="Ej: handicap asiatico, over/under" style={inp}/>
@@ -5793,13 +5793,13 @@ function TabBonos({ adminKey, onNoAutorizado }){
             <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
               fontFamily:F_BODY}}>
               🗓️ Cuándo está disponible</div>
-            <div style={{color:Q.muted,fontSize:10.5,marginBottom:10,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:10,
               lineHeight:1.5,fontFamily:F_BODY}}>
               Dejá todo vacío para que esté siempre. Fuera de su ventana el
               bono se sigue viendo, pero deshabilitado y con el horario, para
               que el cajero le diga al cliente cuándo volver.</div>
 
-            <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
               Vigencia (opcional)</div>
             <div style={{display:"flex",gap:8,marginBottom:10}}>
               <input type="date" value={form.vigente_desde}
@@ -5810,7 +5810,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                 style={{...inp,marginBottom:0,flex:1}}/>
             </div>
 
-            <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
               Días de la semana (ninguno = todos)</div>
             <div style={{display:"flex",gap:4,marginBottom:10}}>
               {["Lu","Ma","Mi","Ju","Vi","Sá","Do"].map((d,i)=>{
@@ -5824,14 +5824,14 @@ function TabBonos({ adminKey, onNoAutorizado }){
                     return {...f,dias_semana:nuevo.sort().join(",")};
                   })} style={{flex:1,background:sel?`${Q.violet}33`:"rgba(255,255,255,0.04)",
                     border:`1px solid ${sel?Q.violet:Q.border}`,borderRadius:8,
-                    padding:"8px 2px",cursor:"pointer",fontSize:11,
+                    padding:"8px 2px",cursor:"pointer",fontSize:12,
                     fontWeight:sel?700:400,color:sel?Q.cyan:Q.muted,
                     fontFamily:F_BODY}}>{d}</button>
                 );
               })}
             </div>
 
-            <div style={{color:Q.muted,fontSize:11,marginBottom:4}}>
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
               Franja horaria (vacío = todo el día)</div>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <input value={form.hora_desde} inputMode="numeric"
@@ -5843,9 +5843,9 @@ function TabBonos({ adminKey, onNoAutorizado }){
                 onChange={e=>setForm(f=>({...f,hora_hasta:e.target.value.replace(/\D/g,"").slice(0,2)}))}
                 placeholder="22" style={{...inp,marginBottom:0,flex:1,
                   textAlign:"center"}}/>
-              <span style={{color:Q.muted,fontSize:11}}>hs</span>
+              <span style={{color:Q.muted,fontSize:12}}>hs</span>
             </div>
-            <div style={{color:Q.dim,fontSize:10,marginTop:6}}>
+            <div style={{color:Q.dim,fontSize:12,marginTop:6}}>
               Se puede cruzar la medianoche: de 22 a 2 son las cuatro horas
               de la noche.</div>
           </div>
@@ -5871,7 +5871,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
           fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
       </GCard>
 
-      <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
+      <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
         marginBottom:8,marginLeft:4,fontFamily:F_BODY}}>Bonos creados</div>
       {bonos.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:16,
         fontFamily:F_BODY}}>Sin bonos todavía</div>}
@@ -5882,22 +5882,22 @@ function TabBonos({ adminKey, onNoAutorizado }){
             <div>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,
                 fontFamily:F_BODY}}>{b.nombre}
-                <span style={{color:Q.muted,fontWeight:400,fontSize:11}}> · {b.tipo}</span></div>
-              <div style={{color:Q.muted,fontSize:10,fontFamily:F_BODY}}>
+                <span style={{color:Q.muted,fontWeight:400,fontSize:12}}> · {b.tipo}</span></div>
+              <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
                 {b.tipo==="bienvenida"?`${ars(b.monto_fijo||0)}`:`${b.porcentaje||0}% (máx ${ars(b.tope||0)})`}
                 {" · rollover x"+(b.rollover||0)}</div>
             </div>
             <div style={{display:"flex",gap:6}}>
               <button onClick={()=>toggleActivo(b)} style={{background:"transparent",
                 border:`1px solid ${b.activo?Q.green:Q.muted}`,borderRadius:8,padding:"5px 9px",
-                color:b.activo?Q.green:Q.muted,fontSize:10,cursor:"pointer"}}>
+                color:b.activo?Q.green:Q.muted,fontSize:12,cursor:"pointer"}}>
                 {b.activo?"Activo":"Inactivo"}</button>
               <button onClick={()=>resetear(b.id)} style={{background:"transparent",
                 border:`1px solid ${Q.cyan}55`,borderRadius:8,padding:"5px 9px",
-                color:Q.cyan,fontSize:10,cursor:"pointer"}}>🔄</button>
+                color:Q.cyan,fontSize:12,cursor:"pointer"}}>🔄</button>
               <button onClick={()=>borrar(b.id)} style={{background:"transparent",
                 border:`1px solid ${Q.red}55`,borderRadius:8,padding:"5px 9px",
-                color:Q.red,fontSize:10,cursor:"pointer"}}>✕</button>
+                color:Q.red,fontSize:12,cursor:"pointer"}}>✕</button>
             </div>
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:6}}>
@@ -5906,7 +5906,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                 se podía asignar un bono y no revertirlo. */}
             {(b.asignaciones||[]).map((a,i)=>(
               <span key={i} style={{background:`${Q.violet}18`,border:`1px solid ${Q.violet}44`,
-                borderRadius:8,padding:"2px 4px 2px 8px",color:Q.violet2||Q.violet,fontSize:10,
+                borderRadius:8,padding:"2px 4px 2px 8px",color:Q.violet2||Q.violet,fontSize:12,
                 display:"inline-flex",alignItems:"center",gap:4,
                 fontFamily:F_BODY}}
                 title={a.agencia_nombre||a.agencia_code}>
@@ -5917,7 +5917,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                     fontSize:12,lineHeight:1,cursor:"pointer",padding:"0 3px"}}>×</button>
               </span>
             ))}
-            {(b.asignaciones||[]).length===0&&<span style={{color:Q.dim,fontSize:10,
+            {(b.asignaciones||[]).length===0&&<span style={{color:Q.dim,fontSize:12,
               fontFamily:F_BODY}}>Sin asignar</span>}
           </div>
           {asignar.bono===b.id?(
@@ -5928,7 +5928,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
                     background:asignar.alcance===k?`${Q.cyan}22`:"rgba(255,255,255,0.04)",
                     border:`1px solid ${asignar.alcance===k?Q.cyan:Q.border}`,borderRadius:8,
                     padding:"6px 4px",cursor:"pointer",color:asignar.alcance===k?Q.cyan:Q.muted,
-                    fontSize:10,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
+                    fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
                 ))}
               </div>
               {asignar.alcance!=="global"&&(
@@ -5941,16 +5941,16 @@ function TabBonos({ adminKey, onNoAutorizado }){
               <div style={{display:"flex",gap:6}}>
                 <button onClick={()=>setAsignar({bono:null,alcance:"global",code:""})}
                   style={{flex:1,background:"transparent",border:`1px solid ${Q.border}`,
-                    borderRadius:8,padding:"7px",color:Q.muted,fontSize:11,cursor:"pointer"}}>Cancelar</button>
+                    borderRadius:8,padding:"7px",color:Q.muted,fontSize:12,cursor:"pointer"}}>Cancelar</button>
                 <button onClick={hacerAsignar}
                   style={{flex:1,background:`${Q.cyan}33`,border:`1px solid ${Q.cyan}`,
-                    borderRadius:8,padding:"7px",color:Q.cyan,fontSize:11,fontWeight:700,cursor:"pointer"}}>Asignar</button>
+                    borderRadius:8,padding:"7px",color:Q.cyan,fontSize:12,fontWeight:700,cursor:"pointer"}}>Asignar</button>
               </div>
             </div>
           ):(
             <button onClick={()=>setAsignar({bono:b.id,alcance:"global",code:""})}
               style={{width:"100%",background:"transparent",border:`1px solid ${Q.border}`,
-                borderRadius:8,padding:"7px",color:Q.muted,fontSize:11,cursor:"pointer",
+                borderRadius:8,padding:"7px",color:Q.muted,fontSize:12,cursor:"pointer",
                 fontFamily:F_BODY}}>+ Asignar a agencias</button>
           )}
         </GCard>
@@ -6032,7 +6032,7 @@ function TabPSP({ adminKey, onNoAutorizado }){
           </div>
         </label>
 
-        <div style={{color:Q.muted,fontSize:11,marginBottom:6,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:6,
           fontFamily:F_BODY}}>Modo de retiro</div>
         <div style={{display:"flex",gap:6,marginBottom:12}}>
           {[["manual","✋ Manual (aprobás vos)"],["automatico","⚡ Automático"]].map(([k,l])=>(
@@ -6040,11 +6040,11 @@ function TabPSP({ adminKey, onNoAutorizado }){
               background:cfg.retiro_modo===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
               border:`1px solid ${cfg.retiro_modo===k?Q.violet:Q.border}`,borderRadius:9,
               padding:"9px 4px",cursor:"pointer",color:cfg.retiro_modo===k?Q.violet2||Q.violet:Q.muted,
-              fontSize:11,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
+              fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
           ))}
         </div>
 
-        <div style={{color:Q.muted,fontSize:11,marginBottom:6,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:6,
           fontFamily:F_BODY}}>Ramas habilitadas (vacío = todas)</div>
         <select value="" onChange={e=>{
           if(e.target.value&&!(cfg.ramas||[]).includes(e.target.value))
@@ -6056,12 +6056,12 @@ function TabPSP({ adminKey, onNoAutorizado }){
           {agencias.map(a=>(<option key={a.code} value={a.code}>{a.code} · {a.name}</option>))}
         </select>
         <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-          {(cfg.ramas||[]).length===0&&<span style={{color:Q.dim,fontSize:11,
+          {(cfg.ramas||[]).length===0&&<span style={{color:Q.dim,fontSize:12,
             fontFamily:F_BODY}}>Activa para todas las agencias</span>}
           {(cfg.ramas||[]).map(rc=>(
             <span key={rc} onClick={()=>guardarCfg({ramas:cfg.ramas.filter(x=>x!==rc)})}
               style={{background:`${Q.violet}22`,border:`1px solid ${Q.violet}55`,borderRadius:8,
-              padding:"3px 10px",color:Q.violet2||Q.violet,fontSize:11,cursor:"pointer",
+              padding:"3px 10px",color:Q.violet2||Q.violet,fontSize:12,cursor:"pointer",
               fontFamily:F_BODY}}>{rc} ✕</span>
           ))}
         </div>
@@ -6070,18 +6070,18 @@ function TabPSP({ adminKey, onNoAutorizado }){
       <GCard style={{padding:14,marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
-            <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
+            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
               fontFamily:F_BODY}}>Saldo recaudador</div>
             <div style={{color:Q.green,fontWeight:800,fontSize:20,
               fontFamily:F_BODY}}>{saldo!=null?ars(saldo):"—"}</div>
           </div>
           <Btn label="Consultar" onClick={verSaldo} outline color={Q.cyan}/>
         </div>
-        {msg&&<div style={{color:Q.red,fontSize:11,marginTop:6,
+        {msg&&<div style={{color:Q.red,fontSize:12,marginTop:6,
           fontFamily:F_BODY}}>{msg}</div>}
       </GCard>
 
-      <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
+      <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
         marginBottom:8,marginLeft:4,fontFamily:F_BODY}}>
         Retiros pendientes de aprobar</div>
       {retiros.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:16,
@@ -6092,9 +6092,9 @@ function TabPSP({ adminKey, onNoAutorizado }){
             <div>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,
                 fontFamily:F_BODY}}>{r.cliente}</div>
-              <div style={{color:Q.muted,fontSize:10,fontFamily:F_BODY}}>
+              <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
                 {r.agencia} · {r.fecha}</div>
-              <div style={{color:Q.dim,fontSize:10,marginTop:2,
+              <div style={{color:Q.dim,fontSize:12,marginTop:2,
                 fontFamily:F_BODY}}>CVU: {r.destino}</div>
             </div>
             <div style={{color:Q.gold,fontWeight:800,fontSize:16,
@@ -6184,7 +6184,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
           </div>
         </label>
 
-        <div style={{color:Q.muted,fontSize:11,marginBottom:6,marginTop:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:6,marginTop:4,
           fontFamily:F_BODY}}>Ramas habilitadas (vacío = todo el sistema)</div>
         <select value="" onChange={e=>{
           if(e.target.value&&!(cfg.ramas||[]).includes(e.target.value)){
@@ -6196,7 +6196,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
           {agencias.map(a=>(<option key={a.code} value={a.code}>{a.code} · {a.name}</option>))}
         </select>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:10}}>
-          {(cfg.ramas||[]).length===0&&<span style={{color:Q.dim,fontSize:11,
+          {(cfg.ramas||[]).length===0&&<span style={{color:Q.dim,fontSize:12,
             fontFamily:F_BODY}}>Activo para todo el sistema</span>}
           {(cfg.ramas||[]).map(rc=>(
             <span key={rc} onClick={()=>{
@@ -6204,14 +6204,14 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
                 setCfg(n); guardar(n);
               }}
               style={{background:`${Q.violet}22`,border:`1px solid ${Q.violet}55`,borderRadius:8,
-              padding:"3px 10px",color:Q.violet2||Q.violet,fontSize:11,cursor:"pointer",
+              padding:"3px 10px",color:Q.violet2||Q.violet,fontSize:12,cursor:"pointer",
               fontFamily:F_BODY}}>{rc} ✕</span>
           ))}
         </div>
 
         {/* Excluir agencias puntuales. Antes, para sacárselo a una
             había que listar a todas las demás como habilitadas. */}
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>
           Quitárselo a una agencia</div>
         <select value="" onChange={e=>{
@@ -6227,7 +6227,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
         </select>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:6}}>
           {(cfg.excluidas||[]).length===0&&(
-            <span style={{color:Q.dim,fontSize:11,
+            <span style={{color:Q.dim,fontSize:12,
               fontFamily:F_BODY}}>
               Ninguna excluida</span>
           )}
@@ -6237,25 +6237,25 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
                 setCfg(n); guardar(n);
               }}
               style={{background:`${Q.red}18`,border:`1px solid ${Q.red}55`,
-              borderRadius:8,padding:"3px 10px",color:Q.red,fontSize:11,
+              borderRadius:8,padding:"3px 10px",color:Q.red,fontSize:12,
               cursor:"pointer",
               fontFamily:F_BODY}}>{rc} ✕</span>
           ))}
         </div>
         {(cfg.excluidas||[]).length>0&&(
-          <div style={{color:Q.dim,fontSize:10.5,marginBottom:10,
+          <div style={{color:Q.dim,fontSize:12,marginBottom:10,
             lineHeight:1.5,fontFamily:F_BODY}}>
             La exclusión alcanza también a las agencias que cuelgan de
             ellas, y gana sobre cualquier habilitación de arriba.</div>
         )}
 
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>Margen de correlación (%) — descuento sobre la cuota</div>
         <input type="number" value={cfg.margen_correlacion}
           onChange={e=>setCfg({...cfg,margen_correlacion:parseFloat(e.target.value)||0})}
           placeholder="Ej: 15" style={inp}/>
 
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>Stake máximo por apuesta del mismo partido</div>
         <input type="number" value={cfg.stake_max}
           onChange={e=>setCfg({...cfg,stake_max:parseInt(e.target.value)||0})}
@@ -6263,14 +6263,14 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
 
         <div style={{display:"flex",gap:8}}>
           <div style={{flex:1}}>
-            <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4,
               fontFamily:F_BODY}}>Mín. selecciones</div>
             <input type="number" value={cfg.min_picks}
               onChange={e=>setCfg({...cfg,min_picks:parseInt(e.target.value)||2})}
               placeholder="2" style={inp}/>
           </div>
           <div style={{flex:1}}>
-            <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4,
               fontFamily:F_BODY}}>Máx. selecciones</div>
             <input type="number" value={cfg.max_picks}
               onChange={e=>setCfg({...cfg,max_picks:parseInt(e.target.value)||4})}
@@ -6280,28 +6280,28 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
 
         <div style={{background:`${Q.gold}0C`,border:`1px solid ${Q.gold}44`,borderRadius:10,
           padding:"10px 12px",marginBottom:8}}>
-          <div style={{color:Q.gold,fontSize:11,fontWeight:700,marginBottom:6,
+          <div style={{color:Q.gold,fontSize:12,fontWeight:700,marginBottom:6,
             fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={14}/> Margen escalonado</div>
-          <div style={{color:Q.muted,fontSize:10,marginBottom:8,lineHeight:1.4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:8,lineHeight:1.4,
             fontFamily:F_BODY}}>
             Suma margen extra por cada selección de más (más picks = más correlación).</div>
           <div style={{display:"flex",gap:8}}>
             <div style={{flex:1}}>
-              <div style={{color:Q.muted,fontSize:10,marginBottom:3,
+              <div style={{color:Q.muted,fontSize:12,marginBottom:3,
                 fontFamily:F_BODY}}>+% por pick extra</div>
               <input type="number" value={cfg.margen_escalon}
                 onChange={e=>setCfg({...cfg,margen_escalon:parseFloat(e.target.value)||0})}
                 placeholder="3" style={{...inp,marginBottom:0}}/>
             </div>
             <div style={{flex:1}}>
-              <div style={{color:Q.muted,fontSize:10,marginBottom:3,
+              <div style={{color:Q.muted,fontSize:12,marginBottom:3,
                 fontFamily:F_BODY}}>Desde N picks</div>
               <input type="number" value={cfg.escalon_desde}
                 onChange={e=>setCfg({...cfg,escalon_desde:parseInt(e.target.value)||3})}
                 placeholder="3" style={{...inp,marginBottom:0}}/>
             </div>
           </div>
-          <div style={{color:Q.dim,fontSize:9,marginTop:6,
+          <div style={{color:Q.dim,fontSize:12,marginTop:6,
             fontFamily:F_BODY}}>
             Ej: base {cfg.margen_correlacion}% + {cfg.margen_escalon}% por cada pick sobre {cfg.escalon_desde}.
             Con {(cfg.escalon_desde||3)+1} picks → {(parseFloat(cfg.margen_correlacion)||0)+(parseFloat(cfg.margen_escalon)||0)}%.</div>
@@ -6325,7 +6325,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
           fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
       </GCard>
 
-      <div style={{color:Q.dim,fontSize:11,textAlign:"center",lineHeight:1.5,
+      <div style={{color:Q.dim,fontSize:12,textAlign:"center",lineHeight:1.5,
         fontFamily:F_BODY}}>
         Ejemplo: con margen 15%, si las cuotas multiplican 3.00 (ganancia 2.00),
         el cliente cobra a cuota 2.70 (ganancia 1.70). La diferencia protege del riesgo
@@ -6337,13 +6337,13 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
             fontFamily:F_BODY}}>
             🏢 Agencias con Bet Builder activo · {cfg.total_activas||0}</div>
           {(cfg.agencias_activas||[]).length===0
-            ? <div style={{color:Q.muted,fontSize:11,
+            ? <div style={{color:Q.muted,fontSize:12,
                 fontFamily:F_BODY}}>Ninguna agencia activa</div>
             : <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                 {cfg.agencias_activas.map(a=>(
                   <span key={a.code} style={{background:`${Q.green}18`,
                     border:`1px solid ${Q.green}55`,borderRadius:8,padding:"3px 9px",
-                    fontSize:10,color:Q.green,fontFamily:F_BODY}}>
+                    fontSize:12,color:Q.green,fontFamily:F_BODY}}>
                     {a.code} · {a.name}</span>
                 ))}
               </div>}
@@ -6540,11 +6540,11 @@ function TabDiag({ adminKey, onNoAutorizado }){
               fontFamily:F_BODY}}>
               {Number(creditos.remaining).toLocaleString("es-AR")}
             </div>
-            <div style={{color:Q.muted,fontSize:11,marginTop:2}}>
+            <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
               restantes · usados: {creditos.used??"—"} · al {creditos.last_check??"—"}
             </div>
             {rest!=null&&rest<5000&&(
-              <div style={{color:colorCred,fontSize:11,marginTop:8,
+              <div style={{color:colorCred,fontSize:12,marginTop:8,
                 fontFamily:F_BODY}}>
                 {rest<1000?<><Icon name="triangle-alert" size={11}/> Saldo crítico — bajá sports_limit o sacá btts</>
                           :"Saldo bajo — conviene revisar la configuración"}
@@ -6562,8 +6562,8 @@ function TabDiag({ adminKey, onNoAutorizado }){
             ["Caché prematch",creditos?.ttl_prematch_seg?`${creditos.ttl_prematch_seg}s`:null],
           ].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}>
-              <span style={{color:Q.muted,fontSize:11}}>{l}</span>
-              <span style={{color:Q.text,fontSize:11,
+              <span style={{color:Q.muted,fontSize:12}}>{l}</span>
+              <span style={{color:Q.text,fontSize:12,
                 fontFamily:F_BODY}}>{v??"—"}</span>
             </div>
           ))}
@@ -6575,7 +6575,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
         style={{padding:16,marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:4,
           fontFamily:F_BODY}}><Icon name="circle-dot" size={14}/> En vivo sin cuotas</div>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:10}}>
+        <div style={{color:Q.muted,fontSize:12,marginBottom:10}}>
           Partidos en curso donde no se pudo cruzar el nombre con el feed de cuotas.
           Sin cuota, el cajero no puede tomar la apuesta.
         </div>
@@ -6592,7 +6592,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
           </div>
         )}
         {live?.actualizado_hace_seg!=null&&(
-          <div style={{color:Q.dim,fontSize:10,marginTop:8}}>
+          <div style={{color:Q.dim,fontSize:12,marginTop:8}}>
             Datos de hace {live.actualizado_hace_seg}s
           </div>
         )}
@@ -6603,13 +6603,13 @@ function TabDiag({ adminKey, onNoAutorizado }){
         <GCard style={{padding:16}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:4,
             fontFamily:F_BODY}}><Icon name="clipboard-list" size={14}/> Nombres en el feed de cuotas</div>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:10}}>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:10}}>
             Compará con la lista de arriba: si ves el mismo partido escrito
             distinto, ahí está la razón de que no cruce.
           </div>
           <div style={{maxHeight:220,overflowY:"auto"}}>
             {live.nombres_en_feed_de_cuotas.map((k,i)=>(
-              <div key={i} style={{color:Q.muted,fontSize:10,padding:"2px 0",
+              <div key={i} style={{color:Q.muted,fontSize:12,padding:"2px 0",
                 fontFamily:F_BODY}}>
                 {k.replace("|"," vs ")}
               </div>
@@ -6632,7 +6632,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
               fontFamily:F_BODY}}>
               <Icon name="circle-check" size={13}/> Conectado · {srTest.total_competiciones} competiciones</div>
             {(srTest.ejemplos||[]).map((c,i)=>(
-              <div key={i} style={{color:Q.muted,fontSize:10,padding:"1px 0",
+              <div key={i} style={{color:Q.muted,fontSize:12,padding:"1px 0",
                 fontFamily:F_BODY}}>{c.nombre}</div>
             ))}
           </div>
@@ -6641,7 +6641,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
           <div style={{color:Q.red,fontSize:12,fontFamily:F_BODY}}>
             <Icon name="x" size={13}/> {srTest.error}</div>
         )}
-        {!srTest&&<div style={{color:Q.muted,fontSize:11,
+        {!srTest&&<div style={{color:Q.muted,fontSize:12,
           fontFamily:F_BODY}}>Tocá "Probar" para verificar la conexión.</div>}
 
         {srTest&&srTest.ok&&(
@@ -6656,7 +6656,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
                   marginBottom:6,fontFamily:F_BODY}}>
                   {srCuotas.tiene_cuotas?<><Icon name="circle-check" size={13}/> Tenés acceso a cuotas</>:<><Icon name="x" size={13}/> No hay acceso a cuotas (falta activar el producto)</>}</div>
                 {(srCuotas.intentos||[]).map((it,i)=>(
-                  <div key={i} style={{color:Q.muted,fontSize:9,padding:"1px 0",
+                  <div key={i} style={{color:Q.muted,fontSize:12,padding:"1px 0",
                     fontFamily:F_BODY}}>
                     {it.acceso?"✓":"✗"} {it.producto} ({it.status})</div>
                 ))}
@@ -6666,21 +6666,21 @@ function TabDiag({ adminKey, onNoAutorizado }){
                       outline color={Q.green} size="sm" full/>
                     {srDeportes&&!srDeportes.cargando&&srDeportes.ok&&(
                       <div style={{marginTop:6,maxHeight:160,overflowY:"auto"}}>
-                        <div style={{color:Q.green,fontSize:10,fontWeight:700,marginBottom:4,
+                        <div style={{color:Q.green,fontSize:12,fontWeight:700,marginBottom:4,
                           fontFamily:F_BODY}}>
                           {srDeportes.total_deportes} deportes con cuotas</div>
                         {(srDeportes.deportes||[]).map((d,i)=>(
-                          <div key={i} style={{color:Q.muted,fontSize:9,padding:"1px 0",
+                          <div key={i} style={{color:Q.muted,fontSize:12,padding:"1px 0",
                             fontFamily:F_BODY}}>{d.nombre} ({d.id})</div>
                         ))}
-                        <div style={{color:Q.muted,fontSize:10,marginTop:6,marginBottom:4,
+                        <div style={{color:Q.muted,fontSize:12,marginTop:6,marginBottom:4,
                           fontFamily:F_BODY}}><Icon name="scan-search" size={14}/> Probar ruta de cuotas (1 por vez, esperá entre cada una):</div>
                         <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                           {[1,2,3].map(v=>(
                             <button key={v} onClick={()=>inspeccionar(v)} style={{
                               background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.cyan}55`,
                               borderRadius:8,padding:"6px 12px",cursor:"pointer",color:Q.cyan,
-                              fontSize:11,fontWeight:700,fontFamily:F_BODY}}>
+                              fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
                               Ruta {v}</button>
                           ))}
                         </div>
@@ -6693,19 +6693,19 @@ function TabDiag({ adminKey, onNoAutorizado }){
                         <Btn label={<><Icon name="circle-check" size={13}/> Probar mapeo (partidos + cuotas listos)</>}
                           onClick={verPartidosCuotas} color={Q.green} full/>
                         {srPC&&srPC.cargando&&(
-                          <div style={{color:Q.green,fontSize:11,marginTop:6,textAlign:"center",
+                          <div style={{color:Q.green,fontSize:12,marginTop:6,textAlign:"center",
                             fontFamily:F_BODY}}><Icon name="clock-3" size={13}/> Procesando...</div>
                         )}
                         {srPC&&!srPC.cargando&&srPC.ok&&(
                           <div style={{marginTop:6}}>
-                            <div style={{color:Q.green,fontSize:11,fontWeight:700,marginBottom:4,
+                            <div style={{color:Q.green,fontSize:12,fontWeight:700,marginBottom:4,
                               fontFamily:F_BODY}}>
                               <Icon name="circle-check" size={13}/> {srPC.total} partidos con cuotas mapeados</div>
                             {(srPC.partidos||[]).map((p,i)=>(
                               <div key={i} style={{padding:"5px 6px",borderBottom:`1px solid ${Q.border}`}}>
-                                <div style={{color:Q.text,fontSize:11,fontWeight:600,
+                                <div style={{color:Q.text,fontSize:12,fontWeight:600,
                                   fontFamily:F_BODY}}>{p.home} vs {p.away}</div>
-                                <div style={{color:Q.gold,fontSize:10,
+                                <div style={{color:Q.gold,fontSize:12,
                                   fontFamily:F_BODY}}>
                                   L {p.home_odd} · E {p.draw_odd} · V {p.away_odd}</div>
                               </div>
@@ -6713,44 +6713,44 @@ function TabDiag({ adminKey, onNoAutorizado }){
                           </div>
                         )}
                         {srPC&&!srPC.cargando&&!srPC.ok&&(
-                          <div style={{color:Q.red,fontSize:11,marginTop:6}}><Icon name="x" size={13}/> {srPC.error}</div>
+                          <div style={{color:Q.red,fontSize:12,marginTop:6}}><Icon name="x" size={13}/> {srPC.error}</div>
                         )}
                         <div style={{height:6}}/>
                         <Btn label={<><Icon name="clipboard-list" size={13}/> ¿Qué mercados hay? (córners, tarjetas, etc.)</>}
                           onClick={verMercadosDisp} outline color={Q.violet} size="sm" full/>
                         {srMD&&srMD.cargando&&(
-                          <div style={{color:Q.violet,fontSize:11,marginTop:6,textAlign:"center",
+                          <div style={{color:Q.violet,fontSize:12,marginTop:6,textAlign:"center",
                             fontFamily:F_BODY}}><Icon name="clock-3" size={13}/> Consultando...</div>
                         )}
                         {srMD&&!srMD.cargando&&srMD.ok&&(
                           <div style={{marginTop:6,maxHeight:200,overflowY:"auto"}}>
-                            <div style={{color:Q.violet,fontSize:11,fontWeight:700,marginBottom:4,
+                            <div style={{color:Q.violet,fontSize:12,fontWeight:700,marginBottom:4,
                               fontFamily:F_BODY}}>
                               {srMD.total_tipos} tipos de mercados disponibles:</div>
                             {(srMD.mercados||[]).map((m,i)=>(
                               <div key={i} style={{display:"flex",justifyContent:"space-between",
                                 padding:"2px 0",fontFamily:F_BODY}}>
-                                <span style={{color:Q.text,fontSize:10}}>{m.nombre}</span>
-                                <span style={{color:Q.dim,fontSize:10}}>{m.partidos} partidos</span>
+                                <span style={{color:Q.text,fontSize:12}}>{m.nombre}</span>
+                                <span style={{color:Q.dim,fontSize:12}}>{m.partidos} partidos</span>
                               </div>
                             ))}
                           </div>
                         )}
                         {srMD&&!srMD.cargando&&!srMD.ok&&(
-                          <div style={{color:Q.red,fontSize:11,marginTop:6}}><Icon name="x" size={13}/> {srMD.error}</div>
+                          <div style={{color:Q.red,fontSize:12,marginTop:6}}><Icon name="x" size={13}/> {srMD.error}</div>
                         )}
                         {srDia&&srDia.cargando&&(
-                          <div style={{color:Q.gold,fontSize:11,marginTop:6,textAlign:"center",
+                          <div style={{color:Q.gold,fontSize:12,marginTop:6,textAlign:"center",
                             fontFamily:F_BODY}}><Icon name="clock-3" size={13}/> Consultando cuotas...</div>
                         )}
                         {srDia&&!srDia.cargando&&(
-                          <pre style={{color:Q.gold,fontSize:8,whiteSpace:"pre-wrap",
+                          <pre style={{color:Q.gold,fontSize:12,whiteSpace:"pre-wrap",
                             wordBreak:"break-all",maxHeight:320,overflowY:"auto",marginTop:6,
                             background:"rgba(0,0,0,0.3)",padding:8,borderRadius:6}}>
                             {(JSON.stringify(srDia,null,1)||"").slice(0,2800)}</pre>
                         )}
                         {srEstruct&&!srEstruct.cargando&&(
-                          <pre style={{color:Q.muted,fontSize:8,whiteSpace:"pre-wrap",
+                          <pre style={{color:Q.muted,fontSize:12,whiteSpace:"pre-wrap",
                             wordBreak:"break-all",maxHeight:250,overflowY:"auto",marginTop:6,
                             background:"rgba(0,0,0,0.3)",padding:8,borderRadius:6}}>
                             {(JSON.stringify(srEstruct,null,1)||"").slice(0,2000)}</pre>
@@ -6761,7 +6761,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
                             outline color={Q.gold} size="sm" full/>
                         )}
                         {srMercados&&!srMercados.cargando&&(
-                          <pre style={{color:Q.gold,fontSize:8,whiteSpace:"pre-wrap",
+                          <pre style={{color:Q.gold,fontSize:12,whiteSpace:"pre-wrap",
                             wordBreak:"break-all",maxHeight:300,overflowY:"auto",marginTop:6,
                             background:"rgba(0,0,0,0.3)",padding:8,borderRadius:6}}>
                             {(JSON.stringify(srMercados,null,1)||"").slice(0,2500)}</pre>
@@ -6769,7 +6769,7 @@ function TabDiag({ adminKey, onNoAutorizado }){
                       </div>
                     )}
                     {srDeportes&&!srDeportes.cargando&&!srDeportes.ok&&(
-                      <div style={{color:Q.red,fontSize:10,marginTop:4}}><Icon name="x" size={13}/> {srDeportes.error}</div>
+                      <div style={{color:Q.red,fontSize:12,marginTop:4}}><Icon name="x" size={13}/> {srDeportes.error}</div>
                     )}
                   </div>
                 )}
@@ -6782,34 +6782,34 @@ function TabDiag({ adminKey, onNoAutorizado }){
         )}
         {srPartidos&&srPartidos.ok&&(
           <div style={{marginTop:8,maxHeight:200,overflowY:"auto"}}>
-            <div style={{color:Q.muted,fontSize:10,marginBottom:4,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4,
               fontFamily:F_BODY}}>{srPartidos.total} partidos hoy</div>
             {(srPartidos.partidos||[]).map((p,i)=>(
               <div key={i} onClick={()=>verResumen(p.id)} style={{padding:"5px 6px",
                 borderBottom:`1px solid ${Q.border}`,cursor:"pointer"}}>
-                <div style={{color:Q.text,fontSize:11,fontWeight:600,
+                <div style={{color:Q.text,fontSize:12,fontWeight:600,
                   fontFamily:F_BODY}}>{p.home} vs {p.away}</div>
-                <div style={{color:Q.dim,fontSize:9,fontFamily:F_BODY}}>
+                <div style={{color:Q.dim,fontSize:12,fontFamily:F_BODY}}>
                   {p.estado} · {p.marcador}</div>
               </div>
             ))}
           </div>
         )}
-        {srPartidos&&!srPartidos.ok&&<div style={{color:Q.red,fontSize:11,marginTop:8,
+        {srPartidos&&!srPartidos.ok&&<div style={{color:Q.red,fontSize:12,marginTop:8,
           fontFamily:F_BODY}}><Icon name="x" size={13}/> {srPartidos.error}</div>}
         {srResumen&&!srResumen.cargando&&(
           <div style={{marginTop:8,padding:10,background:"rgba(255,255,255,0.04)",borderRadius:8}}>
             {srResumen.ok?(
               <div>
-                <div style={{color:Q.cyan,fontSize:11,fontWeight:700,marginBottom:4,
+                <div style={{color:Q.cyan,fontSize:12,fontWeight:700,marginBottom:4,
                   fontFamily:F_BODY}}>
                   {srResumen.estado} · {srResumen.marcador?.home}-{srResumen.marcador?.away}
                   {srResumen.tiene_estadisticas?(<> · <Icon name="chart-no-axes-combined" size={11}/> con stats</>):" · sin stats"}</div>
-                <pre style={{color:Q.muted,fontSize:9,whiteSpace:"pre-wrap",wordBreak:"break-all",
+                <pre style={{color:Q.muted,fontSize:12,whiteSpace:"pre-wrap",wordBreak:"break-all",
                   maxHeight:150,overflowY:"auto",margin:0}}>
                   {(JSON.stringify(srResumen.estadisticas,null,1)||"").slice(0,800)}</pre>
               </div>
-            ):<div style={{color:Q.red,fontSize:11}}><Icon name="x" size={13}/> {srResumen.error}</div>}
+            ):<div style={{color:Q.red,fontSize:12}}><Icon name="x" size={13}/> {srResumen.error}</div>}
           </div>
         )}
 
@@ -6827,10 +6827,10 @@ function TabDiag({ adminKey, onNoAutorizado }){
                 {diagLiq.diagnostico.map((b,i)=>(
                   <div key={i} style={{padding:"6px 8px",marginBottom:4,
                     background:"rgba(255,255,255,0.03)",borderRadius:6}}>
-                    <div style={{color:Q.cyan,fontSize:10,fontWeight:700,
+                    <div style={{color:Q.cyan,fontSize:12,fontWeight:700,
                       fontFamily:F_BODY}}>{b.code}</div>
                     {b.picks.map((p,j)=>(
-                      <div key={j} style={{color:Q.muted,fontSize:9,paddingLeft:4,
+                      <div key={j} style={{color:Q.muted,fontSize:12,paddingLeft:4,
                         fontFamily:F_BODY}}>
                         {p.home} vs {p.away} · {p.encontrado_en_sr
                           ? <span style={{color:Q.green}}>✓ SR{p.tiene_resultado?` ${p.marcador}`:" (sin resultado aún)"}</span>
@@ -6845,8 +6845,8 @@ function TabDiag({ adminKey, onNoAutorizado }){
               <div style={{marginTop:8,padding:10,background:`${Q.green}0C`,
                 border:`1px solid ${liqSR.error?Q.red:Q.green}44`,borderRadius:8}}>
                 {liqSR.error
-                  ? <div style={{color:Q.red,fontSize:11}}><Icon name="x" size={13}/> {liqSR.error}</div>
-                  : <div style={{color:Q.text,fontSize:11,lineHeight:1.6,
+                  ? <div style={{color:Q.red,fontSize:12}}><Icon name="x" size={13}/> {liqSR.error}</div>
+                  : <div style={{color:Q.text,fontSize:12,lineHeight:1.6,
                       fontFamily:F_BODY}}>
                       Revisadas: {liqSR.revisadas} · <span style={{color:Q.green}}><Icon name="circle-check" size={11}/> {liqSR.ganadas} ganadas</span> ·
                       <span style={{color:Q.red}}> <Icon name="x" size={11}/> {liqSR.perdidas} perdidas</span> ·
@@ -6920,7 +6920,7 @@ function PanelComunicacion({ adminKey, onNoAutorizado }){
             {l}
             {k==="mensajes"&&pend>0&&(
               <span style={{background:Q.red,color:"#fff",borderRadius:8,
-                padding:"1px 6px",fontSize:9,marginLeft:5}}>{pend}</span>
+                padding:"1px 6px",fontSize:12,marginLeft:5}}>{pend}</span>
             )}
           </button>
         ))}
@@ -6989,7 +6989,7 @@ function SelectorSonido(){
   };
   return(
     <div>
-      <div style={{color:Q.muted,fontSize:11,marginBottom:5,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:5,
         fontFamily:F_BODY}}>Sonido de alertas</div>
       <div style={{display:"flex",gap:6}}>
         {[["off","🔇 Sin sonido"],["urgente","🔔 Solo urgentes"],
@@ -6998,12 +6998,12 @@ function SelectorSonido(){
             background:nivel===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${nivel===k?Q.violet:Q.border}`,
             borderRadius:8,padding:"9px 4px",cursor:"pointer",
-            color:nivel===k?Q.cyan:Q.muted,fontSize:11,
+            color:nivel===k?Q.cyan:Q.muted,fontSize:12,
             fontWeight:nivel===k?700:400,
             fontFamily:F_BODY}}>{l}</button>
         ))}
       </div>
-      <div style={{color:Q.dim,fontSize:10,marginTop:5,lineHeight:1.4}}>
+      <div style={{color:Q.dim,fontSize:12,marginTop:5,lineHeight:1.4}}>
         Tocá una opción para escucharla.</div>
     </div>
   );
@@ -7018,7 +7018,7 @@ function TabDesafios({ adminKey, onNoAutorizado }){
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}><Handshake size={14}/> Desafíos</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Apuestas entre jugadores. La casa no arriesga: cobra comisión
         sobre lo que pone cada uno.</div>
@@ -7085,11 +7085,11 @@ function DesafiosConfig({ adminKey, onNoAutorizado }){
     fontFamily:F_BODY};
   const campo=(label,clave,ayuda)=>(
     <GCard style={{padding:14,marginBottom:10}}>
-      <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:4,
         fontFamily:F_BODY}}>{label}</div>
       <input value={c[clave]} inputMode="decimal"
         onChange={e=>setC({...c,[clave]:e.target.value})} style={inp}/>
-      {ayuda&&<div style={{color:Q.dim,fontSize:10.5,marginTop:6,
+      {ayuda&&<div style={{color:Q.dim,fontSize:12,marginTop:6,
         lineHeight:1.5}}>{ayuda}</div>}
     </GCard>
   );
@@ -7203,7 +7203,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
     <div>
       <div style={{background:`${Q.amber}12`,
         border:`1px solid ${Q.amber}44`,borderRadius:10,
-        padding:"11px 13px",marginBottom:12,color:Q.amber,fontSize:11,
+        padding:"11px 13px",marginBottom:12,color:Q.amber,fontSize:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         La IA sugiere, vos confirmás. Si un valor equivocado entra en
         vigencia, se compran IACOIN baratos y la casa pierde plata
@@ -7216,14 +7216,14 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
       <GCard glow={Q.cyan} style={{padding:14,marginBottom:12}}>
         <div style={{display:"flex",gap:10}}>
           <div style={{flex:1}}>
-            <div style={{color:Q.muted,fontSize:10}}>En circulación</div>
+            <div style={{color:Q.muted,fontSize:12}}>En circulación</div>
             <div style={{color:Q.gold,fontWeight:800,fontSize:18,
               fontFamily:F_BODY}}>
               {d.en_circulacion.toLocaleString("es-AR",
                 {maximumFractionDigits:2})}</div>
           </div>
           <div style={{flex:1}}>
-            <div style={{color:Q.muted,fontSize:10}}>Jugadores</div>
+            <div style={{color:Q.muted,fontSize:12}}>Jugadores</div>
             <div style={{color:Q.text,fontWeight:800,fontSize:18,
               fontFamily:F_BODY}}>
               {d.jugadores_con_saldo}</div>
@@ -7242,7 +7242,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
         </GCard>
       )}
 
-      <div style={{color:Q.muted,fontSize:11,margin:"14px 0 6px",
+      <div style={{color:Q.muted,fontSize:12,margin:"14px 0 6px",
         fontFamily:F_BODY}}>
         Diferencia entre compra y venta (%)</div>
       <input value={spread} inputMode="decimal"
@@ -7251,7 +7251,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
           border:`1px solid ${Q.border}`,borderRadius:9,padding:"10px",
           color:Q.text,fontSize:15,fontWeight:700,textAlign:"center",
           marginBottom:6,fontFamily:F_BODY}}/>
-      <div style={{color:Q.dim,fontSize:10.5,marginBottom:14,
+      <div style={{color:Q.dim,fontSize:12,marginBottom:14,
         lineHeight:1.5}}>
         Sin diferencia, alguien compra hoy y vuelve a su moneda después
         de una devaluación habiendo ganado sin apostar.</div>
@@ -7263,21 +7263,21 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
             <div>
               <div style={{color:Q.text,fontWeight:700,fontSize:14,
                 fontFamily:F_BODY}}>{c.moneda}</div>
-              <div style={{color:Q.muted,fontSize:11,marginTop:2}}>
+              <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
                 compra {c.compra.toLocaleString("es-AR")} · vende{" "}
                 {c.venta.toLocaleString("es-AR")}</div>
-              <div style={{color:Q.dim,fontSize:9.5,marginTop:2}}>
+              <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                 {c.desde} · {c.fuente==="ia"?"sugerido por IA":"manual"}</div>
             </div>
             <button onClick={()=>{setEditando(c.moneda);
                 setPrecio(String(sug?.[c.moneda]||c.compra));}}
               style={{background:`${Q.violet}22`,
                 border:`1px solid ${Q.violet}66`,borderRadius:8,
-                padding:"7px 12px",color:Q.cyan,fontSize:11,
+                padding:"7px 12px",color:Q.cyan,fontSize:12,
                 cursor:"pointer",flexShrink:0}}>Cambiar</button>
           </div>
           {sug&&sug[c.moneda]&&Math.abs(sug[c.moneda]-c.compra)>0.01&&(
-            <div style={{color:Q.amber,fontSize:10.5,marginTop:7,
+            <div style={{color:Q.amber,fontSize:12,marginTop:7,
               lineHeight:1.45}}>
               La IA sugiere {sug[c.moneda].toLocaleString("es-AR")}</div>
           )}
@@ -7313,7 +7313,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
           <div style={{color:Q.red,fontSize:12,fontWeight:700,
             marginBottom:6,fontFamily:F_BODY}}>
             Sin cotización</div>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:9,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:9,
             lineHeight:1.5}}>
             Los jugadores de estas monedas no pueden comprar IACOIN.</div>
           {d.monedas_faltantes.map(m=>(
@@ -7323,7 +7323,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
               <span style={{color:Q.text,fontSize:13,fontWeight:600}}>
                 {m}
                 {sug&&sug[m]&&(
-                  <span style={{color:Q.amber,fontSize:10.5,
+                  <span style={{color:Q.amber,fontSize:12,
                     marginLeft:7,fontWeight:400}}>
                     IA sugiere {sug[m].toLocaleString("es-AR")}</span>
                 )}</span>
@@ -7338,7 +7338,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
                   <button onClick={()=>fijar(m,precio)} disabled={proc}
                     style={{background:`${Q.green}22`,
                       border:`1px solid ${Q.green}`,borderRadius:7,
-                      padding:"7px 11px",color:Q.green,fontSize:11,
+                      padding:"7px 11px",color:Q.green,fontSize:12,
                       cursor:"pointer"}}>OK</button>
                 </div>
               ):(
@@ -7346,7 +7346,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
                     setPrecio(String(sug?.[m]||""));}}
                   style={{background:`${Q.violet}22`,
                     border:`1px solid ${Q.violet}66`,borderRadius:7,
-                    padding:"6px 11px",color:Q.cyan,fontSize:11,
+                    padding:"6px 11px",color:Q.cyan,fontSize:12,
                     cursor:"pointer"}}>Fijar</button>
               )}
             </div>
@@ -7427,7 +7427,7 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
         textAlign:"center"}}>
         <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         {lista.length} {lista.length===1?"disputa":"disputas"} esperando.
         El saldo de los jugadores sigue retenido hasta que se resuelva.</div>
@@ -7438,10 +7438,10 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
             lineHeight:1.4,fontFamily:F_BODY}}>
             {d.titulo}</div>
           {d.descripcion&&(
-            <div style={{color:Q.muted,fontSize:11.5,marginTop:4,
+            <div style={{color:Q.muted,fontSize:12,marginTop:4,
               lineHeight:1.5}}>{d.descripcion}</div>
           )}
-          <div style={{color:Q.dim,fontSize:10,marginTop:5}}>
+          <div style={{color:Q.dim,fontSize:12,marginTop:5}}>
             Pozo {d.pozo.toLocaleString("es-AR")} IACOIN · {d.hace}</div>
 
           <div style={{marginTop:10,paddingTop:9,
@@ -7466,21 +7466,21 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
             <div style={{marginTop:10,padding:"10px 12px",
               background:`${Q.cyan}0D`,border:`1px solid ${Q.cyan}33`,
               borderRadius:9}}>
-              <div style={{color:Q.cyan,fontSize:10,letterSpacing:0.5,
+              <div style={{color:Q.cyan,fontSize:12,letterSpacing:0.5,
                 marginBottom:5}}>LECTURA DE LA IA</div>
               <div style={{color:Q.muted,fontSize:12,lineHeight:1.55,
                 whiteSpace:"pre-wrap",
                 fontFamily:F_BODY}}>
                 {d.analisis_ia}</div>
               {d.sugerencia_ia&&(
-                <div style={{color:Q.amber,fontSize:11,marginTop:7,
+                <div style={{color:Q.amber,fontSize:12,marginTop:7,
                   fontWeight:600}}>
                   Sugiere: {{creador:"a favor del que propuso",
                     aceptador:"a favor del que aceptó",
                     empate:"devolver a los dos",
                     revisar:"revisarlo con más datos"}[d.sugerencia_ia]}</div>
               )}
-              <div style={{color:Q.dim,fontSize:9.5,marginTop:6,
+              <div style={{color:Q.dim,fontSize:12,marginTop:6,
                 lineHeight:1.45}}>
                 Es una lectura para ayudarte, no una resolución.</div>
             </div>
@@ -7510,25 +7510,25 @@ function DisputasPanel({ adminKey, onNoAutorizado }){
                 <button onClick={()=>resolver(d.id,"creador")}
                   disabled={proc} style={{flex:1,background:`${Q.green}18`,
                     border:`1px solid ${Q.green}66`,borderRadius:8,
-                    padding:"10px 6px",color:Q.green,fontSize:11.5,
+                    padding:"10px 6px",color:Q.green,fontSize:12,
                     fontWeight:700,cursor:"pointer",lineHeight:1.3}}>
                   Gana<br/>{d.creador}</button>
                 <button onClick={()=>resolver(d.id,"aceptador")}
                   disabled={proc} style={{flex:1,background:`${Q.green}18`,
                     border:`1px solid ${Q.green}66`,borderRadius:8,
-                    padding:"10px 6px",color:Q.green,fontSize:11.5,
+                    padding:"10px 6px",color:Q.green,fontSize:12,
                     fontWeight:700,cursor:"pointer",lineHeight:1.3}}>
                   Gana<br/>{d.aceptador}</button>
                 <button onClick={()=>resolver(d.id,"empate")}
                   disabled={proc} style={{flex:1,background:"transparent",
                     border:`1px solid ${Q.border}`,borderRadius:8,
-                    padding:"10px 6px",color:Q.muted,fontSize:11.5,
+                    padding:"10px 6px",color:Q.muted,fontSize:12,
                     cursor:"pointer",lineHeight:1.3}}>
                   Devolver<br/>a los dos</button>
               </div>
               <button onClick={()=>setAbierta(null)}
                 style={{width:"100%",marginTop:6,background:"transparent",
-                  border:"none",color:Q.dim,fontSize:11,
+                  border:"none",color:Q.dim,fontSize:12,
                   cursor:"pointer"}}>Cancelar</button>
             </div>
           ):(
@@ -7592,9 +7592,9 @@ function ModeracionPanel({ adminKey, onNoAutorizado }){
           style={{padding:13,marginBottom:8}}>
           <div style={{display:"flex",justifyContent:"space-between",
             alignItems:"baseline",marginBottom:5}}>
-            <span style={{color:Q.cyan,fontSize:11.5,fontWeight:700}}>
+            <span style={{color:Q.cyan,fontSize:12,fontWeight:700}}>
               {p.autor}</span>
-            <span style={{color:Q.red,fontSize:10}}>
+            <span style={{color:Q.red,fontSize:12}}>
               {p.denuncias} {p.denuncias===1?"denuncia":"denuncias"}
               {p.oculto&&" · oculto"}</span>
           </div>
@@ -7619,12 +7619,12 @@ function ModeracionPanel({ adminKey, onNoAutorizado }){
           <div style={{color:Q.amber,fontSize:12,fontWeight:700,
             marginBottom:4,fontFamily:F_BODY}}>
             Cuentas con varios rechazos</div>
-          <div style={{color:Q.muted,fontSize:10.5,marginBottom:8,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:8,
             lineHeight:1.5}}>
             Tres o más en el último mes. Vale la pena mirarlas.</div>
           {d.reincidentes.map(r=>(
             <div key={r.user_id} style={{display:"flex",
-              justifyContent:"space-between",fontSize:11.5,padding:"4px 0",
+              justifyContent:"space-between",fontSize:12,padding:"4px 0",
               borderTop:`1px solid ${Q.border}`}}>
               <span style={{color:Q.text}}>Cliente #{r.user_id}</span>
               <span style={{color:Q.amber}}>{r.rechazos}</span>
@@ -7635,16 +7635,16 @@ function ModeracionPanel({ adminKey, onNoAutorizado }){
 
       {(d.rechazos_recientes||[]).length>0&&(
         <GCard style={{padding:13,marginTop:12}}>
-          <div style={{color:Q.muted,fontSize:10,letterSpacing:0.5,
+          <div style={{color:Q.muted,fontSize:12,letterSpacing:0.5,
             marginBottom:7}}>RECHAZADO ESTA SEMANA</div>
           {d.rechazos_recientes.slice(0,12).map((r,i)=>(
-            <div key={i} style={{fontSize:11,padding:"4px 0",
+            <div key={i} style={{fontSize:12,padding:"4px 0",
               borderTop:i?`1px solid ${Q.border}`:"none"}}>
               <div style={{color:Q.muted}}>
                 {r.autor||"—"}
-                <span style={{color:Q.dim,fontSize:9.5,marginLeft:6}}>
+                <span style={{color:Q.dim,fontSize:12,marginLeft:6}}>
                   {r.cuando} · {r.por==="ia"?"IA":r.por}</span></div>
-              <div style={{color:Q.dim,fontSize:10.5,lineHeight:1.4}}>
+              <div style={{color:Q.dim,fontSize:12,lineHeight:1.4}}>
                 {r.motivo}</div>
             </div>
           ))}
@@ -7703,7 +7703,7 @@ function HistorialAdmin({ adminKey, onNoAutorizado }){
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>
         <Icon name="clipboard-list" size={14}/> Historial de juegos</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Todo lo jugado con fecha y hora. Cuando alguien reclama, acá
         está lo que pasó.</div>
@@ -7739,7 +7739,7 @@ function HistorialAdmin({ adminKey, onNoAutorizado }){
             style={{background:tipo===k?`${Q.violet}28`:"transparent",
               border:`1px solid ${tipo===k?Q.violet:Q.border}`,
               borderRadius:8,padding:"7px 12px",cursor:"pointer",
-              color:tipo===k?Q.cyan:Q.muted,fontSize:11.5,
+              color:tipo===k?Q.cyan:Q.muted,fontSize:12,
               whiteSpace:"nowrap",flexShrink:0,
               fontFamily:F_BODY}}>{l}</button>
         ))}
@@ -7759,19 +7759,19 @@ function HistorialAdmin({ adminKey, onNoAutorizado }){
           <GCard glow={Q.cyan} style={{padding:14,margin:"12px 0"}}>
             <div style={{display:"flex",gap:10}}>
               <div style={{flex:1}}>
-                <div style={{color:Q.muted,fontSize:10}}>Jugadas</div>
+                <div style={{color:Q.muted,fontSize:12}}>Jugadas</div>
                 <div style={{color:Q.text,fontWeight:800,fontSize:17,
                   fontFamily:F_BODY}}>
                   {d.total.jugadas}</div>
               </div>
               <div style={{flex:1}}>
-                <div style={{color:Q.muted,fontSize:10}}>Apostado</div>
+                <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
                 <div style={{color:Q.gold,fontWeight:800,fontSize:17,
                   fontFamily:F_BODY}}>
                   {ars(d.total.apostado)}</div>
               </div>
               <div style={{flex:1}}>
-                <div style={{color:Q.muted,fontSize:10}}>GGR</div>
+                <div style={{color:Q.muted,fontSize:12}}>GGR</div>
                 <div style={{color:d.total.ggr>=0?Q.green:Q.red,
                   fontWeight:800,fontSize:17,
                   fontFamily:F_BODY}}>
@@ -7798,12 +7798,12 @@ function HistorialAdmin({ adminKey, onNoAutorizado }){
                   whiteSpace:"nowrap",
                   fontFamily:F_BODY}}>
                   {m.titulo}</div>
-                <div style={{color:Q.dim,fontSize:9.5,marginTop:2}}>
+                <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                   {m.cliente}{m.agencia&&` · ${m.agencia}`}
                   {" · "}{m.fecha}</div>
               </div>
               <div style={{textAlign:"right",flexShrink:0}}>
-                <div style={{color:Q.muted,fontSize:11,
+                <div style={{color:Q.muted,fontSize:12,
                   fontFamily:F_BODY}}>
                   {ars(m.apostado)}</div>
                 {m.cobrado>0&&(
@@ -7858,7 +7858,7 @@ function Liquidacion({ adminKey, onNoAutorizado }){
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>
         <Icon name="wallet-cards" size={14}/> Liquidación</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Cuánto se le paga a cada agencia cruzando todos los productos.</div>
 
@@ -7875,13 +7875,13 @@ function Liquidacion({ adminKey, onNoAutorizado }){
         <>
           <div style={{display:"flex",gap:8,margin:"12px 0"}}>
             <GCard style={{flex:1,padding:14}} glow={Q.red}>
-              <div style={{color:Q.muted,fontSize:10}}>A pagar</div>
+              <div style={{color:Q.muted,fontSize:12}}>A pagar</div>
               <div style={{color:Q.red,fontWeight:800,fontSize:18,
                 fontFamily:F_BODY}}>
                 {ars(d.total_a_pagar)}</div>
             </GCard>
             <GCard style={{flex:1,padding:14}} glow={Q.green}>
-              <div style={{color:Q.muted,fontSize:10}}>A cobrar</div>
+              <div style={{color:Q.muted,fontSize:12}}>A cobrar</div>
               <div style={{color:Q.green,fontWeight:800,fontSize:18,
                 fontFamily:F_BODY}}>
                 {ars(d.total_a_cobrar)}</div>
@@ -7908,7 +7908,7 @@ function Liquidacion({ adminKey, onNoAutorizado }){
                     whiteSpace:"nowrap",
                     fontFamily:F_BODY}}>
                     {a.nombre}</div>
-                  <div style={{color:Q.dim,fontSize:9.5,marginTop:2}}>
+                  <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                     {a.deportivas.comision>0&&
                       `dep ${ars(a.deportivas.comision)}`}
                     {a.casino.comision>0&&
@@ -7921,7 +7921,7 @@ function Liquidacion({ adminKey, onNoAutorizado }){
                     fontSize:15,fontWeight:800,
                     fontFamily:F_BODY}}>
                     {ars(Math.abs(a.total_liquidar))}</div>
-                  <div style={{color:Q.dim,fontSize:9}}>
+                  <div style={{color:Q.dim,fontSize:12}}>
                     {a.total_liquidar>=0?"le pagamos":"nos debe"}</div>
                 </div>
               </div>
@@ -7939,12 +7939,12 @@ function Liquidacion({ adminKey, onNoAutorizado }){
                     ["Cuenta corriente anterior",a.cuenta_corriente,""],
                   ].filter(([,v])=>v!==0).map(([l,v,ay])=>(
                     <div key={l} style={{display:"flex",
-                      justifyContent:"space-between",fontSize:11.5,
+                      justifyContent:"space-between",fontSize:12,
                       padding:"4px 0",
                       fontFamily:F_BODY}}>
                       <span style={{color:Q.muted,minWidth:0,flex:1}}>
                         {l}
-                        {ay&&<span style={{color:Q.dim,fontSize:9,
+                        {ay&&<span style={{color:Q.dim,fontSize:12,
                           display:"block",lineHeight:1.3}}>{ay}</span>}</span>
                       <span style={{color:v>=0?Q.text:Q.amber,
                         flexShrink:0,marginLeft:8}}>
@@ -7966,12 +7966,12 @@ function Liquidacion({ adminKey, onNoAutorizado }){
           ))}
 
           {d.sin_movimiento>0&&(
-            <div style={{color:Q.dim,fontSize:10.5,marginTop:10,
+            <div style={{color:Q.dim,fontSize:12,marginTop:10,
               fontFamily:F_BODY}}>
               {d.sin_movimiento} agencias sin movimiento, no se listan.</div>
           )}
 
-          <div style={{color:Q.dim,fontSize:10,marginTop:10,
+          <div style={{color:Q.dim,fontSize:12,marginTop:10,
             lineHeight:1.5,fontFamily:F_BODY}}>
             {d.nota}</div>
         </>
@@ -8016,7 +8016,7 @@ function CCDesafios({ adminKey, onNoAutorizado }){
       <div style={{color:Q.text,fontWeight:700,fontSize:13.5,
         marginBottom:4,fontFamily:F_BODY}}>
         Cuenta corriente</div>
-      <div style={{color:Q.dim,fontSize:10.5,marginBottom:10,
+      <div style={{color:Q.dim,fontSize:12,marginBottom:10,
         lineHeight:1.5,fontFamily:F_BODY}}>
         Cada agencia cobró el efectivo de su jugador. Acá se ve qué
         parte es del sistema y qué parte hay que transferirle.</div>
@@ -8034,14 +8034,14 @@ function CCDesafios({ adminKey, onNoAutorizado }){
         <>
           <div style={{display:"flex",gap:8,margin:"12px 0"}}>
             <GCard style={{flex:1,padding:13}}>
-              <div style={{color:Q.muted,fontSize:10}}>El sistema debe</div>
+              <div style={{color:Q.muted,fontSize:12}}>El sistema debe</div>
               <div style={{color:Q.red,fontWeight:800,fontSize:17,
                 fontFamily:F_BODY}}>
                 {d.sistema_debe.toLocaleString("es-AR",
                   {maximumFractionDigits:2})}</div>
             </GCard>
             <GCard style={{flex:1,padding:13}}>
-              <div style={{color:Q.muted,fontSize:10}}>El sistema cobra</div>
+              <div style={{color:Q.muted,fontSize:12}}>El sistema cobra</div>
               <div style={{color:Q.green,fontWeight:800,fontSize:17,
                 fontFamily:F_BODY}}>
                 {d.sistema_cobra.toLocaleString("es-AR",
@@ -8063,7 +8063,7 @@ function CCDesafios({ adminKey, onNoAutorizado }){
                   {maximumFractionDigits:2})}</span>
             </div>
             {d.neto_sistema<0&&(
-              <div style={{color:Q.amber,fontSize:10.5,marginTop:6,
+              <div style={{color:Q.amber,fontSize:12,marginTop:6,
                 lineHeight:1.5,fontFamily:F_BODY}}>
                 Está en negativo: el rake se reparte entero entre las
                 agencias. Bajá su porcentaje si querés que la casa se
@@ -8091,7 +8091,7 @@ function CCDesafios({ adminKey, onNoAutorizado }){
                     textOverflow:"ellipsis",whiteSpace:"nowrap",
                     fontFamily:F_BODY}}>
                     {c.nombre}</div>
-                  <div style={{color:Q.dim,fontSize:9.5,marginTop:2}}>
+                  <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                     {c.desafios} desafíos · cobró{" "}
                     {c.cobrado_a_jugadores.toLocaleString("es-AR")}
                     {c.premios_a_pagar>0&&
@@ -8103,12 +8103,12 @@ function CCDesafios({ adminKey, onNoAutorizado }){
                     fontFamily:F_BODY}}>
                     {c.saldo>=0?"+":""}{c.saldo.toLocaleString("es-AR",
                       {maximumFractionDigits:2})}</div>
-                  <div style={{color:Q.dim,fontSize:9}}>
+                  <div style={{color:Q.dim,fontSize:12}}>
                     {c.saldo>=0?"le transferimos":"nos debe"}</div>
                 </div>
               </div>
               {c.rake>0&&(
-                <div style={{color:Q.gold,fontSize:10,marginTop:3,
+                <div style={{color:Q.gold,fontSize:12,marginTop:3,
                   fontFamily:F_BODY}}>
                   ganó {c.rake.toLocaleString("es-AR",
                     {maximumFractionDigits:2})} de comisión</div>
@@ -8116,7 +8116,7 @@ function CCDesafios({ adminKey, onNoAutorizado }){
             </div>
           ))}
 
-          <div style={{color:Q.dim,fontSize:10,marginTop:12,
+          <div style={{color:Q.dim,fontSize:12,marginTop:12,
             lineHeight:1.5,fontFamily:F_BODY}}>
             {d.nota}</div>
         </>
@@ -8165,23 +8165,23 @@ function ReporteDesafios({ adminKey, onNoAutorizado }){
       {d&&(
         <>
           <GCard glow={Q.cyan} style={{padding:16,margin:"12px 0"}}>
-            <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+            <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
               marginBottom:9}}>EL PRODUCTO EN IACOIN</div>
             <div style={{display:"flex",gap:10,marginBottom:10}}>
               <div style={{flex:1}}>
-                <div style={{color:Q.muted,fontSize:10}}>Desafíos</div>
+                <div style={{color:Q.muted,fontSize:12}}>Desafíos</div>
                 <div style={{color:Q.text,fontWeight:800,fontSize:18,
                   fontFamily:F_BODY}}>
                   {d.total.desafios}</div>
               </div>
               <div style={{flex:1}}>
-                <div style={{color:Q.muted,fontSize:10}}>Jugadores</div>
+                <div style={{color:Q.muted,fontSize:12}}>Jugadores</div>
                 <div style={{color:Q.text,fontWeight:800,fontSize:18,
                   fontFamily:F_BODY}}>
                   {d.total.jugadores}</div>
               </div>
               <div style={{flex:1}}>
-                <div style={{color:Q.muted,fontSize:10}}>Jugado</div>
+                <div style={{color:Q.muted,fontSize:12}}>Jugado</div>
                 <div style={{color:Q.gold,fontWeight:800,fontSize:18,
                   fontFamily:F_BODY}}>
                   {d.total.jugado.toLocaleString("es-AR",
@@ -8195,7 +8195,7 @@ function ReporteDesafios({ adminKey, onNoAutorizado }){
                 fontFamily:F_BODY}}>
                 Comisión
                 {d.total.rake_pct!=null&&(
-                  <span style={{color:Q.dim,fontSize:10,marginLeft:6}}>
+                  <span style={{color:Q.dim,fontSize:12,marginLeft:6}}>
                     {d.total.rake_pct}% de lo jugado</span>
                 )}</span>
               <span style={{color:Q.green,fontWeight:900,fontSize:20,
@@ -8211,7 +8211,7 @@ function ReporteDesafios({ adminKey, onNoAutorizado }){
                 fontFamily:F_BODY}}>
                 {d.iacoin_comprados.toLocaleString("es-AR",
                   {maximumFractionDigits:0})}</div>
-              <div style={{color:Q.muted,fontSize:10}}>IACOIN comprados</div>
+              <div style={{color:Q.muted,fontSize:12}}>IACOIN comprados</div>
             </GCard>
             <GCard style={{flex:1,padding:13,textAlign:"center"}}
               glow={d.disputas_abiertas>0?Q.amber:null}>
@@ -8219,13 +8219,13 @@ function ReporteDesafios({ adminKey, onNoAutorizado }){
                 fontWeight:800,fontSize:17,
                 fontFamily:F_BODY}}>
                 {d.disputas_abiertas}</div>
-              <div style={{color:Q.muted,fontSize:10}}>disputas abiertas</div>
+              <div style={{color:Q.muted,fontSize:12}}>disputas abiertas</div>
             </GCard>
           </div>
 
           {Object.keys(d.estados||{}).length>0&&(
             <GCard style={{padding:13,marginBottom:12}}>
-              <div style={{color:Q.muted,fontSize:10,letterSpacing:0.5,
+              <div style={{color:Q.muted,fontSize:12,letterSpacing:0.5,
                 marginBottom:7}}>ESTADO DE LOS DESAFÍOS</div>
               {Object.entries(d.estados).map(([k,v])=>(
                 <div key={k} style={{display:"flex",
@@ -8244,7 +8244,7 @@ function ReporteDesafios({ adminKey, onNoAutorizado }){
 
           {(d.por_agencia||[]).length>0&&(
             <GCard style={{padding:13}}>
-              <div style={{color:Q.muted,fontSize:10,letterSpacing:0.5,
+              <div style={{color:Q.muted,fontSize:12,letterSpacing:0.5,
                 marginBottom:8}}>POR AGENCIA</div>
               {d.por_agencia.map(a=>(
                 <div key={a.code} style={{display:"flex",
@@ -8253,7 +8253,7 @@ function ReporteDesafios({ adminKey, onNoAutorizado }){
                   <div style={{minWidth:0,flex:1}}>
                     <div style={{color:Q.text,fontSize:12.5}}>
                       {a.nombre||a.code}</div>
-                    <div style={{color:Q.dim,fontSize:9.5}}>
+                    <div style={{color:Q.dim,fontSize:12}}>
                       {a.desafios} desafíos · {a.jugadores} jugadores</div>
                   </div>
                   <span style={{color:Q.green,fontSize:13,fontWeight:700,
@@ -8266,7 +8266,7 @@ function ReporteDesafios({ adminKey, onNoAutorizado }){
             </GCard>
           )}
 
-          <div style={{color:Q.dim,fontSize:10.5,marginTop:12,
+          <div style={{color:Q.dim,fontSize:12,marginTop:12,
             lineHeight:1.5,fontFamily:F_BODY}}>
             {d.nota}</div>
         </>
@@ -8324,19 +8324,19 @@ function ReporteJuegos({ adminKey, onNoAutorizado }){
           <GCard glow={Q.cyan} style={{padding:15,margin:"12px 0"}}>
             <div style={{display:"flex",gap:10,marginBottom:9}}>
               <div style={{flex:1}}>
-                <div style={{color:Q.muted,fontSize:10}}>Jugadas</div>
+                <div style={{color:Q.muted,fontSize:12}}>Jugadas</div>
                 <div style={{color:Q.text,fontWeight:800,fontSize:17,
                   fontFamily:F_BODY}}>
                   {d.total.jugadas.toLocaleString("es-AR")}</div>
               </div>
               <div style={{flex:1}}>
-                <div style={{color:Q.muted,fontSize:10}}>Jugadores</div>
+                <div style={{color:Q.muted,fontSize:12}}>Jugadores</div>
                 <div style={{color:Q.text,fontWeight:800,fontSize:17,
                   fontFamily:F_BODY}}>
                   {d.total.jugadores}</div>
               </div>
               <div style={{flex:1}}>
-                <div style={{color:Q.muted,fontSize:10}}>Apostado</div>
+                <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
                 <div style={{color:Q.gold,fontWeight:800,fontSize:17,
                   fontFamily:F_BODY}}>
                   {ars(d.total.apostado)}</div>
@@ -8349,7 +8349,7 @@ function ReporteJuegos({ adminKey, onNoAutorizado }){
                 fontFamily:F_BODY}}>
                 GGR
                 {d.total.margen_pct!=null&&(
-                  <span style={{color:Q.dim,fontSize:10,marginLeft:6}}>
+                  <span style={{color:Q.dim,fontSize:12,marginLeft:6}}>
                     margen {d.total.margen_pct}%</span>
                 )}</span>
               <span style={{color:d.total.ggr>=0?Q.green:Q.red,
@@ -8360,7 +8360,7 @@ function ReporteJuegos({ adminKey, onNoAutorizado }){
           </GCard>
 
           {d.aviso&&(
-            <div style={{color:Q.amber,fontSize:11.5,marginBottom:10,
+            <div style={{color:Q.amber,fontSize:12,marginBottom:10,
               lineHeight:1.5,fontFamily:F_BODY}}>
               <Icon name="triangle-alert" size={12}/> {d.aviso}</div>
           )}
@@ -8383,7 +8383,7 @@ function ReporteJuegos({ adminKey, onNoAutorizado }){
                   whiteSpace:"nowrap",
                   fontFamily:F_BODY}}>
                   {j.juego}</div>
-                <div style={{color:Q.dim,fontSize:9.5}}>
+                <div style={{color:Q.dim,fontSize:12}}>
                   {j.jugadas.toLocaleString("es-AR")} jugadas ·{" "}
                   {j.jugadores} jugadores · {ars(j.apostado)}
                   {j.margen_pct!=null&&` · ${j.margen_pct}%`}</div>
@@ -8459,7 +8459,7 @@ function LogosCasino({ adminKey, onNoAutorizado }){
       <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:4,
         fontFamily:F_BODY}}>
         Logos de proveedores</div>
-      <div style={{color:Q.dim,fontSize:10.5,marginBottom:10,
+      <div style={{color:Q.dim,fontSize:12,marginBottom:10,
         lineHeight:1.5,fontFamily:F_BODY}}>
         {d.con_logo} de {d.total} asignados. Escribí el nombre del
         archivo tal cual está en el repositorio, con espacios y
@@ -8494,7 +8494,7 @@ function LogosCasino({ adminKey, onNoAutorizado }){
             <div style={{minWidth:0,flex:1}}>
               <div style={{color:Q.text,fontSize:12.5,
                 fontFamily:F_BODY}}>{m.marca}</div>
-              <div style={{color:m.archivo?Q.green:Q.dim,fontSize:9.5,
+              <div style={{color:m.archivo?Q.green:Q.dim,fontSize:12,
                 overflow:"hidden",textOverflow:"ellipsis",
                 whiteSpace:"nowrap"}}>
                 {m.archivo||"sin logo"}</div>
@@ -8504,7 +8504,7 @@ function LogosCasino({ adminKey, onNoAutorizado }){
                 setArchivo(m.archivo||""); }}
               style={{background:`${Q.violet}22`,
                 border:`1px solid ${Q.violet}66`,borderRadius:7,
-                padding:"6px 11px",color:Q.cyan,fontSize:11,
+                padding:"6px 11px",color:Q.cyan,fontSize:12,
                 cursor:"pointer",flexShrink:0}}>
               {m.archivo?"Cambiar":"Asignar"}</button>
           </div>
@@ -8530,7 +8530,7 @@ function LogosCasino({ adminKey, onNoAutorizado }){
                     onLoad={e=>{e.target.style.display="block";
                       e.target.nextSibling.style.display="none";}}
                     style={{height:30,maxWidth:90,objectFit:"contain"}}/>
-                  <span style={{color:Q.red,fontSize:10,display:"none"}}>
+                  <span style={{color:Q.red,fontSize:12,display:"none"}}>
                     ese archivo no existe</span>
                 </div>
               )}
@@ -8539,14 +8539,14 @@ function LogosCasino({ adminKey, onNoAutorizado }){
                   disabled={proc}
                   style={{flex:1,background:`${Q.green}18`,
                     border:`1px solid ${Q.green}66`,borderRadius:8,
-                    padding:"8px",color:Q.green,fontSize:11.5,
+                    padding:"8px",color:Q.green,fontSize:12,
                     fontWeight:700,cursor:"pointer"}}>Guardar</button>
                 {m.archivo&&(
                   <button onClick={()=>guardar(m.marca,"")}
                     disabled={proc}
                     style={{background:"transparent",
                       border:`1px solid ${Q.border}`,borderRadius:8,
-                      padding:"8px 12px",color:Q.muted,fontSize:11.5,
+                      padding:"8px 12px",color:Q.muted,fontSize:12,
                       cursor:"pointer"}}>Quitar</button>
                 )}
               </div>
@@ -8683,7 +8683,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
         textAlign:"center"}}>
         <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:10,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:10,
         lineHeight:1.5,fontFamily:F_BODY}}>
         {d.total} proveedores
         {d.apagados>0&&`, ${d.apagados} apagados`}. Apagar uno lo saca
@@ -8708,7 +8708,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
           ))}
         </select>
         {agSel&&(
-          <div style={{color:Q.dim,fontSize:10.5,lineHeight:1.5}}>
+          <div style={{color:Q.dim,fontSize:12,lineHeight:1.5}}>
             Tocá un proveedor de la lista para apagarlo solo en{" "}
             {ags.find(a=>a.code===agSel)?.name} y su rama.</div>
         )}
@@ -8718,19 +8718,19 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
         <button onClick={()=>masivo("todos",true)} disabled={proc}
           style={{flex:1,background:`${Q.green}14`,
             border:`1px solid ${Q.green}55`,borderRadius:8,
-            padding:"9px 6px",color:Q.green,fontSize:11.5,
+            padding:"9px 6px",color:Q.green,fontSize:12,
             cursor:"pointer",
             fontFamily:F_BODY}}>Prender todos</button>
         <button onClick={()=>masivo("slots",false)} disabled={proc}
           style={{flex:1,background:"transparent",
             border:`1px solid ${Q.border}`,borderRadius:8,
-            padding:"9px 6px",color:Q.muted,fontSize:11.5,
+            padding:"9px 6px",color:Q.muted,fontSize:12,
             cursor:"pointer",
             fontFamily:F_BODY}}>Apagar slots</button>
         <button onClick={()=>masivo("vivo",false)} disabled={proc}
           style={{flex:1,background:"transparent",
             border:`1px solid ${Q.border}`,borderRadius:8,
-            padding:"9px 6px",color:Q.muted,fontSize:11.5,
+            padding:"9px 6px",color:Q.muted,fontSize:12,
             cursor:"pointer",
             fontFamily:F_BODY}}>Apagar vivo</button>
       </div>
@@ -8750,7 +8750,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
             style={{background:filtro===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${filtro===k?Q.violet:Q.border}`,
               borderRadius:8,padding:"7px 12px",cursor:"pointer",
-              color:filtro===k?Q.cyan:Q.muted,fontSize:11.5,
+              color:filtro===k?Q.cyan:Q.muted,fontSize:12,
               whiteSpace:"nowrap",flexShrink:0,
               fontFamily:F_BODY}}>{l}</button>
         ))}
@@ -8785,12 +8785,12 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
                 fontWeight:600,
                 fontFamily:F_BODY}}>
                 {p.es_vivo&&<Video size={11}/>} {p.marca}</div>
-              <div style={{color:Q.dim,fontSize:9.5,marginTop:2}}>
+              <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                 {p.juegos} juegos
                 {p.jugadas_30d>0&&` · ${p.jugadas_30d.toLocaleString("es-AR")} jugadas`}
                 {p.margen_30d!=null&&` · margen ${p.margen_30d}%`}</div>
               {!p.activo&&p.motivo&&(
-                <div style={{color:Q.red,fontSize:9.5,marginTop:2,
+                <div style={{color:Q.red,fontSize:12,marginTop:2,
                   lineHeight:1.4}}>{p.motivo}</div>
               )}
             </div>
@@ -8805,7 +8805,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
               style={{background:p.activo?"transparent":`${Q.green}18`,
                 border:`1px solid ${p.activo?Q.border:Q.green}66`,
                 borderRadius:7,padding:"6px 11px",
-                color:p.activo?Q.muted:Q.green,fontSize:11,
+                color:p.activo?Q.muted:Q.green,fontSize:12,
                 cursor:"pointer",flexShrink:0}}>
               {p.activo?"Apagar":"Prender"}</button>
           </div>
@@ -8821,7 +8821,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
                 style={{background:p.en_app?`${Q.green}14`:"transparent",
                   border:`1px solid ${p.en_app?`${Q.green}55`:Q.border}`,
                   borderRadius:6,padding:"5px 11px",
-                  color:p.en_app?Q.green:Q.dim,fontSize:10.5,
+                  color:p.en_app?Q.green:Q.dim,fontSize:12,
                   cursor:"pointer",
                   fontFamily:F_BODY}}>App</button>
               <button onClick={()=>superficie(p.marca,"en_web",!p.en_web)}
@@ -8829,11 +8829,11 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
                 style={{background:p.en_web?`${Q.green}14`:"transparent",
                   border:`1px solid ${p.en_web?`${Q.green}55`:Q.border}`,
                   borderRadius:6,padding:"5px 11px",
-                  color:p.en_web?Q.green:Q.dim,fontSize:10.5,
+                  color:p.en_web?Q.green:Q.dim,fontSize:12,
                   cursor:"pointer",
                   fontFamily:F_BODY}}>Web</button>
               {p.es_vivo ? (
-                <span style={{color:Q.dim,fontSize:9.5,alignSelf:"center",
+                <span style={{color:Q.dim,fontSize:12,alignSelf:"center",
                   marginLeft:4,fontFamily:F_BODY}}>
                   las mesas van a la app igual</span>
               ) : (
@@ -8844,7 +8844,7 @@ function ProveedoresCasino({ adminKey, onNoAutorizado }){
                   style={{background:p.forzar_movil?`${Q.amber}14`:"transparent",
                     border:`1px solid ${p.forzar_movil?`${Q.amber}55`:Q.border}`,
                     borderRadius:6,padding:"5px 10px",
-                    color:p.forzar_movil?Q.amber:Q.dim,fontSize:10.5,
+                    color:p.forzar_movil?Q.amber:Q.dim,fontSize:12,
                     cursor:"pointer",
                     fontFamily:F_BODY}}>Forzar</button>
               )}
@@ -8951,7 +8951,7 @@ function Integraciones({ adminKey, onNoAutorizado }){
         disabled={proc}/>
 
       {d.juegos_repetidos>0&&(
-        <div style={{color:Q.amber,fontSize:11.5,marginTop:9,
+        <div style={{color:Q.amber,fontSize:12,marginTop:9,
           lineHeight:1.5,fontFamily:F_BODY}}>
           {d.juegos_repetidos} juegos están en más de un proveedor. Se
           muestra el de menor prioridad.</div>
@@ -8968,17 +8968,17 @@ function Integraciones({ adminKey, onNoAutorizado }){
               <div style={{color:i.activa?Q.text:Q.dim,fontWeight:700,
                 fontSize:13.5,fontFamily:F_BODY}}>
                 {i.nombre}
-                {!i.activa&&<span style={{color:Q.dim,fontSize:9,
+                {!i.activa&&<span style={{color:Q.dim,fontSize:12,
                   marginLeft:6}}>apagada</span>}</div>
-              <div style={{color:Q.muted,fontSize:10.5,marginTop:3}}>
+              <div style={{color:Q.muted,fontSize:12,marginTop:3}}>
                 prioridad {i.prioridad} · {i.juegos} juegos ·{" "}
                 {i.monedas}</div>
               {i.ultimo_sync&&(
-                <div style={{color:Q.dim,fontSize:9.5,marginTop:2}}>
+                <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                   última carga: {i.ultimo_sync}</div>
               )}
               {!i.tiene_credenciales&&(
-                <div style={{color:Q.red,fontSize:10,marginTop:3}}>
+                <div style={{color:Q.red,fontSize:12,marginTop:3}}>
                   faltan credenciales · tocá Editar y cargalas</div>
               )}
             </div>
@@ -8990,19 +8990,19 @@ function Integraciones({ adminKey, onNoAutorizado }){
                     prioridad:i.prioridad,notas:i.notas||""}); }}
                 style={{background:`${Q.violet}22`,
                   border:`1px solid ${Q.violet}66`,borderRadius:7,
-                  padding:"6px 11px",color:Q.cyan,fontSize:11,
+                  padding:"6px 11px",color:Q.cyan,fontSize:12,
                   cursor:"pointer"}}>Editar</button>
               <button onClick={()=>sincronizar(i.codigo)} disabled={proc}
                 style={{background:"transparent",
                   border:`1px solid ${Q.border}`,borderRadius:7,
-                  padding:"6px 11px",color:Q.muted,fontSize:11,
+                  padding:"6px 11px",color:Q.muted,fontSize:12,
                   cursor:"pointer"}}>Traer</button>
               {i.activa&&(
                 <button onClick={()=>quitar(i.codigo,i.nombre)}
                   disabled={proc}
                   style={{background:"transparent",
                     border:`1px solid ${Q.red}44`,borderRadius:7,
-                    padding:"6px 11px",color:Q.red,fontSize:11,
+                    padding:"6px 11px",color:Q.red,fontSize:12,
                     cursor:"pointer"}}>Quitar</button>
               )}
             </div>
@@ -9026,7 +9026,7 @@ function Integraciones({ adminKey, onNoAutorizado }){
 
           {editando==="nueva"&&(
             <>
-              <div style={{color:Q.muted,fontSize:11,marginBottom:3}}>
+              <div style={{color:Q.muted,fontSize:12,marginBottom:3}}>
                 Código corto (sin espacios)</div>
               <input value={form.codigo||""}
                 onChange={e=>setForm({...form,
@@ -9035,26 +9035,26 @@ function Integraciones({ adminKey, onNoAutorizado }){
             </>
           )}
 
-          <div style={{color:Q.muted,fontSize:11,marginBottom:3}}>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:3}}>
             Nombre</div>
           <input value={form.nombre||""}
             onChange={e=>setForm({...form,nombre:e.target.value})}
             style={inp}/>
 
-          <div style={{color:Q.muted,fontSize:11,marginBottom:3}}>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:3}}>
             Dirección de su API</div>
           <input value={form.url||""}
             onChange={e=>setForm({...form,url:e.target.value})}
             placeholder="https://proveedor.com" style={inp}/>
 
-          <div style={{color:Q.muted,fontSize:11,marginBottom:3}}>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:3}}>
             X-Code</div>
           <input value={form.api_code||""}
             onChange={e=>setForm({...form,api_code:e.target.value})}
             placeholder={editando==="nueva"?"":"(se conserva el actual)"}
             style={inp}/>
 
-          <div style={{color:Q.muted,fontSize:11,marginBottom:3}}>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:3}}>
             Clave secreta</div>
           <input value={form.api_secret||""} type="password"
             onChange={e=>setForm({...form,api_secret:e.target.value})}
@@ -9063,7 +9063,7 @@ function Integraciones({ adminKey, onNoAutorizado }){
 
           <div style={{display:"flex",gap:8}}>
             <div style={{flex:1}}>
-              <div style={{color:Q.muted,fontSize:11,marginBottom:3}}>
+              <div style={{color:Q.muted,fontSize:12,marginBottom:3}}>
                 Monedas</div>
               <input value={form.monedas||""}
                 onChange={e=>setForm({...form,
@@ -9071,7 +9071,7 @@ function Integraciones({ adminKey, onNoAutorizado }){
                 placeholder="ARS,USD" style={inp}/>
             </div>
             <div style={{flex:1}}>
-              <div style={{color:Q.muted,fontSize:11,marginBottom:3}}>
+              <div style={{color:Q.muted,fontSize:12,marginBottom:3}}>
                 Prioridad</div>
               <input value={form.prioridad??100} inputMode="numeric"
                 onChange={e=>setForm({...form,
@@ -9079,7 +9079,7 @@ function Integraciones({ adminKey, onNoAutorizado }){
                 style={inp}/>
             </div>
           </div>
-          <div style={{color:Q.dim,fontSize:10,marginTop:-4,
+          <div style={{color:Q.dim,fontSize:12,marginTop:-4,
             marginBottom:9,lineHeight:1.5}}>
             Menor número gana cuando dos proveedores tienen el mismo
             juego.</div>
@@ -9191,7 +9191,7 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
       <Btn label={proc?"Revisando…":<><Icon name="search" size={13}/> Revisar ahora</>}
         onClick={()=>cargar(true)} color={Q.cyan} full disabled={proc}/>
 
-      <div style={{color:Q.dim,fontSize:10.5,margin:"8px 0 14px",
+      <div style={{color:Q.dim,fontSize:12,margin:"8px 0 14px",
         lineHeight:1.55,fontFamily:F_BODY}}>
         Un GGR negativo con pocas jugadas suele ser un premio grande
         que con volumen se acomoda. Por eso las alertas exigen un
@@ -9209,14 +9209,14 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
               <div style={{minWidth:0,flex:1}}>
                 <div style={{color:Q.text,fontSize:12.5}}>{p.marca}</div>
                 {p.motivo&&(
-                  <div style={{color:Q.dim,fontSize:10,lineHeight:1.4}}>
+                  <div style={{color:Q.dim,fontSize:12,lineHeight:1.4}}>
                     {p.motivo}{p.cuando&&` · ${p.cuando}`}</div>
                 )}
               </div>
               <button onClick={()=>prender(p.marca)} disabled={proc}
                 style={{background:`${Q.green}18`,
                   border:`1px solid ${Q.green}66`,borderRadius:7,
-                  padding:"6px 12px",color:Q.green,fontSize:11,
+                  padding:"6px 12px",color:Q.green,fontSize:12,
                   cursor:"pointer",flexShrink:0}}>Prender</button>
             </div>
           ))}
@@ -9242,12 +9242,12 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
               {a.titulo}</span>
             <span style={{background:`${COLOR[a.severidad]}22`,
               border:`1px solid ${COLOR[a.severidad]}66`,borderRadius:12,
-              padding:"2px 8px",fontSize:9,color:COLOR[a.severidad],
+              padding:"2px 8px",fontSize:12,color:COLOR[a.severidad],
               flexShrink:0,fontWeight:700}}>{a.severidad}</span>
           </div>
 
           {a.detalle&&(
-            <div style={{color:Q.muted,fontSize:11.5,lineHeight:1.5,
+            <div style={{color:Q.muted,fontSize:12,lineHeight:1.5,
               fontFamily:F_BODY}}>{a.detalle}</div>
           )}
 
@@ -9255,14 +9255,14 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
             <div style={{marginTop:10,padding:"10px 12px",
               background:`${Q.cyan}0D`,border:`1px solid ${Q.cyan}33`,
               borderRadius:9}}>
-              <div style={{color:Q.cyan,fontSize:10,letterSpacing:0.5,
+              <div style={{color:Q.cyan,fontSize:12,letterSpacing:0.5,
                 marginBottom:5}}>LECTURA DE LA IA</div>
               <div style={{color:Q.muted,fontSize:12,lineHeight:1.55,
                 whiteSpace:"pre-wrap",
                 fontFamily:F_BODY}}>
                 {a.analisis_ia}</div>
               {a.sugerencia&&(
-                <div style={{color:Q.amber,fontSize:11,marginTop:7,
+                <div style={{color:Q.amber,fontSize:12,marginTop:7,
                   fontWeight:600}}>
                   Sugiere: {{observar:"seguir mirándolo",
                     apagar:"apagar el proveedor",
@@ -9277,20 +9277,20 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
               <button onClick={()=>analizar(a.id)} disabled={proc}
                 style={{flex:1,background:`${Q.cyan}18`,
                   border:`1px solid ${Q.cyan}55`,borderRadius:8,
-                  padding:"9px",color:Q.cyan,fontSize:11.5,
+                  padding:"9px",color:Q.cyan,fontSize:12,
                   fontWeight:700,cursor:"pointer"}}>🤖 Analizar</button>
             )}
             {a.marca&&(
               <button onClick={()=>apagar(a.marca)} disabled={proc}
                 style={{flex:1,background:`${Q.red}12`,
                   border:`1px solid ${Q.red}55`,borderRadius:8,
-                  padding:"9px",color:Q.red,fontSize:11.5,
+                  padding:"9px",color:Q.red,fontSize:12,
                   cursor:"pointer"}}>Apagar {a.marca}</button>
             )}
             <button onClick={()=>cerrar(a.id)}
               style={{flex:1,background:"transparent",
                 border:`1px solid ${Q.border}`,borderRadius:8,
-                padding:"9px",color:Q.muted,fontSize:11.5,
+                padding:"9px",color:Q.muted,fontSize:12,
                 cursor:"pointer"}}>Cerrar</button>
           </div>
         </GCard>
@@ -9333,7 +9333,7 @@ function TabCasinoProveedor({ adminKey, onNoAutorizado }){
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}><Icon name="spade" size={14}/> Proveedor de casino</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Conexión con 44neoluck para traer los juegos y abrir partidas.</div>
 
@@ -9368,7 +9368,7 @@ function TabCasinoProveedor({ adminKey, onNoAutorizado }){
           {d.prueba&&(
             <div style={{marginTop:10,paddingTop:9,
               borderTop:`1px solid ${Q.border}`}}>
-              <div style={{color:Q.muted,fontSize:10,letterSpacing:0.5,
+              <div style={{color:Q.muted,fontSize:12,letterSpacing:0.5,
                 marginBottom:4}}>RESPUESTA</div>
               <div style={{color:Q.text,fontSize:12.5,lineHeight:1.5,
                 fontFamily:F_BODY}}>{d.prueba}</div>
@@ -9377,7 +9377,7 @@ function TabCasinoProveedor({ adminKey, onNoAutorizado }){
 
           {d.diagnostico&&(
             <div style={{color:d.juegos_en_cache>0?Q.green:Q.amber,
-              fontSize:11.5,marginTop:9,lineHeight:1.55,
+              fontSize:12,marginTop:9,lineHeight:1.55,
               fontFamily:F_BODY}}>
               {d.diagnostico}</div>
           )}
@@ -9385,7 +9385,7 @@ function TabCasinoProveedor({ adminKey, onNoAutorizado }){
           {/* El desfase de reloj da un error idéntico al de firma mal
               calculada, y es lo primero que hay que descartar. */}
           {d.prueba&&String(d.prueba).includes("405")&&(
-            <div style={{color:Q.dim,fontSize:10.5,marginTop:8,
+            <div style={{color:Q.dim,fontSize:12,marginTop:8,
               lineHeight:1.5,fontFamily:F_BODY}}>
               El 405 puede ser la clave o el reloj del servidor: ellos
               aceptan pedidos con hasta 30 segundos de diferencia.</div>
@@ -9477,9 +9477,9 @@ function Rendimiento({ adminKey, onNoAutorizado }){
           fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={14}/> Rendimiento</span>
         <button onClick={reiniciar}
           style={{background:"transparent",border:"none",color:Q.dim,
-            fontSize:10.5,cursor:"pointer"}}>reiniciar</button>
+            fontSize:12,cursor:"pointer"}}>reiniciar</button>
       </div>
-      <div style={{color:Q.muted,fontSize:11,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.5,fontFamily:F_BODY}}>
         {d.total_llamadas.toLocaleString("es-AR")} pedidos medidos desde
         el último reinicio del servidor.</div>
@@ -9490,7 +9490,7 @@ function Rendimiento({ adminKey, onNoAutorizado }){
             marginBottom:6,fontFamily:F_BODY}}>
             Atención</div>
           {d.avisos.map((a,i)=>(
-            <div key={i} style={{color:Q.muted,fontSize:11.5,
+            <div key={i} style={{color:Q.muted,fontSize:12,
               lineHeight:1.5,padding:"3px 0",
               fontFamily:F_BODY}}>· {a}</div>
           ))}
@@ -9517,7 +9517,7 @@ function Rendimiento({ adminKey, onNoAutorizado }){
             background:pctPool>80?Q.red:(pctPool>50?Q.amber:Q.green),
             transition:"width .3s"}}/>
         </div>
-        <div style={{color:Q.dim,fontSize:10,marginTop:6,
+        <div style={{color:Q.dim,fontSize:12,marginTop:6,
           lineHeight:1.45,fontFamily:F_BODY}}>
           Cuando se llenan, los pedidos hacen cola y todo se vuelve
           lento aunque el servidor esté libre.</div>
@@ -9530,14 +9530,14 @@ function Rendimiento({ adminKey, onNoAutorizado }){
         <button onClick={()=>correrCarga(30,4)} disabled={cargando}
           style={{flex:1,background:`${Q.cyan}18`,
             border:`1px solid ${Q.cyan}55`,borderRadius:8,
-            padding:"10px 6px",color:Q.cyan,fontSize:11.5,
+            padding:"10px 6px",color:Q.cyan,fontSize:12,
             fontWeight:700,cursor:"pointer",
             fontFamily:F_BODY}}>
           <Zap size={13}/> Rápida</button>
         <button onClick={()=>correrCarga(80,8)} disabled={cargando}
           style={{flex:1,background:`${Q.amber}14`,
             border:`1px solid ${Q.amber}55`,borderRadius:8,
-            padding:"10px 6px",color:Q.amber,fontSize:11.5,
+            padding:"10px 6px",color:Q.amber,fontSize:12,
             fontWeight:700,cursor:"pointer",
             fontFamily:F_BODY}}>
           🔥 Exigente</button>
@@ -9557,7 +9557,7 @@ function Rendimiento({ adminKey, onNoAutorizado }){
               <div style={{display:"flex",
                 justifyContent:"space-between",alignItems:"baseline",
                 gap:8}}>
-                <span style={{color:Q.text,fontSize:11.5,
+                <span style={{color:Q.text,fontSize:12,
                   fontFamily:F_BODY}}>
                   {r.prueba}</span>
                 <span style={{color:r.p95_ms>2000?Q.red
@@ -9566,7 +9566,7 @@ function Rendimiento({ adminKey, onNoAutorizado }){
                   fontFamily:F_BODY}}>
                   {r.por_segundo}/s</span>
               </div>
-              <div style={{color:Q.dim,fontSize:9.5,marginTop:1}}>
+              <div style={{color:Q.dim,fontSize:12,marginTop:1}}>
                 mediana {r.mediana_ms}ms · peor 5% {r.p95_ms}ms ·
                 máximo {r.peor_ms}ms
                 {r.errores>0&&(
@@ -9575,7 +9575,7 @@ function Rendimiento({ adminKey, onNoAutorizado }){
               {/* El motivo del primer fallo: sin esto hay que
                   adivinar si es carga o un error de la consulta. */}
               {r.motivo&&(
-                <div style={{color:Q.red,fontSize:9.5,marginTop:2,
+                <div style={{color:Q.red,fontSize:12,marginTop:2,
                   lineHeight:1.4,wordBreak:"break-word",
                   fontFamily:F_BODY}}>
                   {r.motivo}</div>
@@ -9584,7 +9584,7 @@ function Rendimiento({ adminKey, onNoAutorizado }){
           ))}
 
           {carga.capacidad&&(
-            <div style={{color:Q.cyan,fontSize:11.5,marginTop:9,
+            <div style={{color:Q.cyan,fontSize:12,marginTop:9,
               paddingTop:8,borderTop:`1px solid ${Q.border}`,
               lineHeight:1.5,
               fontFamily:F_BODY}}>
@@ -9592,19 +9592,19 @@ function Rendimiento({ adminKey, onNoAutorizado }){
           )}
 
           {(carga.avisos||[]).map((a,i)=>(
-            <div key={i} style={{color:Q.amber,fontSize:11,marginTop:6,
+            <div key={i} style={{color:Q.amber,fontSize:12,marginTop:6,
               lineHeight:1.5,
               fontFamily:F_BODY}}>· {a}</div>
           ))}
 
-          <div style={{color:Q.dim,fontSize:9.5,marginTop:8,
+          <div style={{color:Q.dim,fontSize:12,marginTop:8,
             lineHeight:1.45,
             fontFamily:F_BODY}}>
             {carga.nota}</div>
         </GCard>
       )}
 
-      <div style={{color:Q.muted,fontSize:10,letterSpacing:0.6,
+      <div style={{color:Q.muted,fontSize:12,letterSpacing:0.6,
         marginBottom:7,fontFamily:F_BODY}}>
         LO QUE MÁS TIEMPO CONSUME</div>
 
@@ -9613,18 +9613,18 @@ function Rendimiento({ adminKey, onNoAutorizado }){
           borderTop:i?`1px solid ${Q.border}`:"none"}}>
           <div style={{display:"flex",justifyContent:"space-between",
             alignItems:"baseline",gap:8}}>
-            <span style={{color:Q.text,fontSize:11,minWidth:0,flex:1,
+            <span style={{color:Q.text,fontSize:12,minWidth:0,flex:1,
               overflow:"hidden",textOverflow:"ellipsis",
               whiteSpace:"nowrap",
               fontFamily:F_BODY}}>
               {e.ruta}</span>
             <span style={{color:e.promedio_ms>800?Q.red
                 :(e.promedio_ms>300?Q.amber:Q.muted),
-              fontSize:11.5,fontWeight:700,flexShrink:0,
+              fontSize:12,fontWeight:700,flexShrink:0,
               fontFamily:F_BODY}}>
               {e.promedio_ms}ms</span>
           </div>
-          <div style={{color:Q.dim,fontSize:9.5,marginTop:1}}>
+          <div style={{color:Q.dim,fontSize:12,marginTop:1}}>
             {e.llamadas.toLocaleString("es-AR")} llamadas · pico{" "}
             {e.max_ms}ms · consume {e.peso}s
             {e.errores>0&&(
@@ -9638,13 +9638,13 @@ function Rendimiento({ adminKey, onNoAutorizado }){
           <div style={{color:Q.red,fontSize:12,fontWeight:700,
             marginBottom:4,fontFamily:F_BODY}}>
             Tablas sin índice</div>
-          <div style={{color:Q.muted,fontSize:10.5,marginBottom:8,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:8,
             lineHeight:1.5}}>
             Se recorren enteras en cada consulta. Con pocas filas no
             se nota; con muchas, cada consulta tarda más.</div>
           {d.sin_indice.map(t=>(
             <div key={t.tabla} style={{display:"flex",
-              justifyContent:"space-between",fontSize:11,padding:"3px 0",
+              justifyContent:"space-between",fontSize:12,padding:"3px 0",
               fontFamily:F_BODY}}>
               <span style={{color:Q.text}}>{t.tabla}</span>
               <span style={{color:Q.red}}>{t.pct}% completos</span>
@@ -9655,12 +9655,12 @@ function Rendimiento({ adminKey, onNoAutorizado }){
 
       {(d.tablas||[]).length>0&&(
         <div style={{marginTop:12}}>
-          <div style={{color:Q.muted,fontSize:10,letterSpacing:0.6,
+          <div style={{color:Q.muted,fontSize:12,letterSpacing:0.6,
             marginBottom:6,fontFamily:F_BODY}}>
             TABLAS MÁS GRANDES</div>
           {d.tablas.slice(0,6).map(t=>(
             <div key={t.tabla} style={{display:"flex",
-              justifyContent:"space-between",fontSize:11,padding:"3px 0",
+              justifyContent:"space-between",fontSize:12,padding:"3px 0",
               fontFamily:F_BODY}}>
               <span style={{color:Q.muted}}>{t.tabla}</span>
               <span style={{color:Q.dim}}>
@@ -9670,7 +9670,7 @@ function Rendimiento({ adminKey, onNoAutorizado }){
         </div>
       )}
 
-      <div style={{color:Q.dim,fontSize:10,marginTop:12,
+      <div style={{color:Q.dim,fontSize:12,marginTop:12,
         lineHeight:1.5,fontFamily:F_BODY}}>
         {d.nota}</div>
     </div>
@@ -9741,7 +9741,7 @@ function TabTester({ adminKey, onNoAutorizado }){
 
   const bloque=(titulo,items)=>items.length>0&&(
     <div style={{marginBottom:14}}>
-      <div style={{color:Q.muted,fontSize:10,letterSpacing:0.6,
+      <div style={{color:Q.muted,fontSize:12,letterSpacing:0.6,
         marginBottom:7,fontFamily:F_BODY}}>
         {titulo}</div>
       {items.map((x,i)=>(
@@ -9751,11 +9751,11 @@ function TabTester({ adminKey, onNoAutorizado }){
           <span style={{color:x.ok?Q.green:Q.red,fontSize:12,
             flexShrink:0,fontWeight:700}}>{x.ok?"✓":"✗"}</span>
           <div style={{minWidth:0,flex:1}}>
-            <div style={{color:x.ok?Q.muted:Q.text,fontSize:11.5,
+            <div style={{color:x.ok?Q.muted:Q.text,fontSize:12,
               lineHeight:1.4,
               fontFamily:F_BODY}}>{x.nombre}</div>
             {!x.ok&&x.detalle&&(
-              <div style={{color:Q.red,fontSize:10,marginTop:2,
+              <div style={{color:Q.red,fontSize:12,marginTop:2,
                 lineHeight:1.4}}>{x.detalle}</div>
             )}
           </div>
@@ -9768,7 +9768,7 @@ function TabTester({ adminKey, onNoAutorizado }){
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>🧪 Pruebas</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Recorre el sistema y verifica que responda y que los números
         den bien.</div>
@@ -9777,7 +9777,7 @@ function TabTester({ adminKey, onNoAutorizado }){
         <div style={{background:`${Q.amber}12`,
           border:`1px solid ${Q.amber}44`,borderRadius:10,
           padding:"11px 13px",marginBottom:12,color:Q.amber,
-          fontSize:11.5,lineHeight:1.55,
+          fontSize:12,lineHeight:1.55,
           fontFamily:F_BODY}}>
           Estás en producción. Las pruebas de lectura no tocan nada.
           Las que crean datos piden confirmación escrita.</div>
@@ -9792,7 +9792,7 @@ function TabTester({ adminKey, onNoAutorizado }){
           <div style={{color:Q.amber,fontSize:12,fontWeight:700,
             marginBottom:5,fontFamily:F_BODY}}>
             Hay datos de prueba en la base</div>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:9,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:9,
             lineHeight:1.5}}>
             {est.agencias} agencias · {est.usuarios} clientes ·{" "}
             {est.desafios} desafíos. Están ensuciando los reportes.</div>
@@ -9815,7 +9815,7 @@ function TabTester({ adminKey, onNoAutorizado }){
           fontWeight:conEscritura?700:400,textAlign:"left",
           fontFamily:F_BODY}}>
         {conEscritura?<><Icon name="triangle-alert" size={12}/> Con creación de datos</>:"Solo lectura"}
-        <div style={{color:Q.dim,fontSize:10,marginTop:3,
+        <div style={{color:Q.dim,fontSize:12,marginTop:3,
           fontWeight:400,lineHeight:1.4}}>
           {conEscritura
             ? "Crea agencias, clientes y desafíos marcados como prueba"
@@ -9844,13 +9844,13 @@ function TabTester({ adminKey, onNoAutorizado }){
                 <div style={{color:Q.green,fontWeight:900,fontSize:26,
                   fontFamily:F_BODY}}>
                   {res.bien}</div>
-                <div style={{color:Q.muted,fontSize:10}}>bien</div>
+                <div style={{color:Q.muted,fontSize:12}}>bien</div>
               </div>
               <div>
                 <div style={{color:res.mal?Q.red:Q.dim,fontWeight:900,
                   fontSize:26,fontFamily:F_BODY}}>
                   {res.mal}</div>
-                <div style={{color:Q.muted,fontSize:10}}>mal</div>
+                <div style={{color:Q.muted,fontSize:12}}>mal</div>
               </div>
               <div style={{marginLeft:"auto",textAlign:"right"}}>
                 <div style={{color:res.mal===0?Q.green:Q.red,
@@ -9865,7 +9865,7 @@ function TabTester({ adminKey, onNoAutorizado }){
           {bloque("CIRCUITO COMPLETO", res.escritura||[])}
 
           {res.creado&&(
-            <div style={{color:Q.dim,fontSize:10.5,marginTop:10,
+            <div style={{color:Q.dim,fontSize:12,marginTop:10,
               lineHeight:1.5,fontFamily:F_BODY}}>
               Se crearon {(res.creado.agencias||[]).length} agencias y{" "}
               {(res.creado.usuarios||[]).length} clientes de prueba.
@@ -9934,7 +9934,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
           color:d[clave]?Q.green:Q.dim}}>
           {d[clave]?"✅ Activo":"⭕ Apagado"}</span>
       </button>
-      {ayuda&&<div style={{color:Q.dim,fontSize:10.5,marginTop:7,
+      {ayuda&&<div style={{color:Q.dim,fontSize:12,marginTop:7,
         lineHeight:1.5,fontFamily:F_BODY}}>
         {ayuda}</div>}
     </GCard>
@@ -9945,7 +9945,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>
         <Icon name="shield-check" size={14}/> Juego responsable</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Lo que exige cualquier jurisdicción regulada. Es lo primero
         que mira un certificador.</div>
@@ -9973,7 +9973,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
               <div style={{color:Q.cyan,fontWeight:800,fontSize:19,
                 fontFamily:F_BODY}}>
                 {d.jugadores_con_limites}</div>
-              <div style={{color:Q.muted,fontSize:10}}>con límites</div>
+              <div style={{color:Q.muted,fontSize:12}}>con límites</div>
             </GCard>
             <GCard style={{flex:1,padding:13,textAlign:"center"}}
               glow={d.autoexcluidos>0?Q.amber:null}>
@@ -9981,7 +9981,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
                 fontWeight:800,fontSize:19,
                 fontFamily:F_BODY}}>
                 {d.autoexcluidos}</div>
-              <div style={{color:Q.muted,fontSize:10}}>autoexcluidos</div>
+              <div style={{color:Q.muted,fontSize:12}}>autoexcluidos</div>
             </GCard>
           </div>
 
@@ -9999,7 +9999,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
             "Le recuerda cuánto lleva jugando.")}
 
           <GCard style={{padding:14,marginBottom:9}}>
-            <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4,
               fontFamily:F_BODY}}>
               Horas de espera para subir un límite</div>
             <input value={d.horas_para_subir} inputMode="numeric"
@@ -10010,7 +10010,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
                 padding:"10px",color:Q.text,fontSize:16,fontWeight:700,
                 textAlign:"center",
                 fontFamily:F_BODY}}/>
-            <div style={{color:Q.dim,fontSize:10.5,marginTop:6,
+            <div style={{color:Q.dim,fontSize:12,marginTop:6,
               lineHeight:1.5}}>
               Sin esta espera, alguien que se puso un tope lo levanta
               cuando quiere jugar más y el límite no sirve. La mayoría
@@ -10040,14 +10040,14 @@ function TabResponsable({ adminKey, onNoAutorizado }){
                     fontSize:13,fontWeight:800}}>
                     {aud.cadena_intacta?"✓ íntegra":"✗ rota"}</span>
                 </div>
-                <div style={{color:Q.dim,fontSize:10.5,marginTop:7,
+                <div style={{color:Q.dim,fontSize:12,marginTop:7,
                   lineHeight:1.5,
                   fontFamily:F_BODY}}>
                   {aud.total} registros. Cada uno incluye el hash del
                   anterior: si alguien edita o borra una fila, la
                   cadena se rompe y queda a la vista.</div>
                 {aud.aviso&&(
-                  <div style={{color:Q.red,fontSize:11.5,marginTop:8,
+                  <div style={{color:Q.red,fontSize:12,marginTop:8,
                     lineHeight:1.5}}><Icon name="triangle-alert" size={12}/> {aud.aviso}</div>
                 )}
               </GCard>
@@ -10061,10 +10061,10 @@ function TabResponsable({ adminKey, onNoAutorizado }){
                     <span style={{color:Q.text,fontSize:12,
                       fontFamily:F_BODY}}>
                       {e.evento}</span>
-                    <span style={{color:Q.dim,fontSize:9.5,
+                    <span style={{color:Q.dim,fontSize:12,
                       flexShrink:0}}>{e.cuando}</span>
                   </div>
-                  <div style={{color:Q.muted,fontSize:10,marginTop:2}}>
+                  <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
                     {e.tipo}{e.actor&&` · ${e.actor}`}
                     {e.objetivo&&` → ${e.objetivo}`}</div>
                 </div>
@@ -10165,7 +10165,7 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>🎉 Súper Bono</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Un porcentaje del GGR del casino se acumula y se reparte entre
         jugadores conectados.</div>
@@ -10186,7 +10186,7 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
 
       <GCard glow={d.pozo.listo?Q.gold:Q.cyan}
         style={{padding:17,marginBottom:12}}>
-        <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+        <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
           marginBottom:6}}>POZO ACTUAL</div>
         <div style={{color:Q.gold,fontWeight:900,fontSize:30,
           fontFamily:F_BODY}}>
@@ -10203,23 +10203,23 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
         </div>
         <div style={{display:"flex",justifyContent:"space-between",
           marginTop:6}}>
-          <span style={{color:Q.dim,fontSize:10}}>
+          <span style={{color:Q.dim,fontSize:12}}>
             {d.pozo.pct_completo}% de {ars(d.pozo.objetivo)}</span>
-          <span style={{color:Q.dim,fontSize:10}}>
+          <span style={{color:Q.dim,fontSize:12}}>
             {d.pozo.aportes} aportes</span>
         </div>
 
         <div style={{display:"flex",gap:10,marginTop:12,paddingTop:11,
           borderTop:`1px solid ${Q.border}`}}>
           <div style={{flex:1}}>
-            <div style={{color:Q.muted,fontSize:10}}>Conectados ahora</div>
+            <div style={{color:Q.muted,fontSize:12}}>Conectados ahora</div>
             <div style={{color:d.conectados>0?Q.green:Q.dim,
               fontWeight:800,fontSize:19,
               fontFamily:F_BODY}}>
               {d.conectados}</div>
           </div>
           <div style={{flex:1}}>
-            <div style={{color:Q.muted,fontSize:10}}>GGR sin tomar</div>
+            <div style={{color:Q.muted,fontSize:12}}>GGR sin tomar</div>
             <div style={{color:Q.text,fontWeight:800,fontSize:19,
               fontFamily:F_BODY}}>
               {ars(d.ggr_sin_tomar)}</div>
@@ -10249,7 +10249,7 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
       </div>
 
       {d.conectados===0&&d.pozo.acumulado>0&&(
-        <div style={{color:Q.amber,fontSize:11.5,marginBottom:12,
+        <div style={{color:Q.amber,fontSize:12,marginBottom:12,
           lineHeight:1.5,fontFamily:F_BODY}}>
           No hay nadie conectado. Repartir ahora no le llegaría a
           nadie: esperá a que haya movimiento.</div>
@@ -10268,12 +10268,12 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
          "La app avisa cada dos minutos que el jugador está adentro."],
       ].map(([label,clave,ayuda])=>(
         <GCard key={clave} style={{padding:14,marginBottom:9}}>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4,
             fontFamily:F_BODY}}>{label}</div>
           <input value={form[clave]} inputMode="decimal"
             onChange={e=>setForm({...form,[clave]:e.target.value})}
             style={inp}/>
-          <div style={{color:Q.dim,fontSize:10.5,marginTop:6,
+          <div style={{color:Q.dim,fontSize:12,marginTop:6,
             lineHeight:1.5}}>{ayuda}</div>
         </GCard>
       ))}
@@ -10283,7 +10283,7 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
 
       {(d.historial||[]).length>0&&(
         <GCard style={{padding:14,marginTop:14}}>
-          <div style={{color:Q.muted,fontSize:10,letterSpacing:0.5,
+          <div style={{color:Q.muted,fontSize:12,letterSpacing:0.5,
             marginBottom:8}}>REPARTOS ANTERIORES</div>
           {d.historial.map(h=>(
             <div key={h.id} style={{display:"flex",
@@ -10293,10 +10293,10 @@ function TabSuperBono({ adminKey, onNoAutorizado }){
                 <div style={{color:Q.text,fontSize:12.5,
                   fontFamily:F_BODY}}>
                   {ars(h.monto)}</div>
-                <div style={{color:Q.dim,fontSize:9.5}}>
+                <div style={{color:Q.dim,fontSize:12}}>
                   {h.ganadores} ganadores · {ars(h.c_u)} c/u</div>
               </div>
-              <span style={{color:Q.dim,fontSize:10}}>{h.cuando}</span>
+              <span style={{color:Q.dim,fontSize:12}}>{h.cuando}</span>
             </div>
           ))}
         </GCard>
@@ -10344,7 +10344,7 @@ function TabMonedas({ adminKey, onNoAutorizado }){
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>💱 Monedas</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         Entre cuáles puede elegir alguien que se registra por su
         cuenta, sin que lo dé de alta una agencia.</div>
@@ -10370,9 +10370,9 @@ function TabMonedas({ adminKey, onNoAutorizado }){
             <span style={{color:on?Q.text:Q.dim,fontSize:13,
               fontWeight:600}}>
               {m.simbolo} {m.nombre}
-              <span style={{color:Q.dim,fontSize:10.5,marginLeft:6,
+              <span style={{color:Q.dim,fontSize:12,marginLeft:6,
                 fontWeight:400}}>{m.codigo}</span></span>
-            <span style={{fontSize:11,fontWeight:700,
+            <span style={{fontSize:12,fontWeight:700,
               color:on?Q.green:Q.muted}}>
               {usan>0&&(
                 <span style={{color:Q.dim,fontWeight:400,marginRight:7}}>
@@ -10384,7 +10384,7 @@ function TabMonedas({ adminKey, onNoAutorizado }){
       })}
 
       {sel.length===0&&(
-        <div style={{color:Q.red,fontSize:11.5,marginTop:8,
+        <div style={{color:Q.red,fontSize:12,marginTop:8,
           lineHeight:1.5,fontFamily:F_BODY}}>
           Sin ninguna moneda nadie puede registrarse.</div>
       )}
@@ -10392,7 +10392,7 @@ function TabMonedas({ adminKey, onNoAutorizado }){
       {/* Apagar una moneda que ya usan clientes los deja sin poder
           operar: conviene avisarlo antes de guardar. */}
       {d.todas.some(m=>!sel.includes(m.codigo)&&(d.en_uso?.[m.codigo]||0)>0)&&(
-        <div style={{color:Q.amber,fontSize:11.5,marginTop:8,
+        <div style={{color:Q.amber,fontSize:12,marginTop:8,
           lineHeight:1.55,fontFamily:F_BODY}}>
           Estás dejando afuera monedas que ya usan clientes. Los que
           las tengan siguen operando, pero nadie nuevo va a poder
@@ -10481,13 +10481,13 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>
         📣 Recompensa por compartir</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.55,fontFamily:F_BODY}}>
         El cliente comparte su jugada y gana por cada persona distinta
         que entre con su enlace.</div>
 
       <div style={{background:`${Q.cyan}0F`,border:`1px solid ${Q.cyan}44`,
-        borderRadius:10,padding:"11px 13px",marginBottom:12,fontSize:11,
+        borderRadius:10,padding:"11px 13px",marginBottom:12,fontSize:12,
         color:Q.text,lineHeight:1.55,
         fontFamily:F_BODY}}>
         Se paga por <b>visitas reales</b>, no por tocar compartir. El
@@ -10510,35 +10510,35 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
 
       {d&&d.visitas_pagadas>0&&(
         <GCard glow={Q.gold} style={{padding:14,marginBottom:12}}>
-          <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+          <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
             marginBottom:8}}>ÚLTIMOS 30 DÍAS</div>
           <div style={{display:"flex",gap:10,marginBottom:8}}>
             <div style={{flex:1}}>
               <div style={{color:Q.text,fontWeight:800,fontSize:18,
                 fontFamily:F_BODY}}>
                 {d.visitas_pagadas}</div>
-              <div style={{color:Q.muted,fontSize:9.5}}>visitas pagadas</div>
+              <div style={{color:Q.muted,fontSize:12}}>visitas pagadas</div>
             </div>
             <div style={{flex:1}}>
               <div style={{color:Q.text,fontWeight:800,fontSize:18,
                 fontFamily:F_BODY}}>{d.clientes}</div>
-              <div style={{color:Q.muted,fontSize:9.5}}>clientes</div>
+              <div style={{color:Q.muted,fontSize:12}}>clientes</div>
             </div>
             <div style={{flex:1}}>
               <div style={{color:Q.amber,fontWeight:800,fontSize:18,
                 fontFamily:F_BODY}}>
                 {ars(d.costo_total)}</div>
-              <div style={{color:Q.muted,fontSize:9.5}}>costo</div>
+              <div style={{color:Q.muted,fontSize:12}}>costo</div>
             </div>
           </div>
 
           {(d.rechazos||[]).length>0&&(
             <div style={{paddingTop:8,borderTop:`1px solid ${Q.border}`}}>
-              <div style={{color:Q.dim,fontSize:9.5,marginBottom:4}}>
+              <div style={{color:Q.dim,fontSize:12,marginBottom:4}}>
                 VISITAS NO PAGADAS</div>
               {d.rechazos.map(r=>(
                 <div key={r.motivo} style={{display:"flex",
-                  justifyContent:"space-between",fontSize:11,
+                  justifyContent:"space-between",fontSize:12,
                   padding:"2px 0",color:Q.muted}}>
                   <span>{{misma_ip:"Misma conexión que el que compartió",
                     mismo_device:"Mismo dispositivo",
@@ -10553,26 +10553,26 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
       )}
 
       <GCard style={{padding:16,marginBottom:12}}>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>
           Por visita, en dólares</div>
         <input value={monto} inputMode="decimal"
           onChange={e=>setMonto(e.target.value)} style={inp}/>
-        <div style={{color:Q.dim,fontSize:10.5,marginTop:6,lineHeight:1.5}}>
+        <div style={{color:Q.dim,fontSize:12,marginTop:6,lineHeight:1.5}}>
           Se convierte a la moneda de cada cliente. Con 0.10 son unos
           100 en pesos, 400 en pesos colombianos.</div>
       </GCard>
 
       <div style={{display:"flex",gap:8,marginBottom:12}}>
         <GCard style={{flex:1,padding:14}}>
-          <div style={{color:Q.muted,fontSize:10.5,marginBottom:4}}>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
             Tope por apuesta</div>
           <input value={maxAp} inputMode="numeric"
             onChange={e=>setMaxAp(e.target.value.replace(/\D/g,""))}
             style={inp}/>
         </GCard>
         <GCard style={{flex:1,padding:14}}>
-          <div style={{color:Q.muted,fontSize:10.5,marginBottom:4}}>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
             Tope por día</div>
           <input value={maxDia} inputMode="numeric"
             onChange={e=>setMaxDia(e.target.value.replace(/\D/g,""))}
@@ -10581,12 +10581,12 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
       </div>
 
       <GCard style={{padding:16,marginBottom:12}}>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>
           Cuánto tiene que apostarlo antes de retirar</div>
         <input value={roll} inputMode="decimal"
           onChange={e=>setRoll(e.target.value)} style={inp}/>
-        <div style={{color:Q.dim,fontSize:10.5,marginTop:6,lineHeight:1.5}}>
+        <div style={{color:Q.dim,fontSize:12,marginTop:6,lineHeight:1.5}}>
           Entra como saldo de bono. Con 1x tiene que apostarlo una vez
           para poder retirarlo. Menos de 1 no se acepta: sería plata
           retirable sin jugar.</div>
@@ -10618,7 +10618,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
           })}
         </div>
 
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>
           Solo estas agencias (vacío = todas)</div>
         <select value="" onChange={e=>{
@@ -10638,7 +10638,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
         </select>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:12}}>
           {ramas.length===0&&(
-            <span style={{color:Q.dim,fontSize:11,
+            <span style={{color:Q.dim,fontSize:12,
               fontFamily:F_BODY}}>
               Todas las agencias</span>
           )}
@@ -10649,13 +10649,13 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
               }}
               style={{background:`${Q.violet}22`,
                 border:`1px solid ${Q.violet}55`,borderRadius:8,
-                padding:"3px 10px",color:Q.cyan,fontSize:11,
+                padding:"3px 10px",color:Q.cyan,fontSize:12,
                 cursor:"pointer",
                 fontFamily:F_BODY}}>{rc} ✕</span>
           ))}
         </div>
 
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>
           Quitárselo a una agencia</div>
         <select value="" onChange={e=>{
@@ -10675,7 +10675,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
         </select>
         <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
           {excluidas.length===0&&(
-            <span style={{color:Q.dim,fontSize:11,
+            <span style={{color:Q.dim,fontSize:12,
               fontFamily:F_BODY}}>
               Ninguna excluida</span>
           )}
@@ -10685,24 +10685,24 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
                 setExcluidas(n); guardar({excluidas:n});
               }}
               style={{background:`${Q.red}18`,border:`1px solid ${Q.red}55`,
-                borderRadius:8,padding:"3px 10px",color:Q.red,fontSize:11,
+                borderRadius:8,padding:"3px 10px",color:Q.red,fontSize:12,
                 cursor:"pointer",
                 fontFamily:F_BODY}}>{rc} ✕</span>
           ))}
         </div>
-        <div style={{color:Q.dim,fontSize:10.5,marginTop:7,lineHeight:1.5,
+        <div style={{color:Q.dim,fontSize:12,marginTop:7,lineHeight:1.5,
           fontFamily:F_BODY}}>
           La exclusión alcanza también a las agencias que cuelgan de
           ella. Sus clientes no ven el botón de compartir.</div>
       </GCard>
 
       <GCard style={{padding:16,marginBottom:12}}>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>
           Cuánto paga la agencia (%)</div>
         <input value={pctAg} inputMode="decimal"
           onChange={e=>setPctAg(e.target.value)} style={inp}/>
-        <div style={{color:Q.dim,fontSize:10.5,marginTop:6,lineHeight:1.5}}>
+        <div style={{color:Q.dim,fontSize:12,marginTop:6,lineHeight:1.5}}>
           El resto lo pone la casa. Aparece restando en el cierre de
           cada uno.</div>
       </GCard>
@@ -10712,14 +10712,14 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
 
       {d&&(d.top||[]).length>0&&(
         <GCard style={{padding:14,marginTop:12}}>
-          <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+          <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
             marginBottom:7}}>QUIÉNES MÁS GANARON</div>
           {d.top.map(t=>(
             <div key={t.user_id} style={{display:"flex",
-              justifyContent:"space-between",fontSize:11.5,padding:"4px 0",
+              justifyContent:"space-between",fontSize:12,padding:"4px 0",
               borderTop:`1px solid ${Q.border}`}}>
               <span style={{color:Q.text}}>{t.nombre}
-                <span style={{color:Q.dim,fontSize:9.5,marginLeft:5}}>
+                <span style={{color:Q.dim,fontSize:12,marginLeft:5}}>
                   {t.visitas} visitas</span></span>
               <span style={{color:Q.gold,
                 fontFamily:F_BODY}}>
@@ -10792,7 +10792,7 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>🎮 Productos</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.5,fontFamily:F_BODY}}>
         Qué puede ofrecer cada agencia. Lo que apagues acá no lo puede
         volver a encender ninguna agencia de esa rama.</div>
@@ -10810,7 +10810,7 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
             <div style={{color:Q.text,fontWeight:700,fontSize:13,
               marginBottom:3,fontFamily:F_BODY}}>
               En todo el sistema</div>
-            <div style={{color:Q.dim,fontSize:10.5,marginBottom:10,
+            <div style={{color:Q.dim,fontSize:12,marginBottom:10,
               lineHeight:1.45}}>
               Apagar uno acá lo saca de todas las agencias.</div>
             {datos.catalogo.map(c=>(
@@ -10825,7 +10825,7 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
                   fontFamily:F_BODY}}>
                 <span style={{color:c.activo?Q.text:Q.dim,fontSize:13,
                   fontWeight:600}}>{c.icono} {c.nombre}</span>
-                <span style={{color:c.activo?Q.green:Q.muted,fontSize:11.5,
+                <span style={{color:c.activo?Q.green:Q.muted,fontSize:12,
                   fontWeight:700}}>
                   {c.activo?"Activo":"Apagado"}</span>
               </button>
@@ -10864,14 +10864,14 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
                     fontFamily:F_BODY}}>
                   <span style={{color:apagado?Q.dim:Q.text,fontSize:13,
                     fontWeight:600}}>{c.icono} {c.nombre}</span>
-                  <span style={{color:apagado?Q.red:Q.green,fontSize:11.5,
+                  <span style={{color:apagado?Q.red:Q.green,fontSize:12,
                     fontWeight:700}}>
                     {apagado?"No lo tiene":"Lo tiene"}</span>
                 </button>
               );
             })}
             {sel&&(
-              <div style={{color:Q.dim,fontSize:10.5,marginTop:6,
+              <div style={{color:Q.dim,fontSize:12,marginTop:6,
                 lineHeight:1.5,fontFamily:F_BODY}}>
                 Alcanza también a todas las agencias que cuelgan de ella.</div>
             )}
@@ -10885,11 +10885,11 @@ function TabProductosPermisos({ adminKey, onNoAutorizado }){
               {datos.restricciones.map((r,i)=>(
                 <div key={i} style={{display:"flex",
                   justifyContent:"space-between",alignItems:"center",
-                  fontSize:11.5,padding:"5px 0",
+                  fontSize:12,padding:"5px 0",
                   borderTop:i?`1px solid ${Q.border}`:"none"}}>
                   <span style={{color:Q.text}}>
                     {r.agencia_nombre||r.agencia}</span>
-                  <span style={{color:Q.red,fontSize:10.5}}>
+                  <span style={{color:Q.red,fontSize:12}}>
                     sin {r.producto}
                     {r.definido_por&&r.definido_por!=="admin"&&(
                       <span style={{color:Q.dim}}> · por {r.definido_por}</span>
@@ -10941,7 +10941,7 @@ function TabProductos({ adminKey, onNoAutorizado }){
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}><Icon name="chart-no-axes-combined" size={14}/> Por producto</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.5,fontFamily:F_BODY}}>
         Todo lo jugado, separado por producto y sumado. El GGR es lo
         apostado menos lo pagado en premios.</div>
@@ -10958,17 +10958,17 @@ function TabProductos({ adminKey, onNoAutorizado }){
       {datos&&(
         <>
           <GCard glow={Q.cyan} style={{padding:16,margin:"12px 0"}}>
-            <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+            <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
               marginBottom:8}}>TOTAL DEL PERÍODO</div>
             <div style={{display:"flex",gap:10,marginBottom:10}}>
               <div style={{flex:1}}>
-                <div style={{color:Q.muted,fontSize:10}}>Apostado</div>
+                <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
                 <div style={{color:Q.text,fontWeight:800,fontSize:17,
                   fontFamily:F_BODY}}>
                   {ars(datos.total.apostado)}</div>
               </div>
               <div style={{flex:1}}>
-                <div style={{color:Q.muted,fontSize:10}}>Pagado</div>
+                <div style={{color:Q.muted,fontSize:12}}>Pagado</div>
                 <div style={{color:Q.muted,fontWeight:700,fontSize:17,
                   fontFamily:F_BODY}}>
                   {ars(datos.total.pagado)}</div>
@@ -10980,7 +10980,7 @@ function TabProductos({ adminKey, onNoAutorizado }){
               <span style={{color:Q.text,fontWeight:700,fontSize:13}}>
                 GGR
                 {datos.total.margen_pct!=null&&(
-                  <span style={{color:Q.dim,fontSize:10,marginLeft:6}}>
+                  <span style={{color:Q.dim,fontSize:12,marginLeft:6}}>
                     margen {datos.total.margen_pct}%</span>
                 )}
               </span>
@@ -11010,11 +11010,11 @@ function TabProductos({ adminKey, onNoAutorizado }){
                     fontFamily:F_BODY}}>
                     {ICONO[p.producto]||"•"} {NOMBRE[p.producto]||p.producto}
                     {p.detalle.length>0&&(
-                      <span style={{color:Q.dim,fontSize:10,marginLeft:6}}>
+                      <span style={{color:Q.dim,fontSize:12,marginLeft:6}}>
                         {abierto===p.producto?"▲":"▼"}</span>
                     )}
                   </div>
-                  <div style={{color:Q.muted,fontSize:10.5,marginTop:2}}>
+                  <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
                     {p.jugadas.toLocaleString("es-AR")} jugadas ·{" "}
                     {p.jugadores} jugadores · {ars(p.apostado)} apostado
                     {p.margen_pct!=null?` · margen ${p.margen_pct}%`:""}</div>
@@ -11024,7 +11024,7 @@ function TabProductos({ adminKey, onNoAutorizado }){
                     fontSize:16,
                     fontFamily:F_BODY}}>
                     {ars(p.ggr)}</div>
-                  <div style={{color:Q.dim,fontSize:9}}>GGR</div>
+                  <div style={{color:Q.dim,fontSize:12}}>GGR</div>
                 </div>
               </div>
 
@@ -11033,12 +11033,12 @@ function TabProductos({ adminKey, onNoAutorizado }){
                   borderTop:`1px solid ${Q.border}`}}>
                   {p.detalle.map(d=>(
                     <div key={d.nombre} style={{display:"flex",
-                      justifyContent:"space-between",fontSize:11.5,
+                      justifyContent:"space-between",fontSize:12,
                       padding:"4px 0",color:Q.muted}}>
                       <span style={{minWidth:0,flex:1,overflow:"hidden",
                         textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                         {d.nombre}
-                        <span style={{color:Q.dim,fontSize:9.5,
+                        <span style={{color:Q.dim,fontSize:12,
                           marginLeft:5}}>{d.jugadas}</span></span>
                       <span style={{color:d.ggr>=0?Q.green:Q.red,
                         flexShrink:0,
@@ -11132,7 +11132,7 @@ function TabSoporte({ adminKey, onNoAutorizado }){
             <div style={{color:Q.text,fontWeight:700,fontSize:14,
               fontFamily:F_BODY}}>
               {detalle?.cliente||"Cargando…"}</div>
-            <div style={{color:Q.muted,fontSize:10}}>
+            <div style={{color:Q.muted,fontSize:12}}>
               {detalle?.agencia||""}
               {detalle?` · saldo ${ars(detalle.saldo)}`:""}</div>
           </div>
@@ -11141,7 +11141,7 @@ function TabSoporte({ adminKey, onNoAutorizado }){
         {detalle?.motivo==="sensible"&&(
           <div style={{background:`${Q.red}14`,
             border:`1px solid ${Q.red}55`,borderRadius:9,
-            padding:"10px 12px",marginBottom:10,fontSize:11.5,
+            padding:"10px 12px",marginBottom:10,fontSize:12,
             color:Q.red,lineHeight:1.5,
             fontFamily:F_BODY}}>
             El cliente mencionó algo que sugiere un problema con el
@@ -11165,10 +11165,10 @@ function TabSoporte({ adminKey, onNoAutorizado }){
                 fontSize:12.5,lineHeight:1.55,whiteSpace:"pre-wrap",
                 fontFamily:F_BODY}}>
                 <div style={{color:m.autor==="ia"?Q.cyan:Q.dim,
-                  fontSize:9,fontWeight:700,marginBottom:3}}>
+                  fontSize:12,fontWeight:700,marginBottom:3}}>
                   {AUTOR[m.autor]||m.autor}</div>
                 {m.texto}
-                <div style={{color:Q.dim,fontSize:9,marginTop:4}}>
+                <div style={{color:Q.dim,fontSize:12,marginTop:4}}>
                   {m.fecha}</div>
               </div>
             </div>
@@ -11195,7 +11195,7 @@ function TabSoporte({ adminKey, onNoAutorizado }){
         <button onClick={()=>responder(true)} disabled={proc}
           style={{background:"transparent",border:`1px solid ${Q.border}`,
             borderRadius:9,padding:"9px",cursor:"pointer",color:Q.muted,
-            fontSize:11.5,
+            fontSize:12,
             fontFamily:F_BODY}}>
           Marcar como resuelto</button>
       </div>
@@ -11206,7 +11206,7 @@ function TabSoporte({ adminKey, onNoAutorizado }){
     <div>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
         fontFamily:F_BODY}}>🎧 Soporte</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:12,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:12,
         lineHeight:1.5,fontFamily:F_BODY}}>
         Consultas de los jugadores. La IA resuelve lo simple; acá
         aparecen las que necesitan una persona.</div>
@@ -11219,7 +11219,7 @@ function TabSoporte({ adminKey, onNoAutorizado }){
               fontWeight:900,fontSize:20,
               fontFamily:F_BODY}}>
               {datos.derivados}</div>
-            <div style={{color:Q.muted,fontSize:9.5}}>esperan respuesta</div>
+            <div style={{color:Q.muted,fontSize:12}}>esperan respuesta</div>
           </GCard>
           <GCard glow={datos.sensibles?Q.red:null}
             style={{flex:1,padding:"11px 8px",textAlign:"center"}}>
@@ -11227,7 +11227,7 @@ function TabSoporte({ adminKey, onNoAutorizado }){
               fontWeight:900,fontSize:20,
               fontFamily:F_BODY}}>
               {datos.sensibles}</div>
-            <div style={{color:Q.muted,fontSize:9.5}}>caso sensible</div>
+            <div style={{color:Q.muted,fontSize:12}}>caso sensible</div>
           </GCard>
         </div>
       )}
@@ -11239,7 +11239,7 @@ function TabSoporte({ adminKey, onNoAutorizado }){
             background:estado===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${estado===k?Q.violet:Q.border}`,
             borderRadius:9,padding:"9px 6px",cursor:"pointer",
-            color:estado===k?Q.cyan:Q.muted,fontSize:11.5,
+            color:estado===k?Q.cyan:Q.muted,fontSize:12,
             fontWeight:estado===k?700:400,
             fontFamily:F_BODY}}>{l}</button>
         ))}
@@ -11275,10 +11275,10 @@ function TabSoporte({ adminKey, onNoAutorizado }){
                   <span style={{color:Q.gold,marginRight:4}}><Icon name="circle-dot" size={11}/></span>
                 )}
                 {t.cliente}</div>
-              <div style={{color:Q.muted,fontSize:10.5,marginTop:2,
+              <div style={{color:Q.muted,fontSize:12,marginTop:2,
                 overflow:"hidden",textOverflow:"ellipsis",
                 whiteSpace:"nowrap"}}>{t.ultimo}</div>
-              <div style={{color:Q.dim,fontSize:9.5,marginTop:2}}>
+              <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                 {t.agencia} · {t.fecha}
                 {t.estado!=="abierto"?` · ${t.estado}`:""}</div>
             </div>
@@ -11427,7 +11427,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
             <div style={{color:Q.text,fontWeight:700,fontSize:14,
               fontFamily:F_BODY}}>
               {h?.nombre||abierto}</div>
-            <div style={{color:Q.muted,fontSize:10}}>{abierto}</div>
+            <div style={{color:Q.muted,fontSize:12}}>{abierto}</div>
           </div>
         </div>
 
@@ -11448,7 +11448,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                 fontSize:12.5,lineHeight:1.55,whiteSpace:"pre-wrap",
                 fontFamily:F_BODY}}>
                 {m.texto}
-                <div style={{color:Q.dim,fontSize:9,marginTop:4}}>
+                <div style={{color:Q.dim,fontSize:12,marginTop:4}}>
                   {m.fecha}</div>
               </div>
             </div>
@@ -11486,7 +11486,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
             {l}
             {k==="hilos"&&hilos?.total_sin_leer>0&&(
               <span style={{background:Q.red,color:"#fff",borderRadius:8,
-                padding:"1px 6px",fontSize:9,marginLeft:5}}>
+                padding:"1px 6px",fontSize:12,marginLeft:5}}>
                 {hilos.total_sin_leer}</span>
             )}
           </button>
@@ -11513,16 +11513,16 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                     {h.nombre}
                     {h.sin_leer>0&&(
                       <span style={{background:Q.red,color:"#fff",
-                        borderRadius:8,padding:"1px 6px",fontSize:9,
+                        borderRadius:8,padding:"1px 6px",fontSize:12,
                         marginLeft:6}}>{h.sin_leer}</span>
                     )}
                   </div>
-                  <div style={{color:Q.muted,fontSize:10.5,marginTop:2,
+                  <div style={{color:Q.muted,fontSize:12,marginTop:2,
                     overflow:"hidden",textOverflow:"ellipsis",
                     whiteSpace:"nowrap"}}>
                     {h.ultimo||"Sin mensajes"}</div>
                 </div>
-                <span style={{color:Q.dim,fontSize:9.5,flexShrink:0}}>
+                <span style={{color:Q.dim,fontSize:12,flexShrink:0}}>
                   {h.fecha||""}</span>
               </div>
             </GCard>
@@ -11545,7 +11545,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
               placeholder="Detalle (opcional)" rows={3}
               style={{...inp,resize:"vertical"}}/>
 
-            <div style={{color:Q.muted,fontSize:10.5,marginBottom:4}}>
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
               Importancia</div>
             <div style={{display:"flex",gap:6,marginBottom:10}}>
               {[["info","Informativo"],["aviso","Importante"],
@@ -11556,13 +11556,13 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                     :"rgba(255,255,255,0.04)",
                   border:`1px solid ${nuevo.nivel===k?NIVEL[k]:Q.border}`,
                   borderRadius:8,padding:"8px 4px",cursor:"pointer",
-                  color:nuevo.nivel===k?NIVEL[k]:Q.muted,fontSize:11,
+                  color:nuevo.nivel===k?NIVEL[k]:Q.muted,fontSize:12,
                   fontWeight:nuevo.nivel===k?700:400,
                   fontFamily:F_BODY}}>{l}</button>
               ))}
             </div>
 
-            <div style={{color:Q.muted,fontSize:10.5,marginBottom:4}}>
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
               A quién</div>
             <div style={{display:"flex",gap:6,marginBottom:10}}>
               {[["todas","Todas"],["rama","Una rama"],
@@ -11573,7 +11573,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                     :"rgba(255,255,255,0.04)",
                   border:`1px solid ${nuevo.alcance===k?Q.violet:Q.border}`,
                   borderRadius:8,padding:"8px 4px",cursor:"pointer",
-                  color:nuevo.alcance===k?Q.cyan:Q.muted,fontSize:11,
+                  color:nuevo.alcance===k?Q.cyan:Q.muted,fontSize:12,
                   fontWeight:nuevo.alcance===k?700:400,
                   fontFamily:F_BODY}}>{l}</button>
               ))}
@@ -11593,7 +11593,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
 
             {/* Dónde se muestra. Un aviso operativo va solo a las
                 agencias; una promoción, también a los clientes. */}
-            <div style={{color:Q.muted,fontSize:10.5,marginBottom:4}}>
+            <div style={{color:Q.muted,fontSize:12,marginBottom:4}}>
               Dónde se muestra</div>
             <div style={{display:"flex",gap:5,flexWrap:"wrap",
               marginBottom:10}}>
@@ -11608,14 +11608,14 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                       :"rgba(255,255,255,0.04)",
                     border:`1px solid ${on?Q.violet:Q.border}`,
                     borderRadius:8,padding:"8px 12px",cursor:"pointer",
-                    color:on?Q.cyan:Q.muted,fontSize:11,
+                    color:on?Q.cyan:Q.muted,fontSize:12,
                     fontWeight:on?700:400,
                     fontFamily:F_BODY}}>{l}</button>
                 );
               })}
             </div>
             {(nuevo.destinos||[]).some(d=>d!=="agencia")&&(
-              <div style={{color:Q.amber,fontSize:10.5,marginBottom:10,
+              <div style={{color:Q.amber,fontSize:12,marginBottom:10,
                 lineHeight:1.5,fontFamily:F_BODY}}>
                 Los clientes van a ver este aviso. Revisá que el texto
                 esté pensado para ellos y no para uso interno.</div>
@@ -11644,14 +11644,14 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                       <Icon name="circle-dot" size={12}/>
                     </span> {a.titulo}</div>
                   {a.cuerpo&&(
-                    <div style={{color:Q.muted,fontSize:11,marginTop:3,
+                    <div style={{color:Q.muted,fontSize:12,marginTop:3,
                       lineHeight:1.45}}>{a.cuerpo}</div>
                   )}
                   {/* Dónde se ve, que es distinto de a quién alcanza */}
                   <div style={{display:"flex",gap:4,flexWrap:"wrap",
                     marginTop:4}}>
                     {(a.destinos||["agencia"]).map(dst=>(
-                      <span key={dst} style={{fontSize:8.5,
+                      <span key={dst} style={{fontSize:12,
                         border:`1px solid ${Q.border}`,borderRadius:5,
                         padding:"1px 6px",color:Q.cyan,
                         fontFamily:F_BODY}}>
@@ -11659,7 +11659,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
                           app:"📱 App",web:"🌐 Sitio"}[dst]||dst}</span>
                     ))}
                   </div>
-                  <div style={{color:Q.dim,fontSize:9.5,marginTop:3}}>
+                  <div style={{color:Q.dim,fontSize:12,marginTop:3}}>
                     {a.alcance==="todas"?"Toda la red"
                       :`${a.agencia_nombre||a.agencia}${
                         a.alcance==="rama"?" y su rama":""}`}
@@ -11738,7 +11738,7 @@ function ChatOperador({ adminKey, onNoAutorizado }){
       height:"calc(100dvh - 210px)",minHeight:340}}>
       <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:3,
         fontFamily:F_BODY}}><Icon name="message-circle" size={14}/> Consultas</div>
-      <div style={{color:Q.muted,fontSize:11.5,marginBottom:10,
+      <div style={{color:Q.muted,fontSize:12,marginBottom:10,
         lineHeight:1.5,fontFamily:F_BODY}}>
         Preguntá sobre el sistema: dónde está cada cosa, qué significa
         un concepto, o los números del día.</div>
@@ -11751,7 +11751,7 @@ function ChatOperador({ adminKey, onNoAutorizado }){
                 background:"rgba(255,255,255,0.04)",
                 border:`1px solid ${Q.border}`,borderRadius:9,
                 padding:"8px 12px",cursor:"pointer",color:Q.muted,
-                fontSize:11.5,textAlign:"left",
+                fontSize:12,textAlign:"left",
                 fontFamily:F_BODY}}>{x}</button>
             ))}
           </div>
@@ -11772,7 +11772,7 @@ function ChatOperador({ adminKey, onNoAutorizado }){
               fontFamily:F_BODY}}>
               {m.texto}
               {m.datos&&(
-                <div style={{color:Q.dim,fontSize:9,marginTop:6}}>
+                <div style={{color:Q.dim,fontSize:12,marginTop:6}}>
                   con datos del sistema</div>
               )}
             </div>
@@ -11804,7 +11804,7 @@ function ChatOperador({ adminKey, onNoAutorizado }){
 
       {mensajes.length>0&&(
         <button onClick={()=>setMensajes([])} style={{background:"transparent",
-          border:"none",color:Q.dim,fontSize:10.5,cursor:"pointer",
+          border:"none",color:Q.dim,fontSize:12,cursor:"pointer",
           marginTop:7,fontFamily:F_BODY}}>
           Limpiar conversación</button>
       )}
@@ -12141,7 +12141,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
             <div style={{color:resumen[k]?COLOR[k]:Q.dim,fontWeight:900,
               fontSize:22,fontFamily:F_BODY}}>
               {resumen[k]||0}</div>
-            <div style={{color:Q.muted,fontSize:9.5}}>{l}</div>
+            <div style={{color:Q.muted,fontSize:12}}>{l}</div>
           </GCard>
         ))}
       </div>
@@ -12154,7 +12154,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
             background:vista===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${vista===k?Q.violet:Q.border}`,borderRadius:9,
             padding:"9px 6px",cursor:"pointer",
-            color:vista===k?Q.cyan:Q.muted,fontSize:11.5,
+            color:vista===k?Q.cyan:Q.muted,fontSize:12,
             fontWeight:vista===k?700:400,
             fontFamily:F_BODY}}>{l}</button>
         ))}
@@ -12188,7 +12188,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
             background:filtro===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
             border:`1px solid ${filtro===k?Q.violet:Q.border}`,borderRadius:8,
             padding:"7px 12px",cursor:"pointer",whiteSpace:"nowrap",
-            color:filtro===k?Q.cyan:Q.muted,fontSize:11.5,
+            color:filtro===k?Q.cyan:Q.muted,fontSize:12,
             fontWeight:filtro===k?700:400,
             fontFamily:F_BODY}}>{l}</button>
         ))}
@@ -12203,7 +12203,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
           <div style={{color:Q.green,fontSize:13,
             fontFamily:F_BODY}}>
             Sin alertas en este filtro</div>
-          <div style={{color:Q.dim,fontSize:11,marginTop:5}}>
+          <div style={{color:Q.dim,fontSize:12,marginTop:5}}>
             Probá "Escanear ahora" para buscar patrones nuevos.</div>
         </GCard>
       )}
@@ -12218,16 +12218,16 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
               <div style={{minWidth:0,flex:1}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,
                   marginBottom:3}}>
-                  <span style={{color:COLOR[a.severidad],fontSize:8.5,
+                  <span style={{color:COLOR[a.severidad],fontSize:12,
                     fontWeight:800,border:`1px solid ${COLOR[a.severidad]}66`,
                     borderRadius:5,padding:"1px 6px",letterSpacing:0.5,
                     textTransform:"uppercase"}}>{a.severidad}</span>
-                  <span style={{color:Q.muted,fontSize:10}}>
+                  <span style={{color:Q.muted,fontSize:12}}>
                     {NOMBRE[a.tipo]||a.tipo}</span>
                 </div>
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
                   fontFamily:F_BODY}}>{a.titulo}</div>
-                <div style={{color:Q.dim,fontSize:10,marginTop:2}}>
+                <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
                   {a.fecha}{a.cliente?` · ${a.cliente}`:""}
                   {a.agencia?` · ${a.agencia}`:""}</div>
               </div>
@@ -12250,13 +12250,13 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                 <div style={{background:"rgba(255,255,255,0.03)",
                   border:`1px solid ${Q.border}`,borderRadius:8,padding:10,
                   marginBottom:10}}>
-                  <div style={{color:Q.muted,fontSize:9.5,marginBottom:5,
+                  <div style={{color:Q.muted,fontSize:12,marginBottom:5,
                     letterSpacing:0.8}}>EVIDENCIA</div>
                   {Object.entries(a.evidencia)
                     .filter(([k,v])=>typeof v!=="object")
                     .map(([k,v])=>(
                     <div key={k} style={{display:"flex",
-                      justifyContent:"space-between",fontSize:11,
+                      justifyContent:"space-between",fontSize:12,
                       padding:"2px 0",color:Q.muted}}>
                       <span>{k.replace(/_/g," ")}</span>
                       <span style={{color:Q.text,
@@ -12267,10 +12267,10 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                   {Array.isArray(a.evidencia.usuarios)&&(
                     <div style={{marginTop:6,paddingTop:6,
                       borderTop:`1px solid ${Q.border}`}}>
-                      <div style={{color:Q.muted,fontSize:9.5,marginBottom:3}}>
+                      <div style={{color:Q.muted,fontSize:12,marginBottom:3}}>
                         CUENTAS INVOLUCRADAS</div>
                       {a.evidencia.usuarios.map((u,i)=>(
-                        <div key={i} style={{color:Q.text,fontSize:11,
+                        <div key={i} style={{color:Q.text,fontSize:12,
                           padding:"1px 0"}}>
                           · {u.nombre||u.nombre_completo||u.username}
                           {u.creado_por?` (${u.creado_por})`:""}</div>
@@ -12285,27 +12285,27 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                   <button onClick={()=>marcar(a.id,"revisada")} style={{
                     flex:1,minWidth:100,background:`${Q.green}18`,
                     border:`1px solid ${Q.green}`,borderRadius:8,
-                    padding:"9px",cursor:"pointer",color:Q.green,fontSize:11.5,
+                    padding:"9px",cursor:"pointer",color:Q.green,fontSize:12,
                     fontWeight:700,fontFamily:F_BODY}}>
                     Revisada</button>
                   <button onClick={()=>marcar(a.id,"descartada")} style={{
                     flex:1,minWidth:100,background:"transparent",
                     border:`1px solid ${Q.border}`,borderRadius:8,
-                    padding:"9px",cursor:"pointer",color:Q.muted,fontSize:11.5,
+                    padding:"9px",cursor:"pointer",color:Q.muted,fontSize:12,
                     fontFamily:F_BODY}}>
                     Falso positivo</button>
                   {a.user_id&&(
                     <button onClick={()=>marcarUsuario(a.user_id,"observado")}
                       style={{flex:1,minWidth:100,background:`${Q.gold}18`,
                       border:`1px solid ${Q.gold}`,borderRadius:8,
-                      padding:"9px",cursor:"pointer",color:Q.gold,fontSize:11.5,
+                      padding:"9px",cursor:"pointer",color:Q.gold,fontSize:12,
                       fontWeight:700,fontFamily:F_BODY}}>
                       Observar cliente</button>
                   )}
                 </div>
               )}
               {a.estado!=="abierta"&&(
-                <div style={{color:Q.dim,fontSize:11,
+                <div style={{color:Q.dim,fontSize:12,
                   fontFamily:F_BODY}}>
                   Marcada como {a.estado}
                   {a.nota?` · ${a.nota}`:""}</div>
@@ -12332,7 +12332,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                 style={{padding:13,marginBottom:12}}>
                 <div style={{display:"flex",justifyContent:"space-between",
                   alignItems:"baseline"}}>
-                  <span style={{color:Q.muted,fontSize:11.5,
+                  <span style={{color:Q.muted,fontSize:12,
                     fontFamily:F_BODY}}>
                     Apuestas con IP registrada</span>
                   <span style={{color:ips.cobertura.pct<50?Q.amber:Q.green,
@@ -12340,7 +12340,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                     fontFamily:F_BODY}}>
                     {ips.cobertura.pct}%</span>
                 </div>
-                <div style={{color:Q.dim,fontSize:10,marginTop:3}}>
+                <div style={{color:Q.dim,fontSize:12,marginTop:3}}>
                   {ips.cobertura.con_ip} de {ips.cobertura.apuestas} en{" "}
                   {ips.dias} días
                   {ips.cobertura.pct<50&&" · las apuestas anteriores al "+
@@ -12349,12 +12349,12 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                 <button onClick={diagnosticar} style={{width:"100%",
                   marginTop:9,background:"transparent",
                   border:`1px solid ${Q.border}`,borderRadius:8,
-                  padding:"7px",cursor:"pointer",color:Q.cyan,fontSize:11,
+                  padding:"7px",cursor:"pointer",color:Q.cyan,fontSize:12,
                   fontFamily:F_BODY}}>
                   🔧 ¿Llega la IP real del jugador?</button>
 
                 {diag?.cargando&&(
-                  <div style={{color:Q.muted,fontSize:11,marginTop:8,
+                  <div style={{color:Q.muted,fontSize:12,marginTop:8,
                     textAlign:"center"}}>Revisando…</div>
                 )}
 
@@ -12362,17 +12362,17 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                   <div style={{marginTop:10,paddingTop:10,
                     borderTop:`1px solid ${Q.border}`}}>
                     {diag.alerta?(
-                      <div style={{color:Q.amber,fontSize:11,lineHeight:1.5,
+                      <div style={{color:Q.amber,fontSize:12,lineHeight:1.5,
                         marginBottom:8,
                         fontFamily:F_BODY}}>
                         <Icon name="triangle-alert" size={12}/> {diag.alerta}</div>
                     ):(
-                      <div style={{color:Q.green,fontSize:11,marginBottom:8,
+                      <div style={{color:Q.green,fontSize:12,marginBottom:8,
                         fontFamily:F_BODY}}>
                         <Icon name="circle-check" size={12}/> Se registran {diag.ips_registradas.length} IP
                         distintas: el dato llega bien.</div>
                     )}
-                    <div style={{color:Q.dim,fontSize:10,lineHeight:1.6,
+                    <div style={{color:Q.dim,fontSize:12,lineHeight:1.6,
                       fontFamily:F_BODY}}>
                       Tu IP ahora: {diag.ip_que_veo_ahora}<br/>
                       {Object.entries(diag.cabeceras||{})
@@ -12394,7 +12394,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                       :"rgba(255,255,255,0.04)",
                     border:`1px solid ${soloCompartidas===v?Q.violet:Q.border}`,
                     borderRadius:8,padding:"8px 6px",cursor:"pointer",
-                    color:soloCompartidas===v?Q.cyan:Q.muted,fontSize:11.5,
+                    color:soloCompartidas===v?Q.cyan:Q.muted,fontSize:12,
                     fontWeight:soloCompartidas===v?700:400,
                     fontFamily:F_BODY}}>{l}</button>
                 ))}
@@ -12408,7 +12408,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                       ? "Ninguna IP con más de una cuenta"
                       : "Todavía no hay apuestas con IP registrada"}</div>
                   {soloCompartidas&&(
-                    <div style={{color:Q.dim,fontSize:11,marginTop:6}}>
+                    <div style={{color:Q.dim,fontSize:12,marginTop:6}}>
                       Probá "Todas" para ver el registro completo.</div>
                   )}
                 </GCard>
@@ -12425,13 +12425,13 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                     <div style={{minWidth:0,flex:1}}>
                       <div style={{color:Q.text,fontWeight:700,fontSize:13,
                         fontFamily:F_BODY}}>{x.ip}</div>
-                      <div style={{color:Q.muted,fontSize:10,marginTop:2}}>
+                      <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
                         {x.apuestas} apuestas · {ars(x.apostado)} ·{" "}
                         última {x.ultima}</div>
                       <button onClick={e=>{e.stopPropagation();
                           verDetalleIp(x.ip);}}
                         style={{background:"transparent",border:"none",
-                          color:Q.cyan,fontSize:10.5,cursor:"pointer",
+                          color:Q.cyan,fontSize:12,cursor:"pointer",
                           padding:"3px 0 0",
                           fontFamily:F_BODY}}>
                         Ver todo el detalle ›</button>
@@ -12442,7 +12442,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                         fontWeight:900,fontSize:20,
                         fontFamily:F_BODY}}>
                         {x.cuentas}</div>
-                      <div style={{color:Q.dim,fontSize:9}}>cuentas</div>
+                      <div style={{color:Q.dim,fontSize:12}}>cuentas</div>
                     </div>
                   </div>
 
@@ -12459,20 +12459,20 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                             <div style={{color:Q.text,fontSize:12}}>
                               {u.nombre}
                               {u.nivel!=="normal"&&(
-                                <span style={{color:Q.gold,fontSize:9,
+                                <span style={{color:Q.gold,fontSize:12,
                                   marginLeft:5}}>({u.nivel})</span>
                               )}
                             </div>
-                            <div style={{color:Q.dim,fontSize:9.5}}>
+                            <div style={{color:Q.dim,fontSize:12}}>
                               {u.agencia_nombre||u.agencia||"Sin agencia"}</div>
                           </div>
-                          <div style={{color:Q.green,fontSize:11.5,
+                          <div style={{color:Q.green,fontSize:12,
                             flexShrink:0,
                             fontFamily:F_BODY}}>
                             {ars(u.saldo)} ›</div>
                         </div>
                       ))}
-                      <div style={{color:Q.dim,fontSize:10,marginTop:8,
+                      <div style={{color:Q.dim,fontSize:12,marginTop:8,
                         lineHeight:1.5}}>
                         Compartir conexión no es delito: puede ser una
                         familia, un local o una wifi pública. Mirá si además
@@ -12497,7 +12497,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
 
           {ags&&!ags.error&&(
             <>
-              <div style={{color:Q.muted,fontSize:11,marginBottom:8,
+              <div style={{color:Q.muted,fontSize:12,marginBottom:8,
                 lineHeight:1.5,fontFamily:F_BODY}}>
                 Margen de la casa por agencia en {ags.dias} días. Un margen
                 negativo sostenido puede ser mala suerte, pero también un
@@ -12515,12 +12515,12 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                         fontFamily:F_BODY}}>
                         {a.name}
                         {a.alertas>0&&(
-                          <span style={{color:Q.gold,fontSize:9,marginLeft:6,
+                          <span style={{color:Q.gold,fontSize:12,marginLeft:6,
                             border:`1px solid ${Q.gold}55`,borderRadius:5,
                             padding:"1px 5px"}}>{a.alertas} alertas</span>
                         )}
                       </div>
-                      <div style={{color:Q.muted,fontSize:10,marginTop:2}}>
+                      <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
                         {a.code} · {a.clientes} clientes · {a.apuestas} apuestas
                         {a.moneda&&a.moneda!=="ARS"?` · ${a.moneda}`:""}</div>
                     </div>
@@ -12531,7 +12531,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                         {ars(a.ggr)}</div>
                       {a.margen_pct!=null&&(
                         <div style={{color:a.margen_pct<0?Q.red:Q.dim,
-                          fontSize:9.5}}>margen {a.margen_pct}%</div>
+                          fontSize:12}}>margen {a.margen_pct}%</div>
                       )}
                     </div>
                   </div>
@@ -12545,7 +12545,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
       {/* ── AUDITORÍA DE CUOTAS ── */}
       {vista==="cuotas"&&(
         <>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:10,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:10,
             lineHeight:1.55,fontFamily:F_BODY}}>
             Se suman las probabilidades implícitas de cada evento
             (100 ÷ cuota). Por encima de 100 está el margen de la casa;
@@ -12577,7 +12577,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
 
           {cuotas&&!cuotas.error&&!cuotas.cargando&&(
             <>
-              <div style={{color:Q.dim,fontSize:11,margin:"12px 0 8px",
+              <div style={{color:Q.dim,fontSize:12,margin:"12px 0 8px",
                 textAlign:"center",
                 fontFamily:F_BODY}}>
                 {cuotas.revisados} eventos revisados ·{" "}
@@ -12602,7 +12602,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                       <div style={{color:Q.text,fontWeight:700,fontSize:12.5,
                         fontFamily:F_BODY}}>
                         {p.evento}</div>
-                      <div style={{color:Q.dim,fontSize:10,marginTop:1}}>
+                      <div style={{color:Q.dim,fontSize:12,marginTop:1}}>
                         {p.deporte}
                         {p.mercado&&p.mercado!=="h2h"&&(
                           <span style={{color:Q.amber,marginLeft:5}}>
@@ -12614,13 +12614,13 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                         fontWeight:900,fontSize:17,
                         fontFamily:F_BODY}}>
                         {p.margen_pct>0?"+":""}{p.margen_pct}%</div>
-                      <div style={{color:Q.dim,fontSize:9}}>margen</div>
+                      <div style={{color:Q.dim,fontSize:12}}>margen</div>
                     </div>
                   </div>
-                  <div style={{color:p.margen_pct<0?Q.red:Q.muted,fontSize:11,
+                  <div style={{color:p.margen_pct<0?Q.red:Q.muted,fontSize:12,
                     lineHeight:1.5,marginBottom:6,
                     fontFamily:F_BODY}}>{p.motivo}</div>
-                  <div style={{display:"flex",gap:8,fontSize:11}}>
+                  <div style={{display:"flex",gap:8,fontSize:12}}>
                     {["L","E","V"].map(k=>p.cuotas[k]&&(
                       <span key={k} style={{color:Q.muted}}>
                         {k}: <span style={{color:Q.gold,fontWeight:700,
@@ -12639,7 +12639,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                           background:`${Q.green}18`,
                           border:`1px solid ${Q.green}66`,borderRadius:8,
                           padding:"7px",cursor:"pointer",color:Q.green,
-                          fontSize:11,fontWeight:700,
+                          fontSize:12,fontWeight:700,
                           fontFamily:F_BODY}}>
                         ✅ Bloqueado · tocá para habilitar</button>
                     ):(
@@ -12649,7 +12649,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                           background:`${Q.red}18`,
                           border:`1px solid ${Q.red}66`,borderRadius:8,
                           padding:"7px",cursor:"pointer",color:Q.red,
-                          fontSize:11,fontWeight:700,
+                          fontSize:12,fontWeight:700,
                           fontFamily:F_BODY}}>
                         🚫 Bloquear {p.mercado&&p.mercado!=="h2h"
                           ? `mercado ${p.mercado}` : "este evento"}</button>
@@ -12665,7 +12665,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
       {/* ── VIGÍA DEL SISTEMA ── */}
       {vista==="vigia"&&(
         <>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:10,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:10,
             lineHeight:1.55,fontFamily:F_BODY}}>
             Un chequeo general: volumen, margen, boletos colgados,
             cobertura de datos. A diferencia de las alertas, que buscan
@@ -12698,7 +12698,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
 
           {salud?.foto&&(
             <GCard style={{padding:16}}>
-              <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+              <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
                 marginBottom:8}}>LOS NÚMEROS</div>
               {[
                 ["Apuestas en 24h", salud.foto.apuestas_24h],
@@ -12725,7 +12725,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                 </div>
               ))}
               {salud.foto.margen_24h!=null&&salud.foto.margen_24h<0&&(
-                <div style={{color:Q.red,fontSize:11,marginTop:10,
+                <div style={{color:Q.red,fontSize:12,marginTop:10,
                   lineHeight:1.5,fontFamily:F_BODY}}>
                   El margen de las últimas 24 horas es negativo: la casa
                   pagó más de lo que recibió. Con pocas apuestas puede ser
@@ -12739,7 +12739,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
       {/* ── AVISOS POR TELEGRAM ── */}
       {vista==="avisos"&&(
         <>
-          <div style={{color:Q.muted,fontSize:11,marginBottom:12,
+          <div style={{color:Q.muted,fontSize:12,marginBottom:12,
             lineHeight:1.55,fontFamily:F_BODY}}>
             Una alerta que nadie mira no sirve: para detectar
             contrapartida hay que enterarse mientras el evento todavía no
@@ -12773,7 +12773,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
                   marginBottom:4,fontFamily:F_BODY}}>
                   Desde qué nivel avisar</div>
-                <div style={{color:Q.muted,fontSize:10.5,marginBottom:10,
+                <div style={{color:Q.muted,fontSize:12,marginBottom:10,
                   lineHeight:1.5}}>
                   Si suena el teléfono por cada alerta media, en una semana
                   lo silencian y volvemos al punto de partida.</div>
@@ -12786,7 +12786,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                         :"rgba(255,255,255,0.04)",
                       border:`1px solid ${avisos.minimo===k?Q.violet:Q.border}`,
                       borderRadius:8,padding:"9px 4px",cursor:"pointer",
-                      color:avisos.minimo===k?Q.cyan:Q.muted,fontSize:10.5,
+                      color:avisos.minimo===k?Q.cyan:Q.muted,fontSize:12,
                       fontWeight:avisos.minimo===k?700:400,
                       fontFamily:F_BODY}}>{l}</button>
                   ))}
@@ -12797,7 +12797,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                 <div style={{color:Q.text,fontWeight:700,fontSize:13,
                   marginBottom:4,fontFamily:F_BODY}}>
                   A quién avisar</div>
-                <div style={{color:Q.muted,fontSize:10.5,marginBottom:10,
+                <div style={{color:Q.muted,fontSize:12,marginBottom:10,
                   lineHeight:1.5}}>
                   El chat ID lo da @userinfobot en Telegram: le escribís y
                   te devuelve tu número. Para un grupo, agregá el bot al
@@ -12871,7 +12871,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                 <div style={{color:Q.text,fontWeight:800,fontSize:16,
                   fontFamily:F_BODY}}>
                   {detalleIp.ip}</div>
-                <div style={{color:Q.muted,fontSize:10.5}}>
+                <div style={{color:Q.muted,fontSize:12}}>
                   Registro completo de esta conexión</div>
               </div>
               <button onClick={()=>setDetalleIp(null)} style={{
@@ -12894,13 +12894,13 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                       textAlign:"center"}}>
                       <div style={{color:Q.text,fontWeight:800,fontSize:16,
                         fontFamily:F_BODY}}>{v}</div>
-                      <div style={{color:Q.muted,fontSize:9}}>{l}</div>
+                      <div style={{color:Q.muted,fontSize:12}}>{l}</div>
                     </GCard>
                   ))}
                 </div>
 
                 <div style={{display:"flex",justifyContent:"space-between",
-                  fontSize:11.5,padding:"7px 0",
+                  fontSize:12,padding:"7px 0",
                   borderTop:`1px solid ${Q.border}`,
                   borderBottom:`1px solid ${Q.border}`,marginBottom:12}}>
                   <span style={{color:Q.muted}}>Resultado para la casa</span>
@@ -12910,7 +12910,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                     {ars(detalleIp.resumen.resultado_casa)}</span>
                 </div>
 
-                <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+                <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
                   marginBottom:5}}>
                   CUENTAS ({(detalleIp.cuentas||[]).length})</div>
                 {(detalleIp.cuentas||[]).map(c=>(
@@ -12923,24 +12923,24 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                       <div style={{color:Q.text,fontSize:12}}>
                         {c.nombre}
                         {c.nivel!=="normal"&&(
-                          <span style={{color:Q.gold,fontSize:9,
+                          <span style={{color:Q.gold,fontSize:12,
                             marginLeft:5}}>({c.nivel})</span>
                         )}
                         {c.registrado_aca&&(
-                          <span style={{color:Q.cyan,fontSize:9,
+                          <span style={{color:Q.cyan,fontSize:12,
                             marginLeft:5}}>· se registró acá</span>
                         )}
                       </div>
-                      <div style={{color:Q.dim,fontSize:9.5}}>
+                      <div style={{color:Q.dim,fontSize:12}}>
                         {c.agencia||"Sin agencia"} · alta {c.alta}</div>
                     </div>
-                    <span style={{color:Q.green,fontSize:11.5,flexShrink:0,
+                    <span style={{color:Q.green,fontSize:12,flexShrink:0,
                       fontFamily:F_BODY}}>
                       {ars(c.saldo)} ›</span>
                   </div>
                 ))}
 
-                <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+                <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
                   margin:"14px 0 5px"}}>
                   APUESTAS ({(detalleIp.apuestas||[]).length})</div>
                 {(detalleIp.apuestas||[]).map(a=>(
@@ -12949,14 +12949,14 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                     <div style={{display:"flex",
                       justifyContent:"space-between",alignItems:"baseline",
                       gap:8}}>
-                      <span style={{color:Q.gold,fontSize:11.5,fontWeight:700,
+                      <span style={{color:Q.gold,fontSize:12,fontWeight:700,
                         fontFamily:F_BODY}}>
                         {a.code}</span>
-                      <span style={{color:Q.text,fontSize:11.5,
+                      <span style={{color:Q.text,fontSize:12,
                         fontFamily:F_BODY}}>
                         {ars(a.stake)} @ {a.cuota.toFixed(2)}</span>
                     </div>
-                    <div style={{color:Q.dim,fontSize:9.5,marginTop:1}}>
+                    <div style={{color:Q.dim,fontSize:12,marginTop:1}}>
                       {a.fecha} · {a.cliente} · {a.agencia}
                       {a.live?" · EN VIVO":""} · {a.picks}{" "}
                       {a.picks===1?"pick":"picks"} · {a.estado}</div>
@@ -12991,7 +12991,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                     <div style={{color:Q.text,fontWeight:800,fontSize:16,
                       fontFamily:F_BODY}}>
                       {ficha.cliente.nombre}</div>
-                    <div style={{color:Q.muted,fontSize:10.5}}>
+                    <div style={{color:Q.muted,fontSize:12}}>
                       {ficha.cliente.agencia_nombre||ficha.cliente.agencia}
                       {" · alta "}{ficha.cliente.alta}</div>
                   </div>
@@ -13005,7 +13005,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                     <div style={{color:Q.green,fontWeight:800,fontSize:16,
                       fontFamily:F_BODY}}>
                       {ars(ficha.cliente.saldo)}</div>
-                    <div style={{color:Q.muted,fontSize:9}}>saldo</div>
+                    <div style={{color:Q.muted,fontSize:12}}>saldo</div>
                   </GCard>
                   <GCard style={{flex:1,padding:"10px 8px",textAlign:"center"}}>
                     <div style={{color:ficha.actividad.resultado_jugador>0
@@ -13013,34 +13013,34 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                       fontFamily:F_BODY}}>
                       {ficha.actividad.roi_pct>0?"+":""}
                       {ficha.actividad.roi_pct}%</div>
-                    <div style={{color:Q.muted,fontSize:9}}>retorno</div>
+                    <div style={{color:Q.muted,fontSize:12}}>retorno</div>
                   </GCard>
                   <GCard style={{flex:1,padding:"10px 8px",textAlign:"center"}}>
                     <div style={{color:Q.text,fontWeight:800,fontSize:16,
                       fontFamily:F_BODY}}>
                       {ficha.actividad.apuestas}</div>
-                    <div style={{color:Q.muted,fontSize:9}}>apuestas</div>
+                    <div style={{color:Q.muted,fontSize:12}}>apuestas</div>
                   </GCard>
                 </div>
 
                 {ficha.actividad.resultado_jugador>0&&(
                   <div style={{background:`${Q.red}14`,
                     border:`1px solid ${Q.red}44`,borderRadius:8,
-                    padding:"8px 11px",marginBottom:12,fontSize:11,
+                    padding:"8px 11px",marginBottom:12,fontSize:12,
                     color:Q.red,fontFamily:F_BODY}}>
                     La casa lleva perdidos {ars(ficha.actividad.resultado_jugador)}
                     {" "}con este jugador.</div>
                 )}
 
-                <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+                <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
                   marginBottom:5}}>DESDE DÓNDE JUEGA</div>
                 {ficha.ips.length===0&&(
-                  <div style={{color:Q.dim,fontSize:11,marginBottom:10}}>
+                  <div style={{color:Q.dim,fontSize:12,marginBottom:10}}>
                     Todavía no hay apuestas con IP registrada.</div>
                 )}
                 {ficha.ips.map(x=>(
                   <div key={x.ip} style={{display:"flex",
-                    justifyContent:"space-between",fontSize:11.5,
+                    justifyContent:"space-between",fontSize:12,
                     padding:"4px 0",color:Q.text,
                     borderBottom:`1px solid ${Q.border}`}}>
                     <span style={{fontFamily:F_BODY}}>
@@ -13052,17 +13052,17 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
 
                 {ficha.comparten_ip.length>0&&(
                   <>
-                    <div style={{color:Q.amber,fontSize:10,letterSpacing:0.8,
+                    <div style={{color:Q.amber,fontSize:12,letterSpacing:0.8,
                       margin:"12px 0 5px"}}>
                       COMPARTEN CONEXIÓN ({ficha.comparten_ip.length})</div>
                     {ficha.comparten_ip.map(v=>(
                       <div key={v.id} onClick={()=>verFicha(v.id)}
                         style={{display:"flex",justifyContent:"space-between",
-                          fontSize:11.5,padding:"4px 0",cursor:"pointer",
+                          fontSize:12,padding:"4px 0",cursor:"pointer",
                           color:Q.text,
                           borderBottom:`1px solid ${Q.border}`}}>
                         <span>{v.nombre}</span>
-                        <span style={{color:Q.dim,fontSize:10}}>
+                        <span style={{color:Q.dim,fontSize:12}}>
                           {v.agencia||"—"} ›</span>
                       </div>
                     ))}
@@ -13071,10 +13071,10 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
 
                 {ficha.alertas.length>0&&(
                   <>
-                    <div style={{color:Q.muted,fontSize:10,letterSpacing:0.8,
+                    <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
                       margin:"12px 0 5px"}}>ALERTAS</div>
                     {ficha.alertas.map(a=>(
-                      <div key={a.id} style={{fontSize:11,padding:"3px 0",
+                      <div key={a.id} style={{fontSize:12,padding:"3px 0",
                         color:a.estado==="abierta"?Q.text:Q.dim}}>
                         · [{a.severidad}] {a.titulo}
                         <span style={{color:Q.dim}}> — {a.fecha}</span>
@@ -13197,14 +13197,14 @@ function TabFlash({ adminKey, onNoAutorizado }){
             Últimos {d.dias} días</div>
           <div style={{display:"flex",gap:10,marginBottom:10}}>
             <div style={{flex:1}}>
-              <div style={{color:Q.muted,fontSize:10}}>Apostados</div>
+              <div style={{color:Q.muted,fontSize:12}}>Apostados</div>
               <div style={{color:Q.text,fontWeight:800,fontSize:18,
                 fontFamily:F_BODY}}>{d.apostados}</div>
-              <div style={{color:Q.dim,fontSize:9}}>
+              <div style={{color:Q.dim,fontSize:12}}>
                 de {d.generados} generados</div>
             </div>
             <div style={{flex:1}}>
-              <div style={{color:Q.muted,fontSize:10}}>Volumen</div>
+              <div style={{color:Q.muted,fontSize:12}}>Volumen</div>
               <div style={{color:Q.green,fontWeight:800,fontSize:18,
                 fontFamily:F_BODY}}>
                 {ars(d.volumen)}</div>
@@ -13237,41 +13237,41 @@ function TabFlash({ adminKey, onNoAutorizado }){
             </div>
           </div>
 
-          <div style={{color:Q.dim,fontSize:10,marginTop:9,lineHeight:1.5}}>
+          <div style={{color:Q.dim,fontSize:12,marginTop:9,lineHeight:1.5}}>
             El extra se paga solo si el cliente acierta. "Comprometido"
             es lo que se pagaría si ganaran todos.</div>
         </GCard>
       )}
 
       <GCard style={{padding:16,marginBottom:12}}>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>
           Extra sobre el premio (%)</div>
         <input value={extra} inputMode="decimal"
           onChange={e=>setExtra(e.target.value)} style={inp}/>
-        <div style={{color:Q.dim,fontSize:10.5,marginTop:6,lineHeight:1.5}}>
+        <div style={{color:Q.dim,fontSize:12,marginTop:6,lineHeight:1.5}}>
           Sale de tu margen. Más alto atrae más pero cuesta más cuando
           alguien acierta. Máximo 50%.</div>
       </GCard>
 
       <GCard style={{padding:16,marginBottom:12}}>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>
           Vigencia (minutos)</div>
         <input value={ttl} inputMode="numeric"
           onChange={e=>setTtl(e.target.value.replace(/\D/g,""))} style={inp}/>
-        <div style={{color:Q.dim,fontSize:10.5,marginTop:6,lineHeight:1.5}}>
+        <div style={{color:Q.dim,fontSize:12,marginTop:6,lineHeight:1.5}}>
           Cuánto dura cada combo antes de vencer. Corto genera urgencia;
           muy corto y el cliente no llega a verlo.</div>
       </GCard>
 
       <GCard style={{padding:16,marginBottom:12}}>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>
           Tope por apuesta (0 = sin tope)</div>
         <input value={tope} inputMode="numeric"
           onChange={e=>setTope(e.target.value.replace(/\D/g,""))} style={inp}/>
-        <div style={{color:Q.dim,fontSize:10.5,marginTop:6,lineHeight:1.5}}>
+        <div style={{color:Q.dim,fontSize:12,marginTop:6,lineHeight:1.5}}>
           Limita cuánto se puede apostar al flash desde el chat. Para
           montos mayores, el cliente usa la app.</div>
       </GCard>
@@ -13354,12 +13354,12 @@ function TabMejora({ adminKey, onNoAutorizado }){
         <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       <GCard glow={Q.gold} style={{padding:16,marginBottom:12}}>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:6,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:6,
           fontFamily:F_BODY}}>
           Tope de mejora (%)</div>
         <input value={pct} inputMode="decimal"
           onChange={e=>setPct(e.target.value)} style={inp}/>
-        <div style={{color:Q.dim,fontSize:10.5,marginTop:8,lineHeight:1.5}}>
+        <div style={{color:Q.dim,fontSize:12,marginTop:8,lineHeight:1.5}}>
           Por defecto {datos?.pct_por_defecto ?? 6}%. Más alto capta más
           boletos de la competencia y cuesta margen en cada jugada mejorada.
           Máximo permitido: 30%.</div>
@@ -13487,19 +13487,19 @@ function TabBoost({ adminKey, onNoAutorizado }){
       <GCard glow={Q.violet} style={{padding:16,marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:4,
           fontFamily:F_BODY}}>Escalones</div>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:10}}>
+        <div style={{color:Q.muted,fontSize:12,marginBottom:10}}>
           Desde cuántas selecciones y cuánto extra. El porcentaje no puede
           bajar al sumar picks.</div>
 
         {tabla.map((t,i)=>(
           <div key={i} style={{display:"flex",gap:8,alignItems:"center",
             marginBottom:8}}>
-            <span style={{color:Q.muted,fontSize:11,flexShrink:0}}>Desde</span>
+            <span style={{color:Q.muted,fontSize:12,flexShrink:0}}>Desde</span>
             <input value={t.picks} inputMode="numeric"
               onChange={e=>setTabla(x=>x.map((y,j)=>j===i
                 ?{...y,picks:parseInt(e.target.value)||0}:y))}
               style={{...inp,width:56,textAlign:"center"}}/>
-            <span style={{color:Q.muted,fontSize:11,flexShrink:0}}>picks →</span>
+            <span style={{color:Q.muted,fontSize:12,flexShrink:0}}>picks →</span>
             <input value={t.pct} inputMode="decimal"
               onChange={e=>setTabla(x=>x.map((y,j)=>j===i
                 ?{...y,pct:parseFloat(e.target.value)||0}:y))}
@@ -13524,7 +13524,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:4,
           fontFamily:F_BODY}}>
           Cuota mínima por selección</div>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:8,lineHeight:1.5}}>
+        <div style={{color:Q.muted,fontSize:12,marginBottom:8,lineHeight:1.5}}>
           Las patas por debajo de esta cuota no cuentan para el escalón. Sin
           esto, alguien suma diez selecciones de 1.05 y se lleva el extra sin
           correr riesgo.</div>
@@ -13534,7 +13534,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
       </GCard>
 
       {cfg&&cfg.pagado_historico>0&&(
-        <div style={{color:Q.muted,fontSize:11,marginBottom:12,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:12,
           textAlign:"center",fontFamily:F_BODY}}>
           Pagado en extras hasta ahora: <b style={{color:Q.gold}}>
             {ars(cfg.pagado_historico)}</b></div>
@@ -13550,19 +13550,19 @@ function TabBoost({ adminKey, onNoAutorizado }){
             Si hubiera estado activo estos {sim.dias} días</div>
           <div style={{display:"flex",gap:10,marginBottom:10}}>
             <div style={{flex:1}}>
-              <div style={{color:Q.muted,fontSize:10}}>Combinadas</div>
+              <div style={{color:Q.muted,fontSize:12}}>Combinadas</div>
               <div style={{color:Q.text,fontWeight:800,fontSize:18,
                 fontFamily:F_BODY}}>{sim.combinadas}</div>
-              <div style={{color:Q.dim,fontSize:9.5}}>
+              <div style={{color:Q.dim,fontSize:12}}>
                 {sim.ganadas} acertadas ({sim.tasa_acierto}%)</div>
             </div>
             <div style={{flex:1}}>
-              <div style={{color:Q.muted,fontSize:10}}>Habría costado</div>
+              <div style={{color:Q.muted,fontSize:12}}>Habría costado</div>
               <div style={{color:Q.amber,fontWeight:800,fontSize:18,
                 fontFamily:F_BODY}}>
                 {ars(sim.costo_del_boost)}</div>
               {sim.impacto_pct!=null&&(
-                <div style={{color:Q.dim,fontSize:9.5}}>
+                <div style={{color:Q.dim,fontSize:12}}>
                   {sim.impacto_pct}% del margen</div>
               )}
             </div>
@@ -13581,11 +13581,11 @@ function TabBoost({ adminKey, onNoAutorizado }){
           {(sim.por_cantidad||[]).length>0&&(
             <div style={{marginTop:10,paddingTop:9,
               borderTop:`1px solid ${Q.border}`}}>
-              <div style={{color:Q.muted,fontSize:10,marginBottom:5}}>
+              <div style={{color:Q.muted,fontSize:12,marginBottom:5}}>
                 Por cantidad de selecciones</div>
               {sim.por_cantidad.filter(x=>x.jugadas>0).map(x=>(
                 <div key={x.picks} style={{display:"flex",
-                  justifyContent:"space-between",fontSize:10.5,padding:"2px 0",
+                  justifyContent:"space-between",fontSize:12,padding:"2px 0",
                   color:Q.muted}}>
                   <span>{x.picks} picks · {x.jugadas} jugadas ·{" "}
                     {x.ganadas} ganadas{x.pct>0?` · +${x.pct}%`:""}</span>
@@ -13596,7 +13596,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
             </div>
           )}
 
-          <div style={{color:Q.dim,fontSize:9.5,marginTop:9,lineHeight:1.5}}>
+          <div style={{color:Q.dim,fontSize:12,marginTop:9,lineHeight:1.5}}>
             {sim.aviso}</div>
         </GCard>
       )}
@@ -13732,7 +13732,7 @@ function TabBanners({ adminKey, onNoAutorizado }){
           accept="image/jpeg,image/png,image/webp,image/gif"
           onChange={elegir} disabled={subiendo||lista.length>=8}
           style={{...inp,padding:"8px",marginBottom:0}}/>
-        <div style={{color:Q.muted,fontSize:11,marginTop:8,lineHeight:1.5}}>
+        <div style={{color:Q.muted,fontSize:12,marginTop:8,lineHeight:1.5}}>
           {lista.length>=8
             ? "Llegaste a 8 banners. Borrá alguno para subir otro."
             : `JPG, PNG, WEBP o GIF · hasta 2 MB · quedan ${8-lista.length} lugares`}
@@ -13767,7 +13767,7 @@ function TabBanners({ adminKey, onNoAutorizado }){
 
             <div style={{display:"flex",gap:8,alignItems:"center",
               marginBottom:10}}>
-              <span style={{color:Q.muted,fontSize:11}}>Orden</span>
+              <span style={{color:Q.muted,fontSize:12}}>Orden</span>
               <input type="number" value={b.orden??0}
                 onChange={e=>cambiar(b.id,"orden",Number(e.target.value)||0)}
                 style={{...inp,width:64,marginBottom:0,padding:"7px 9px"}}/>
@@ -13785,7 +13785,7 @@ function TabBanners({ adminKey, onNoAutorizado }){
                 border:`1px solid ${Q.red}`,borderRadius:8,padding:"9px 14px",
                 color:Q.red,fontSize:12,fontWeight:700,cursor:"pointer"}}>
                 Borrar</button>
-              <span style={{marginLeft:"auto",color:Q.dim,fontSize:10.5}}>
+              <span style={{marginLeft:"auto",color:Q.dim,fontSize:12}}>
                 {b.peso_kb} KB</span>
             </div>
           </div>
@@ -13899,7 +13899,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
         <div style={{display:"flex",justifyContent:"space-between",
           alignItems:"center",marginBottom:12}}>
           <div>
-            <div style={{color:Q.muted,fontSize:11,
+            <div style={{color:Q.muted,fontSize:12,
               fontFamily:F_BODY}}>Riesgo total abierto</div>
             <div style={{color:Q.gold,fontSize:26,fontWeight:800,
               fontFamily:F_BODY}}>
@@ -13907,10 +13907,10 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
           </div>
           <button onClick={cargar} style={{background:"transparent",
             border:`1px solid ${Q.border}`,borderRadius:8,padding:"6px 12px",
-            color:Q.muted,fontSize:11,cursor:"pointer"}}>Actualizar</button>
+            color:Q.muted,fontSize:12,cursor:"pointer"}}>Actualizar</button>
         </div>
 
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>
           Moneda de este tope</div>
         <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>
@@ -13924,20 +13924,20 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
               color:monedaTope===m?Q.cyan:(enUso.has(m)?Q.text:Q.muted),
               fontSize:12,fontWeight:monedaTope===m?700:400,
               fontFamily:F_BODY}}>
-              {m}{enUso.has(m)&&<span style={{color:Q.cyan,fontSize:9,
+              {m}{enUso.has(m)&&<span style={{color:Q.cyan,fontSize:12,
                 marginLeft:3}}>●</span>}</button>
           ))}
         </div>
-        <div style={{color:Q.dim,fontSize:10,marginBottom:10}}>
+        <div style={{color:Q.dim,fontSize:12,marginBottom:10}}>
           ● en uso por alguna agencia</div>
 
-        <div style={{color:Q.muted,fontSize:11,marginBottom:6,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:6,
           fontFamily:F_BODY}}>
           Tope por resultado en {monedaTope} (0 = sin tope)</div>
         <input value={tope} onChange={e=>setTope(e.target.value.replace(/\D/g,""))}
           placeholder={monedaTope==="ARS"?"Ej: 500000":"Ej: 2000"}
           inputMode="numeric" style={inp}/>
-        <div style={{color:Q.dim,fontSize:10.5,margin:"6px 0 10px",
+        <div style={{color:Q.dim,fontSize:12,margin:"6px 0 10px",
           lineHeight:1.5,fontFamily:F_BODY}}>
           Cada moneda tiene su propio tope. Una agencia en una moneda
           sin tope cargado usa el de pesos, que va a estar mal escalado.</div>
@@ -13958,7 +13958,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
           <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
         {activo&&topeNum===0&&(
-          <div style={{color:Q.amber,fontSize:11,marginTop:8,lineHeight:1.5}}>
+          <div style={{color:Q.amber,fontSize:12,marginTop:8,lineHeight:1.5}}>
             El control está activo pero el tope es 0, o sea sin límite:
             no va a rechazar nada. Poné un monto para que tenga efecto.</div>
         )}
@@ -13979,7 +13979,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
                 <span style={{color:t.moneda===monedaTope?Q.cyan:Q.text,
                   fontWeight:700,fontSize:12.5,
                   fontFamily:F_BODY}}>{t.moneda}</span>
-                <span style={{color:Q.dim,fontSize:9.5,marginLeft:7}}>
+                <span style={{color:Q.dim,fontSize:12,marginLeft:7}}>
                   {t.fecha}</span>
               </div>
               <span style={{color:Q.gold,fontWeight:700,fontSize:13,
@@ -13989,7 +13989,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
           ))}
 
           {(topes.sin_tope||[]).length>0&&(
-            <div style={{color:Q.amber,fontSize:10.5,marginTop:10,
+            <div style={{color:Q.amber,fontSize:12,marginTop:10,
               paddingTop:9,borderTop:`1px solid ${Q.border}`,lineHeight:1.5,
               fontFamily:F_BODY}}>
               Sin tope propio: {topes.sin_tope.join(", ")}. Esas agencias
@@ -14022,14 +14022,14 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
                 <div style={{color:Q.text,fontSize:13.5,fontWeight:700,
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
                   fontFamily:F_BODY}}>{l.seleccion}</div>
-                <div style={{color:Q.muted,fontSize:10.5,marginTop:2}}>
+                <div style={{color:Q.muted,fontSize:12,marginTop:2}}>
                   {l.mercado} · {l.boletos} {l.boletos===1?"boleto":"boletos"}
                   {l.sport_key?` · ${l.sport_key}`:""}</div>
               </div>
               <div style={{textAlign:"right"}}>
                 <div style={{color:pasa?Q.red:Q.gold,fontSize:18,fontWeight:800,
                   fontFamily:F_BODY}}>{plata(l.riesgo)}</div>
-                {pasa&&<div style={{color:Q.red,fontSize:9.5,fontWeight:700}}>
+                {pasa&&<div style={{color:Q.red,fontSize:12,fontWeight:700}}>
                   SUPERA EL TOPE</div>}
               </div>
             </div>
@@ -14046,7 +14046,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
       })}
 
       {!cargando&&lineas.length>0&&(
-        <div style={{color:Q.muted,fontSize:10.5,lineHeight:1.6,marginTop:12,
+        <div style={{color:Q.muted,fontSize:12,lineHeight:1.6,marginTop:12,
           padding:"0 4px"}}>
           En una combinada el premio completo cuenta contra cada selección,
           porque tienen que ganar todas. Por eso la suma de esta lista es
@@ -14131,7 +14131,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
         (agencia + descendientes) o a una agencia sola.</div>
 
       <GCard glow={Q.violet} style={{padding:16,marginBottom:16}}>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>Alcance</div>
         <div style={{display:"flex",gap:6,marginBottom:10}}>
           {[["global","🌐 Toda la red"],["rama","🌿 Una rama"],["agencia","🏢 Una agencia"]].map(([k,l])=>(
@@ -14139,7 +14139,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
               background:form.alcance===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
               border:`1px solid ${form.alcance===k?Q.violet:Q.border}`,borderRadius:9,
               padding:"9px 4px",cursor:"pointer",color:form.alcance===k?Q.violet2||Q.violet:Q.muted,
-              fontSize:11,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
+              fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
           ))}
         </div>
         {/* Si ya hay un límite para esa combinación, se está editando */}
@@ -14151,7 +14151,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
           return ya?(
             <div style={{background:`${Q.cyan}12`,
               border:`1px solid ${Q.cyan}44`,borderRadius:8,
-              padding:"8px 11px",marginBottom:10,fontSize:10.5,
+              padding:"8px 11px",marginBottom:10,fontSize:12,
               color:Q.cyan,lineHeight:1.5,
               fontFamily:F_BODY}}>
               Ya existe un límite para esto. Al guardar se reemplaza:
@@ -14162,7 +14162,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
 
         {form.alcance==="global"&&(
           <>
-              <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+              <div style={{color:Q.muted,fontSize:12,marginBottom:4,
                 fontFamily:F_BODY}}>
                 Moneda de estos límites</div>
               <div style={{display:"flex",gap:5,flexWrap:"wrap",
@@ -14180,12 +14180,12 @@ function TabLimites({ adminKey, onNoAutorizado }){
                     fontWeight:form.moneda===m?700:400,
                     fontFamily:F_BODY}}>
                     {m}{enUso.has(m)&&<span style={{color:Q.cyan,
-                      fontSize:9,marginLeft:3}}>●</span>}</button>
+                      fontSize:12,marginLeft:3}}>●</span>}</button>
                 ))}
               </div>
-              <div style={{color:Q.dim,fontSize:10,marginBottom:8}}>
+              <div style={{color:Q.dim,fontSize:12,marginBottom:8}}>
                 ● en uso por alguna agencia</div>
-              <div style={{color:Q.dim,fontSize:10.5,marginBottom:10,
+              <div style={{color:Q.dim,fontSize:12,marginBottom:10,
                 lineHeight:1.5,fontFamily:F_BODY}}>
                 Cada moneda lleva sus propios números. Una agencia en una
                 moneda sin límite cargado usa el de pesos, que va a estar
@@ -14200,15 +14200,15 @@ function TabLimites({ adminKey, onNoAutorizado }){
             {agencias.map(a=>(<option key={a.code} value={a.code}>{a.code} · {a.name}</option>))}
           </select>
         )}
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,marginTop:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,marginTop:4,
           fontFamily:F_BODY}}>Monto mínimo por apuesta</div>
         <input value={form.monto_min} onChange={e=>setForm(f=>({...f,monto_min:e.target.value.replace(/\D/g,"")}))}
           placeholder="Ej: 100" inputMode="numeric" style={inp}/>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>Monto máximo por apuesta</div>
         <input value={form.monto_max} onChange={e=>setForm(f=>({...f,monto_max:e.target.value.replace(/\D/g,"")}))}
           placeholder="Ej: 500000" inputMode="numeric" style={inp}/>
-        <div style={{color:Q.muted,fontSize:11,marginBottom:4,
+        <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>Pago máximo por apuesta</div>
         <input value={form.pago_max} onChange={e=>setForm(f=>({...f,pago_max:e.target.value.replace(/\D/g,"")}))}
           placeholder="Ej: 5000000" inputMode="numeric" style={inp}/>
@@ -14222,7 +14222,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
           fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
       </GCard>
 
-      <div style={{color:Q.muted,fontSize:11,textTransform:"uppercase",letterSpacing:1,
+      <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
         marginBottom:8,marginLeft:4,fontFamily:F_BODY}}>Configurados</div>
       {limites.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:16,
         fontFamily:F_BODY}}>Sin límites configurados</div>}
@@ -14238,7 +14238,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
                 {l.alcance==="global"?`🌐 Toda la red · ${l.moneda||"ARS"}`
                   :`🏢 ${l.agencia_code}`}
                 {l.agencia_nombre?` · ${l.agencia_nombre}`:""}</div>
-              <div style={{color:Q.muted,fontSize:10,
+              <div style={{color:Q.muted,fontSize:12,
                 fontFamily:F_BODY}}>
                 Min {l.monto_min!=null?ars(l.monto_min):"—"} · Max {l.monto_max!=null?ars(l.monto_max):"—"} · Pago máx {l.pago_max!=null?ars(l.pago_max):"—"}</div>
             </div>
@@ -14258,13 +14258,13 @@ function TabLimites({ adminKey, onNoAutorizado }){
               }} style={{background:"transparent",
                 border:`1px solid ${Q.cyan}55`,borderRadius:7,
                 padding:"5px 11px",cursor:"pointer",color:Q.cyan,
-                fontSize:10.5,marginRight:6,flexShrink:0,
+                fontSize:12,marginRight:6,flexShrink:0,
                 fontFamily:F_BODY}}>Editar</button>
 
             {l.alcance!=="global"&&(
               <button onClick={()=>borrar(l.id)} style={{background:"transparent",
                 border:`1px solid ${Q.red}55`,borderRadius:8,padding:"5px 10px",
-                color:Q.red,fontSize:11,cursor:"pointer"}}>Quitar</button>
+                color:Q.red,fontSize:12,cursor:"pointer"}}>Quitar</button>
             )}
           </div>
         </GCard>
@@ -14318,7 +14318,7 @@ function AdminPanel({ adminKey, onLogout }){
           <HBadge label="ADMIN" color={Q.violet}/>
           <button onClick={onLogout} style={{background:"transparent",
             border:`1px solid ${Q.border}`,borderRadius:8,padding:"5px 10px",
-            color:Q.muted,fontSize:11,cursor:"pointer"}}>Salir</button>
+            color:Q.muted,fontSize:12,cursor:"pointer"}}>Salir</button>
         </div>
       </div>
 
@@ -14362,14 +14362,14 @@ function AdminPanel({ adminKey, onLogout }){
               {t.k==="config"&&alertasRiesgo>0&&(
                 <span style={{position:"absolute",top:-3,right:-8,
                   background:Q.red,color:"#fff",borderRadius:9,
-                  minWidth:15,height:15,fontSize:9,fontWeight:800,
+                  minWidth:15,height:15,fontSize:12,fontWeight:800,
                   display:"flex",alignItems:"center",justifyContent:"center",
                   padding:"0 3px",lineHeight:1,
                   fontFamily:F_BODY}}>
                   {alertasRiesgo>99?"99+":alertasRiesgo}</span>
               )}
             </span>
-            <span style={{color:tab===t.k?Q.cyan:Q.muted,fontSize:8.5,
+            <span style={{color:tab===t.k?Q.cyan:Q.muted,fontSize:12,
               fontWeight:tab===t.k?700:400,maxWidth:"100%",
               overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
               fontFamily:F_BODY,letterSpacing:0.3,
