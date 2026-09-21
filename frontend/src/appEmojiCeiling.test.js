@@ -129,17 +129,24 @@ describe("Admin.jsx does not gain emoji back", () => {
   const counts = emojiCounts(ADMIN);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
 
-  // The exact count the admin slice (T1 + T2 + T3) leaves behind, measured
-  // directly from source (docs/icon-inventory.md's 503/90 for this screen
-  // was taken at an earlier revision and no longer matches; this guard
-  // trusts a fresh scan over that document's summary numbers). This is
-  // the last screen: with it fixed, every screen in the product has been
-  // through the migration.
+  // odd/tasks/finish-icon-migration.md's T3 retired the row rule and
+  // migrated every site that renders in the interface, including the
+  // outermost bottom-nav TABS strip and the 16-entry Config sub-nav this
+  // screen's earlier slice had left whole. What survives is a
+  // `placeholder` attribute and two <option> contents (none of the three
+  // can host a React element), two code comments, two sites where the
+  // emoji sits inside the {text,ok} contract's own text value (which
+  // would mean reshaping that value from a string into a node, out of
+  // this pass's scope), one embedded mid-message aside, one batch-result
+  // summary where each glyph is content (documented in the source), and
+  // the plain-string setMsg/setAnalisis calls outside the {text,ok}
+  // contract's named scope (same exclusion the player, site and agency
+  // slices used).
   test("total emoji uses do not rise above what this migration leaves behind", () => {
-    expect(total).toBeLessThanOrEqual(299);
+    expect(total).toBeLessThanOrEqual(23);
   });
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
-    expect(counts.size).toBeLessThanOrEqual(70);
+    expect(counts.size).toBeLessThanOrEqual(7);
   });
 });
