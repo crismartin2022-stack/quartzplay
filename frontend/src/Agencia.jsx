@@ -3549,9 +3549,13 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
       </GCard>
 
       {/* Rendimiento — an icon per figure so this reads as three
-          distinct metrics at a glance, not a row of plain numbers. */}
+          distinct metrics at a glance, not a row of plain numbers.
+          Auto-fit lets each stat keep a sane width instead of squeezing
+          three into one row on a narrow phone. */}
       {ficha&&(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
+        <div style={{display:"grid",
+          gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",
+          gap:SPACING[12],marginBottom:12}}>
           <GCard style={{padding:"8px",textAlign:"center"}}>
             <div style={{color:Q.cyan,fontWeight:700,fontSize:13,
               fontFamily:F_BODY}}>{ars(ficha.rendimiento.apostado)}</div>
@@ -5862,7 +5866,11 @@ function HistorialCashout({ agencia, onSesionExpirada }){
         description="Los cash outs pagados en tu rama y su estado."
         action={<Btn label={cargando?"...":"↻ Actualizar"} onClick={cargar} outline color={Q.muted} size="sm"/>}/>
       <AlertaError mensaje={err}/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:SPACING[8],marginBottom:14}}>
+      {/* Auto-fit so a lone or paired stat settles at a sane card width
+          instead of stretching across the whole row. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",
+        gap:SPACING[12],marginBottom:14}}>
         {[{l:"Cash outs",v:items.length,c:Q.cyan},
           {l:"Total pagado",v:ars(totalPagado),c:Q.gold}].map((x,i)=>(
           <GCard key={i} glow={x.c} style={{padding:"12px 12px",textAlign:"center"}}>
@@ -5954,7 +5962,11 @@ function Historial({ agencia, onSesionExpirada }){
 
       <AlertaError mensaje={err}/>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:14}}>
+      {/* Auto-fit so each stat keeps a sane width instead of squeezing
+          three into one row on a narrow phone. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",
+        gap:SPACING[12],marginBottom:14}}>
         {[{l:"Tickets",v:lista.length,c:Q.cyan},
           {l:"Cobrado",v:ars(total),c:Q.green},
           {l:"Exposición",v:ars(expuesto),c:Q.amber},
@@ -7379,7 +7391,11 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
           fontFamily:F_BODY}}>Cargando...</div>}
         {escaneos&&(
           <div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
+            {/* Auto-fit so each stat keeps a sane width instead of
+                squeezing three into one row on a narrow phone. */}
+            <div style={{display:"grid",
+              gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",
+              gap:SPACING[12],marginBottom:12}}>
               {[["Escaneos",escaneos.total_escaneos,Q.cyan],["Jugaron",escaneos.total_jugadas,Q.green],
                 ["Conversión",escaneos.conversion+"%",Q.gold]].map(([l,v,c])=>(
                 <GCard key={l} style={{padding:"16px 8px",textAlign:"center"}}>
