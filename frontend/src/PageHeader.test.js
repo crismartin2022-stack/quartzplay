@@ -36,8 +36,8 @@ describe("PageHeader renders every prop", () => {
     expect(SRC).toMatch(/\{eyebrow\}/);
   });
 
-  test("forces the title icon to size 15 rather than trusting the caller's own size", () => {
-    expect(SRC).toMatch(/cloneElement\(icon,\s*\{\s*size:\s*TEXT\[15\]\s*\}\)/);
+  test("forces the title icon to size 20 rather than trusting the caller's own size", () => {
+    expect(SRC).toMatch(/cloneElement\(icon,\s*\{\s*size:\s*TEXT\[20\]\s*\}\)/);
   });
 });
 
@@ -48,16 +48,19 @@ describe("PageHeader uses theme tokens, not hardcoded numbers", () => {
     );
   });
 
-  test("the title is TEXT[15]/fontWeight:700/Q.text", () => {
-    expect(SRC).toMatch(/color:Q\.text,fontWeight:700,fontSize:TEXT\[15\]/);
+  // TEXT[20], not TEXT[15]: 15 is also this codebase's card-title size, so a
+  // page header set at 15 sits level with the card headings beneath it and
+  // stops reading as a heading at all. 20 puts it a clear step above them.
+  test("the title is TEXT[20]/fontWeight:700/Q.text", () => {
+    expect(SRC).toMatch(/color:Q\.text,fontWeight:700,fontSize:TEXT\[20\]/);
   });
 
-  test("the description is TEXT[12]/Q.muted/lineHeight:1.5", () => {
-    expect(SRC).toMatch(/color:Q\.muted,fontSize:TEXT\[12\],lineHeight:1\.5/);
+  test("the description is TEXT[13]/Q.muted/lineHeight:1.5", () => {
+    expect(SRC).toMatch(/color:Q\.muted,fontSize:TEXT\[13\],lineHeight:1\.5/);
   });
 
   test("SPACING[4] sits under the title row", () => {
-    expect(SRC).toMatch(/marginBottom:SPACING\[4\]\}\}>\s*\n\s*<div style=\{\{color:Q\.text,fontWeight:700,fontSize:TEXT\[15\]/);
+    expect(SRC).toMatch(/marginBottom:SPACING\[4\]\}\}>\s*\n\s*<div style=\{\{color:Q\.text,fontWeight:700,fontSize:TEXT\[20\]/);
   });
 
   test("SPACING[16] sits under the whole block", () => {

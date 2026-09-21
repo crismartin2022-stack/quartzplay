@@ -111,23 +111,99 @@ describe("the two casino cards' hand-written gradients are gone", () => {
   }
 });
 
-describe("ink on the two casino cards comes from inkOn, not a hardcoded colour", () => {
-  const body2 = screenHomeBody();
-  const casinoStart = body2.indexOf('onClick={()=>onNav("casino")}');
-  const casinoVivoStart = body2.indexOf('onClick={()=>onNav("casinovivo")}');
-  const casinoCard = body2.slice(casinoStart, casinoVivoStart);
-  const casinoVivoCard = body2.slice(casinoVivoStart, casinoVivoStart + 700);
+// The three cards' backgrounds stopped being flat two-colour gradients
+// (frontend/public/brand/{slot,live-casino,desafios}.webp are the
+// background now — see the comment above the row in App.jsx), so
+// `inkOn(<the two gradient colours>)` no longer describes what is behind
+// the text: an image is. The guarantee this describe block protects
+// changed shape with it. It used to be "the ink is derived from the
+// background colour, not hardcoded"; it is now "an image-background card
+// always carries a scrim dark enough to read text on, and the text is
+// painted above that scrim, not directly on the photo". `inkOn` is still
+// how the ink is picked (against the scrim's own near-black tokens,
+// Q.void/Q.dark — see App.jsx), so the "not hardcoded" half of the old
+// guarantee is folded into the scrim check below rather than dropped.
+describe("cards with an image background always carry a legible scrim above the photo", () => {
+  const CARDS = ["casino", "casinovivo", "desafios"];
+  // Each card is bounded by the next card's own onClick (or, for the last
+  // one, by the next section's own comment) — a real structural anchor,
+  // not a guessed character count. A fixed-length slice (the previous
+  // version of this file used `casinoVivoStart + 700`) silently stops
+  // covering a card the moment its markup grows past that number, which is
+  // exactly what happened when the scrim/photo layers were added: the
+  // card's own `color:inkOn(...)` moved past character 700 and the guard
+  // that was supposed to find it just... didn't, without failing loudly
+  // about why.
+  const NEXT_MARKER = {
+    casino: 'onClick={()=>onNav("casinovivo")}',
+    casinovivo: 'onClick={()=>onNav("desafios")}',
+    desafios: "{/* Combo del día destacado */}",
+  };
 
-  test("neither card hardcodes white text any more", () => {
-    expect(casinoCard).not.toContain('"#fff"');
-    expect(casinoCard).not.toContain("rgba(255,255,255");
-    expect(casinoVivoCard).not.toContain('"#fff"');
-    expect(casinoVivoCard).not.toContain("rgba(255,255,255");
+  function cardSource(dest) {
+    const body = screenHomeBody();
+    const start = body.indexOf(`onClick={()=>onNav("${dest}")}`);
+    expect(start).toBeGreaterThan(-1);
+    const end = body.indexOf(NEXT_MARKER[dest], start + 1);
+    expect(end).toBeGreaterThan(start);
+    return body.slice(start, end);
+  }
+
+  // A scrim is a second, independent overlay — its own plain-quoted
+  // `background:` (deliberately not a backtick template literal, so it
+  // never collides with the brand-tint gradient the tests above this one
+  // pin to `` background:`linear-gradient(135deg,${Q.x},${Q.y})` ``) —
+  // built from `rgba(...)` stops that reach at least 0.6 alpha. A merely
+  // translucent tint (say, 0.1) would say nothing about legibility; this
+  // asks for a stop dark/opaque enough to actually read text on.
+  function findScrim(cardSource) {
+    const overlays = [...cardSource.matchAll(/background:"([^"]*)"/g)]
+      .map((m) => ({ raw: m[1], at: m.index }));
+    return overlays.find((o) => {
+      const alphas = [...o.raw.matchAll(/rgba\([^)]*,\s*([\d.]+)\s*\)/g)]
+        .map((m) => Number(m[1]));
+      return alphas.length > 0 && Math.max(...alphas) >= 0.6;
+    });
+  }
+
+  test("positive control: the detector fails a card that has an image but no scrim", () => {
+    // Without this, findScrim could return undefined for every real card
+    // too and every test below would pass for a reason that proves
+    // nothing — exactly the failure mode this rewrite exists to close.
+    const noScrimFixture =
+      '<div style={{backgroundImage:"url(/brand/slot.webp)"}}>' +
+      '<div style={{background:"linear-gradient(180deg,transparent,rgba(0,0,0,.15))"}}/>' +
+      '<div style={{color:inkOn(Q.violet,Q.violet2)}}>Casino</div></div>';
+    expect(findScrim(noScrimFixture)).toBeUndefined();
   });
 
-  test("both cards call inkOn for their text colour", () => {
-    expect(casinoCard).toMatch(/color:inkOn\(/);
-    expect(casinoVivoCard).toMatch(/color:inkOn\(/);
+  test.each(CARDS)("the %s card's own background is an image, not a flat colour", (dest) => {
+    expect(cardSource(dest)).toMatch(/backgroundImage:"url\(\/brand\/[\w.-]+\.webp\)"/);
+  });
+
+  test.each(CARDS)("the %s card declares a scrim dark enough to read text on", (dest) => {
+    expect(findScrim(cardSource(dest))).toBeDefined();
+  });
+
+  test.each(CARDS)("the %s card's text is painted above its scrim, not directly on the photo", (dest) => {
+    const card = cardSource(dest);
+    const scrim = findScrim(card);
+    const textAt = card.indexOf("color:inkOn(");
+    expect(textAt).toBeGreaterThan(-1);
+    // Later in source == painted later == visually on top, for sibling
+    // elements with no explicit z-index — true of every layer in these
+    // cards (see App.jsx).
+    expect(textAt).toBeGreaterThan(scrim.at);
+  });
+
+  test.each(CARDS)("the %s card does not hardcode white text", (dest) => {
+    const card = cardSource(dest);
+    expect(card).not.toContain('"#fff"');
+    expect(card).not.toContain("rgba(255,255,255");
+  });
+
+  test.each(CARDS)("the %s card still calls inkOn, now against the scrim's own dark tokens", (dest) => {
+    expect(cardSource(dest)).toMatch(/color:inkOn\(/);
   });
 });
 

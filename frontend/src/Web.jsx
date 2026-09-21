@@ -20,6 +20,7 @@ import { oscuro as Q, F_NUM, F_BODY, inkOn, RADII, SPACING } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot from "./Mascot";
 import Icon from "./Icon";
+import { useDesktopShellWidth } from "./desktopShellLayout";
 import { Handshake, Video, Repeat, Dices, Shield, Scale, Rocket, Bell, Image as ImageIcon, Pencil, Smartphone, Flame, Coins, Eye, Banknote, Heart, Headphones, Zap } from "lucide-react";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
@@ -2852,6 +2853,61 @@ function BarraWeb({ vista, onNav, hayBoleto }){
   );
 }
 
+// ── Sidebar de escritorio ─────────────────────────────────────
+// At 1024px and up (the prototype's own breakpoint, html/styles.css:1240)
+// the site gets the same shell shape the admin and agency panels already
+// use: a fixed 264px sidebar with the primary navigation, header and
+// content to its right. Below 1024 nothing here renders — BarraWeb (the
+// phone's bottom tab bar) is untouched and keeps doing the job alone.
+//
+// The destinations are exactly BarraWeb's own seven, so desktop and phone
+// always offer the same places — no section exists on one and not the
+// other. This is a separate, small nav list rather than one shared with
+// BarraWeb: BarraWeb's own fontSize floor is pinned by fontSizeFloor.test.js
+// to the exact span of its function body, and this sidebar's labels sit at
+// the ordinary 12px floor, not the tab bar's 11px exception.
+function SidebarWeb({ vista, onNav }){
+  const NAV = [
+    {k:"prematch",   l:"Deportes",       i:<Icon name="trophy" size={18}/>},
+    {k:"vivo",       l:"En vivo",        i:<Icon name="circle-dot" size={18}/>},
+    {k:"casino",     l:"Casino",         i:<Icon name="spade" size={18}/>},
+    {k:"mejorar",    l:"Bet Best",       i:<Icon name="camera" size={18}/>},
+    {k:"casinovivo", l:"Casino en vivo", i:<Video size={18}/>},
+    {k:"desafios",   l:"Desafíos",       i:<Handshake size={18}/>},
+    {k:"historial",  l:"Historial",      i:<Icon name="clipboard-list" size={18}/>},
+  ];
+  return(
+    <aside style={{position:"sticky",top:0,alignSelf:"start",
+      width:264,height:"100dvh",overflowY:"auto",
+      background:"rgba(8,8,16,.97)",borderRight:`1px solid ${Q.border}`,
+      display:"flex",flexDirection:"column",gap:SPACING[4],
+      padding:`${SPACING[24]}px ${SPACING[12]}px`,zIndex:110}}>
+      <div style={{display:"flex",alignItems:"center",padding:"0 12px",
+        minHeight:44,marginBottom:SPACING[12]}}>
+        <BrandMark size={26}/>
+      </div>
+      <div style={{padding:"0 12px",marginBottom:SPACING[8],
+        color:Q.dim,fontSize:12,fontWeight:700,letterSpacing:1,
+        textTransform:"uppercase",fontFamily:F_BODY}}>Navegación</div>
+      {NAV.map(it=>{
+        const on=vista===it.k;
+        return(
+          <button key={it.k} onClick={()=>onNav(it.k)} style={{
+            display:"flex",alignItems:"center",gap:SPACING[12],
+            minHeight:44,padding:"0 12px",width:"100%",textAlign:"left",
+            background:on?`${Q.gold}1f`:"transparent",
+            border:`1px solid ${on?Q.gold:"transparent"}`,
+            borderRadius:RADII.md,cursor:"pointer"}}>
+            <span style={{color:on?Q.gold:Q.muted,display:"flex"}}>{it.i}</span>
+            <span style={{color:on?Q.gold:Q.muted,fontSize:13,
+              fontWeight:on?700:500,fontFamily:F_BODY}}>{it.l}</span>
+          </button>
+        );
+      })}
+    </aside>
+  );
+}
+
 
 function CasinoWeb({ sesion, ancho, vivo }){
   const user=sesion?.user||{};
@@ -4481,6 +4537,11 @@ export default function Web(){
   const esDeportes = vista==="prematch" || vista==="vivo";   // prematch | vivo
   const [boletoAbierto,setBoletoAbierto]=useState(false);
   const [ancho,setAncho]=useState(typeof window!=="undefined"?window.innerWidth>=1000:true);
+  // Desktop shell (sidebar + header + content), the admin/agency panels'
+  // own shape, at the shared 1024px breakpoint — see desktopShellLayout.js.
+  // Independent of `ancho` above (1000px), which only widens the events
+  // list into its own three-column layout and is unrelated to the shell.
+  const isDesktopShell=useDesktopShellWidth();
 
   // Código de referido del enlace (?ref=CODIGO o ?scan=CODIGO). Sin esto,
   // abrir Bet Best rompía la pantalla entera: la variable no existía.
@@ -4605,6 +4666,15 @@ export default function Web(){
         @media (prefers-reduced-motion:reduce){*,*::before,*::after{
           animation:none!important;transition:none!important}}
       `}</style>
+
+      {/* Escritorio (1024px+): sidebar fija a la izquierda, header y
+          contenido a la derecha — el mismo esquema que Admin y Agencia.
+          Debajo de 1024 no cambia nada: BarraWeb sigue siendo la única
+          navegación. */}
+      <div style={isDesktopShell?{display:"grid",
+        gridTemplateColumns:"264px minmax(0,1fr)"}:undefined}>
+      {isDesktopShell&&<SidebarWeb vista={vista} onNav={setVista}/>}
+      <div style={isDesktopShell?{minWidth:0}:undefined}>
 
       {/* Barra superior */}
       <header style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
@@ -4979,6 +5049,9 @@ export default function Web(){
             Si el juego dejó de ser un entretenimiento:
             Jugadores Anónimos Argentina · 0800-333-0333</span></div>
       </footer>
+
+      </div>
+      </div>
 
       {consultar&&<ConsultarBoleto onCerrar={()=>setConsultar(false)}/>}
       {login&&<Ingresar onCerrar={()=>setLogin(false)}

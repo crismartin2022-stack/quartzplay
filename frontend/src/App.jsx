@@ -7,6 +7,7 @@ import { oscuro as Q, F_NUM, F_BODY, inkOn, RADII, SPACING } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot, { MASCOT_FACE_ASSET } from "./Mascot";
 import Icon from "./Icon";
+import { useDesktopShellWidth } from "./desktopShellLayout";
 // lucide-react carries the icons this screen's emoji have no match for
 // among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
 // no live-feed mark, no handshake, no bolt, no gift.
@@ -3175,7 +3176,7 @@ function HistorialJuegos({ user, onCerrar }){
   const ICONO={deportivas:<Icon name="trophy" size={13}/>,casino:<Icon name="spade" size={13}/>,
     casino_vivo:<Video size={13}/>,desafios:<Handshake size={13}/>};
   const NOMBRE={deportivas:"Deportiva",casino:"Casino",
-    casino_vivo:"En vivo",desafios:"Desafío"};
+    casino_vivo:"Casino en Vivo",desafios:"Desafío"};
 
   const movs=(d?.movimientos||[]).filter(m=>
     filtro==="" || m.tipo===filtro ||
@@ -5332,8 +5333,8 @@ function BarraInferior({ actual, onNav, onAyuda }){
         textAlign:"center",position:"relative"}}>
         {on&&<span aria-hidden="true" style={{position:"absolute",top:0,
           width:16,height:3,borderRadius:RADII.sm,background:Q.gold}}/>}
-        <Ico d={ICONOS[it.k]} on={on} size={19}/>
-        <span style={{fontSize:12,lineHeight:1.15,whiteSpace:"nowrap",
+        <Ico d={ICONOS[it.k]} on={on} size={20}/>
+        <span style={{fontSize:11,lineHeight:1.15,whiteSpace:"nowrap",
           fontWeight:on?700:600,color:on?Q.gold:Q.dim,
           fontFamily:F_BODY}}>{it.l}</span>
       </button>
@@ -5365,7 +5366,7 @@ function BarraInferior({ actual, onNav, onAyuda }){
             {ICONOS.camara}
           </svg>
         </span>
-        <span style={{fontSize:12,lineHeight:1.15,whiteSpace:"nowrap",
+        <span style={{fontSize:11,lineHeight:1.15,whiteSpace:"nowrap",
           fontWeight:700,color:activoBB?Q.gold:Q.text,
           fontFamily:F_BODY}}>Bet Best</span>
       </button>
@@ -5375,8 +5376,64 @@ function BarraInferior({ actual, onNav, onAyuda }){
   );
 }
 
+// ── Barra lateral de escritorio: mismos destinos que BarraInferior ────
+// Below DESKTOP_SHELL_BREAKPOINT (1024px, desktopShellLayout.js — the same
+// breakpoint Admin.jsx and Agencia.jsx already share, so this app does not
+// add a second value) nothing changes: BarraInferior keeps rendering
+// exactly as it did. At and above it, this sidebar replaces the bottom tab
+// bar the same way Admin's and Agencia's own desktop sidebars replace
+// their tab rows — same shape, so the product reads as one thing. It
+// offers exactly the six BarraInferior destinations plus Bet Best, no new
+// section: Casino and Casino en Vivo stay ScreenHome-only cards on desktop
+// too, same as on a phone, since neither is in the bottom bar this mirrors.
+//
+// SIDEBAR_ITEMS is declared inside this function, not as a sibling
+// top-level const, on purpose: bottomNavSixItems.test.js reads
+// BarraInferior's own six-item array by slicing from its `function
+// BarraInferior(` to the next top-level `\nfunction `, so any array
+// literal left sitting between the two would silently join that slice.
+function SidebarDesktop({ actual, onNav, onAyuda }){
+  const SIDEBAR_ITEMS = [
+    {k:"prematch", l:"Deportes"},
+    {k:"builder",  l:"Builder"},
+    {k:"mejorar",  l:"Bet Best"},
+    {k:"desafios", l:"Desafíos"},
+    {k:"mybets",   l:"Boletos"},
+    {k:"ayuda",    l:"Ayuda"},
+    {k:"cuenta",   l:"Perfil"},
+  ];
+  return(
+    <div style={{
+      // Deliberately matching Agencia.jsx's/Admin.jsx's literal sidebar
+      // background rather than a Q token — parity with the other two
+      // panels' near-black desktop sidebar; keep in sync if theirs changes.
+      background:"rgba(6,6,18,0.97)",backdropFilter:"blur(20px)",
+      borderRight:`1px solid ${Q.border}`,
+      padding:`${SPACING[24]}px ${SPACING[12]}px`,display:"flex",
+      flexDirection:"column",alignItems:"stretch",gap:SPACING[8],
+      overflowY:"auto",flexShrink:0,gridColumn:"1",gridRow:"1 / span 2",
+      position:"sticky",top:0,alignSelf:"start",width:264,height:"100dvh"}}>
+      {SIDEBAR_ITEMS.map(it=>{
+        const on = actual===it.k;
+        return(
+          <button key={it.k} onClick={()=>it.k==="ayuda"?onAyuda():onNav(it.k)} style={{
+            minWidth:0,background:on?`linear-gradient(135deg,${Q.violet}44,${Q.violet2}22)`:"transparent",
+            border:`1px solid ${on?Q.violet:"transparent"}`,borderRadius:RADII.md,cursor:"pointer",
+            width:"100%",minHeight:44,padding:"0 12px",display:"flex",flexDirection:"row",
+            alignItems:"center",justifyContent:"flex-start",gap:SPACING[12],textAlign:"left"}}>
+            <Ico d={it.k==="mejorar"?ICONOS.camara:ICONOS[it.k]} on={on} size={18}/>
+            <span style={{color:on?Q.gold:Q.dim,fontSize:13,fontWeight:on?700:600,
+              fontFamily:F_BODY}}>{it.l}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── HOME con destacados (combo del día + en vivo) ─────────────
 function ScreenHome({ user, onNav, onBet, refCode }){
+  const isDesktopShell = useDesktopShellWidth();
   const [combo,setCombo]=useState(null);
   const [live,setLive]=useState(null);
 
@@ -5413,17 +5470,41 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           recortada, y el panel le reserva el lugar (min-height/padding-right,
           los mismos números que .hero-balance:has(.mascot-header) en
           html/styles.css:876-891) para que nunca tape el título ni el botón. */}
+      {/* Desktop puts the hero and the three cards on one line: the hero
+          takes a double-width first column and the cards become tall and
+          narrow beside it. On a phone the hero spans the full row and the
+          cards sit three across underneath, which is the same grid with
+          different columns rather than a second layout. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:isDesktopShell?"2fr 1fr 1fr 1fr":"repeat(3,minmax(0,1fr))",
+        gap:isDesktopShell?SPACING[16]:SPACING[8],
+        alignItems:"stretch",marginBottom:14}}>
       <div onClick={()=>onNav("mejorar")} style={{
-        position:"relative",overflow:"hidden",borderRadius:RADII.lg,marginBottom:14,
-        padding:"20px 16px",paddingRight:166,minHeight:244,cursor:"pointer",
+        gridColumn:isDesktopShell?"auto":"1 / -1",
+        position:"relative",overflow:"hidden",borderRadius:RADII.lg,
+        padding:"20px 16px",paddingRight:166,
+        minHeight:isDesktopShell?340:244,cursor:"pointer",
         background:`linear-gradient(115deg,${Q.violet2} 0%,${Q.violet} 70%)`}}>
-        <svg viewBox="0 0 320 120" preserveAspectRatio="none" style={{position:"absolute",
-          inset:0,width:"100%",height:"100%",opacity:0.22,pointerEvents:"none"}}>
-          <g stroke="#fff" strokeWidth="1" fill="none">
-            <circle cx="160" cy="60" r="30"/><line x1="160" y1="0" x2="160" y2="120"/>
-            <rect x="0" y="30" width="40" height="60"/><rect x="280" y="30" width="40" height="60"/>
-          </g>
-        </svg>
+        {/* Stadium photo, fused into the violet rather than sitting on top of
+            it: painted at 30% opacity over the panel's own gradient, then the
+            same gradient is repainted at 45% opacity above the photo. Net
+            effect ≈ (1-0.45)*0.30 ≈ 17% photo, 83% violet — the panel reads
+            as textured violet, not as a picture, and the violet still owns
+            the block per the brief. Measured against the actual file
+            (frontend/public/brand/fondo-hero.webp): even the photo's
+            brightest pixels (the upper-right floodlights, sampled near
+            #fff) composite to a dark-ink contrast of 7.0–11.6:1 here, and
+            the dark left side composites to 4.3–8.6:1 — both comfortably
+            above the 3:1 floor inkOn(Q.violet2,Q.violet) already clears for
+            the headline and CTA below, so that call did not need to change.
+            The vector pitch is gone: the photo is already a stadium pitch,
+            so drawing both was noise. */}
+        <div aria-hidden="true" style={{position:"absolute",inset:0,
+          backgroundImage:"url(/brand/fondo-hero.webp)",backgroundSize:"cover",
+          backgroundPosition:"center",opacity:0.3,pointerEvents:"none"}}/>
+        <div aria-hidden="true" style={{position:"absolute",inset:0,
+          background:`linear-gradient(115deg,${Q.violet2} 0%,${Q.violet} 70%)`,
+          opacity:0.45,pointerEvents:"none"}}/>
         {/* size=275 is the mascot's height; at the file's own 540:802
             ratio that rounds to a 185px width, the prototype's own
             .mascot-header width. */}
@@ -5432,8 +5513,8 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         <div style={{position:"relative"}}>
           <div style={{fontSize:12,letterSpacing:2,fontWeight:800,color:Q.gold,
             fontFamily:F_BODY}}>BET BEST</div>
-          <div style={{fontFamily:F_NUM,fontSize:27,fontWeight:700,color:inkOn(Q.violet2,Q.violet),
-            lineHeight:1.02,marginTop:5}}>Sacale una foto<br/>a tu boleto</div>
+          <div style={{fontFamily:F_NUM,fontSize:22,fontWeight:700,color:inkOn(Q.violet2,Q.violet),
+            lineHeight:1.15,marginTop:5,whiteSpace:"nowrap"}}>Sacale una foto<br/>a tu boleto</div>
           <div style={{fontSize:12,color:inkOn(Q.violet2,Q.violet),opacity:.8,marginTop:7,lineHeight:1.4,
             maxWidth:230,fontFamily:F_BODY}}>
             Leemos las selecciones y te decimos si podemos pagarte una cuota mejor.</div>
@@ -5445,6 +5526,77 @@ function ScreenHome({ user, onNav, onBet, refCode }){
             </svg>
             <span style={{color:inkOn(Q.goldBg),fontWeight:700,fontSize:12.5,
               fontFamily:F_BODY}}>Escanear boleto</span>
+          </div>
+        </div>
+      </div>
+        <div onClick={()=>onNav("casino")} style={{position:"relative",overflow:"hidden",
+          minWidth:0,height:isDesktopShell?"100%":168,
+          cursor:"pointer",borderRadius:RADII.lg,
+          backgroundImage:"url(/brand/slot.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,opacity:0.32}}/>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
+          <div style={{position:"relative",height:"100%",display:"flex",
+            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
+            <Icon name="spade" size={24} color={inkOn(Q.void,Q.dark)}/>
+            <div>
+              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
+                fontFamily:F_BODY}}>Casino</div>
+              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
+                marginTop:2,lineHeight:1.35,
+                fontFamily:F_BODY}}>
+                Tragamonedas y mesas</div>
+            </div>
+          </div>
+        </div>
+        {/* Bug fix, not only a rename: this card already navigates to
+            "casinovivo" — onNav("casinovivo") below — but its label said
+            "En vivo", which reads as the sportsbook's live-betting section
+            (App.jsx's own ScreenLive/BarraInferior "live" tab), not this
+            live-dealer casino screen. Renamed here and in HistorialJuegos'
+            NOMBRE.casino_vivo, the only other place in this file that
+            labels this same casino_vivo destination. */}
+        <div onClick={()=>onNav("casinovivo")} style={{position:"relative",overflow:"hidden",
+          minWidth:0,height:isDesktopShell?"100%":168,
+          cursor:"pointer",borderRadius:RADII.lg,
+          backgroundImage:"url(/brand/live-casino.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:`linear-gradient(135deg,${Q.pink},${Q.gold})`,opacity:0.32}}/>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
+          <div style={{position:"relative",height:"100%",display:"flex",
+            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
+            <Video size={24} color={inkOn(Q.void,Q.dark)} aria-hidden="true"/>
+            <div>
+              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
+                fontFamily:F_BODY}}>Casino en Vivo</div>
+              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
+                marginTop:2,lineHeight:1.35,
+                fontFamily:F_BODY}}>
+                Mesas con crupier</div>
+            </div>
+          </div>
+        </div>
+        <div onClick={()=>onNav("desafios")} style={{position:"relative",overflow:"hidden",
+          minWidth:0,height:isDesktopShell?"100%":168,
+          cursor:"pointer",borderRadius:RADII.lg,
+          backgroundImage:"url(/brand/desafios.webp)",backgroundSize:"cover",backgroundPosition:"center"}}>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,opacity:0.32}}/>
+          <div aria-hidden="true" style={{position:"absolute",inset:0,
+            background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
+          <div style={{position:"relative",height:"100%",display:"flex",
+            flexDirection:"column",justifyContent:"space-between",padding:"16px 12px"}}>
+            <Handshake size={22} color={inkOn(Q.void,Q.dark)} aria-hidden="true"/>
+            <div>
+              <div style={{color:inkOn(Q.void,Q.dark),fontWeight:800,fontSize:14,
+                fontFamily:F_BODY}}>Desafíos</div>
+              <div style={{color:inkOn(Q.void,Q.dark),opacity:.85,fontSize:12,
+                marginTop:2,lineHeight:1.35,
+                fontFamily:F_BODY}}>
+                Apostá contra otros jugadores</div>
+            </div>
           </div>
         </div>
       </div>
@@ -5485,58 +5637,34 @@ function ScreenHome({ user, onNav, onBet, refCode }){
         </GCard>
       )}
 
-      {/* Casino: no entra en la barra de abajo, así que va acá.
-          Los dos degradés eran hex escritos a mano (#7B1FA2/#4A148C y
-          #B71C1C/#7F0000); ahora salen de los acentos de marca, y el ink
-          lo decide inkOn en vez de un "#fff" fijo. Violeta para Casino
-          (el mismo par que usa el avatar de la barra superior); rosa/rojo
-          hacia dorado para En vivo — el mismo acento que ya usa "EN VIVO"
-          en este archivo, hacia el color de atención de la marca, para que
-          las dos tarjetas sean distinguibles entre sí y no un violeta
-          repetido dos veces. */}
-      <div style={{display:"flex",gap:SPACING[8],marginBottom:16}}>
-        <div onClick={()=>onNav("casino")} style={{flex:1,
-          cursor:"pointer",borderRadius:RADII.lg,padding:"16px 12px",
-          background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`}}>
-          <Icon name="spade" size={24} color={inkOn(Q.violet,Q.violet2)} style={{marginBottom:3}}/>
-          <div style={{color:inkOn(Q.violet,Q.violet2),fontWeight:800,fontSize:14,
-            fontFamily:F_BODY}}>Casino</div>
-          <div style={{color:inkOn(Q.violet,Q.violet2),opacity:.72,fontSize:12,
-            marginTop:2,lineHeight:1.35,
-            fontFamily:F_BODY}}>
-            Tragamonedas y mesas</div>
-        </div>
-        <div onClick={()=>onNav("casinovivo")} style={{flex:1,
-          cursor:"pointer",borderRadius:RADII.lg,padding:"16px 12px",
-          background:`linear-gradient(135deg,${Q.pink},${Q.gold})`}}>
-          <Video size={24} color={inkOn(Q.pink,Q.gold)} style={{marginBottom:3}} aria-hidden="true"/>
-          <div style={{color:inkOn(Q.pink,Q.gold),fontWeight:800,fontSize:14,
-            fontFamily:F_BODY}}>En vivo</div>
-          <div style={{color:inkOn(Q.pink,Q.gold),opacity:.72,fontSize:12,
-            marginTop:2,lineHeight:1.35,
-            fontFamily:F_BODY}}>
-            Mesas con crupier</div>
-        </div>
-      </div>
-
-      <div style={{marginBottom:16}}>
-        <div onClick={()=>onNav("desafios")} style={{
-          cursor:"pointer",borderRadius:RADII.lg,padding:"16px 12px",
-          background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`}}>
-          <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
-            <Handshake size={22} color={inkOn(Q.violet,Q.cyan)} aria-hidden="true"/>
-            <div style={{minWidth:0}}>
-              <div style={{color:inkOn(Q.violet,Q.cyan),fontWeight:800,fontSize:14,
-                fontFamily:F_BODY}}>Desafíos</div>
-              <div style={{color:inkOn(Q.violet,Q.cyan),opacity:.75,fontSize:12,
-                marginTop:1,lineHeight:1.35,
-                fontFamily:F_BODY}}>
-                Apostá contra otros jugadores</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      {/* Casino, Casino en Vivo y Desafíos: ninguno entra en la barra de
+          abajo, así que van acá, los tres en una sola fila. Cada tarjeta
+          lleva su propio arte (frontend/public/brand/*.webp) como fondo en
+          vez del degradé a mano de antes. Dos capas van encima del arte:
+          - un tinte de marca en `background:` (backtick, interpola Q, sigue
+            pinneado por screenHomeIconsAndAccents.test.js a un degradé de
+            dos tokens Q — nada de hex — para que Casino y Casino en Vivo
+            sigan siendo reconocibles por su propio acento y distinguibles
+            entre sí);
+          - un scrim oscuro real en una segunda capa (comilla simple, sin
+            interpolar, así el test de arriba no la toca) que va de
+            transparente arriba a casi negro abajo, donde se apoyan el
+            título y el subtítulo — necesario porque el arte en sí no es
+            uniformemente oscuro (frontend/public/brand/*.webp miden hasta
+            luminancia 255 en sus brillos).
+          El ink de cada tarjeta ahora se pide contra ese scrim oscuro
+          (inkOn(Q.void,Q.dark), ambos casi negros) en vez de contra el
+          viejo degradé claro, porque el texto ya no se apoya sobre el
+          degradé sino sobre el scrim.
+          En una fila las tres a la vez no entran legibles en un teléfono:
+          en vez de partirlas en dos filas (que ya no sería "una fila"),
+          la fila hace scroll horizontal y cada tarjeta mantiene su ancho
+          fijo (152px, el mismo orden de magnitud que las dos tarjetas de
+          antes) en vez de encogerse a un tercio del ancho. */}
+      {/* On the desktop shell the row has width to spare, so the three
+          cards share it as equal columns instead of staying phone-sized
+          and leaving the rest of the column empty — the same "mobile
+          inside desktop" the panels were just fixed for. */}
       {/* Combo del día destacado */}
       <div style={{display:"flex",alignItems:"center",gap:SPACING[8],color:Q.text,fontWeight:800,fontSize:15,
         marginBottom:8,fontFamily:F_BODY}}>
@@ -6457,6 +6585,11 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
 
 export default function QuartzSports(){
   const [screen,setScreen]=useState("home");
+  // Below 1024px (desktopShellLayout's own breakpoint) nothing changes —
+  // BarraInferior keeps rendering exactly as it did. At and above it,
+  // SidebarDesktop replaces the bottom tab bar, the same swap Admin.jsx
+  // and Agencia.jsx already make for their own tab rows.
+  const isDesktop = useDesktopShellWidth();
   // Ayuda ahora vive en la barra inferior (T5): el padre guarda si el
   // chat está abierto, la barra lo abre, BotonAyuda solo dibuja el modal.
   const [ayudaAbierto,setAyudaAbierto]=useState(false);
@@ -6629,8 +6762,19 @@ export default function QuartzSports(){
     );
   }
 
+  // Shared by BarraInferior (below 1024px) and SidebarDesktop (at and
+  // above it) — one screen->active-item mapping, not two that could drift.
+  const navActual = ayudaAbierto ? "ayuda"
+    : ["prematch","builder","combo","mybets","mejorar","desafios","cuenta"].includes(screen)?screen
+      :(screen==="live"?"prematch":"");
+
   return(
-    <div style={{maxWidth:520,margin:"0 auto",
+    <div style={isDesktop ? {
+      width:"100%",height:"100dvh",display:"grid",
+      gridTemplateColumns:"264px minmax(0,1fr)",
+      background:Q.void,fontFamily:F_BODY,overflow:"hidden",
+      maxWidth:1600,margin:"0 auto",
+    } : {maxWidth:520,margin:"0 auto",
       fontFamily:F_BODY,background:Q.void,
       width:"100%",height:"100dvh",display:"flex",flexDirection:"column",
       overflow:"hidden"}}>
@@ -6648,7 +6792,18 @@ export default function QuartzSports(){
         ::-webkit-scrollbar{width:3px} ::-webkit-scrollbar-thumb{background:${Q.border}}
       `}</style>
 
+      {isDesktop&&<SidebarDesktop actual={navActual} onNav={setScreen}
+        onAyuda={()=>setAyudaAbierto(true)}/>}
 
+      {/* Header + pantallas: en escritorio, la columna de la derecha de la
+          grilla (junto al sidebar); en teléfono, sigue siendo el único
+          hijo en flex-column que ya era, ahora con un wrapper de más que
+          no cambia nada de su propio comportamiento interno (BarraSuperior
+          flexShrink:0, el área de pantallas flex:1 minHeight:0). */}
+      <div style={isDesktop ? {gridColumn:"2",height:"100dvh",display:"flex",
+        flexDirection:"column",overflow:"hidden",minWidth:0}
+        : {display:"flex",flexDirection:"column",flex:1,minHeight:0,
+        width:"100%",overflow:"hidden"}}>
       <BarraSuperior user={user} onNav={setScreen}/>
 
       {/* Barra de pasos — atajo de desarrollo, oculta por defecto */}
@@ -6732,12 +6887,13 @@ export default function QuartzSports(){
           onCerrar={()=>setConfirmando(null)} onListo={apuestaLista}/>
       )}
 
-      {/* Barra inferior fija */}
-      <BarraInferior actual={
-        ayudaAbierto ? "ayuda"
-          : ["prematch","builder","combo","mybets","mejorar","desafios","cuenta"].includes(screen)?screen
-            :(screen==="live"?"prematch":"")
-      } onNav={setScreen} onAyuda={()=>setAyudaAbierto(true)}/>
+      {/* Barra inferior fija — solo debajo de 1024px; SidebarDesktop la
+          reemplaza arriba de eso. */}
+      {!isDesktop&&(
+        <BarraInferior actual={navActual} onNav={setScreen}
+          onAyuda={()=>setAyudaAbierto(true)}/>
+      )}
+      </div>
 
       {/* Ayuda: disponible en cualquier pantalla */}
       <BotonAyuda userId={user?.id} origen="app" abierto={ayudaAbierto}

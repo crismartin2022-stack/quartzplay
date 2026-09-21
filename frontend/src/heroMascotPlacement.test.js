@@ -67,11 +67,31 @@ describe("the mascot lives inside the hero panel, not in a strip above it", () =
     expect(mascotTag).toMatch(/size=\{275\}/);
   });
 
+  // The reserved height became conditional when the hero moved into a row
+  // beside the three cards: on the desktop shell the row is taller, so the
+  // cards beside it read as tall and narrow. The guarantee is unchanged —
+  // the mascot never gets less room than the prototype gave it — so this
+  // asserts the floor rather than one literal number.
   test("the panel reserves the prototype's own space for it", () => {
     const divStart = body.lastIndexOf("<div", heroStart);
     const svgStart = body.indexOf("<svg", divStart);
     const heroOpenTag = body.slice(divStart, svgStart);
     expect(heroOpenTag).toMatch(/paddingRight:166/);
-    expect(heroOpenTag).toMatch(/minHeight:244/);
+
+    const heights = [...heroOpenTag.matchAll(/minHeight:(?:[^,]*?\?)?\s*(\d+)\s*(?::\s*(\d+))?/g)]
+      .flatMap((m) => [m[1], m[2]])
+      .filter(Boolean)
+      .map(Number);
+    expect(heights.length).toBeGreaterThan(0);
+    expect(Math.min(...heights)).toBeGreaterThanOrEqual(244);
+  });
+
+  test("positive control: a hero that reserves less than the prototype is caught", () => {
+    const shrunk = "minHeight:isDesktopShell?340:200,";
+    const heights = [...shrunk.matchAll(/minHeight:(?:[^,]*?\?)?\s*(\d+)\s*(?::\s*(\d+))?/g)]
+      .flatMap((m) => [m[1], m[2]])
+      .filter(Boolean)
+      .map(Number);
+    expect(Math.min(...heights)).toBeLessThan(244);
   });
 });

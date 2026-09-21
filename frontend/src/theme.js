@@ -39,6 +39,12 @@
 export const oscuro = {
   void:"#060a14", deep:"#0b1120", dark:"#111a2e",
   surface:"#111a2e", card:"#111a2e", inset:"#060a14",
+  // The prototype's ramp is four steps: --ink-950 / -900 / -800 / -700.
+  // Only the first three were ported, and `dark`, `surface` and `card`
+  // are all the same #111a2e, so a box inside a box had no lighter
+  // surface to sit on and the border became the only way to say "this
+  // is a box". `raised` restores --ink-700, the missing step.
+  raised:"#18243b",
   glass:"linear-gradient(160deg,rgba(154,108,255,0.06),rgba(198,175,255,0.03))",
   border:"#263550", text:"#f5f7fb", muted:"#9aa8c2", dim:"#63718a",
   green:"#b9ef32", gold:"#b9ef32", goldBg:"#b9ef32",
@@ -138,6 +144,19 @@ export function inkOn(...background){
 // single-family design and the condensed face (`Barlow Condensed`) was
 // never part of the brand; both the number/title face and the body face
 // become Poppins, with the same system fallback the screens used before.
+// `F_MONO` is for a figure being composed or counted, not merely printed:
+// the amount on a cash keypad, a POS key, a code being read back. It is the
+// platform's own monospace stack, so it costs no bytes and is present
+// everywhere. Paired with `font-variant-numeric: tabular-nums`, the digits
+// stop shifting width as a number changes, which is what makes an amount
+// readable while it is being typed.
+//
+// Not to be confused with `F_NUM` below, which is currently the same family
+// as `F_BODY` — a numeric token that exists by name only, the same way
+// `dark`, `surface` and `card` all held one colour before `raised` arrived.
+export const F_MONO =
+  "ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace";
+
 export const F_NUM = "'Poppins',system-ui,sans-serif";
 export const F_BODY = "'Poppins',system-ui,sans-serif";
 
@@ -151,6 +170,12 @@ export const F_BODY = "'Poppins',system-ui,sans-serif";
 // `SPACING` is the prototype's 4px grid, copied from `html/styles.css`
 // (`--space-1` through `--space-10`; the prototype's own naming skips
 // `--space-7` and `--space-9`, so this does too).
+// `ELEVATION` is the prototype's `--shadow-raised`, copied exactly. The
+// prototype puts it on every panel; the port dropped it, which is the other
+// half of why the border had to carry all the separation on its own.
+export const ELEVATION =
+  "0 1px 0 rgba(255,255,255,0.05), 0 18px 32px rgba(0,0,0,0.22)";
+
 export const SPACING = {
   4: 4, 8: 8, 12: 12, 16: 16, 20: 20, 24: 24, 32: 32, 40: 40,
 };

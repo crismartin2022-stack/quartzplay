@@ -41,8 +41,27 @@ describe("the content column widens on desktop, in both panels", () => {
   test("Admin's desktop content wrapper uses the new cap", () => {
     const body = functionBody(ADMIN, "AdminPanel");
     expect(body).toMatch(
-      new RegExp(`style=\\{isDesktop \\? \\{padding:"16px",maxWidth:${DESKTOP_CAP},margin:"0 auto"`)
+      new RegExp(`style=\\{isDesktop \\? \\{padding:"16px",width:"100%",maxWidth:${DESKTOP_CAP},margin:"0 auto"`)
     );
+  });
+
+  // The cap alone was not enough and the reason is easy to delete by
+  // mistake. Admin's wrapper is a direct grid item; a grid item whose
+  // margins are `0 auto` hands its free space to those margins, which
+  // overrides the default stretch and sizes the box to its own content.
+  // The panel collapsed to about a third of its column and read as a
+  // phone inside a desktop. `width:"100%"` is what makes it fill the
+  // column before the cap and the margins do their part, so it is not
+  // redundant with either of them.
+  test("Admin's wrapper declares an explicit width, not just a cap", () => {
+    const body = functionBody(ADMIN, "AdminPanel");
+    const desktopBranch = body.slice(body.indexOf('style={isDesktop ? {padding:"16px"'));
+    expect(desktopBranch.slice(0, 200)).toContain('width:"100%"');
+  });
+
+  test("positive control: the width assertion fails when the width is absent", () => {
+    const withoutWidth = 'style={isDesktop ? {padding:"16px",maxWidth:1100,margin:"0 auto"';
+    expect(withoutWidth).not.toContain('width:"100%"');
   });
 
   test("positive control: a cap that never rose (still 620 on desktop) is detected as wrong", () => {
@@ -59,18 +78,24 @@ describe("below 1024px, the content stays capped at the original 620px, byte for
     );
   });
 
-  test("Admin's mobile content wrapper is unchanged", () => {
+  // odd/tasks/mobile-nav.md: the fixed bottom tab bar this 140px
+  // clearance was reserved for is gone (replaced by the hamburger's
+  // full-screen MobileTabMenu overlay, which reserves no permanent
+  // space), so the mobile wrapper drops back to the same 28px clearance
+  // Agencia's own mobile wrapper already used.
+  test("Admin's mobile content wrapper no longer reserves room for the removed fixed bottom bar", () => {
     const body = functionBody(ADMIN, "AdminPanel");
     expect(body).toMatch(
-      /\} : \{padding:"16px",maxWidth:620,margin:"0 auto",\s*\n\s*position:"relative",zIndex:1,\s*\n\s*paddingBottom:"calc\(140px \+ env\(safe-area-inset-bottom\)\)"\}\}>/
+      /\} : \{padding:"16px",maxWidth:620,margin:"0 auto",\s*\n\s*position:"relative",zIndex:1,[\s\S]*?paddingBottom:"calc\(28px \+ env\(safe-area-inset-bottom\)\)"\}\}>/
     );
+    expect(body).not.toMatch(/paddingBottom:"calc\(140px \+ env\(safe-area-inset-bottom\)\)"/);
   });
 
   test("positive control: the same Admin check fails against an altered mobile wrapper", () => {
     const body = functionBody(ADMIN, "AdminPanel");
-    const altered = body.replace('paddingBottom:"calc(140px + env(safe-area-inset-bottom))"}}>', 'paddingBottom:"40px"}}>');
+    const altered = body.replace('paddingBottom:"calc(28px + env(safe-area-inset-bottom))"}}>', 'paddingBottom:"40px"}}>');
     expect(altered).not.toMatch(
-      /\} : \{padding:"16px",maxWidth:620,margin:"0 auto",\s*\n\s*position:"relative",zIndex:1,\s*\n\s*paddingBottom:"calc\(140px \+ env\(safe-area-inset-bottom\)\)"\}\}>/
+      /\} : \{padding:"16px",maxWidth:620,margin:"0 auto",\s*\n\s*position:"relative",zIndex:1,[\s\S]*?paddingBottom:"calc\(28px \+ env\(safe-area-inset-bottom\)\)"\}\}>/
     );
   });
 });

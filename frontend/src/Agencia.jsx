@@ -6,8 +6,10 @@ import { getFrontendConfig } from "./config";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import PageHeader from "./PageHeader";
-import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon, Bell, Moon } from "lucide-react";
+import LineaTiempo from "./LineaTiempo";
+import { Handshake, Video, Zap, Gift, Monitor, Banknote, Wrench, Inbox, Link, PartyPopper, Printer, Building2, Star, Pencil, Send, Lock, Minus, VolumeX, Volume2, Headphones, Bot, PenLine, Smartphone, RefreshCw, Key, Save, Palette, Trash2, Globe, FileText, Image as ImageIcon, Bell, Moon, Scale } from "lucide-react";
 import { useDesktopShellWidth } from "./desktopShellLayout";
+import MobileTabMenu from "./MobileTabMenu";
 
 // La hora del partido, en la zona horaria del dispositivo.
 // Se prefiere commence_time (ISO con zona) sobre el texto ya
@@ -50,7 +52,7 @@ class CazaError extends Component {
   }
 }
 
-import { oscuro as Q, F_BODY, RADII, SPACING, TEXT } from "./theme";
+import { oscuro as Q, F_BODY, F_MONO, RADII, SPACING, TEXT, ELEVATION, inkOn } from "./theme";
 
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 
@@ -214,23 +216,36 @@ async function payBetslip(code, stake, token){
 }
 
 // ── DESIGN ────────────────────────────────────────────────────
-function GCard({ children, style={}, glow, onClick }){
+function GCard({ children, style={}, glow, onClick, level=1 }){
+  // `level` is what a card is sitting on, not how important it is.
+  //
+  // Level 1 sits on the page and keeps the prototype's panel treatment: an
+  // opaque surface, one hairline, and elevation. Level 2 sits inside another
+  // card or a sheet, where a second identical hairline separates without
+  // ranking — nest three of them and every box looks equally important. It
+  // steps the surface up to `raised` instead and drops the border, so depth
+  // is read from the surface rather than from yet another line.
+  //
+  // `glow` outranks both: a coloured border means this box needs attention.
+  // That is the one job a border does here that a surface cannot.
+  const raised = level >= 2;
   return(
     <div onClick={onClick} style={{
-      background:Q.glass, backdropFilter:"blur(20px)",
-      WebkitBackdropFilter:"blur(20px)",
-      border:`1px solid ${glow?glow+"44":Q.border}`,
-      borderRadius:RADII.lg,
-      boxShadow:`0 8px 32px rgba(0,0,0,0.5)${glow?`, 0 0 24px ${glow}22`:""}`,
-      // overflow visible: con "hidden" la tarjeta recortaba lo que
-      // excediera su alto y campos enteros quedaban invisibles sin
-      // ningún error. El borde redondeado igual se respeta.
+      background: raised ? Q.raised : Q.card,
+      border: glow ? `1px solid ${glow}44`
+        : raised ? "none" : `1px solid ${Q.border}`,
+      borderRadius: raised ? RADII.md : RADII.lg,
+      boxShadow: glow ? `${ELEVATION}, 0 0 24px ${glow}22`
+        : raised ? "none" : ELEVATION,
+      // overflow visible: con "hidden" la tarjeta recorta lo que exceda
+      // su alto y un campo entero puede quedar invisible sin ningún
+      // error. Ya pasó en Agencia y costó horas de diagnóstico.
       position:"relative", overflow:"visible", maxWidth:"100%", minWidth:0,
       cursor:onClick?"pointer":"default", ...style,
     }}>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:1,
+      {!raised&&<div style={{position:"absolute",top:0,left:0,right:0,height:1,
         background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)",
-        pointerEvents:"none"}}/>
+        pointerEvents:"none"}}/>}
       {children}
     </div>
   );
@@ -273,13 +288,25 @@ function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=fa
     <button onClick={onClick} disabled={disabled} style={{
       height:h, width:full?"100%":"auto",
       padding:`0 ${size==="sm"?"10px":"18px"}`,
-      background:disabled?"rgba(255,255,255,0.04)":outline?"transparent":`linear-gradient(135deg,${color},${color}CC)`,
-      border:`1px solid ${disabled?Q.dim:color}`,borderRadius:RADII.lg,
-      color:disabled?Q.muted:outline?color:"#fff",
+      // An outline button used to be a coloured 1px box. Stack four of
+      // them and the screen is all edges and no ranking, which is the
+      // whole complaint. A secondary action reads perfectly well as a
+      // raised surface with a coloured label: the colour still says what
+      // kind of action it is, without drawing a frame around it.
+      background:disabled?"rgba(255,255,255,0.04)":outline?"rgba(255,255,255,0.06)":`linear-gradient(135deg,${color},${color}CC)`,
+      border:outline&&!disabled?"none":`1px solid ${disabled?Q.dim:color}`,borderRadius:RADII.lg,
+      // inkOn measures contrast against the fill and picks dark or light
+      // ink — a hardcoded "#fff" is unreadable on a light accent like
+      // Q.green. Do not special-case any one colour here; let the helper
+      // decide for all of them.
+      color:disabled?Q.muted:outline?color:inkOn(color),
       fontSize:fs,fontWeight:700,cursor:disabled?"not-allowed":"pointer",
       display:"flex",alignItems:"center",justifyContent:"center",gap:SPACING[8],
       fontFamily:F_BODY,textTransform:"uppercase",
-      boxShadow:(!outline&&!disabled)?`0 4px 16px ${color}33`:"none",
+      // A neutral shadow, not a coloured halo: ELEVATION is the
+      // prototype's panel-level shadow (18px offset, 32px blur) and
+      // reads as an oversized floating box under a button this small.
+      boxShadow:(!outline&&!disabled)?"0 4px 12px rgba(0,0,0,0.35)":"none",
     }}>{label}</button>
   );
 }
@@ -836,7 +863,7 @@ function LoginScreen({ onLogin }){
           <div style={{color:Q.muted,fontSize:12,marginTop:8,
             fontFamily:F_BODY}}>Panel de Agencia Oficial</div>
         </div>
-        <GCard glow={Q.violet} style={{padding:SPACING[32]}}>
+        <GCard style={{padding:SPACING[32]}}>
           {[["Usuario","text",user,setUser,"usuario"],
             ["Contraseña","password",pass,setPass,"••••••••"]].map(([l,t,v,sv,ph])=>(
             <div key={l} style={{marginBottom:16}}>
@@ -862,6 +889,7 @@ function LoginScreen({ onLogin }){
 // FLUJO A+C — CÓDIGO DEL BOT
 // ═══════════════════════════════════════════════════════════════
 function FlujoCodigo({ agencia, onSesionExpirada }){
+  const isDesktop=useDesktopShellWidth();
   const [code,setCode]=useState("");
   const [slip,setSlip]=useState(null);
   const [err,setErr]=useState("");
@@ -1002,13 +1030,16 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
     <div>
       <PageHeader icon={<Bot/>} title="Código / Bot"
         description="Buscá una apuesta por su código para pagarla o gestionar su cash out."/>
-      <GCard glow={Q.violet} style={{padding:SPACING[20],marginBottom:16}}>
+      <GCard style={{padding:SPACING[20],marginBottom:16}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:15,marginBottom:4,
           fontFamily:F_BODY}}>Buscar código de apuesta</div>
         <div style={{color:Q.muted,fontSize:12,marginBottom:14}}>
           El cliente muestra el código QP-XXXXX desde su celular o ticket
         </div>
-        <div style={{display:"flex",gap:SPACING[8]}}>
+        {/* Stacked on a phone: side by side the field needs the whole width
+            to show a code, so the button was pushed past the right edge. */}
+        <div style={{display:"flex",gap:SPACING[8],
+          flexDirection:isDesktop?"row":"column"}}>
           <input value={code} onChange={e=>setCode(e.target.value.toUpperCase())}
             onKeyDown={e=>e.key==="Enter"&&buscar()}
             placeholder="QP-47829"
@@ -1017,7 +1048,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
               padding:"12px 16px",color:Q.text,fontSize:20,
               fontFamily:F_BODY,fontWeight:700,letterSpacing:2}}/>
           <Btn label={loading?"...":"BUSCAR"} onClick={buscar}
-            disabled={!code||loading} color={Q.violet}/>
+            disabled={!code||loading} color={Q.violet} full={!isDesktop}/>
         </div>
         {err&&<div style={{marginTop:12}}><AlertaError mensaje={err}/></div>}
       </GCard>
@@ -1074,7 +1105,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
       )}
 
       {slip&&step==="confirmar"&&slip.status==="cashout_pending"&&(
-        <GCard glow={Q.gold} style={{padding:SPACING[20],marginBottom:12}}>
+        <GCard style={{padding:SPACING[20],marginBottom:12}}>
           <div style={{color:Q.gold,fontWeight:800,fontSize:16,marginBottom:6,
             fontFamily:F_BODY}}><Icon name="receipt-text" size={16}/> Cash out para cobrar</div>
           <div style={{color:Q.muted,fontSize:13,marginBottom:16}}>
@@ -1096,7 +1127,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
       )}
       {slip&&step==="confirmar"&&slip.status!=="cashout_pending"&&(
         <div>
-          <GCard glow={Q.green} style={{padding:SPACING[20],marginBottom:12}}>
+          <GCard style={{padding:SPACING[20],marginBottom:12}}>
             <div style={{display:"flex",justifyContent:"space-between",
               alignItems:"center",marginBottom:14}}>
               <div>
@@ -1194,7 +1225,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
       )}
 
       {step==="retiro"&&retiro&&(
-        <GCard glow={Q.gold} style={{padding:SPACING[20],marginBottom:12}}>
+        <GCard style={{padding:SPACING[20],marginBottom:12}}>
           <div style={{color:Q.gold,fontWeight:800,fontSize:16,marginBottom:6,
             fontFamily:F_BODY}}><Banknote size={16}/> Retiro para pagar</div>
           <div style={{color:Q.muted,fontSize:13,marginBottom:16}}>
@@ -1220,7 +1251,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
         </GCard>
       )}
       {step==="retiro_ok"&&retiro&&(
-        <GCard glow={Q.green} style={{padding:SPACING[24],textAlign:"center",marginBottom:12}}>
+        <GCard style={{padding:SPACING[24],textAlign:"center",marginBottom:12}}>
           <div style={{marginBottom:8}}><Icon name="wallet-cards" size={44}/></div>
           <div style={{color:Q.green,fontWeight:800,fontSize:18,marginBottom:6,
             fontFamily:F_BODY}}>Retiro pagado</div>
@@ -1234,7 +1265,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
           onConfirm={confirmarPago} onCancel={reset}/>
       )}
       {step==="cashout"&&slip&&(
-        <GCard glow={Q.gold} style={{padding:SPACING[20],marginBottom:12}}>
+        <GCard style={{padding:SPACING[20],marginBottom:12}}>
           <div style={{color:Q.gold,fontWeight:700,fontSize:15,marginBottom:4,
             fontFamily:F_BODY}}><Icon name="wallet-cards" size={14}/> Cash out</div>
           <div style={{color:Q.muted,fontSize:12,marginBottom:16}}>
@@ -1678,7 +1709,7 @@ function FlujoManual({ agencia }){
           background:`linear-gradient(0deg,${Q.void} 80%,transparent)`,
           paddingTop:SPACING[20],
           paddingBottom:"calc(16px + env(safe-area-inset-bottom))"}}>
-          <GCard glow={Q.violet} style={{padding:SPACING[16]}}>
+          <GCard style={{padding:SPACING[16]}}>
             {/* Las selecciones cargadas, con botón para sacar cada una.
                 Antes había que buscar la cuota en la lista y tocarla de
                 nuevo para quitarla, que no era evidente. */}
@@ -2301,7 +2332,7 @@ function MejorarCombinada({ agencia, onSesionExpirada }){
           )}
 
           {res.picks_ok>0&&(
-            <GCard glow={Q.green} style={{padding:SPACING[16],marginTop:4}}>
+            <GCard style={{padding:SPACING[16],marginTop:4}}>
               <div style={{display:"flex",justifyContent:"space-between",
                 marginBottom:12}}>
                 <span style={{color:Q.muted,fontSize:12,
@@ -2467,7 +2498,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
           border:`1px solid ${infCode?Q.violet:Q.border}`,borderRadius:RADII.md,padding:"12px 16px",
           color:infCode?Q.text:Q.muted,fontSize:15,marginBottom:10,
           fontFamily:F_BODY}}>
-        <option value="">🌟 Asignar a influencer (opcional)</option>
+        <option value="">Asignar a influencer (opcional)</option>
         {infList.map(inf=>(
           <option key={inf.code} value={inf.code}>{inf.name} · {inf.codigo_ref}</option>
         ))}
@@ -2606,7 +2637,7 @@ function CrearComboAgencia({ agencia, onVolver, onSesionExpirada }){
         fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {picks.length>0&&(
-        <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:10}}>
+        <GCard style={{padding:SPACING[16],marginBottom:10}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
             <span style={{color:Q.muted,fontSize:12,
               fontFamily:F_BODY}}>{picks.length} picks</span>
@@ -3046,17 +3077,27 @@ function Clientes({ agencia, onSesionExpirada }){
   useEffect(()=>{ buscar(""); // eslint-disable-next-line
   },[]);
 
+  // Deliberate exception to the sheet/modal convention used everywhere
+  // else in this file (and to admin's own FichaCliente, which genuinely
+  // is a short sheet and stays one). This detail view is dense — the
+  // cash desk, the stats row, the header actions and two logs — and a
+  // modal squeezed all of it into one narrow column. A full view gives
+  // it the width it needs, the way it worked before it was briefly
+  // converted to a modal; a modal is right for a short detail, not a
+  // workspace. `buscar(q)` on the way back re-fetches the list with
+  // whatever search text was active.
   if(sel) return <FichaCliente agencia={agencia} user={sel}
     onVolver={()=>{setSel(null);buscar(q);}} onSesionExpirada={onSesionExpirada}/>;
-
-  if(alta) return <AltaCliente agencia={agencia}
-    onListo={(u)=>{setAlta(false);buscar("");if(u)setSel(u);}}
-    onCancel={()=>setAlta(false)} onSesionExpirada={onSesionExpirada}/>;
 
   return(
     <div>
       <PageHeader icon={<Icon name="users"/>} title="Clientes"
         description="Buscá, dá de alta y administrá los clientes de tu agencia."/>
+
+      {alta&&<AltaCliente agencia={agencia}
+        onListo={(u)=>{setAlta(false);buscar("");if(u)setSel(u);}}
+        onCancel={()=>setAlta(false)} onSesionExpirada={onSesionExpirada}/>}
+
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:SPACING[8],
           background:"rgba(255,255,255,0.05)",border:`1px solid ${Q.border}`,
@@ -3088,43 +3129,49 @@ function Clientes({ agencia, onSesionExpirada }){
         </GCard>
       )}
 
-      {lista.map(u=>(
-        <GCard key={u.id} onClick={()=>setSel(u)}
-          style={{padding:"12px 16px",marginBottom:8,cursor:"pointer"}}>
-          <div style={{display:"flex",justifyContent:"space-between",
-            alignItems:"center",gap:SPACING[8]}}>
-            <div style={{minWidth:0,flex:1}}>
-              <div style={{display:"flex",alignItems:"center",gap:SPACING[8],marginBottom:2}}>
-                <span style={{color:Q.text,fontWeight:600,fontSize:14,
-                  fontFamily:F_BODY,overflow:"hidden",
-                  textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.nombre}</span>
-                {u.tiene_telegram&&<span style={{color:Q.cyan,fontSize:12}}><Send size={11}/></span>}
+      {/* A side-to-side stacked list read as a spreadsheet on desktop;
+          an auto-fit card grid gives each client room for name, contact
+          and balance without a horizontal scan, and still stacks to one
+          column on a phone with no breakpoint logic. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",
+        gap:SPACING[12]}}>
+        {lista.map(u=>(
+          <GCard key={u.id} onClick={()=>setSel(u)}
+            style={{padding:SPACING[12],cursor:"pointer"}}>
+            <div style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",gap:SPACING[8]}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:SPACING[8],marginBottom:2}}>
+                  <span style={{color:Q.text,fontWeight:600,fontSize:14,
+                    fontFamily:F_BODY,overflow:"hidden",
+                    textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.nombre}</span>
+                  {u.tiene_telegram&&<span style={{color:Q.cyan,fontSize:12}}><Send size={11}/></span>}
+                </div>
+                {/* El usuario con el que entra al sitio: el cajero lo
+                    necesita a mano cuando el cliente lo olvida. */}
+                {u.username&&!u.username.startsWith("loc_")&&(
+                  <div style={{color:Q.cyan,fontSize:12,marginTop:1,
+                    fontFamily:F_BODY}}>
+                    @{u.username}</div>
+                )}
+                <div style={{color:Q.muted,fontSize:12}}>
+                  {u.documento?`Doc ${u.documento}`:"Sin documento"}
+                  {u.telefono?` · ${u.telefono}`:""}
+                </div>
               </div>
-              {/* El usuario con el que entra al sitio: el cajero lo
-                  necesita a mano cuando el cliente lo olvida. */}
-              {u.username&&!u.username.startsWith("loc_")&&(
-                <div style={{color:Q.cyan,fontSize:12,marginTop:1,
-                  fontFamily:F_BODY}}>
-                  @{u.username}</div>
-              )}
-              <div style={{color:Q.muted,fontSize:12}}>
-                {u.documento?`Doc ${u.documento}`:"Sin documento"}
-                {u.telefono?` · ${u.telefono}`:""}
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{color:u.saldo>0?Q.green:Q.muted,fontWeight:700,fontSize:15,
+                  fontFamily:F_BODY}}>{ars(u.saldo)}</div>
+                <span style={{color:Q.muted,fontSize:16}}>›</span>
               </div>
             </div>
-            <div style={{textAlign:"right",flexShrink:0}}>
-              <div style={{color:u.saldo>0?Q.green:Q.muted,fontWeight:700,fontSize:15,
-                fontFamily:F_BODY}}>{ars(u.saldo)}</div>
-              <span style={{color:Q.muted,fontSize:16}}>›</span>
-            </div>
-          </div>
-        </GCard>
-      ))}
+          </GCard>
+        ))}
+      </div>
 
       {verBloqueos&&<BloqueosRama agencia={agencia}
         onCerrar={()=>setVerBloqueos(false)} onSesionExpirada={onSesionExpirada}/>}
-
-
     </div>
   );
 }
@@ -3205,7 +3252,7 @@ function BloqueosRama({ agencia, onCerrar, onSesionExpirada }){
         {(data||[]).map((b,i)=>{
           const esBloqueo=b.accion==="bloqueo";
           return(
-            <GCard key={i} glow={esBloqueo?Q.red:Q.green} style={{padding:"12px 12px",marginBottom:6}}>
+            <GCard key={i} glow={esBloqueo?Q.red:null} style={{padding:"12px 12px",marginBottom:6}}>
               <div style={{color:esBloqueo?Q.red:Q.green,fontWeight:700,fontSize:12,
                 fontFamily:F_BODY}}>
                 {esBloqueo?<><Lock size={12}/> Bloqueó</>:<><Icon name="circle-check" size={12}/> Desbloqueó</>}{" "}
@@ -3263,7 +3310,7 @@ function AltaCliente({ agencia, onListo, onCancel, onSesionExpirada }){
     <div>
       <button onClick={onCancel} style={{background:"transparent",border:"none",
         color:Q.muted,fontSize:22,cursor:"pointer",marginBottom:10,padding:0}}>‹ Volver</button>
-      <GCard glow={Q.violet} style={{padding:SPACING[20]}}>
+      <GCard style={{padding:SPACING[20]}}>
         <div style={{color:Q.violet2,fontWeight:700,fontSize:15,marginBottom:14,
           fontFamily:F_BODY}}>Nuevo cliente</div>
         {[["Nombre y apellido",nombre,setNombre,"Juan Pérez","text"],
@@ -3298,19 +3345,23 @@ function AltaCliente({ agencia, onListo, onCancel, onSesionExpirada }){
   );
 }
 
-function OtorgarBonoCliente({ agencia, userId }){
+// Used to manage its own trigger button and reveal its form inline below
+// it. The trigger now lives in FichaCliente's header row, so this opens
+// as its own modal instead — same centered-dialog convention as
+// ResetPassword (fixed backdrop, GCard, × close) — controlled from the
+// caller via `open`/`onCerrar`.
+function OtorgarBonoCliente({ agencia, userId, open, onCerrar }){
   const [bonos,setBonos]=useState([]);
   const [sel,setSel]=useState("");
   const [montoCarga,setMontoCarga]=useState("");
   const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
-  const [abierto,setAbierto]=useState(false);
 
   useEffect(()=>{
-    if(!abierto) return;
+    if(!open) return;
     fetch(`${API_URL}/api/agencias/me/bonos`,{headers:authHeaders(agencia.token)})
       .then(r=>r.ok?r.json():{bonos:[]}).then(d=>setBonos(d.bonos||[])).catch(()=>{});
-  },[abierto,agencia.token]);
+  },[open,agencia.token]);
 
   const bonoSel = bonos.find(b=>String(b.id)===String(sel));
   const otorgar=async()=>{
@@ -3330,47 +3381,50 @@ function OtorgarBonoCliente({ agencia, userId }){
     setProc(false);
   };
 
-  if(!abierto) return(
-    <>
-      <div style={{height:8}}/>
-      <Btn label={<><Gift size={13}/> Otorgar bono</>} onClick={()=>setAbierto(true)} color={Q.gold} outline full/>
-    </>
-  );
+  if(!open) return null;
 
   return(
-    <div style={{marginTop:10,padding:SPACING[12],background:`${Q.gold}0C`,
-      border:`1px solid ${Q.gold}55`,borderRadius:RADII.md}}>
-      <div style={{color:Q.gold,fontWeight:700,fontSize:13,marginBottom:8,
-        fontFamily:F_BODY}}><Gift size={14}/> Otorgar bono</div>
-      {bonos.length===0?(
-        <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
-          No hay bonos habilitados para tu agencia.</div>
-      ):(
-        <>
-          <select value={sel} onChange={e=>setSel(e.target.value)}
-            style={{width:"100%",background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px",color:Q.text,
-              fontSize:13,marginBottom:8,fontFamily:F_BODY}}>
-            <option value="">Elegí un bono</option>
-            {bonos.map(b=>(<option key={b.id} value={b.id}>
-              {b.nombre} ({b.tipo==="bienvenida"?ars(b.monto_fijo||0):`${b.porcentaje}%`})</option>))}
-          </select>
-          {bonoSel&&bonoSel.tipo==="carga"&&(
-            <input value={montoCarga} onChange={e=>setMontoCarga(e.target.value.replace(/\D/g,""))}
-              placeholder="Monto de la carga" inputMode="numeric"
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:220,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:SPACING[16]}}
+      onClick={onCerrar}>
+      <GCard onClick={e=>e.stopPropagation()}
+        style={{padding:SPACING[20],maxWidth:420,width:"100%"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{color:Q.gold,fontWeight:700,fontSize:15,
+            fontFamily:F_BODY}}><Gift size={15}/> Otorgar bono</div>
+          <button onClick={onCerrar} style={{background:"transparent",border:"none",
+            color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
+        </div>
+        {bonos.length===0?(
+          <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
+            No hay bonos habilitados para tu agencia.</div>
+        ):(
+          <>
+            <select value={sel} onChange={e=>setSel(e.target.value)}
               style={{width:"100%",background:"rgba(255,255,255,0.05)",
                 border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px",color:Q.text,
-                fontSize:13,marginBottom:8,fontFamily:F_BODY}}/>
-          )}
-          <div style={{display:"flex",gap:SPACING[8]}}>
-            <Btn label="Cerrar" onClick={()=>{setAbierto(false);setMsg(null);}} outline color={Q.muted} full/>
-            <Btn label={proc?"...":"Otorgar"} onClick={otorgar} color={Q.gold} full disabled={proc}/>
-          </div>
-        </>
-      )}
-      {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
-        color:msg.ok?Q.green:Q.red,
-        fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
+                fontSize:13,marginBottom:8,fontFamily:F_BODY}}>
+              <option value="">Elegí un bono</option>
+              {bonos.map(b=>(<option key={b.id} value={b.id}>
+                {b.nombre} ({b.tipo==="bienvenida"?ars(b.monto_fijo||0):`${b.porcentaje}%`})</option>))}
+            </select>
+            {bonoSel&&bonoSel.tipo==="carga"&&(
+              <input value={montoCarga} onChange={e=>setMontoCarga(e.target.value.replace(/\D/g,""))}
+                placeholder="Monto de la carga" inputMode="numeric"
+                style={{width:"100%",background:"rgba(255,255,255,0.05)",
+                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px",color:Q.text,
+                  fontSize:13,marginBottom:8,fontFamily:F_BODY}}/>
+            )}
+            <div style={{display:"flex",gap:SPACING[8]}}>
+              <Btn label="Cerrar" onClick={onCerrar} outline color={Q.muted} full/>
+              <Btn label={proc?"...":"Otorgar"} onClick={otorgar} color={Q.gold} full disabled={proc}/>
+            </div>
+          </>
+        )}
+        {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
+          color:msg.ok?Q.green:Q.red,
+          fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
+      </GCard>
     </div>
   );
 }
@@ -3378,6 +3432,7 @@ function OtorgarBonoCliente({ agencia, userId }){
 function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
   const [saldo,setSaldo]=useState(user.saldo);
   const [resetOpen,setResetOpen]=useState(false);
+  const [bonoOpen,setBonoOpen]=useState(false);
   const [tgLink,setTgLink]=useState(null);
   const [tgProc,setTgProc]=useState(false);
   const [tgCopiado,setTgCopiado]=useState(false);
@@ -3393,6 +3448,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
     setTgProc(false);
   };
   const [movs,setMovs]=useState(null);
+  const isDesktop=useDesktopShellWidth();
   const [monto,setMonto]=useState(montoInicial(agencia?.moneda));
   const [modo,setModo]=useState("carga");   // carga | retiro
   const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
@@ -3469,12 +3525,42 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
   const tipoTxt={carga:"Carga",retiro:"Retiro",pago_premio:"Premio pagado",ajuste:"Ajuste"};
   const tipoColor={carga:Q.green,retiro:Q.amber,pago_premio:Q.violet2,ajuste:Q.muted};
 
+  // Deliberate exception: this renders as a full view, not the
+  // fixed-position sheet the rest of this file (and admin's own
+  // FichaCliente) uses. A modal squeezed the cash desk, the stats row,
+  // the header actions and two logs into one narrow column — too dense
+  // a detail view for that width. The caller (`Clientes`) opens this
+  // with an early return, same as before the sheet conversion.
   return(
     <div>
-      <button onClick={onVolver} style={{background:"transparent",border:"none",
-        color:Q.muted,fontSize:22,cursor:"pointer",marginBottom:10,padding:0}}>‹ Volver</button>
+      {/* Account actions moved up next to Volver, small and right-aligned,
+          the way the original reference had them — instead of their own
+          card near the bottom. The row wraps on a narrow phone rather
+          than squashing four buttons into one line. */}
+      <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",
+        justifyContent:"space-between",gap:SPACING[8],marginBottom:12}}>
+        <button onClick={onVolver} style={{background:"transparent",border:"none",
+          color:Q.muted,fontSize:22,cursor:"pointer",padding:0}}>‹ Volver</button>
+        {ficha&&(
+          <div style={{display:"flex",flexWrap:"wrap",gap:SPACING[8],justifyContent:"flex-end"}}>
+            {ficha.bloqueado?(
+              <Btn label={proc?"...":"Desbloquear cliente"} onClick={toggleBloqueo}
+                color={Q.green} size="sm" disabled={proc}/>
+            ):(
+              <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
+                color={Q.red} size="sm" disabled={proc}/>
+            )}
+            <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
+              color={Q.amber} size="sm"/>
+            <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
+              color={Q.cyan} size="sm" disabled={tgProc}/>
+            <Btn label={<><Gift size={13}/> Otorgar bono</>} onClick={()=>setBonoOpen(true)}
+              color={Q.gold} size="sm"/>
+          </div>
+        )}
+      </div>
 
-      <GCard glow={Q.violet} style={{padding:SPACING[20],marginBottom:12}}>
+      <GCard style={{padding:SPACING[20],marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{minWidth:0,flex:1}}>
             <div style={{color:Q.text,fontWeight:700,fontSize:17,
@@ -3487,7 +3573,8 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
           </div>
           <div style={{textAlign:"right",flexShrink:0}}>
             <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
-              letterSpacing:1}}>Saldo</div>
+              letterSpacing:1,display:"flex",alignItems:"center",justifyContent:"flex-end",
+              gap:SPACING[4]}}><Icon name="wallet-cards" size={12}/> Saldo</div>
             <div style={{color:saldo>0?Q.green:Q.text,fontWeight:900,fontSize:22,
               fontFamily:F_BODY}}>{ars(saldo)}</div>
           </div>
@@ -3501,24 +3588,32 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         )}
       </GCard>
 
-      {/* Rendimiento */}
+      {/* Rendimiento — an icon per figure so this reads as three
+          distinct metrics at a glance, not a row of plain numbers.
+          Auto-fit lets each stat keep a sane width instead of squeezing
+          three into one row on a narrow phone. */}
       {ficha&&(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
+        <div style={{display:"grid",
+          gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",
+          gap:SPACING[12],marginBottom:12}}>
           <GCard style={{padding:"8px",textAlign:"center"}}>
             <div style={{color:Q.cyan,fontWeight:700,fontSize:13,
               fontFamily:F_BODY}}>{ars(ficha.rendimiento.apostado)}</div>
-            <div style={{color:Q.muted,fontSize:12}}>Apostado</div>
+            <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+              justifyContent:"center",gap:SPACING[4]}}><Icon name="ticket" size={12}/> Apostado</div>
           </GCard>
           <GCard style={{padding:"8px",textAlign:"center"}}>
             <div style={{color:Q.violet2,fontWeight:700,fontSize:13,
               fontFamily:F_BODY}}>{ars(ficha.rendimiento.ganado)}</div>
-            <div style={{color:Q.muted,fontSize:12}}>Ganado</div>
+            <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+              justifyContent:"center",gap:SPACING[4]}}><Icon name="trophy" size={12}/> Ganado</div>
           </GCard>
           <GCard style={{padding:"8px",textAlign:"center"}}>
             <div style={{color:ficha.rendimiento.neto_cliente>=0?Q.green:Q.red,
               fontWeight:700,fontSize:13,fontFamily:F_BODY}}>
               {ars(ficha.rendimiento.neto_cliente)}</div>
-            <div style={{color:Q.muted,fontSize:12}}>Neto</div>
+            <div style={{color:Q.muted,fontSize:12,display:"flex",alignItems:"center",
+              justifyContent:"center",gap:SPACING[4]}}><Scale size={12}/> Neto</div>
           </GCard>
         </div>
       )}
@@ -3531,149 +3626,203 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         </div>
       )}
 
+      {/* The cash desk. Left composes the figure, right decides and
+          commits it — the order the work actually happens in at a
+          counter. Below the shell breakpoint it stacks into one column,
+          because the agency runs this screen from a phone. */}
       <GCard style={{padding:SPACING[16],marginBottom:12}}>
-        <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
-          {[["carga",<><Icon name="plus" size={13}/> Cargar</>,Q.green],["retiro",<><Minus size={13}/> Retirar</>,Q.amber]].map(([k,l,c])=>(
-            <button key={k} onClick={()=>setModo(k)} style={{
-              flex:1,background:modo===k?`${c}22`:"rgba(255,255,255,0.04)",
-              border:`1.5px solid ${modo===k?c:Q.border}`,borderRadius:RADII.md,
-              padding:"8px",cursor:"pointer",color:modo===k?c:Q.muted,
-              fontSize:13,fontWeight:700,fontFamily:F_BODY,
-            }}>{l}</button>
-          ))}
+        <div style={{display:"grid",
+          gridTemplateColumns:isDesktop?"minmax(0,1fr) 260px":"minmax(0,1fr)",
+          gap:SPACING[16],alignItems:"start"}}>
+
+          <div>
+            {/* The amount is a readout, not a field with a frame around it.
+                Monospace with tabular figures so the digits keep their
+                place while the number is being typed — on a screen where
+                cash moves, a digit that shifts is a digit misread. This
+                input is also the free-entry field: there used to be a
+                second one labelled "Otro" bound to the same `monto`, so
+                the same number appeared twice and either copy could be
+                edited. */}
+            <div style={{background:Q.inset,borderRadius:RADII.md,
+              padding:"12px 16px",marginBottom:SPACING[12]}}>
+              <input type="number" inputMode="numeric" min="0" value={monto}
+                onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
+                aria-label={modo==="carga"?"Monto a cargar":"Monto a retirar"}
+                style={{width:"100%",minWidth:0,background:"transparent",
+                  border:"none",outline:"none",padding:0,
+                  color:modo==="carga"?Q.green:Q.amber,
+                  fontSize:TEXT[32],fontWeight:700,fontFamily:F_MONO,
+                  fontVariantNumeric:"tabular-nums",letterSpacing:0.5}}/>
+            </div>
+
+            {/* Shortcut keys, sized for a thumb rather than drawn as
+                outlined pills. They fit as many per row as the column
+                allows instead of being squeezed into four. */}
+            <div style={{display:"grid",
+              gridTemplateColumns:"repeat(auto-fit,minmax(72px,1fr))",
+              gap:SPACING[8]}}>
+              {montosDe(agencia?.moneda).map(v=>(
+                <button key={v} onClick={()=>setMonto(v)} style={{
+                  background:monto===v
+                    ? `linear-gradient(135deg,${Q.violet},${Q.violet}CC)`
+                    : Q.raised,
+                  border:"none",borderRadius:RADII.md,padding:"16px 8px",
+                  cursor:"pointer",color:monto===v?"#fff":Q.text,
+                  fontSize:TEXT[16],fontWeight:700,fontFamily:F_MONO,
+                  fontVariantNumeric:"tabular-nums",
+                }}>{v>=1000?`${v/1000}K`:v}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:SPACING[8]}}>
+            {/* A segmented control, because this picks a mode. Drawn as
+                two equal buttons it read as two actions, which is what
+                made the card confusing: three things looked clickable
+                and only the last one moved money. */}
+            <div style={{display:"flex",background:Q.inset,
+              borderRadius:RADII.md,padding:SPACING[4],gap:SPACING[4]}}>
+              {[["carga",<><Icon name="plus" size={13}/> Cargar</>,Q.green],
+                ["retiro",<><Minus size={13}/> Retirar</>,Q.amber]].map(([k,l,c])=>(
+                <button key={k} onClick={()=>setModo(k)} style={{
+                  flex:1,background:modo===k?c:"transparent",border:"none",
+                  borderRadius:RADII.sm,padding:"8px 8px",cursor:"pointer",
+                  color:modo===k?inkOn(c):Q.muted,
+                  fontSize:TEXT[13],fontWeight:700,fontFamily:F_BODY,
+                }}>{l}</button>
+              ))}
+            </div>
+
+            {msg&&<div style={{fontSize:TEXT[12],
+              color:msg.ok?Q.green:Q.red,
+              fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
+
+            <Btn label={proc?"PROCESANDO...":
+              `${modo==="carga"?"CARGAR":"RETIRAR"} ${ars(monto)}`}
+              onClick={aplicar} color={modo==="carga"?Q.green:Q.amber} full size="lg"
+              disabled={proc||!monto}/>
+          </div>
         </div>
-
-        <input type="number" value={monto} onChange={e=>setMonto(Number(e.target.value))}
-          style={{width:"100%",background:"rgba(255,255,255,0.06)",
-            border:`1.5px solid ${modo==="carga"?Q.green:Q.amber}`,borderRadius:RADII.md,
-            padding:"12px 16px",color:Q.text,fontSize:22,fontWeight:700,
-            fontFamily:F_BODY,marginBottom:10}}/>
-
-        <div style={{display:"flex",gap:SPACING[4],marginBottom:12}}>
-          {montosDe(agencia?.moneda).map(v=>(
-            <button key={v} onClick={()=>setMonto(v)} style={{
-              flex:1,background:monto===v?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-              border:`1px solid ${monto===v?Q.violet:Q.border}`,borderRadius:RADII.md,
-              padding:"8px 4px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
-              fontSize:12,fontFamily:F_BODY,
-            }}>{v>=1000?`${v/1000}K`:v}</button>
-          ))}
-        </div>
-        {/* Campo libre: las fichas son atajos, no un límite */}
-        <div style={{display:"flex",alignItems:"center",gap:SPACING[8],marginBottom:8}}>
-          <span style={{color:Q.muted,fontSize:12,flexShrink:0,
-            fontFamily:F_BODY}}>Otro:</span>
-          <input type="number" inputMode="numeric" min="0" value={monto}
-            onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
-            aria-label="Monto a apostar"
-            style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 8px",
-              color:Q.text,fontSize:13,fontWeight:700,
-              fontFamily:F_BODY}}/>
-        </div>
-
-        {msg&&<div style={{fontSize:12,marginBottom:10,
-          color:msg.ok?Q.green:Q.red,
-          fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
-
-        <Btn label={proc?"PROCESANDO...":
-          `${modo==="carga"?"CARGAR":"RETIRAR"} ${ars(monto)}`}
-          onClick={aplicar} color={modo==="carga"?Q.green:Q.amber} full size="lg"
-          disabled={proc||!monto}/>
       </GCard>
 
-      {/* Bloqueo */}
-      {ficha&&(
-        <GCard glow={ficha.bloqueado?Q.green:Q.red} style={{padding:SPACING[16],marginBottom:12}}>
-          {ficha.bloqueado?(
-            <Btn label={proc?"...":"Desbloquear cliente"} onClick={toggleBloqueo}
-              color={Q.green} full disabled={proc}/>
-          ):confirmBloq?(
-            <div>
-              <div style={{color:Q.red,fontWeight:700,fontSize:13,marginBottom:6,
-                fontFamily:F_BODY}}>¿Bloquear a {user.nombre}?</div>
-              <div style={{color:Q.muted,fontSize:12,marginBottom:8,
-                fontFamily:F_BODY}}>
-                No va a poder apostar hasta que lo desbloquees.</div>
-              <input value={motivo} onChange={e=>setMotivo(e.target.value)}
-                placeholder="Motivo del bloqueo"
-                style={{width:"100%",background:"rgba(255,255,255,0.05)",
-                  border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
-                  color:Q.text,fontSize:14,marginBottom:10,
-                  fontFamily:F_BODY}}/>
-              <div style={{display:"flex",gap:SPACING[8]}}>
-                <Btn label="Cancelar" onClick={()=>{setConfirmBloq(false);setMotivo("");}}
-                  outline color={Q.muted} full/>
-                <Btn label="Sí, bloquear" onClick={toggleBloqueo} color={Q.red}
-                  full disabled={proc}/>
-              </div>
+      {/* Blocking needs a confirmation, so it gets its own modal — the
+          same centered-dialog convention ResetPassword already uses in
+          this file (fixed backdrop, GCard, × close). Unblocking has no
+          confirmation step and applies straight from the header button. */}
+      {confirmBloq&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:220,
+          display:"flex",alignItems:"center",justifyContent:"center",padding:SPACING[16]}}
+          onClick={()=>{setConfirmBloq(false);setMotivo("");}}>
+          <GCard glow={Q.red} onClick={e=>e.stopPropagation()}
+            style={{padding:SPACING[20],maxWidth:400,width:"100%"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <div style={{color:Q.text,fontWeight:700,fontSize:15,
+                fontFamily:F_BODY}}><Lock size={15}/> Bloquear cliente</div>
+              <button onClick={()=>{setConfirmBloq(false);setMotivo("");}} style={{background:"transparent",
+                border:"none",color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
             </div>
-          ):(
-            <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
-              color={Q.red} outline full disabled={proc}/>
-          )}
-          <div style={{height:8}}/>
-          <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-            color={Q.amber} outline full/>
-          <div style={{height:8}}/>
-          <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
-            color={Q.cyan} outline full disabled={tgProc}/>
-          {tgLink&&(
-            <div style={{marginTop:10,padding:SPACING[12],background:`${Q.cyan}11`,
-              border:`1px solid ${Q.cyan}`,borderRadius:RADII.md}}>
-              <div style={{color:Q.text,fontSize:12,marginBottom:8,lineHeight:1.5,
-                fontFamily:F_BODY}}>
-                Mandale este link al cliente. Cuando lo abra en Telegram, su cuenta
-                de mostrador y su Telegram quedan unificadas (saldo sumado). Vence en 24hs.</div>
-              <div style={{display:"flex",gap:SPACING[8]}}>
-                <input readOnly value={tgLink.link} style={{flex:1,minWidth:0,
-                  background:"rgba(0,0,0,0.3)",border:`1px solid ${Q.border}`,borderRadius:RADII.md,
-                  padding:"8px 12px",color:Q.cyan,fontSize:12,
-                  fontFamily:F_BODY}}/>
-                <button onClick={()=>{try{navigator.clipboard.writeText(tgLink.link);
-                  setTgCopiado(true);setTimeout(()=>setTgCopiado(false),1500);}catch(e){}}}
-                  style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,
-                  padding:"8px 12px",cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
-                  fontFamily:F_BODY}}>{tgCopiado?"✓":"Copiar"}</button>
-              </div>
+            <div style={{color:Q.red,fontWeight:700,fontSize:13,marginBottom:6,
+              fontFamily:F_BODY}}>¿Bloquear a {user.nombre}?</div>
+            <div style={{color:Q.muted,fontSize:12,marginBottom:8,
+              fontFamily:F_BODY}}>
+              No va a poder apostar hasta que lo desbloquees.</div>
+            <input value={motivo} onChange={e=>setMotivo(e.target.value)}
+              placeholder="Motivo del bloqueo"
+              style={{width:"100%",background:"rgba(255,255,255,0.05)",
+                border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 12px",
+                color:Q.text,fontSize:14,marginBottom:10,
+                fontFamily:F_BODY}}/>
+            <div style={{display:"flex",gap:SPACING[8]}}>
+              {/* Cancelar stays outline: it is the quiet half of this
+                  confirm pair, next to a filled "Sí, bloquear". */}
+              <Btn label="Cancelar" onClick={()=>{setConfirmBloq(false);setMotivo("");}}
+                outline color={Q.muted} full/>
+              <Btn label="Sí, bloquear" onClick={toggleBloqueo} color={Q.red}
+                full disabled={proc}/>
             </div>
-          )}
-          <OtorgarBonoCliente agencia={agencia} userId={user.id}/>
-        </GCard>
+            {msg&&<div style={{fontSize:12,marginTop:8,textAlign:"center",
+              color:msg.ok?Q.green:Q.red,
+              fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
+          </GCard>
+        </div>
       )}
+
+      {/* Telegram's result used to reveal as a panel under the action
+          row; now that the action lives in the header, its result opens
+          as its own modal instead — same convention as above. */}
+      {tgLink&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:220,
+          display:"flex",alignItems:"center",justifyContent:"center",padding:SPACING[16]}}
+          onClick={()=>setTgLink(null)}>
+          <GCard onClick={e=>e.stopPropagation()}
+            style={{padding:SPACING[20],maxWidth:420,width:"100%"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <div style={{color:Q.text,fontWeight:700,fontSize:15,
+                fontFamily:F_BODY}}><Smartphone size={15}/> Conectar Telegram</div>
+              <button onClick={()=>setTgLink(null)} style={{background:"transparent",border:"none",
+                color:Q.muted,fontSize:24,cursor:"pointer",lineHeight:1}}>×</button>
+            </div>
+            <div style={{color:Q.text,fontSize:12,marginBottom:8,lineHeight:1.5,
+              fontFamily:F_BODY}}>
+              Mandale este link al cliente. Cuando lo abra en Telegram, su cuenta
+              de mostrador y su Telegram quedan unificadas (saldo sumado). Vence en 24hs.</div>
+            <div style={{display:"flex",gap:SPACING[8]}}>
+              <input readOnly value={tgLink.link} style={{flex:1,minWidth:0,
+                background:"rgba(0,0,0,0.3)",border:`1px solid ${Q.border}`,borderRadius:RADII.md,
+                padding:"8px 12px",color:Q.cyan,fontSize:12,
+                fontFamily:F_BODY}}/>
+              <button onClick={()=>{try{navigator.clipboard.writeText(tgLink.link);
+                setTgCopiado(true);setTimeout(()=>setTgCopiado(false),1500);}catch(e){}}}
+                style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,borderRadius:RADII.md,
+                padding:"8px 12px",cursor:"pointer",color:Q.cyan,fontSize:12,fontWeight:700,
+                fontFamily:F_BODY}}>{tgCopiado?"✓":"Copiar"}</button>
+            </div>
+          </GCard>
+        </div>
+      )}
+
+      <OtorgarBonoCliente agencia={agencia} userId={user.id}
+        open={bonoOpen} onCerrar={()=>setBonoOpen(false)}/>
+
       {resetOpen&&<ResetPassword agencia={agencia} userId={user.id}
         nombre={user.nombre_completo||user.username||"el cliente"}
         onCerrar={()=>setResetOpen(false)}/>}
 
-      {/* Apuestas */}
+      {/* Apuestas and Movimientos are logs — read in time order, not
+          navigated into — so they get the row standard: off the rounded
+          GCard, on the page background, hairline separators. The whole
+          sheet scrolls as one, so raising row padding here does not
+          shrink a fixed-height viewport. */}
       {ficha&&ficha.apuestas.length>0&&(
-        <div style={{marginBottom:12}}>
-          <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-            fontFamily:F_BODY,marginBottom:8,marginLeft:4}}>
-            Últimas apuestas</div>
-          {ficha.apuestas.slice(0,10).map((b,i)=>{
+        <div style={{marginBottom:SPACING[24]}}>
+          <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+            textTransform:"uppercase",marginBottom:SPACING[12],
+            fontFamily:F_BODY}}>Últimas apuestas</div>
+          {ficha.apuestas.slice(0,10).map((b,i,arr)=>{
             const est={won:Q.green,ganada:Q.green,lost:Q.red,perdida:Q.red,
               pending:Q.amber,pendiente:Q.amber,active:Q.cyan}[(b.status||"").toLowerCase()]||Q.muted;
             return(
-              <GCard key={i} style={{padding:"8px 12px",marginBottom:5}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                      fontFamily:F_BODY}}>{b.code}</div>
-                    <div style={{color:Q.muted,fontSize:12}}>
-                      {ars(b.stake)} · {fmt(b.odd)}x · {b.fecha}</div>
-                  </div>
-                  <span style={{color:est,fontSize:12,fontWeight:700,
-                    fontFamily:F_BODY}}>{b.status}</span>
+              <div key={i} style={{display:"flex",justifyContent:"space-between",
+                alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+                borderBottom:i<arr.length-1?`1px solid ${Q.border}55`:"none"}}>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
+                    fontFamily:F_BODY}}>{b.code}</div>
+                  <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                    fontFamily:F_BODY}}>{ars(b.stake)} · {fmt(b.odd)}x · {b.fecha}</div>
                 </div>
-              </GCard>
+                <span style={{color:est,fontSize:TEXT[13],fontWeight:700,flexShrink:0,
+                  fontFamily:F_BODY}}>{b.status}</span>
+              </div>
             );
           })}
         </div>
       )}
 
-      <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-        fontFamily:F_BODY,marginBottom:8,marginLeft:4}}>
+      <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+        textTransform:"uppercase",marginBottom:SPACING[12],
+        fontFamily:F_BODY}}>
         Movimientos
       </div>
       {movs===null&&<div style={{color:Q.muted,textAlign:"center",padding:SPACING[12],
@@ -3685,19 +3834,20 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         </GCard>
       )}
       {(movs||[]).map((m,i)=>(
-        <GCard key={i} style={{padding:"12px 16px",marginBottom:6}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div>
-              <span style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
-                fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</span>
-              <div style={{color:Q.muted,fontSize:12}}>{m.fecha}{m.betslip?` · ${m.betslip}`:""}</div>
-            </div>
-            <div style={{color:m.tipo==="retiro"?Q.amber:Q.green,fontWeight:700,fontSize:14,
-              fontFamily:F_BODY}}>
-              {m.tipo==="retiro"?"-":"+"}{ars(m.monto)}
-            </div>
+        <div key={i} style={{display:"flex",justifyContent:"space-between",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<movs.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:600,fontSize:TEXT[15],
+              fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>{m.fecha}{m.betslip?` · ${m.betslip}`:""}</div>
           </div>
-        </GCard>
+          <div style={{color:m.tipo==="retiro"?Q.amber:Q.green,fontWeight:700,fontSize:TEXT[16],
+            flexShrink:0,fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>
+            {m.tipo==="retiro"?"-":"+"}{ars(m.monto)}
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -4958,7 +5108,7 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
 
       {d&&(
         <>
-          <GCard glow={Q.cyan} style={{padding:SPACING[16],margin:"12px 0"}}>
+          <GCard style={{padding:SPACING[16],margin:"12px 0"}}>
             <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
               marginBottom:9}}>ÚLTIMOS {d.datos.dias} DÍAS</div>
             <div style={{display:"flex",gap:SPACING[12],marginBottom:9}}>
@@ -5039,7 +5189,7 @@ function AsesorAgencia({ agencia, onSesionExpirada }){
         color={Q.cyan} full disabled={proc||pregunta.trim().length<5}/>
 
       {respuesta&&(
-        <GCard glow={Q.cyan} style={{padding:SPACING[16],marginTop:12}}>
+        <GCard style={{padding:SPACING[16],marginTop:12}}>
           <div style={{color:Q.text,fontSize:13,lineHeight:1.65,
             whiteSpace:"pre-wrap",
             fontFamily:F_BODY}}>{respuesta}</div>
@@ -5219,7 +5369,7 @@ function DesafiosAgencia({ agencia, onSesionExpirada }){
       )}
 
       {rep&&(
-        <GCard glow={Q.cyan} style={{padding:SPACING[16],margin:"12px 0"}}>
+        <GCard style={{padding:SPACING[16],margin:"12px 0"}}>
           <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
             marginBottom:9}}>EN IACOIN</div>
           <div style={{display:"flex",gap:SPACING[12],marginBottom:10}}>
@@ -5544,8 +5694,11 @@ function SaldoCC({ agencia, onSesionExpirada }){
         </div>
       </GCard>
 
-      <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-        fontFamily:F_BODY,marginBottom:8,marginLeft:4}}>
+      {/* A log read in time order, not navigated into: rows on the page
+          background instead of a GCard per movement. */}
+      <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+        textTransform:"uppercase",marginBottom:SPACING[12],
+        fontFamily:F_BODY}}>
         Movimientos</div>
       {data.movimientos.length===0&&(
         <GCard style={{padding:SPACING[20],textAlign:"center"}}>
@@ -5554,22 +5707,23 @@ function SaldoCC({ agencia, onSesionExpirada }){
         </GCard>
       )}
       {data.movimientos.map((m,i)=>(
-        <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{minWidth:0,flex:1}}>
-              <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:700,fontSize:12,
-                fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</div>
-              <div style={{color:Q.muted,fontSize:12}}>
-                {m.fecha}{m.detalle?` · ${m.detalle}`:""}</div>
-            </div>
-            <div style={{textAlign:"right",flexShrink:0}}>
-              <div style={{color:m.monto>=0?Q.green:Q.amber,fontWeight:700,fontSize:14,
-                fontFamily:F_BODY}}>
-                {m.monto>=0?"+":""}{ars(m.monto)}</div>
-              <div style={{color:Q.dim,fontSize:12}}>saldo {ars(m.saldo)}</div>
-            </div>
+        <div key={i} style={{display:"flex",justifyContent:"space-between",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<data.movimientos.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:tipoColor[m.tipo]||Q.text,fontWeight:600,fontSize:TEXT[15],
+              fontFamily:F_BODY}}>{tipoTxt[m.tipo]||m.tipo}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>
+              {m.fecha}{m.detalle?` · ${m.detalle}`:""}</div>
           </div>
-        </GCard>
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <div style={{color:m.monto>=0?Q.green:Q.amber,fontWeight:700,fontSize:TEXT[16],
+              fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>
+              {m.monto>=0?"+":""}{ars(m.monto)}</div>
+            <div style={{color:Q.dim,fontSize:12}}>saldo {ars(m.saldo)}</div>
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -5617,7 +5771,7 @@ function PSPAgencia({ agencia, onSesionExpirada }){
 
       <AlertaError mensaje={err}/>
 
-      <GCard glow={Q.green} style={{padding:"12px 16px",marginBottom:12,textAlign:"center"}}>
+      <GCard style={{padding:"12px 16px",marginBottom:12,textAlign:"center"}}>
         <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
           fontFamily:F_BODY}}>
           Total {tipo==="cargas"?"acreditado":"completado"}</div>
@@ -5631,23 +5785,25 @@ function PSPAgencia({ agencia, onSesionExpirada }){
         <div style={{marginBottom:6}}><Icon name="landmark" size={26}/></div>
         <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
           Sin movimientos digitales</div></GCard>}
+      {/* A log read in time order, not navigated into: rows on the page
+          background instead of a GCard per movement. */}
       {lista.map((x,i)=>(
-        <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div>
-              <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                fontFamily:F_BODY}}>{x.cliente}</div>
-              <div style={{color:Q.dim,fontSize:12,fontFamily:F_BODY}}>
-                {x.fecha}</div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{color:Q.gold,fontWeight:700,fontSize:14,
-                fontFamily:F_BODY}}>{ars(x.monto)}</div>
-              <div style={{color:colores[x.estado]||Q.muted,fontSize:12,fontWeight:700,
-                fontFamily:F_BODY}}>{x.estado}</div>
-            </div>
+        <div key={i} style={{display:"flex",justifyContent:"space-between",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<lista.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+              fontFamily:F_BODY}}>{x.cliente}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,fontFamily:F_BODY}}>
+              {x.fecha}</div>
           </div>
-        </GCard>
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <div style={{color:Q.gold,fontWeight:700,fontSize:TEXT[16],
+              fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(x.monto)}</div>
+            <div style={{color:colores[x.estado]||Q.muted,fontSize:12,fontWeight:700,
+              fontFamily:F_BODY}}>{x.estado}</div>
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -5745,7 +5901,11 @@ function HistorialCashout({ agencia, onSesionExpirada }){
         description="Los cash outs pagados en tu rama y su estado."
         action={<Btn label={cargando?"...":"↻ Actualizar"} onClick={cargar} outline color={Q.muted} size="sm"/>}/>
       <AlertaError mensaje={err}/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:SPACING[8],marginBottom:14}}>
+      {/* Auto-fit so a lone or paired stat settles at a sane card width
+          instead of stretching across the whole row. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",
+        gap:SPACING[12],marginBottom:14}}>
         {[{l:"Cash outs",v:items.length,c:Q.cyan},
           {l:"Total pagado",v:ars(totalPagado),c:Q.gold}].map((x,i)=>(
           <GCard key={i} glow={x.c} style={{padding:"12px 12px",textAlign:"center"}}>
@@ -5763,24 +5923,29 @@ function HistorialCashout({ agencia, onSesionExpirada }){
           <div style={{color:Q.muted,fontSize:13}}>Todavía no hay cash outs en tu rama</div>
         </GCard>
       )}
+      {/* A log read in time order, not navigated into: rows on the page
+          background instead of a GCard per cash-out. The status pill is
+          kept — it is a meaningful state badge, not card chrome. */}
       {items.map((c,i)=>(
-        <GCard key={c.code+i} style={{padding:"12px 16px",marginBottom:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-            <div style={{color:Q.cyan,fontWeight:700,fontSize:13,
+        <div key={c.code+i} style={{display:"flex",justifyContent:"space-between",
+          alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+          borderBottom:i<items.length-1?`1px solid ${Q.border}55`:"none"}}>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
               fontFamily:F_BODY}}>{c.code}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>{c.cliente} · {c.agencia} · {c.fecha}
+              {c.pagado_por?` · pagó ${c.pagado_por}`:""}</div>
+          </div>
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <div style={{color:Q.gold,fontWeight:700,fontSize:TEXT[16],
+              fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{ars(c.valor)} {c.moneda}</div>
             <div style={{background:`${colores[c.estado]||Q.muted}22`,
               border:`1px solid ${colores[c.estado]||Q.muted}`,borderRadius:RADII.md,
-              padding:"4px 12px",color:colores[c.estado]||Q.muted,fontSize:12,fontWeight:700,
-              fontFamily:F_BODY}}>{rotulos[c.estado]||c.estado}</div>
+              padding:"4px 8px",color:colores[c.estado]||Q.muted,fontSize:12,fontWeight:700,
+              fontFamily:F_BODY,display:"inline-block",marginTop:2}}>{rotulos[c.estado]||c.estado}</div>
           </div>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
-            <span style={{color:Q.muted}}>{c.cliente} · {c.agencia}</span>
-            <span style={{color:Q.gold,fontWeight:700,
-              fontFamily:F_BODY}}>{ars(c.valor)} {c.moneda}</span>
-          </div>
-          <div style={{color:Q.dim,fontSize:12,marginTop:2}}>{c.fecha}
-            {c.pagado_por?` · pagó ${c.pagado_por}`:""}</div>
-        </GCard>
+        </div>
       ))}
     </div>
   );
@@ -5837,7 +6002,11 @@ function Historial({ agencia, onSesionExpirada }){
 
       <AlertaError mensaje={err}/>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:14}}>
+      {/* Auto-fit so each stat keeps a sane width instead of squeezing
+          three into one row on a narrow phone. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",
+        gap:SPACING[12],marginBottom:14}}>
         {[{l:"Tickets",v:lista.length,c:Q.cyan},
           {l:"Cobrado",v:ars(total),c:Q.green},
           {l:"Exposición",v:ars(expuesto),c:Q.amber},
@@ -5970,12 +6139,31 @@ function Cierres({ agencia, onSesionExpirada }){
       if(r.ok) setApuestas((await r.json()).apuestas||[]);
     }catch(e){}
   };
+
+  // Serie de apostado para el resumen: el cierre ya describe el período
+  // con totales fijos, así que la línea de tendencia usa exactamente el
+  // mismo desde/hasta elegido arriba en vez de abrir un segundo control.
+  const [serie,setSerie]=useState(null);
+  const [cargSerie,setCargSerie]=useState(false);
+  const cargarSerie=async()=>{
+    setCargSerie(true);
+    try{
+      const q=`metrica=apostado&desde=${desde}&hasta=${hasta}`;
+      const r=await fetch(`${API_URL}/api/agencias/me/serie?${q}`,
+        {headers:authHeaders(agencia.token)});
+      if(r.status===401){ onSesionExpirada(); return; }
+      if(r.ok) setSerie((await r.json()).puntos||[]);
+    }catch(e){}
+    setCargSerie(false);
+  };
+
   useEffect(()=>{
     if(vista==="movs") cargarMovs();
     if(vista==="apuestas") cargarApuestas();
     if(vista==="combos") cargarCombos();
     if(vista==="impresiones") cargarImpresiones();
     if(vista==="caja") cargarCaja();
+    if(vista==="resumen") cargarSerie();
   // eslint-disable-next-line
   },[vista,desde,hasta,filtroCli]);
 
@@ -6049,7 +6237,7 @@ function Cierres({ agencia, onSesionExpirada }){
             fontFamily:F_BODY}}>
           <option value="">— Toda la rama —</option>
           {clientesR.map(c=>(
-            <option key={c.id} value={c.id}>👤 {c.nombre} ({c.agencia})</option>
+            <option key={c.id} value={c.id}>{c.nombre} ({c.agencia})</option>
           ))}
         </select>
       )}
@@ -6076,7 +6264,7 @@ function Cierres({ agencia, onSesionExpirada }){
           )}
 
           {caja&&!caja.error&&caja.cliente&&(
-            <GCard glow={Q.cyan} style={{padding:SPACING[16],marginBottom:12}}>
+            <GCard style={{padding:SPACING[16],marginBottom:12}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:14,
                 fontFamily:F_BODY}}>{caja.cliente.nombre}</div>
               <div style={{color:Q.muted,fontSize:12,marginBottom:10}}>
@@ -6115,7 +6303,7 @@ function Cierres({ agencia, onSesionExpirada }){
                   recibiste por ventas y lo que pagaste en premios.
                   Es distinto de las cargas de saldo. */}
               {caja.operativa&&(caja.operativa.entro>0||caja.operativa.salio>0)&&(
-                <GCard glow={Q.cyan} style={{padding:SPACING[16],marginBottom:12}}>
+                <GCard style={{padding:SPACING[16],marginBottom:12}}>
                   <div style={{color:Q.muted,fontSize:12,marginBottom:10,
                     fontFamily:F_BODY}}>
                     Efectivo del mostrador</div>
@@ -6189,7 +6377,7 @@ function Cierres({ agencia, onSesionExpirada }){
                 </GCard>
               )}
 
-              <GCard glow={Q.green} style={{padding:SPACING[16],marginBottom:12}}>
+              <GCard style={{padding:SPACING[16],marginBottom:12}}>
                 <div style={{color:Q.muted,fontSize:12,marginBottom:8,
                   fontFamily:F_BODY}}>
                   Movimiento de caja · {caja.desde===caja.hasta?caja.desde
@@ -6224,7 +6412,7 @@ function Cierres({ agencia, onSesionExpirada }){
                 )}
               </GCard>
 
-              <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
+              <GCard style={{padding:SPACING[16],marginBottom:12}}>
                 <div style={{display:"flex",justifyContent:"space-between",
                   alignItems:"baseline"}}>
                   <div>
@@ -6290,26 +6478,30 @@ function Cierres({ agencia, onSesionExpirada }){
 
           {caja&&!caja.error&&(caja.movimientos||[]).length>0&&(
             <>
-              <div style={{color:Q.muted,fontSize:12,margin:"14px 0 6px",
+              {/* A log read in time order, not navigated into. */}
+              <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+                textTransform:"uppercase",marginTop:SPACING[24],marginBottom:SPACING[12],
                 fontFamily:F_BODY}}>
                 Detalle ({caja.movimientos.length})</div>
-              {caja.movimientos.map((m,i)=>{
+              {caja.movimientos.map((m,i,arr)=>{
                 const esCarga=(m.tipo||"").startsWith("carga");
                 return(
                   <div key={i} style={{display:"flex",
                     justifyContent:"space-between",alignItems:"center",
-                    padding:"8px 4px",borderBottom:`1px solid ${Q.border}`,
-                    gap:SPACING[8]}}>
+                    padding:`${SPACING[16]}px 0`,
+                    borderBottom:i<arr.length-1?`1px solid ${Q.border}55`:"none",
+                    gap:SPACING[12]}}>
                     <div style={{minWidth:0,flex:1}}>
-                      <div style={{color:Q.text,fontSize:12,
+                      <div style={{color:Q.text,fontSize:TEXT[15],
                         overflow:"hidden",textOverflow:"ellipsis",
                         whiteSpace:"nowrap"}}>{m.cliente}</div>
-                      <div style={{color:Q.dim,fontSize:12}}>
+                      <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                        fontFamily:F_BODY}}>
                         {m.fecha} · {m.agencia} · {m.tipo}</div>
                     </div>
                     <div style={{color:esCarga?Q.green:Q.amber,fontWeight:700,
-                      fontSize:13,flexShrink:0,
-                      fontFamily:F_BODY}}>
+                      fontSize:TEXT[16],flexShrink:0,
+                      fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>
                       {esCarga?"+":"−"}{ars(m.monto)}</div>
                   </div>
                 );
@@ -6321,8 +6513,27 @@ function Cierres({ agencia, onSesionExpirada }){
 
       {vista==="resumen"&&res&&(
         <div>
+          {/* El resumen ya fija los totales del período; la línea de
+              tendencia usa el mismo desde/hasta elegido arriba para
+              decir si ese período venía en subida o en baja. */}
+          <GCard style={{padding:SPACING[16],marginBottom:12}}>
+            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
+              letterSpacing:1,marginBottom:2,fontFamily:F_BODY}}>Apostado deportivo por día</div>
+            {/* El endpoint /serie suma solo deportivas — la cascada de
+                casino/ruleta del total de arriba no es agrupable por día
+                todavía. Sin esta nota, el número de la línea parecería
+                un total equivocado frente al de arriba. */}
+            <div style={{color:Q.dim,fontSize:12,marginBottom:8,
+              fontFamily:F_BODY}}>Serie solo deportivas; el total de arriba incluye casino.</div>
+            {cargSerie&&serie===null
+              ? <div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:SPACING[20],
+                  fontFamily:F_BODY}}>Cargando tendencia...</div>
+              : <LineaTiempo puntos={serie||[]} color={Q.cyan} formato={ars}
+                  etiqueta="Apostado deportivo por día"/>}
+          </GCard>
+
           {/* Resumen consolidado de la rama */}
-          <GCard glow={Q.green} style={{padding:SPACING[16],marginBottom:12,
+          <GCard style={{padding:SPACING[16],marginBottom:12,
             background:`linear-gradient(135deg,${Q.green}12,${Q.violet}06)`}}>
             <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
               letterSpacing:1,marginBottom:10,
@@ -6374,7 +6585,7 @@ function Cierres({ agencia, onSesionExpirada }){
           {/* Casino y ruleta de tu red: se liquidan aparte, con su
               propia comisión sobre GGR. */}
           {res.casino&&(res.casino.apostado>0||res.casino.ggr!==0)&&(
-            <GCard glow={Q.gold} style={{padding:SPACING[16],marginBottom:12}}>
+            <GCard style={{padding:SPACING[16],marginBottom:12}}>
               <div style={{color:Q.gold,fontWeight:700,fontSize:12.5,
                 marginBottom:8,fontFamily:F_BODY}}>
                 <Icon name="spade" size={13}/> Casino y ruleta</div>
@@ -6394,7 +6605,7 @@ function Cierres({ agencia, onSesionExpirada }){
 
           {/* Lo que te queda de todo: deportivas más casino */}
           {res.total_general&&(
-            <GCard glow={Q.cyan} style={{padding:SPACING[16],marginBottom:12}}>
+            <GCard style={{padding:SPACING[16],marginBottom:12}}>
               <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
                 marginBottom:8}}>TODO EL PERÍODO</div>
               <div style={{display:"flex",gap:SPACING[12],marginBottom:10}}>
@@ -6475,33 +6686,39 @@ function Cierres({ agencia, onSesionExpirada }){
 
       {vista==="digital"&&<PSPAgencia agencia={agencia} onSesionExpirada={onSesionExpirada}/>}
 
+      {/* Movs, apuestas, combos and impresiones are all logs of what
+          already happened in the period, read in time order and not
+          navigated elsewhere — apuestas expands inline on click, it
+          does not open a new screen — so all four get the row
+          standard: off the GCard, hairline separators, bigger type. */}
       {vista==="movs"&&<>
         {movs===null&&<div style={{color:Q.muted,textAlign:"center",padding:SPACING[20],
           fontFamily:F_BODY}}>Cargando...</div>}
         {movs&&movs.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
           padding:SPACING[20],fontFamily:F_BODY}}>Sin movimientos</div>}
-        {(movs||[]).map((m,i)=>{
+        {(movs||[]).map((m,i,arr)=>{
           const tipoTxt={carga_admin:"Carga admin",retiro_admin:"Descuento admin",
             carga_cliente:"Crédito a cliente",retiro_cliente:"Retiro cliente",
             pago_premio:"Premio pagado",transferencia:"A sub-agencia",recibido:"Recibido",
             carga:"Carga cliente",retiro:"Retiro cliente"}[m.tipo]||m.tipo;
           const pos=m.monto>=0;
           return(
-            <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{minWidth:0,flex:1}}>
-                  <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                    fontFamily:F_BODY}}>{tipoTxt}
-                    {m.origen==="cliente"&&m.cliente?<span style={{color:Q.cyan}}> · {m.cliente}</span>:null}</div>
-                  <div style={{color:Q.muted,fontSize:12}}>{m.agencia} · {m.fecha}</div>
-                </div>
-                <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{color:pos?Q.green:Q.amber,fontWeight:700,fontSize:14,
-                    fontFamily:F_BODY}}>{pos?"+":""}{ars(m.monto)}</div>
-                  {m.saldo!=null&&<div style={{color:Q.dim,fontSize:12}}>saldo {ars(m.saldo)}</div>}
-                </div>
+            <div key={i} style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+              borderBottom:i<arr.length-1?`1px solid ${Q.border}55`:"none"}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+                  fontFamily:F_BODY}}>{tipoTxt}
+                  {m.origen==="cliente"&&m.cliente?<span style={{color:Q.cyan}}> · {m.cliente}</span>:null}</div>
+                <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                  fontFamily:F_BODY}}>{m.agencia} · {m.fecha}</div>
               </div>
-            </GCard>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{color:pos?Q.green:Q.amber,fontWeight:700,fontSize:TEXT[16],
+                  fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{pos?"+":""}{ars(m.monto)}</div>
+                {m.saldo!=null&&<div style={{color:Q.dim,fontSize:12}}>saldo {ars(m.saldo)}</div>}
+              </div>
+            </div>
           );
         })}
       </>}
@@ -6511,24 +6728,26 @@ function Cierres({ agencia, onSesionExpirada }){
           fontFamily:F_BODY}}>Cargando...</div>}
         {apuestas&&apuestas.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
           padding:SPACING[20],fontFamily:F_BODY}}>Sin apuestas</div>}
-        {(apuestas||[]).map((a,i)=>{
+        {(apuestas||[]).map((a,i,arr)=>{
           const col={won:Q.green,ganada:Q.green,lost:Q.red,perdida:Q.red,
             pending:Q.amber,pendiente:Q.amber,active:Q.cyan,paid:Q.green}[(a.status||"").toLowerCase()]||Q.muted;
           const abierta=apAbierta===a.code;
           return(
-            <GCard key={i} style={{padding:"12px 12px",marginBottom:6,cursor:"pointer"}}
+            <div key={i} style={{padding:`${SPACING[16]}px 0`,cursor:"pointer",
+              borderBottom:i<arr.length-1?`1px solid ${Q.border}55`:"none"}}
               onClick={()=>setApAbierta(abierta?null:a.code)}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[12]}}>
                 <div style={{minWidth:0,flex:1}}>
-                  <div style={{color:Q.text,fontWeight:700,fontSize:12,
+                  <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
                     fontFamily:F_BODY}}>{a.code}
                     <span style={{color:Q.cyan,fontWeight:400}}> · {a.cliente}</span></div>
-                  <div style={{color:Q.muted,fontSize:12}}>{a.agencia} · {a.fecha} · {a.picks.length} sel.</div>
+                  <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                    fontFamily:F_BODY}}>{a.agencia} · {a.fecha} · {a.picks.length} sel.</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{color:col,fontWeight:700,fontSize:12,
+                  <div style={{color:col,fontWeight:700,fontSize:TEXT[13],
                     fontFamily:F_BODY}}>{a.status}</div>
-                  <div style={{color:Q.muted,fontSize:12}}>{ars(a.stake)} · {fmt(a.odd)}x</div>
+                  <div style={{color:Q.muted,fontSize:12,marginTop:2}}>{ars(a.stake)} · {fmt(a.odd)}x</div>
                 </div>
               </div>
               {abierta&&(
@@ -6555,7 +6774,7 @@ function Cierres({ agencia, onSesionExpirada }){
                     fontFamily:F_BODY}}>Sin detalle</div>}
                 </div>
               )}
-            </GCard>
+            </div>
           );
         })}
       </>}
@@ -6566,26 +6785,27 @@ function Cierres({ agencia, onSesionExpirada }){
         {combos&&combos.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
           padding:SPACING[20],fontFamily:F_BODY}}>Sin combos en el período</div>}
         {(combos||[]).map((c,i)=>(
-          <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
-              <div style={{minWidth:0,flex:1}}>
-                <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                  fontFamily:F_BODY}}>{c.nombre||"Combo"}
-                  {c.es_ia
-                    ?<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
-                        borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
-                        color:Q.violet2,marginLeft:6}}><Bot size={12}/> IA</span>
-                    :<span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,
-                        borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
-                        color:Q.cyan,marginLeft:6}}><PenLine size={12}/> Manual</span>}
-                  {!c.visible&&<span style={{color:Q.muted,fontSize:12,marginLeft:5}}>oculto</span>}
-                </div>
-                <div style={{color:Q.muted,fontSize:12}}>{c.creado_por||c.origen} · {c.fecha}</div>
+          <div key={i} style={{display:"flex",justifyContent:"space-between",
+            alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[8],
+            borderBottom:i<combos.length-1?`1px solid ${Q.border}55`:"none"}}>
+            <div style={{minWidth:0,flex:1}}>
+              <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+                fontFamily:F_BODY}}>{c.nombre||"Combo"}
+                {c.es_ia
+                  ?<span style={{background:`${Q.violet}33`,border:`1px solid ${Q.violet}`,
+                      borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
+                      color:Q.violet2,marginLeft:6}}><Bot size={12}/> IA</span>
+                  :<span style={{background:`${Q.cyan}22`,border:`1px solid ${Q.cyan}`,
+                      borderRadius:RADII.lg,padding:"4px 8px",fontSize:12,fontWeight:700,
+                      color:Q.cyan,marginLeft:6}}><PenLine size={12}/> Manual</span>}
+                {!c.visible&&<span style={{color:Q.muted,fontSize:12,marginLeft:5}}>oculto</span>}
               </div>
-              <div style={{color:Q.green,fontWeight:700,fontSize:14,flexShrink:0,
-                fontFamily:F_BODY}}>{fmt(c.odd)}x</div>
+              <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                fontFamily:F_BODY}}>{c.creado_por||c.origen} · {c.fecha}</div>
             </div>
-          </GCard>
+            <div style={{color:Q.green,fontWeight:700,fontSize:TEXT[16],flexShrink:0,
+              fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{fmt(c.odd)}x</div>
+          </div>
         ))}
       </>}
 
@@ -6597,17 +6817,18 @@ function Cierres({ agencia, onSesionExpirada }){
         {(impresiones||[]).map((im,i)=>{
           const tipoTxt={ticket:"Ticket",apuesta:"Apuesta",cobro:"Cobro",cierre:"Cierre de caja",combo:"Combo"}[im.tipo]||im.tipo;
           return(
-            <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{minWidth:0,flex:1}}>
-                  <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                    fontFamily:F_BODY}}>{tipoTxt}
-                    {im.referencia?<span style={{color:Q.cyan,fontWeight:400}}> · {im.referencia}</span>:null}</div>
-                  <div style={{color:Q.muted,fontSize:12}}>{im.agencia} · por {im.quien} · {im.fecha}</div>
-                </div>
-                <Printer size={16}/>
+            <div key={i} style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+              borderBottom:i<impresiones.length-1?`1px solid ${Q.border}55`:"none"}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+                  fontFamily:F_BODY}}>{tipoTxt}
+                  {im.referencia?<span style={{color:Q.cyan,fontWeight:400}}> · {im.referencia}</span>:null}</div>
+                <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                  fontFamily:F_BODY}}>{im.agencia} · por {im.quien} · {im.fecha}</div>
               </div>
-            </GCard>
+              <Printer size={16}/>
+            </div>
           );
         })}
       </>}
@@ -6624,40 +6845,61 @@ function Config({ agencia }){
     <div>
       <PageHeader icon={<Icon name="sliders-horizontal"/>} title="Config"
         description="Los datos de tu agencia, tu contraseña, Telegram y el test de impresora."/>
-      <GCard style={{padding:SPACING[20],marginBottom:12}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:14,
-          fontFamily:F_BODY}}>Datos de la agencia</div>
-        {[["Nombre",agencia.name||"—"],["Código",agencia.code||"—"],
-          ["Dirección",agencia.address||"Sin cargar"],
-          ["Teléfono",agencia.phone||"Sin cargar"],
-        ].map(([l,v])=>(
-          <div key={l} style={{display:"flex",justifyContent:"space-between",
-            padding:"8px 0",borderBottom:`1px solid ${Q.dim}`}}>
-            <span style={{color:Q.muted,fontSize:12}}>{l}</span>
-            <span style={{color:Q.text,fontSize:12}}>{v}</span>
+      {/* Auto-fit two-up on desktop, one column below the breakpoint —
+          no separate desktop check needed, the min column width alone
+          decides how many fit. None of these four cards is tall or
+          form-heavy enough to need the full row to itself: the password
+          form is only two inputs and a button, same footprint as the
+          other three.
+          `min(360px,100%)` instead of a bare 360px: the content column
+          is only maxWidth:620 minus 24px of padding on a phone, which is
+          narrower than 360px on most handsets (a 375px iPhone leaves
+          351px) — a bare minmax(360px,1fr) track does not shrink below
+          its floor just because the container is narrower, so it forced
+          the grid wider than the viewport and produced exactly the
+          horizontal scroll odd/tasks/mobile-nav.md's mobile pass was
+          checking for. Capping the floor at the container's own 100%
+          removes that overflow and is identical to the plain 360px on
+          desktop, where the column is always wider than that. */}
+      <div style={{display:"grid",
+        gridTemplateColumns:"repeat(auto-fit,minmax(min(360px,100%),1fr))",
+        gap:SPACING[16]}}>
+        <GCard style={{padding:SPACING[20]}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:14,
+            fontFamily:F_BODY}}>Datos de la agencia</div>
+          {[["Nombre",agencia.name||"—"],["Código",agencia.code||"—"],
+            ["Dirección",agencia.address||"Sin cargar"],
+            ["Teléfono",agencia.phone||"Sin cargar"],
+          ].map(([l,v])=>(
+            <div key={l} style={{display:"flex",justifyContent:"space-between",
+              padding:"8px 0",borderBottom:`1px solid ${Q.dim}`}}>
+              <span style={{color:Q.muted,fontSize:12}}>{l}</span>
+              <span style={{color:Q.text,fontSize:12}}>{v}</span>
+            </div>
+          ))}
+        </GCard>
+
+        <CambiarMiPassword agencia={agencia}/>
+
+        <ConectarTelegramAgencia agencia={agencia}/>
+
+        <GCard style={{padding:SPACING[20]}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:8,
+            fontFamily:F_BODY}}>Test de impresora</div>
+          <div style={{color:Q.muted,fontSize:12,marginBottom:14}}>
+            Imprime un ticket de prueba para verificar la conexión
           </div>
-        ))}
-      </GCard>
-      <CambiarMiPassword agencia={agencia}/>
-
-      <ConectarTelegramAgencia agencia={agencia}/>
-
-      <GCard glow={Q.violet} style={{padding:SPACING[20]}}>
-        <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:8,
-          fontFamily:F_BODY}}>Test de impresora</div>
-        <div style={{color:Q.muted,fontSize:12,marginBottom:14}}>
-          Imprime un ticket de prueba para verificar la conexión
-        </div>
-        <Btn label={testDone?"Reimprimir test":"IMPRIMIR TICKET TEST"}
-          onClick={()=>{
-            const ok = printTicket({
-              code:"QP-TEST",user:"Test",created_at:nowStr(),expires_at:expires24(),
-              picks:[{home:"River",away:"Boca",sel:"River gana",odd:1.55,sport:"TEST"}],
-              stake:10000,odd_total:1.55,potential_win:15500,agencia:agencia.code,
-            },"apuesta");
-            if(ok) setTestDone(true);
-          }} color={Q.violet} full/>
-      </GCard>
+          <Btn label={testDone?"Reimprimir test":"IMPRIMIR TICKET TEST"}
+            onClick={()=>{
+              const ok = printTicket({
+                code:"QP-TEST",user:"Test",created_at:nowStr(),expires_at:expires24(),
+                picks:[{home:"River",away:"Boca",sel:"River gana",odd:1.55,sport:"TEST"}],
+                stake:10000,odd_total:1.55,potential_win:15500,agencia:agencia.code,
+              },"apuesta");
+              if(ok) setTestDone(true);
+            }} color={Q.violet} full/>
+        </GCard>
+      </div>
     </div>
   );
 }
@@ -6678,7 +6920,7 @@ function ConectarTelegramAgencia({ agencia }){
   };
 
   return(
-    <GCard glow={Q.cyan} style={{padding:SPACING[20],marginBottom:12}}>
+    <GCard style={{padding:SPACING[20],marginBottom:12}}>
       <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:6,
         fontFamily:F_BODY}}><Smartphone size={14}/> Conectar Telegram</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:12,lineHeight:1.5,
@@ -6727,7 +6969,7 @@ function CambiarMiPassword({ agencia, obligado=false, onListo }){
   };
 
   return(
-    <GCard glow={obligado?Q.amber:Q.violet} style={{padding:SPACING[20],marginBottom:12}}>
+    <GCard glow={obligado?Q.amber:null} style={{padding:SPACING[20],marginBottom:12}}>
       <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:8,
         fontFamily:F_BODY}}>
         {obligado?<><Key size={14}/> Cambiá tu contraseña para continuar</>:<><Key size={14}/> Cambiar mi contraseña</>}</div>
@@ -7142,7 +7384,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
           fontFamily:F_BODY}}>Cargando...</div>}
         {data&&(
           <div>
-            <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12,
+            <GCard style={{padding:SPACING[16],marginBottom:12,
               background:`linear-gradient(135deg,${Q.violet}12,${Q.cyan}06)`}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8]}}>
                 {[["Ventas",data.total.ventas,Q.cyan],["GGR",data.total.ggr,Q.green],
@@ -7158,27 +7400,34 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
             {data.influencers.length===0&&<div style={{color:Q.muted,fontSize:12,
               textAlign:"center",padding:SPACING[20],fontFamily:F_BODY}}>
               No tenés influencers todavía</div>}
-            {data.influencers.map(inf=>(
-              <GCard key={inf.code} onClick={()=>setSel(inf.code)}
-                style={{padding:"12px 12px",marginBottom:6,cursor:"pointer"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
-                  <div style={{minWidth:0,flex:1}}>
-                    <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                      fontFamily:F_BODY}}>{inf.name}
-                      <span style={{color:Q.muted,fontWeight:400,fontSize:12}}> · {inf.codigo_ref}</span></div>
-                    <div style={{color:Q.muted,fontSize:12}}>
-                      {inf.combos} combos · {inf.jugadas} jugadas</div>
-                    {inf.parent_name&&<div style={{color:Q.violet2,fontSize:12,marginTop:1}}>
-                      <Building2 size={11}/> {inf.parent_name}</div>}
+            {/* Navigates into DetalleInfluencerAgencia on click — an
+                entity list, same criterion as TabUsuarios and Agencias
+                hoy — so it gets the auto-fit card grid, not stacked rows. */}
+            <div style={{display:"grid",
+              gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",
+              gap:SPACING[12]}}>
+              {data.influencers.map(inf=>(
+                <GCard key={inf.code} onClick={()=>setSel(inf.code)}
+                  style={{padding:SPACING[12],cursor:"pointer"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
+                    <div style={{minWidth:0,flex:1}}>
+                      <div style={{color:Q.text,fontWeight:700,fontSize:13,
+                        fontFamily:F_BODY}}>{inf.name}
+                        <span style={{color:Q.muted,fontWeight:400,fontSize:12}}> · {inf.codigo_ref}</span></div>
+                      <div style={{color:Q.muted,fontSize:12}}>
+                        {inf.combos} combos · {inf.jugadas} jugadas</div>
+                      {inf.parent_name&&<div style={{color:Q.violet2,fontSize:12,marginTop:1}}>
+                        <Building2 size={11}/> {inf.parent_name}</div>}
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{color:Q.gold,fontWeight:700,fontSize:14,
+                        fontFamily:F_BODY}}>{ars(inf.comision)}</div>
+                      <div style={{color:Q.muted,fontSize:12}}>comisión ›</div>
+                    </div>
                   </div>
-                  <div style={{textAlign:"right",flexShrink:0}}>
-                    <div style={{color:Q.gold,fontWeight:700,fontSize:14,
-                      fontFamily:F_BODY}}>{ars(inf.comision)}</div>
-                    <div style={{color:Q.muted,fontSize:12}}>comisión ›</div>
-                  </div>
-                </div>
-              </GCard>
-            ))}
+                </GCard>
+              ))}
+            </div>
           </div>
         )}
       </>}
@@ -7188,7 +7437,7 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
           fontFamily:F_BODY}}>Cargando...</div>}
         {costos&&(
           <div>
-            <GCard glow={Q.gold} style={{padding:SPACING[16],marginBottom:12,textAlign:"center"}}>
+            <GCard style={{padding:SPACING[16],marginBottom:12,textAlign:"center"}}>
               <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
                 marginBottom:4,fontFamily:F_BODY}}>
                 Comisiones que absorbés</div>
@@ -7201,19 +7450,21 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
             {costos.detalle.length===0&&<div style={{color:Q.muted,fontSize:12,
               textAlign:"center",padding:SPACING[20],fontFamily:F_BODY}}>
               Sin jugadas con influencer en el período</div>}
+            {/* A log read in time order, not navigated into. */}
             {costos.detalle.map((d,i)=>(
-              <GCard key={i} style={{padding:"12px 12px",marginBottom:6}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
-                  <div style={{minWidth:0,flex:1}}>
-                    <div style={{color:Q.text,fontWeight:700,fontSize:12,
-                      fontFamily:F_BODY}}>{d.influencer}</div>
-                    <div style={{color:Q.muted,fontSize:12}}>
-                      en {d.agencia} · {d.jugadas} jugadas · {ars(d.apostado)}</div>
-                  </div>
-                  <div style={{color:Q.gold,fontWeight:700,fontSize:14,flexShrink:0,
-                    fontFamily:F_BODY}}>−{ars(d.comision)}</div>
+              <div key={i} style={{display:"flex",justifyContent:"space-between",
+                alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+                borderBottom:i<costos.detalle.length-1?`1px solid ${Q.border}55`:"none"}}>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+                    fontFamily:F_BODY}}>{d.influencer}</div>
+                  <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                    fontFamily:F_BODY}}>
+                    en {d.agencia} · {d.jugadas} jugadas · {ars(d.apostado)}</div>
                 </div>
-              </GCard>
+                <div style={{color:Q.gold,fontWeight:700,fontSize:TEXT[16],flexShrink:0,
+                  fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>−{ars(d.comision)}</div>
+              </div>
             ))}
           </div>
         )}
@@ -7224,7 +7475,11 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
           fontFamily:F_BODY}}>Cargando...</div>}
         {escaneos&&(
           <div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
+            {/* Auto-fit so each stat keeps a sane width instead of
+                squeezing three into one row on a narrow phone. */}
+            <div style={{display:"grid",
+              gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",
+              gap:SPACING[12],marginBottom:12}}>
               {[["Escaneos",escaneos.total_escaneos,Q.cyan],["Jugaron",escaneos.total_jugadas,Q.green],
                 ["Conversión",escaneos.conversion+"%",Q.gold]].map(([l,v,c])=>(
                 <GCard key={l} style={{padding:"16px 8px",textAlign:"center"}}>
@@ -7236,23 +7491,26 @@ function InfluencersAgencia({ agencia, onSesionExpirada }){
             </div>
             {escaneos.detalle.length===0&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
               padding:SPACING[20],fontFamily:F_BODY}}>Sin escaneos en el período</div>}
-            {escaneos.detalle.map(d=>(
-              <GCard key={d.code} style={{padding:"12px 12px",marginBottom:6}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:SPACING[8]}}>
-                  <div style={{minWidth:0,flex:1}}>
-                    <div style={{color:Q.text,fontWeight:700,fontSize:13,
-                      fontFamily:F_BODY}}>{d.name}
-                      <span style={{color:Q.muted,fontWeight:400,fontSize:12}}> · {d.codigo_ref}</span></div>
-                    <div style={{color:Q.muted,fontSize:12}}>
-                      {d.escaneos} escaneos · {d.jugadas} jugaron · cuota {fmt(d.cuota_prom)}x</div>
-                  </div>
-                  <div style={{textAlign:"right",flexShrink:0}}>
-                    <div style={{color:d.conversion>=30?Q.green:d.conversion>=10?Q.gold:Q.muted,
-                      fontWeight:700,fontSize:16,fontFamily:F_BODY}}>{d.conversion}%</div>
-                    <div style={{color:Q.muted,fontSize:12}}>conversión</div>
-                  </div>
+            {/* A log read in time order, not navigated into. */}
+            {escaneos.detalle.map((d,i)=>(
+              <div key={d.code} style={{display:"flex",justifyContent:"space-between",
+                alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+                borderBottom:i<escaneos.detalle.length-1?`1px solid ${Q.border}55`:"none"}}>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{color:Q.text,fontWeight:600,fontSize:TEXT[15],
+                    fontFamily:F_BODY}}>{d.name}
+                    <span style={{color:Q.muted,fontWeight:400,fontSize:12}}> · {d.codigo_ref}</span></div>
+                  <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                    fontFamily:F_BODY}}>
+                    {d.escaneos} escaneos · {d.jugadas} jugaron · cuota {fmt(d.cuota_prom)}x</div>
                 </div>
-              </GCard>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{color:d.conversion>=30?Q.green:d.conversion>=10?Q.gold:Q.muted,
+                    fontWeight:700,fontSize:TEXT[16],fontFamily:F_MONO,
+                    fontVariantNumeric:"tabular-nums"}}>{d.conversion}%</div>
+                  <div style={{color:Q.muted,fontSize:12}}>conversión</div>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -7286,7 +7544,7 @@ function CrearInfluencerAgencia({ agencia, onListo, onSesionExpirada }){
   };
 
   return(
-    <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:14}}>
+    <GCard style={{padding:SPACING[16],marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
         fontFamily:F_BODY}}><Star size={14}/> Nuevo influencer</div>
       {[["name","Nombre"],["username","Usuario"],["password","Contraseña (8+)"]].map(([k,l])=>(
@@ -7370,7 +7628,7 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
           fontFamily:F_BODY}}>Cargando...</div>}
         {d&&(
           <div>
-            <GCard glow={Q.gold} style={{padding:SPACING[16],marginBottom:12}}>
+            <GCard style={{padding:SPACING[16],marginBottom:12}}>
               <div style={{color:Q.muted,fontSize:12,marginBottom:4,
                 fontFamily:F_BODY}}>
                 Usuario: <span style={{color:Q.cyan,fontWeight:700}}>{rep.username||"—"}</span></div>
@@ -7386,14 +7644,21 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
                   </div>
                 ))}
               </div>
-              <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
-                color={Q.gold} full disabled={proc}/>
-              <div style={{height:8}}/>
-              <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
-                color={Q.amber} outline full/>
-              <div style={{height:8}}/>
-              <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
-                color={Q.violet} outline full/>
+              {/* Settling, resetting and configuring are independent one-tap actions on this account, so they share a line */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+                <div>
+                  <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
+                    color={Q.gold} full disabled={proc}/>
+                </div>
+                <div>
+                  <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
+                    color={Q.amber} full/>
+                </div>
+                <div>
+                  <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
+                    color={Q.violet} full/>
+                </div>
+              </div>
               {configOpen&&rep&&(
                 <div style={{marginTop:12,paddingTop:SPACING[12],borderTop:`1px solid ${Q.dim}`}}>
                   <ConfigurarCuentaAg agencia={agencia}
@@ -7408,33 +7673,39 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
               {resetOpen&&<ResetPassword agencia={agencia} code={code}
                 nombre={rep?rep.name:code} onCerrar={()=>setResetOpen(false)}/>}
             </GCard>
-            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-              marginBottom:8,fontFamily:F_BODY}}>Combos ({d.combos.length})</div>
-            {d.combos.map(c=>(
-              <GCard key={c.id} style={{padding:"8px 12px",marginBottom:5}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{color:Q.text,fontSize:12,fontWeight:600,
-                    fontFamily:F_BODY}}>{c.nombre}
-                    {c.codigo&&<span style={{color:Q.cyan,fontSize:12}}> · {c.codigo}</span>}</div>
-                  <div style={{color:Q.green,fontWeight:700,fontSize:13,
-                    fontFamily:F_BODY}}>{fmt(c.odd)}x</div>
-                </div>
-              </GCard>
+            {/* Combos and Jugadas are logs of what already happened, read
+                in time order and not navigated into — the row standard,
+                off the GCard, applies to both. */}
+            <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+              textTransform:"uppercase",marginBottom:SPACING[12],
+              fontFamily:F_BODY}}>Combos ({d.combos.length})</div>
+            {d.combos.map((c,i)=>(
+              <div key={c.id} style={{display:"flex",justifyContent:"space-between",
+                alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+                borderBottom:i<d.combos.length-1?`1px solid ${Q.border}55`:"none"}}>
+                <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
+                  fontFamily:F_BODY}}>{c.nombre}
+                  {c.codigo&&<span style={{color:Q.cyan,fontSize:12}}> · {c.codigo}</span>}</div>
+                <div style={{color:Q.green,fontWeight:700,fontSize:TEXT[16],flexShrink:0,
+                  fontFamily:F_MONO,fontVariantNumeric:"tabular-nums"}}>{fmt(c.odd)}x</div>
+              </div>
             ))}
-            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
-              margin:"12px 0 8px",fontFamily:F_BODY}}>Jugadas ({d.jugadas.length})</div>
+            <div style={{color:Q.muted,fontSize:TEXT[12],letterSpacing:0.6,
+              textTransform:"uppercase",marginTop:SPACING[24],marginBottom:SPACING[12],
+              fontFamily:F_BODY}}>Jugadas ({d.jugadas.length})</div>
             {d.jugadas.length===0&&<div style={{color:Q.muted,fontSize:12,
               fontFamily:F_BODY}}>Sin jugadas en el período</div>}
             {d.jugadas.map((j,i)=>(
               <div key={i} style={{display:"flex",justifyContent:"space-between",
-                alignItems:"center",padding:"8px 0",
-                borderBottom:i<d.jugadas.length-1?`1px solid ${Q.dim}`:"none"}}>
+                alignItems:"center",padding:`${SPACING[16]}px 0`,gap:SPACING[12],
+                borderBottom:i<d.jugadas.length-1?`1px solid ${Q.border}55`:"none"}}>
                 <div style={{minWidth:0,flex:1}}>
-                  <div style={{color:Q.text,fontSize:12,fontWeight:600,
+                  <div style={{color:Q.text,fontSize:TEXT[15],fontWeight:600,
                     fontFamily:F_BODY}}>{j.code}</div>
-                  <div style={{color:Q.muted,fontSize:12}}>{j.cliente} · {ars(j.stake)} · {fmt(j.odd)}x</div>
+                  <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+                    fontFamily:F_BODY}}>{j.cliente} · {ars(j.stake)} · {fmt(j.odd)}x</div>
                 </div>
-                <span style={{color:Q.muted,fontSize:12,flexShrink:0}}>{j.status}</span>
+                <span style={{color:Q.muted,fontSize:TEXT[13],flexShrink:0}}>{j.status}</span>
               </div>
             ))}
           </div>
@@ -7737,7 +8008,7 @@ function MisAgencias({ agencia, onSesionExpirada }){
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:220,
           display:"flex",alignItems:"center",justifyContent:"center",padding:SPACING[16]}}
           onClick={()=>setConfigPara(null)}>
-          <GCard glow={Q.violet} onClick={e=>e.stopPropagation()}
+          <GCard onClick={e=>e.stopPropagation()}
             style={{padding:SPACING[20],maxWidth:420,width:"100%",maxHeight:"90vh",overflowY:"auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:15,
@@ -7780,7 +8051,7 @@ function CrearSubAgencia({ agencia, onListo, onSesionExpirada }){
   };
 
   return(
-    <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:14}}>
+    <GCard style={{padding:SPACING[16],marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
         fontFamily:F_BODY}}><Building2 size={14}/> Nueva sub-agencia</div>
       {[["name","Nombre"],["username","Usuario"],["password","Contraseña (8+)"]].map(([k,l])=>(
@@ -7849,7 +8120,7 @@ function CargarCreditoSub({ agencia, code, onCerrar, onListo, onSesionExpirada }
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:210,
       display:"flex",alignItems:"center",justifyContent:"center",padding:SPACING[16]}} onClick={onCerrar}>
-      <GCard glow={Q.cyan} onClick={e=>e.stopPropagation()}
+      <GCard onClick={e=>e.stopPropagation()}
         style={{padding:SPACING[20],maxWidth:380,width:"100%"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:15,
@@ -7902,6 +8173,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   const [tab,setTab]=useState("codigo");
   const [saldoCC,setSaldoCC]=useState(null);
   const [verSaldo,setVerSaldo]=useState(false);
+  const [menuOpen,setMenuOpen]=useState(false);
   // At 1024px and up (the prototype's own breakpoint) the tab row becomes
   // a sidebar; below it nothing changes — see odd/tasks/desktop-shell.md.
   const isDesktop=useDesktopShellWidth();
@@ -7946,24 +8218,24 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   },[]);
 
   const TABS=[
-    {k:"codigo",   i:<Bot size={12}/>, l:"Código / Bot"},
-    {k:"envivo",   i:<Icon name="circle-dot" size={12}/>, l:"En Vivo"},
-    {k:"manual",   i:<Pencil size={12}/>, l:"Apuesta manual"},
-    {k:"combos",   i:<Zap size={12}/>, l:"Combos IA"},
-    {k:"mejorar",  i:<Icon name="scan-line" size={12}/>, l:"Mejorar"},
-    {k:"clientes", i:<Icon name="users" size={12}/>, l:"Clientes"},
-    {k:"misagencias", i:<Building2 size={12}/>, l:"Mis agencias"},
-    {k:"influencers", i:<Star size={12}/>, l:"Influencers"},
-    {k:"historial",i:<Icon name="clock-3" size={12}/>, l:"Historial"},
-    {k:"cashout",  i:<Icon name="wallet-cards" size={12}/>, l:"Cash out"},
-    {k:"bonos",    i:<Gift size={12}/>, l:"Bonos"},
-    {k:"cierres",  i:<Icon name="chart-no-axes-combined" size={12}/>, l:"Cierres"},
-    {k:"mensajes", i:<Icon name="message-circle" size={12}/>, l:"Mensajes"},
-    {k:"terminales", i:<Monitor size={12}/>, l:"Terminales"},
-    {k:"desafios", i:<Icon name="trophy" size={12}/>, l:"Desafíos"},
-    {k:"asesor", i:<Handshake size={12}/>, l:"Asesor"},
-    {k:"soporte",  i:<Headphones size={12}/>, l:"Soporte"},
-    {k:"config",   i:<Icon name="sliders-horizontal" size={12}/>, l:"Config"},
+    {k:"codigo",   i:<Bot size={17}/>, l:"Código / Bot"},
+    {k:"envivo",   i:<Icon name="circle-dot" size={17}/>, l:"En Vivo"},
+    {k:"manual",   i:<Pencil size={17}/>, l:"Apuesta manual"},
+    {k:"combos",   i:<Zap size={17}/>, l:"Combos IA"},
+    {k:"mejorar",  i:<Icon name="scan-line" size={17}/>, l:"Mejorar"},
+    {k:"clientes", i:<Icon name="users" size={17}/>, l:"Clientes"},
+    {k:"misagencias", i:<Building2 size={17}/>, l:"Mis agencias"},
+    {k:"influencers", i:<Star size={17}/>, l:"Influencers"},
+    {k:"historial",i:<Icon name="clock-3" size={17}/>, l:"Historial"},
+    {k:"cashout",  i:<Icon name="wallet-cards" size={17}/>, l:"Cash out"},
+    {k:"bonos",    i:<Gift size={17}/>, l:"Bonos"},
+    {k:"cierres",  i:<Icon name="chart-no-axes-combined" size={17}/>, l:"Cierres"},
+    {k:"mensajes", i:<Icon name="message-circle" size={17}/>, l:"Mensajes"},
+    {k:"terminales", i:<Monitor size={17}/>, l:"Terminales"},
+    {k:"desafios", i:<Icon name="trophy" size={17}/>, l:"Desafíos"},
+    {k:"asesor", i:<Handshake size={17}/>, l:"Asesor"},
+    {k:"soporte",  i:<Headphones size={17}/>, l:"Soporte"},
+    {k:"config",   i:<Icon name="sliders-horizontal" size={17}/>, l:"Config"},
   ].filter(t=>{
     const perm = agencia.permiso || "ambos";
     if(t.k==="misagencias") return perm==="crea_agencias"||perm==="ambos";
@@ -7991,40 +8263,72 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
         justifyContent:"space-between",zIndex:50,overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,
           background:`linear-gradient(90deg,transparent,${Q.violet},${Q.cyan},${Q.violet},transparent)`}}/>
-        <QPLogo size={isDesktop?40:16}/>
+        <div style={{display:"flex",alignItems:"center",gap:SPACING[12],minWidth:0}}>
+          {/* Mobile only: opens MobileTabMenu, the megamenu that replaces
+              the horizontal tab strip below 1024px. */}
+          {!isDesktop&&(
+            <button onClick={()=>setMenuOpen(true)} aria-label="Abrir menú" style={{
+              background:"transparent",border:"none",color:Q.text,
+              cursor:"pointer",padding:SPACING[4],display:"flex",flexShrink:0}}>
+              <Icon name="menu" size={22}/>
+            </button>
+          )}
+          <QPLogo size={isDesktop?40:16}/>
+          {isDesktop&&<span style={{color:Q.dim,fontSize:TEXT[20],
+            fontWeight:300,lineHeight:1,fontFamily:F_BODY}}>|</span>}
+          {isDesktop&&<span style={{color:Q.muted,fontSize:TEXT[14],fontWeight:600,
+            whiteSpace:"nowrap",fontFamily:F_BODY}}>Panel de Agencia</span>}
+        </div>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[12]}}>
+          {/* Saldo stays visible on a phone — it's the number the agency
+              checks constantly — but shrinks so it stops competing with
+              the hamburger and Salir for the same crowded line. The
+              agency name/code that used to sit here on mobile moved to
+              the top of MobileTabMenu instead. */}
           <button onClick={()=>setVerSaldo(true)} style={{
             background:`${(saldoCC??0)>=0?Q.green:Q.red}18`,
             border:`1px solid ${(saldoCC??0)>=0?Q.green:Q.red}66`,
-            borderRadius:RADII.md,padding:"4px 12px",cursor:"pointer",textAlign:"right"}}>
-            <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
-              letterSpacing:1,fontFamily:F_BODY}}>Saldo</div>
-            <div style={{color:(saldoCC??0)>=0?Q.green:Q.red,fontWeight:800,fontSize:13,
-              fontFamily:F_BODY}}>
-              {saldoCC==null?"...":ars(saldoCC)}</div>
+            borderRadius:RADII.md,padding:isDesktop?"8px 16px":"4px 12px",
+            cursor:"pointer",
+            display:"flex",alignItems:"baseline",gap:SPACING[8],
+            whiteSpace:"nowrap"}}>
+            <span style={{color:Q.muted,fontSize:TEXT[12],textTransform:"uppercase",
+              letterSpacing:1,fontFamily:F_BODY}}>Saldo</span>
+            <span style={{color:(saldoCC??0)>=0?Q.green:Q.red,fontWeight:800,
+              fontSize:isDesktop?TEXT[20]:TEXT[14],fontFamily:F_MONO,
+              fontVariantNumeric:"tabular-nums"}}>
+              {saldoCC==null?"...":ars(saldoCC)}</span>
           </button>
-          <div style={{textAlign:"right"}}>
-            <div style={{color:Q.text,fontSize:12,fontWeight:600,
-              fontFamily:F_BODY}}>{agencia.name}</div>
-            <div style={{color:Q.muted,fontSize:12}}>{agencia.code}</div>
-          </div>
+          {isDesktop&&(
+            <div style={{textAlign:"right"}}>
+              <div style={{color:Q.text,fontSize:12,fontWeight:600,
+                fontFamily:F_BODY}}>{agencia.name}</div>
+              <div style={{color:Q.muted,fontSize:12}}>{agencia.code}</div>
+            </div>
+          )}
           <button onClick={onLogout} style={{background:"transparent",
             border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"4px 12px",
             color:Q.muted,fontSize:12,cursor:"pointer"}}>Salir</button>
         </div>
       </div>
 
-      <div style={isDesktop ? {
-        background:Q.deep,borderRight:`1px solid ${Q.border}`,
+      {/* Below 1024px this sidebar is gone entirely, replaced by the
+          hamburger's MobileTabMenu overlay — see odd/tasks/mobile-nav.md.
+          Desktop keeps exactly the sidebar it already had. */}
+      {isDesktop&&(
+      <div style={{
+        // Deliberately matching Admin.jsx's literal sidebar background,
+        // not the Q.deep token: parity with admin's near-black desktop
+        // sidebar, keep this in sync if admin's value changes.
+        background:"rgba(6,6,18,0.97)",backdropFilter:"blur(20px)",
+        borderRight:`1px solid ${Q.border}`,
         padding:`${SPACING[24]}px ${SPACING[12]}px`,display:"flex",
         flexDirection:"column",alignItems:"stretch",gap:SPACING[8],
         overflowY:"auto",flexShrink:0,zIndex:40,
         gridColumn:"1",gridRow:"1 / span 2",position:"sticky",top:0,
         alignSelf:"start",width:264,height:"100dvh",
-      } : {background:Q.deep,borderBottom:`1px solid ${Q.border}`,
-        padding:"8px 12px",display:"flex",gap:SPACING[4],overflowX:"auto",
-        flexShrink:0,zIndex:40,WebkitOverflowScrolling:"touch"}}>
-        {isDesktop ? TAB_GROUPS.flatMap((group,gi)=>{
+      }}>
+        {TAB_GROUPS.flatMap((group,gi)=>{
           const groupTabs = group.keys.map(k=>TABS.find(t=>t.k===k)).filter(Boolean);
           if(groupTabs.length===0) return [];
           return [
@@ -8035,7 +8339,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
               textTransform:"uppercase",letterSpacing:1,fontFamily:F_BODY,
             }}>{group.label}</div>,
             ...groupTabs.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
+          <button key={t.k} onClick={()=>setTab(t.k)} style={{
             minWidth:0,
             background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
             border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
@@ -8044,17 +8348,20 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             fontFamily:F_BODY,
             position:"relative",
             width:"100%",minHeight:44,padding:"0 12px",flexShrink:0,
-            display:"flex",alignItems:"center",justifyContent:"flex-start",
-            textAlign:"left",
-          } : {
-            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
-            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,
-            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
-            fontFamily:F_BODY,
-            position:"relative",
+            display:"flex",flexDirection:"row",alignItems:"center",
+            justifyContent:"flex-start",gap:SPACING[12],
+            textAlign:"left",overflow:"visible",
           }}>
-            {t.i}<span style={{marginLeft:SPACING[8]}}>{t.l}</span>
+            {/* Same treatment as admin's sidebar, down to the icon's glow
+                and the uppercase label: two panels of one product should
+                not have two different menus. */}
+            <span style={{fontSize:17,position:"relative",
+              filter:tab===t.k?`drop-shadow(0 0 6px ${Q.cyan})`:"none"}}>{t.i}</span>
+            <span style={{color:tab===t.k?Q.cyan:Q.muted,fontSize:TEXT[12],
+              fontWeight:tab===t.k?700:400,maxWidth:"100%",
+              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+              fontFamily:F_BODY,letterSpacing:0.3,
+              textTransform:"uppercase"}}>{t.l}</span>
             {t.k==="mensajes"&&msgPendientes>0&&(
               <span style={{position:"absolute",top:-4,right:-4,
                 background:Q.red,color:"#fff",borderRadius:RADII.md,
@@ -8067,39 +8374,22 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
           </button>
             )),
           ];
-        }) : TABS.map(t=>(
-          <button key={t.k} onClick={()=>setTab(t.k)} style={isDesktop ? {
-            minWidth:0,
-            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:"transparent"}`,
-            borderRadius:RADII.md,cursor:"pointer",
-            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
-            fontFamily:F_BODY,
-            position:"relative",
-            width:"100%",minHeight:44,padding:"0 12px",flexShrink:0,
-            display:"flex",alignItems:"center",justifyContent:"flex-start",
-            textAlign:"left",
-          } : {
-            background:tab===t.k?`linear-gradient(135deg,${Q.violet}44,${Q.cyan}22)`:"transparent",
-            border:`1px solid ${tab===t.k?Q.violet:Q.border}`,
-            borderRadius:RADII.md,padding:"8px 16px",cursor:"pointer",flexShrink:0,
-            color:tab===t.k?Q.cyan:Q.muted,fontSize:12,fontWeight:tab===t.k?700:400,
-            fontFamily:F_BODY,
-            position:"relative",
-          }}>
-            {t.i}<span style={{marginLeft:SPACING[8]}}>{t.l}</span>
-            {t.k==="mensajes"&&msgPendientes>0&&(
-              <span style={{position:"absolute",top:-4,right:-4,
-                background:Q.red,color:"#fff",borderRadius:RADII.md,
-                minWidth:16,height:16,fontSize:12,fontWeight:800,
-                display:"flex",alignItems:"center",
-                justifyContent:"center",padding:"0 4px",lineHeight:1,
-                fontFamily:F_BODY}}>
-                {msgPendientes>9?"9+":msgPendientes}</span>
-            )}
-          </button>
-        ))}
+        })}
       </div>
+      )}
+
+      <MobileTabMenu open={menuOpen} onClose={()=>setMenuOpen(false)}
+        groups={TAB_GROUPS} tabs={TABS} activeTab={tab} onSelect={setTab}
+        badges={{mensajes:msgPendientes}}
+        topContent={
+          <div style={{marginBottom:SPACING[16],paddingBottom:SPACING[16],
+            borderBottom:`1px solid ${Q.border}`}}>
+            <div style={{color:Q.text,fontWeight:700,fontSize:TEXT[16],
+              fontFamily:F_BODY}}>{agencia.name}</div>
+            <div style={{color:Q.muted,fontSize:TEXT[13],marginTop:2,
+              fontFamily:F_BODY}}>{agencia.code}</div>
+          </div>
+        }/>
 
       <div style={isDesktop ? {flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",
         WebkitOverflowScrolling:"touch",position:"relative",zIndex:1,
@@ -8501,7 +8791,7 @@ function InfluencerEscaner({ agencia, onSesionExpirada }){
 
   return(
     <div>
-      <GCard glow={Q.cyan} style={{padding:SPACING[16],marginBottom:12,
+      <GCard style={{padding:SPACING[16],marginBottom:12,
         background:`linear-gradient(135deg,${Q.cyan}10,${Q.violet}06)`}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:6,
           fontFamily:F_BODY}}><Icon name="scan-line" size={14}/> Tu escáner de apuestas</div>
@@ -8641,7 +8931,7 @@ function InfluencerHome({ agencia, onSesionExpirada }){
   return(
     <div>
       {/* Código y links para compartir */}
-      <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12,
+      <GCard style={{padding:SPACING[16],marginBottom:12,
         background:`linear-gradient(135deg,${Q.violet}12,${Q.cyan}06)`}}>
         <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
           marginBottom:6,fontFamily:F_BODY}}>Tu código</div>
@@ -8681,7 +8971,7 @@ function InfluencerHome({ agencia, onSesionExpirada }){
         fontFamily:F_BODY}}>Cargando...</div>}
       {data&&(
         <div>
-          <GCard glow={Q.gold} style={{padding:SPACING[20],marginBottom:12}}>
+          <GCard style={{padding:SPACING[20],marginBottom:12}}>
             <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
               marginBottom:4,fontFamily:F_BODY}}>Tu comisión</div>
             <div style={{color:Q.gold,fontWeight:900,fontSize:30,
@@ -9001,7 +9291,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
   };
 
   return(
-    <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:14}}>
+    <GCard style={{padding:SPACING[16],marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
         fontFamily:F_BODY}}><Zap size={13}/> Nuevo combo · elegí de la oferta real</div>
       <input value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre del combo"
@@ -9016,7 +9306,7 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
 
       {/* Picks elegidos + ganancias */}
       {picks.length>0&&(
-        <GCard glow={Q.gold} style={{padding:SPACING[12],marginBottom:12,
+        <GCard style={{padding:SPACING[12],marginBottom:12,
           background:`linear-gradient(135deg,${Q.violet}10,${Q.gold}08)`}}>
           <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,
             marginBottom:8,fontFamily:F_BODY}}>Tu combo ({picks.length})</div>
@@ -9063,10 +9353,16 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
 
       {editando&&(
         <div style={{marginTop:12}}>
-          <Btn label={<><Palette size={13}/> Editar imagen (crear placa)</>} onClick={()=>setEditando({...editando,_abrir:true})}
-            color={Q.violet} outline full/>
-          <div style={{height:8}}/>
-          <Btn label="✓ Listo" onClick={onListo} color={Q.green} full/>
+          {/* Editing the image and finishing are two independent choices at this step, so they share a line */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+            <div>
+              <Btn label={<><Palette size={13}/> Editar imagen (crear placa)</>} onClick={()=>setEditando({...editando,_abrir:true})}
+                color={Q.violet} outline full/>
+            </div>
+            <div>
+              <Btn label="✓ Listo" onClick={onListo} color={Q.green} full/>
+            </div>
+          </div>
         </div>
       )}
       {editando&&editando._abrir&&<EditorPlaca combo={editando}
