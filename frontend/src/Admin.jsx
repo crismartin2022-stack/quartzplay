@@ -80,8 +80,13 @@ function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=fa
     <button onClick={onClick} disabled={disabled} style={{
       height:h, width:full?"100%":"auto",
       padding:`0 ${size==="sm"?"10px":"16px"}`,
-      background:disabled?"rgba(255,255,255,0.04)":outline?"transparent":`linear-gradient(135deg,${color},${color}CC)`,
-      border:`1px solid ${disabled?Q.dim:color}`, borderRadius:RADII.md,
+      // An outline button used to be a coloured 1px box. Stack four of
+      // them and the screen is all edges and no ranking, which is the
+      // whole complaint. A secondary action reads perfectly well as a
+      // raised surface with a coloured label: the colour still says what
+      // kind of action it is, without drawing a frame around it.
+      background:disabled?"rgba(255,255,255,0.04)":outline?Q.raised:`linear-gradient(135deg,${color},${color}CC)`,
+      border:outline&&!disabled?"none":`1px solid ${disabled?Q.dim:color}`, borderRadius:RADII.md,
       color:disabled?Q.muted:outline?color:"#fff",
       fontSize:fs, fontWeight:700, cursor:disabled?"not-allowed":"pointer",
       display:"flex", alignItems:"center", justifyContent:"center", gap:SPACING[8],
@@ -94,8 +99,11 @@ function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=fa
 }
 
 function KPI({ label, value, sub, color=Q.violet, icon, trend, onClick }){
+  // No glow: the value below is already in `color`, so a coloured border
+  // around it repeats the signal and spends the one thing that was
+  // supposed to mean "look at this".
   return(
-    <GCard glow={color} onClick={onClick} style={{padding:"12px 16px"}}>
+    <GCard onClick={onClick} style={{padding:"12px 16px"}}>
       <div style={{display:"flex",alignItems:"center",gap:SPACING[8],marginBottom:6}}>
         {icon&&<span style={{fontSize:16}}>{icon}</span>}
         <span style={{color:Q.muted,fontSize:12,fontWeight:600,letterSpacing:1,
@@ -204,7 +212,7 @@ function AdminLogin({ onLogin }){
           <div style={{color:Q.muted,fontSize:12,marginTop:8,
             fontFamily:F_BODY}}>Panel Administrador</div>
         </div>
-        <GCard glow={Q.violet} style={{padding:SPACING[32]}}>
+        <GCard style={{padding:SPACING[32]}}>
           <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
             letterSpacing:1,fontFamily:F_BODY,marginBottom:6}}>
             Clave admin
@@ -575,7 +583,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                   de las cargas de saldo: acá está la plata que el
                   cajero recibió y pagó en mano. */}
               {caja.operativa&&(caja.operativa.entro>0||caja.operativa.salio>0)&&(
-                <GCard glow={Q.cyan} style={{padding:SPACING[16],marginBottom:12}}>
+                <GCard style={{padding:SPACING[16],marginBottom:12}}>
                   <div style={{color:Q.muted,fontSize:12,marginBottom:10,
                     fontFamily:F_BODY}}>
                     Efectivo del mostrador</div>
@@ -660,7 +668,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                 </GCard>
               )}
 
-              <GCard glow={Q.green} style={{padding:SPACING[16],marginBottom:12}}>
+              <GCard style={{padding:SPACING[16],marginBottom:12}}>
                 <div style={{color:Q.muted,fontSize:12,marginBottom:8,
                   fontFamily:F_BODY}}>
                   Billetera de los clientes · {caja.desde===caja.hasta?caja.desde
@@ -700,7 +708,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
                 )}
               </GCard>
 
-              <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
+              <GCard style={{padding:SPACING[16],marginBottom:12}}>
                 <div style={{display:"flex",justifyContent:"space-between",
                   alignItems:"baseline"}}>
                   <div>
@@ -795,7 +803,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
 
       {data&&(
         <div>
-          <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12,
+          <GCard style={{padding:SPACING[16],marginBottom:12,
             background:`linear-gradient(135deg,${Q.violet}12,${Q.cyan}06)`}}>
             <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
               letterSpacing:1,marginBottom:10,
@@ -852,7 +860,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
               propia comisión, pero el resultado del período es la
               suma de todo. */}
           {data.casino&&(data.casino.apostado>0||data.casino.ggr!==0)&&(
-            <GCard glow={Q.gold} style={{padding:SPACING[16],marginBottom:12}}>
+            <GCard style={{padding:SPACING[16],marginBottom:12}}>
               <div style={{color:Q.gold,fontWeight:700,fontSize:12.5,
                 marginBottom:8,fontFamily:F_BODY}}>
                 <Icon name="spade" size={14}/> Casino y ruleta</div>
@@ -877,7 +885,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
 
           {/* El resultado de toda la operación */}
           {data.total&&(
-            <GCard glow={Q.cyan} style={{padding:SPACING[16],marginBottom:12}}>
+            <GCard style={{padding:SPACING[16],marginBottom:12}}>
               <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
                 marginBottom:8}}>TOTAL DE LA OPERACIÓN</div>
               <div style={{display:"flex",gap:SPACING[12],marginBottom:10}}>
@@ -958,7 +966,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
           )}
 
           {!filtroAg&&(
-            <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12,
+            <GCard style={{padding:SPACING[16],marginBottom:12,
               background:`linear-gradient(135deg,${Q.violet}10,${Q.cyan}06)`}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
                 fontFamily:F_BODY}}><Icon name="sliders-horizontal" size={14}/> Liquidación automática</div>
@@ -990,7 +998,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
           )}
 
           {filtroAg&&!data.es_cliente&&(
-            <GCard glow={Q.gold} style={{padding:SPACING[16],marginBottom:12,
+            <GCard style={{padding:SPACING[16],marginBottom:12,
               background:`linear-gradient(135deg,${Q.gold}10,${Q.violet}06)`}}>
               <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
                 fontFamily:F_BODY}}><Icon name="wallet-cards" size={14}/> Liquidación de comisiones</div>
@@ -1304,7 +1312,7 @@ function TabGlobal({ adminKey, onNoAutorizado, onIr }){
           onClick={()=>onIr&&onIr("cierre")}/>
       </div>
 
-      <GCard glow={Q.green} style={{padding:SPACING[16],marginBottom:12,
+      <GCard style={{padding:SPACING[16],marginBottom:12,
         background:`linear-gradient(135deg,${Q.green}10,${Q.violet}06)`}}>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
           <span style={{color:Q.muted,fontSize:12,
@@ -1699,7 +1707,7 @@ function CrearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
         fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
       {picks.length>0&&(
-        <GCard glow={Q.violet} style={{padding:SPACING[16]}}>
+        <GCard style={{padding:SPACING[16]}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
             <span style={{color:Q.muted,fontSize:12,
               fontFamily:F_BODY}}>{picks.length} picks</span>
@@ -2035,7 +2043,7 @@ function EscanearComboAdmin({ adminKey, onListo, onVolver, onNoAutorizado }){
           ))}
 
           {res.picks_ok>0&&(
-            <GCard glow={Q.violet} style={{padding:SPACING[16],marginTop:8}}>
+            <GCard style={{padding:SPACING[16],marginTop:8}}>
               <input value={nombre} onChange={e=>setNombre(e.target.value)}
                 placeholder="Nombre del combo"
                 style={{width:"100%",background:"rgba(255,255,255,0.05)",
@@ -2330,7 +2338,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
         {f&&(
           <div>
             {/* Cabecera */}
-            <GCard glow={f.bloqueado?Q.red:Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
+            <GCard glow={f.bloqueado?Q.red:null} style={{padding:SPACING[16],marginBottom:12}}>
               <div style={{display:"flex",justifyContent:"space-between",
                 alignItems:"flex-start"}}>
                 <div>
@@ -2515,7 +2523,7 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
             )}
 
             {/* Bloqueo */}
-            <GCard glow={f.bloqueado?Q.green:Q.red} style={{padding:SPACING[16],marginBottom:12}}>
+            <GCard glow={f.bloqueado?null:Q.red} style={{padding:SPACING[16],marginBottom:12}}>
               {f.bloqueado?(
                 <div>
                   <div style={{color:Q.muted,fontSize:12,marginBottom:8,
@@ -3633,7 +3641,7 @@ function TabDash(){
         <KPI label="Apuestas vivas"value={s.apuestasActivas.toString()}                         color={Q.amber}  icon={<Target size={16}/>}/>
       </div>
 
-      <GCard glow={Q.green} style={{padding:SPACING[16],marginBottom:12,
+      <GCard style={{padding:SPACING[16],marginBottom:12,
         background:`linear-gradient(135deg,${Q.green}10,${Q.violet}06)`}}>
         <div style={{color:Q.muted,fontSize:12,letterSpacing:2,textTransform:"uppercase",
           fontFamily:F_BODY,marginBottom:3}}>NET WIN 30 DÍAS</div>
@@ -3643,7 +3651,7 @@ function TabDash(){
         </div>
       </GCard>
 
-      <GCard glow={Q.gold} style={{padding:SPACING[16],marginBottom:12}}>
+      <GCard style={{padding:SPACING[16],marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
           fontFamily:F_BODY}}><Icon name="trophy" size={14}/> Top usuarios por GGR</div>
         {MOCK.topUsers.map((u,i)=>(
@@ -3775,7 +3783,7 @@ function HistorialBloqueos({ adminKey, onCerrar, onNoAutorizado }){
         {(data||[]).map((b,i)=>{
           const esBloqueo=b.accion==="bloqueo";
           return(
-            <GCard key={i} glow={esBloqueo?Q.red:Q.green}
+            <GCard key={i} glow={esBloqueo?Q.red:null}
               style={{padding:"12px 12px",marginBottom:6}}>
               <div style={{display:"flex",justifyContent:"space-between",
                 alignItems:"flex-start",gap:SPACING[8]}}>
@@ -3952,7 +3960,7 @@ function TabInfluencers({ adminKey, onNoAutorizado }){
 
       {vista==="reporte"&&data&&(
         <div>
-          <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12,
+          <GCard style={{padding:SPACING[16],marginBottom:12,
             background:`linear-gradient(135deg,${Q.violet}12,${Q.cyan}06)`}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8]}}>
               {[["Ventas",data.total.ventas,Q.cyan],
@@ -4072,7 +4080,7 @@ function CrearInfluencer({ adminKey, onListo, onNoAutorizado }){
   };
 
   return(
-    <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:14}}>
+    <GCard style={{padding:SPACING[16],marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
         fontFamily:F_BODY}}><Star size={14}/> Nuevo influencer</div>
       {[["name","Nombre","Juan Tips"],["username","Usuario","juantips"],
@@ -4195,7 +4203,7 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
           fontFamily:F_BODY}}>Cargando...</div>}
         {d&&(
           <div>
-            <GCard glow={Q.gold} style={{padding:SPACING[16],marginBottom:12}}>
+            <GCard style={{padding:SPACING[16],marginBottom:12}}>
               <div style={{color:Q.muted,fontSize:12,marginBottom:8,
                 fontFamily:F_BODY}}>Código: {rep.codigo_ref}</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:SPACING[8],marginBottom:12}}>
@@ -4781,7 +4789,7 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
 
   if(!agencia) return null;
   return(
-    <GCard glow={Q.violet} style={{padding:SPACING[16]}}>
+    <GCard style={{padding:SPACING[16]}}>
       <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
         {[["cc",<><Icon name="wallet-cards" size={13}/> Saldo</>],["config",<><Icon name="sliders-horizontal" size={13}/> Configurar</>],["editar","Estado"],
           ["anular",<><Ban size={13}/> Anular</>]].map(([k,l])=>(
@@ -5146,7 +5154,7 @@ function CrearClienteAdmin({ adminKey, agencia, onListo, onCancel, onNoAutorizad
   };
 
   return(
-    <GCard glow={Q.cyan} style={{padding:SPACING[12],marginBottom:8}}>
+    <GCard style={{padding:SPACING[12],marginBottom:8}}>
       {!agencia&&<div style={{color:Q.muted,fontSize:12,marginBottom:8,lineHeight:1.4,
         fontFamily:F_BODY}}>
         <Icon name="landmark" size={11}/> Cliente propio del admin (sin agencia).</div>}
@@ -5213,7 +5221,7 @@ function CrearAgenciaAdmin({ adminKey, agencias, onListo, onNoAutorizado }){
   };
 
   return(
-    <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:14}}>
+    <GCard style={{padding:SPACING[16],marginBottom:14}}>
       <div style={{color:Q.violet2,fontWeight:700,fontSize:14,marginBottom:12,
         fontFamily:F_BODY}}><Icon name="plus" size={14}/> Nueva agencia</div>
       {[["name","Nombre","Agencia Norte"],["username","Usuario","norte1"],
@@ -5594,7 +5602,7 @@ function TabBonos({ adminKey, onNoAutorizado }){
 
   return(
     <div>
-      <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:16}}>
+      <GCard style={{padding:SPACING[16],marginBottom:16}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:10,
           fontFamily:F_BODY}}><Gift size={14}/> Nuevo bono</div>
         <input value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))}
@@ -6180,7 +6188,7 @@ function TabBetBuilder({ adminKey, onNoAutorizado }){
         Combinar mercados del mismo partido. El margen de correlación protege a la casa
         del riesgo de eventos correlacionados.</div>
 
-      <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
+      <GCard style={{padding:SPACING[16],marginBottom:12}}>
         <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",
           cursor:"pointer",marginBottom:12}}>
           <span style={{color:Q.text,fontWeight:700,fontSize:14,
@@ -7235,7 +7243,7 @@ function IacoinPanel({ adminKey, onNoAutorizado }){
         textAlign:"center",lineHeight:1.45}}>
         <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
-      <GCard glow={Q.cyan} style={{padding:SPACING[16],marginBottom:12}}>
+      <GCard style={{padding:SPACING[16],marginBottom:12}}>
         <div style={{display:"flex",gap:SPACING[12]}}>
           <div style={{flex:1}}>
             <div style={{color:Q.muted,fontSize:12}}>En circulación</div>
@@ -7778,7 +7786,7 @@ function HistorialAdmin({ adminKey, onNoAutorizado }){
 
       {d&&d.total&&(
         <>
-          <GCard glow={Q.cyan} style={{padding:SPACING[16],margin:"12px 0"}}>
+          <GCard style={{padding:SPACING[16],margin:"12px 0"}}>
             <div style={{display:"flex",gap:SPACING[12]}}>
               <div style={{flex:1}}>
                 <div style={{color:Q.muted,fontSize:12}}>Jugadas</div>
@@ -8186,7 +8194,7 @@ function ReporteDesafios({ adminKey, onNoAutorizado }){
 
       {d&&(
         <>
-          <GCard glow={Q.cyan} style={{padding:SPACING[16],margin:"12px 0"}}>
+          <GCard style={{padding:SPACING[16],margin:"12px 0"}}>
             <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
               marginBottom:9}}>EL PRODUCTO EN IACOIN</div>
             <div style={{display:"flex",gap:SPACING[12],marginBottom:10}}>
@@ -8343,7 +8351,7 @@ function ReporteJuegos({ adminKey, onNoAutorizado }){
 
       {d&&(
         <>
-          <GCard glow={Q.cyan} style={{padding:SPACING[16],margin:"12px 0"}}>
+          <GCard style={{padding:SPACING[16],margin:"12px 0"}}>
             <div style={{display:"flex",gap:SPACING[12],marginBottom:9}}>
               <div style={{flex:1}}>
                 <div style={{color:Q.muted,fontSize:12}}>Jugadas</div>
@@ -10051,7 +10059,7 @@ function TabResponsable({ adminKey, onNoAutorizado }){
 
           {aud&&(
             <>
-              <GCard glow={aud.cadena_intacta?Q.green:Q.red}
+              <GCard glow={aud.cadena_intacta?null:Q.red}
                 style={{padding:SPACING[16],marginBottom:12}}>
                 <div style={{display:"flex",
                   justifyContent:"space-between",alignItems:"center"}}>
@@ -10531,7 +10539,7 @@ function TabRecompensas({ adminKey, onNoAutorizado }){
         {activo?<><Icon name="circle-check" size={13}/> Activo</>:<><CircleOff size={13}/> Apagado</>}</button>
 
       {d&&d.visitas_pagadas>0&&(
-        <GCard glow={Q.gold} style={{padding:SPACING[16],marginBottom:12}}>
+        <GCard style={{padding:SPACING[16],marginBottom:12}}>
           <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
             marginBottom:8}}>ÚLTIMOS 30 DÍAS</div>
           <div style={{display:"flex",gap:SPACING[12],marginBottom:8}}>
@@ -10979,7 +10987,7 @@ function TabProductos({ adminKey, onNoAutorizado }){
 
       {datos&&(
         <>
-          <GCard glow={Q.cyan} style={{padding:SPACING[16],margin:"12px 0"}}>
+          <GCard style={{padding:SPACING[16],margin:"12px 0"}}>
             <div style={{color:Q.muted,fontSize:12,letterSpacing:0.8,
               marginBottom:8}}>TOTAL DEL PERÍODO</div>
             <div style={{display:"flex",gap:SPACING[12],marginBottom:10}}>
@@ -11554,7 +11562,7 @@ function TabMensajes({ adminKey, onNoAutorizado }){
 
       {vista==="avisos"&&(
         <>
-          <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
+          <GCard style={{padding:SPACING[16],marginBottom:12}}>
             <div style={{color:Q.text,fontWeight:700,fontSize:13,
               marginBottom:8,fontFamily:F_BODY}}>
               Publicar un aviso</div>
@@ -12192,7 +12200,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
       )}
 
       {vista==="alertas"&&analisis&&(
-        <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
+        <GCard style={{padding:SPACING[16],marginBottom:12}}>
           <div style={{color:Q.violet2||Q.violet,fontWeight:700,fontSize:12,
             marginBottom:6,fontFamily:F_BODY}}>
             <Bot size={12}/> Por dónde empezar</div>
@@ -12606,7 +12614,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
                 {cuotas.problemas.length} con problemas</div>
 
               {cuotas.problemas.length===0&&(
-                <GCard glow={Q.green} style={{padding:SPACING[20],textAlign:"center"}}>
+                <GCard style={{padding:SPACING[20],textAlign:"center"}}>
                   <div style={{color:Q.green,fontSize:13,
                     fontFamily:F_BODY}}>
                     Todas las cuotas dejan margen para la casa</div>
@@ -12705,7 +12713,7 @@ function TabRiesgoSistema({ adminKey, onNoAutorizado }){
           )}
 
           {salud?.analisis&&(
-            <GCard glow={Q.violet} style={{padding:SPACING[16],marginTop:12,
+            <GCard style={{padding:SPACING[16],marginTop:12,
               marginBottom:12}}>
               <div style={{color:Q.violet2||Q.violet,fontWeight:700,
                 fontSize:12,marginBottom:6,
@@ -13375,7 +13383,7 @@ function TabMejora({ adminKey, onNoAutorizado }){
         textAlign:"center"}}>
         <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
-      <GCard glow={Q.gold} style={{padding:SPACING[16],marginBottom:12}}>
+      <GCard style={{padding:SPACING[16],marginBottom:12}}>
         <div style={{color:Q.muted,fontSize:12,marginBottom:6,
           fontFamily:F_BODY}}>
           Tope de mejora (%)</div>
@@ -13395,7 +13403,7 @@ function TabMejora({ adminKey, onNoAutorizado }){
       </div>
 
       {analisis&&(
-        <GCard glow={Q.violet} style={{padding:SPACING[16]}}>
+        <GCard style={{padding:SPACING[16]}}>
           <div style={{color:Q.violet2||Q.violet,fontWeight:700,fontSize:12,
             marginBottom:6,fontFamily:F_BODY}}>
             <Bot size={12}/> Lectura del asesor</div>
@@ -13506,7 +13514,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
         {activo?<><Icon name="circle-check" size={13}/> Activo · se aplica a las combinadas</>
                :<><CircleOff size={13}/> Apagado · las combinadas pagan normal</>}</button>
 
-      <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
+      <GCard style={{padding:SPACING[16],marginBottom:12}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:4,
           fontFamily:F_BODY}}>Escalones</div>
         <div style={{color:Q.muted,fontSize:12,marginBottom:10}}>
@@ -13566,7 +13574,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
         onClick={simular} color={Q.cyan} outline full disabled={simProc}/>
 
       {sim&&(
-        <GCard glow={Q.cyan} style={{padding:SPACING[16],marginTop:12,marginBottom:12}}>
+        <GCard style={{padding:SPACING[16],marginTop:12,marginBottom:12}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
             fontFamily:F_BODY}}>
             Si hubiera estado activo estos {sim.dias} días</div>
@@ -13624,7 +13632,7 @@ function TabBoost({ adminKey, onNoAutorizado }){
       )}
 
       {analisis&&(
-        <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
+        <GCard style={{padding:SPACING[16],marginBottom:12}}>
           <div style={{color:Q.violet2||Q.violet,fontWeight:700,fontSize:12,
             marginBottom:6,fontFamily:F_BODY}}>
             <Bot size={12}/> Lectura del asesor</div>
@@ -13741,7 +13749,7 @@ function TabBanners({ adminKey, onNoAutorizado }){
         textAlign:"center"}}>
         <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
 
-      <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:18}}>
+      <GCard style={{padding:SPACING[16],marginBottom:18}}>
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:10,
           fontFamily:F_BODY}}>Subir uno nuevo</div>
         <input placeholder="Título (opcional)" value={nuevo.titulo}
@@ -13917,7 +13925,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
         Cuánto habría que pagar si gana cada resultado, sumando los boletos
         activos. Sirve para suspender un mercado antes de que se desbalancee.</div>
 
-      <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:16}}>
+      <GCard style={{padding:SPACING[16],marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",
           alignItems:"center",marginBottom:12}}>
           <div>
@@ -13989,7 +13997,7 @@ function TabRiesgo({ adminKey, onNoAutorizado }){
       {/* Los topes ya cargados. Sin esto había que ir moneda por moneda
           para saber cuáles estaban configurados. */}
       {topes&&(topes.topes||[]).some(t=>t.tope>0)&&(
-        <GCard glow={Q.cyan} style={{padding:SPACING[16],marginBottom:12}}>
+        <GCard style={{padding:SPACING[16],marginBottom:12}}>
           <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:8,
             fontFamily:F_BODY}}>
             Topes cargados</div>
@@ -14152,7 +14160,7 @@ function TabLimites({ adminKey, onNoAutorizado }){
         Monto mínimo, máximo y pago máximo. Aplicá a toda la red, a una rama
         (agencia + descendientes) o a una agencia sola.</div>
 
-      <GCard glow={Q.violet} style={{padding:SPACING[16],marginBottom:16}}>
+      <GCard style={{padding:SPACING[16],marginBottom:16}}>
         <div style={{color:Q.muted,fontSize:12,marginBottom:4,
           fontFamily:F_BODY}}>Alcance</div>
         <div style={{display:"flex",gap:SPACING[8],marginBottom:10}}>
