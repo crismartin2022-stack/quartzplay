@@ -23,10 +23,12 @@ export default function MobileTabMenu({
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",
       zIndex:300,display:"flex",justifyContent:"flex-end"}}
       onClick={onClose}>
+      {/* Full width: a drawer that leaves a strip of the page showing
+          competes with the menu for attention on exactly the screen where
+          there is least of it. */}
       <div onClick={e=>e.stopPropagation()} style={{background:"rgba(6,6,18,0.98)",
-        backdropFilter:"blur(20px)",width:"min(86vw,360px)",maxWidth:360,
-        height:"100%",overflowY:"auto",padding:SPACING[20],
-        borderLeft:`1px solid ${Q.border}`}}>
+        backdropFilter:"blur(20px)",width:"100%",
+        height:"100%",overflowY:"auto",padding:SPACING[20]}}>
         <div style={{display:"flex",justifyContent:"flex-end",marginBottom:SPACING[12]}}>
           <button onClick={onClose} aria-label="Cerrar menú" style={{
             background:"transparent",border:"none",color:Q.muted,

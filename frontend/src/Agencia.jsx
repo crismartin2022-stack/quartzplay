@@ -889,6 +889,7 @@ function LoginScreen({ onLogin }){
 // FLUJO A+C — CÓDIGO DEL BOT
 // ═══════════════════════════════════════════════════════════════
 function FlujoCodigo({ agencia, onSesionExpirada }){
+  const isDesktop=useDesktopShellWidth();
   const [code,setCode]=useState("");
   const [slip,setSlip]=useState(null);
   const [err,setErr]=useState("");
@@ -1035,7 +1036,10 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
         <div style={{color:Q.muted,fontSize:12,marginBottom:14}}>
           El cliente muestra el código QP-XXXXX desde su celular o ticket
         </div>
-        <div style={{display:"flex",gap:SPACING[8]}}>
+        {/* Stacked on a phone: side by side the field needs the whole width
+            to show a code, so the button was pushed past the right edge. */}
+        <div style={{display:"flex",gap:SPACING[8],
+          flexDirection:isDesktop?"row":"column"}}>
           <input value={code} onChange={e=>setCode(e.target.value.toUpperCase())}
             onKeyDown={e=>e.key==="Enter"&&buscar()}
             placeholder="QP-47829"
@@ -1044,7 +1048,7 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
               padding:"12px 16px",color:Q.text,fontSize:20,
               fontFamily:F_BODY,fontWeight:700,letterSpacing:2}}/>
           <Btn label={loading?"...":"BUSCAR"} onClick={buscar}
-            disabled={!code||loading} color={Q.violet}/>
+            disabled={!code||loading} color={Q.violet} full={!isDesktop}/>
         </div>
         {err&&<div style={{marginTop:12}}><AlertaError mensaje={err}/></div>}
       </GCard>
