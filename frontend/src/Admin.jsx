@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import CameraCapture from "./CameraCapture";
-import { oscuro as Q, F_BODY, F_MONO, RADII, SPACING, TEXT , ELEVATION } from "./theme";
+import { oscuro as Q, F_BODY, F_MONO, RADII, SPACING, TEXT , ELEVATION, inkOn } from "./theme";
 import BrandMark from "./BrandMark";
 import Icon from "./Icon";
 import PageHeader from "./PageHeader";
@@ -88,11 +88,18 @@ function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=fa
       // kind of action it is, without drawing a frame around it.
       background:disabled?"rgba(255,255,255,0.04)":outline?"rgba(255,255,255,0.06)":`linear-gradient(135deg,${color},${color}CC)`,
       border:outline&&!disabled?"none":`1px solid ${disabled?Q.dim:color}`, borderRadius:RADII.md,
-      color:disabled?Q.muted:outline?color:"#fff",
+      // inkOn measures contrast against the fill and picks dark or light
+      // ink — a hardcoded "#fff" is unreadable on a light accent like
+      // Q.green. Do not special-case any one colour here; let the helper
+      // decide for all of them.
+      color:disabled?Q.muted:outline?color:inkOn(color),
       fontSize:fs, fontWeight:700, cursor:disabled?"not-allowed":"pointer",
       display:"flex", alignItems:"center", justifyContent:"center", gap:SPACING[8],
       fontFamily:F_BODY, textTransform:"uppercase",
-      boxShadow:(!outline&&!disabled)?`0 4px 14px ${color}33`:"none",
+      // A neutral shadow, not a coloured halo: ELEVATION is the
+      // prototype's panel-level shadow (18px offset, 32px blur) and
+      // reads as an oversized floating box under a button this small.
+      boxShadow:(!outline&&!disabled)?"0 4px 12px rgba(0,0,0,0.35)":"none",
     }}>
       {icon&&<span style={{fontSize:fs+2}}>{icon}</span>}{label}
     </button>
