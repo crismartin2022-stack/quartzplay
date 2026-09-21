@@ -41,8 +41,27 @@ describe("the content column widens on desktop, in both panels", () => {
   test("Admin's desktop content wrapper uses the new cap", () => {
     const body = functionBody(ADMIN, "AdminPanel");
     expect(body).toMatch(
-      new RegExp(`style=\\{isDesktop \\? \\{padding:"16px",maxWidth:${DESKTOP_CAP},margin:"0 auto"`)
+      new RegExp(`style=\\{isDesktop \\? \\{padding:"16px",width:"100%",maxWidth:${DESKTOP_CAP},margin:"0 auto"`)
     );
+  });
+
+  // The cap alone was not enough and the reason is easy to delete by
+  // mistake. Admin's wrapper is a direct grid item; a grid item whose
+  // margins are `0 auto` hands its free space to those margins, which
+  // overrides the default stretch and sizes the box to its own content.
+  // The panel collapsed to about a third of its column and read as a
+  // phone inside a desktop. `width:"100%"` is what makes it fill the
+  // column before the cap and the margins do their part, so it is not
+  // redundant with either of them.
+  test("Admin's wrapper declares an explicit width, not just a cap", () => {
+    const body = functionBody(ADMIN, "AdminPanel");
+    const desktopBranch = body.slice(body.indexOf('style={isDesktop ? {padding:"16px"'));
+    expect(desktopBranch.slice(0, 200)).toContain('width:"100%"');
+  });
+
+  test("positive control: the width assertion fails when the width is absent", () => {
+    const withoutWidth = 'style={isDesktop ? {padding:"16px",maxWidth:1100,margin:"0 auto"';
+    expect(withoutWidth).not.toContain('width:"100%"');
   });
 
   test("positive control: a cap that never rose (still 620 on desktop) is detected as wrong", () => {
