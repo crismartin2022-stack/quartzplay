@@ -57,16 +57,16 @@ describe("App.jsx does not gain emoji back", () => {
   const counts = emojiCounts(APP);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
 
-  // The exact count this migration leaves behind, measured directly from
-  // source after T1 and T2 (docs/icon-inventory.md's 137/51 for this
-  // screen was taken at an earlier revision and no longer matches; this
-  // guard trusts a fresh scan over that document's summary numbers).
+  // odd/tasks/finish-icon-migration.md's T1 retired the row rule and
+  // migrated every remaining site but one: the ScreenPrematch sport-list
+  // "Cargando..." fallback, whose icon is backend-supplied data
+  // (`s.icon`/`d.sports[]`), not this file's own literal.
   test("total emoji uses do not rise above what this migration leaves behind", () => {
-    expect(total).toBeLessThanOrEqual(52);
+    expect(total).toBeLessThanOrEqual(1);
   });
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
-    expect(counts.size).toBeLessThanOrEqual(36);
+    expect(counts.size).toBeLessThanOrEqual(1);
   });
 });
 
@@ -74,16 +74,15 @@ describe("Web.jsx does not gain emoji back", () => {
   const counts = emojiCounts(WEB);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
 
-  // The exact count the site slice leaves behind, measured directly from
-  // source after T1 and T2 (docs/icon-inventory.md's 74/38 for this
-  // screen was taken at an earlier revision and no longer matches; this
-  // guard trusts a fresh scan over that document's summary numbers).
+  // odd/tasks/finish-icon-migration.md's T1 retired the row rule: every
+  // remaining emoji in this screen — including the dead, unreferenced
+  // STEPS array — now has a drawn-icon equivalent. Web.jsx is emoji-free.
   test("total emoji uses do not rise above what this migration leaves behind", () => {
-    expect(total).toBeLessThanOrEqual(32);
+    expect(total).toBeLessThanOrEqual(0);
   });
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
-    expect(counts.size).toBeLessThanOrEqual(26);
+    expect(counts.size).toBeLessThanOrEqual(0);
   });
 });
 
@@ -91,17 +90,15 @@ describe("Box.jsx does not gain emoji back", () => {
   const counts = emojiCounts(BOX);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
 
-  // The exact count the site slice leaves behind, measured directly from
-  // source after T2 (docs/icon-inventory.md's 23/21 for this screen was
-  // taken at an earlier revision, before an earlier PR's partial
-  // migration, and no longer matches; this guard trusts a fresh scan over
-  // that document's summary numbers).
+  // odd/tasks/finish-icon-migration.md's T1 retired the row rule and, with
+  // Box.jsx having no canvas/share/print text to carve an exception for,
+  // migrated the screen to zero.
   test("total emoji uses do not rise above what this migration leaves behind", () => {
-    expect(total).toBeLessThanOrEqual(9);
+    expect(total).toBeLessThanOrEqual(0);
   });
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
-    expect(counts.size).toBeLessThanOrEqual(9);
+    expect(counts.size).toBeLessThanOrEqual(0);
   });
 });
 
@@ -109,16 +106,22 @@ describe("Agencia.jsx does not gain emoji back", () => {
   const counts = emojiCounts(AGENCIA);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
 
-  // The exact count the agency slice (T1 + T2) leaves behind, measured
-  // directly from source (docs/icon-inventory.md's 281/73 for this screen
-  // was taken at an earlier revision and no longer matches; this guard
-  // trusts a fresh scan over that document's summary numbers).
+  // odd/tasks/finish-icon-migration.md's T2 retired the row rule and
+  // migrated every site that renders in the interface. What is left is
+  // text that leaves the application: the WhatsApp share message
+  // (textoCombo), the canvas fillText calls that draw a downloadable
+  // placa image (descargarPlacaCombo, EditorPlaca's layers and its
+  // 12-glyph sticker pool), the print window's raw HTML
+  // (abrirVentanaImpresion), two <option> contents, one code comment, one
+  // embedded mid-message aside, and the plain-string setOkMsg/setErr/
+  // setRespuesta calls outside the {text,ok} contract's named scope
+  // (same exclusion the player and site slices used).
   test("total emoji uses do not rise above what this migration leaves behind", () => {
-    expect(total).toBeLessThanOrEqual(157);
+    expect(total).toBeLessThanOrEqual(35);
   });
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
-    expect(counts.size).toBeLessThanOrEqual(56);
+    expect(counts.size).toBeLessThanOrEqual(19);
   });
 });
 
@@ -126,17 +129,24 @@ describe("Admin.jsx does not gain emoji back", () => {
   const counts = emojiCounts(ADMIN);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
 
-  // The exact count the admin slice (T1 + T2 + T3) leaves behind, measured
-  // directly from source (docs/icon-inventory.md's 503/90 for this screen
-  // was taken at an earlier revision and no longer matches; this guard
-  // trusts a fresh scan over that document's summary numbers). This is
-  // the last screen: with it fixed, every screen in the product has been
-  // through the migration.
+  // odd/tasks/finish-icon-migration.md's T3 retired the row rule and
+  // migrated every site that renders in the interface, including the
+  // outermost bottom-nav TABS strip and the 16-entry Config sub-nav this
+  // screen's earlier slice had left whole. What survives is a
+  // `placeholder` attribute and two <option> contents (none of the three
+  // can host a React element), two code comments, two sites where the
+  // emoji sits inside the {text,ok} contract's own text value (which
+  // would mean reshaping that value from a string into a node, out of
+  // this pass's scope), one embedded mid-message aside, one batch-result
+  // summary where each glyph is content (documented in the source), and
+  // the plain-string setMsg/setAnalisis calls outside the {text,ok}
+  // contract's named scope (same exclusion the player, site and agency
+  // slices used).
   test("total emoji uses do not rise above what this migration leaves behind", () => {
-    expect(total).toBeLessThanOrEqual(299);
+    expect(total).toBeLessThanOrEqual(23);
   });
 
   test("distinct emoji do not rise above what this migration leaves behind", () => {
-    expect(counts.size).toBeLessThanOrEqual(70);
+    expect(counts.size).toBeLessThanOrEqual(7);
   });
 });

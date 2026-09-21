@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { getFrontendConfig } from "./config";
 import { oscuro as Q, F_NUM, F_BODY, RADII, SPACING } from "./theme";
 import Icon from "./Icon";
-import { Handshake } from "lucide-react";
+import { Handshake, Repeat, Moon, Image as ImageIcon, Pencil, Wrench, Dices, Scale, Rocket, Inbox } from "lucide-react";
 import BrandMark from "./BrandMark";
 
 // La hora del partido, en la zona horaria del dispositivo.
@@ -865,7 +865,7 @@ export default function Box(){
               background:`${Q.violet}22`,border:`1px solid ${Q.violet}`,
               borderRadius:RADII.lg,padding:"16px",cursor:"pointer",
               color:Q.cyan,fontWeight:700,fontSize:15,marginBottom:10}}>
-              🔁 Mantener selecciones ({picks.length})
+              <Repeat size={15}/> Mantener selecciones ({picks.length})
             </button>
           )}
 
@@ -955,7 +955,7 @@ export default function Box(){
               padding:SPACING[32],fontSize:15}}>Cargando combos...</div>}
             {combos&&combos.length===0&&(
               <div style={{textAlign:"center",padding:SPACING[32]}}>
-                <div style={{fontSize:30,marginBottom:8}}>🌙</div>
+                <div style={{marginBottom:8}}><Moon size={30} color={Q.muted}/></div>
                 <div style={{color:Q.muted,fontSize:14}}>No hay combos ahora</div>
               </div>
             )}
@@ -1109,7 +1109,7 @@ export default function Box(){
                 padding:"24px 12px",textAlign:"center",cursor:"pointer"}}>
                 <input type="file" accept="image/*" multiple onChange={elegirImg}
                   style={{display:"none"}}/>
-                <div style={{fontSize:26,marginBottom:5}}>🖼️</div>
+                <div style={{marginBottom:5}}><ImageIcon size={26}/></div>
                 <div style={{fontWeight:700,fontSize:12}}>
                   {imgsMejora.length>0?"Agregar más":"Galería"}</div>
               </label>
@@ -1161,7 +1161,7 @@ export default function Box(){
                       border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:RADII.md,
                       padding:"8px 12px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
                       fontSize:12,fontWeight:700}}>
-                      {corrigiendo===i?"✕ Cerrar":"✏️ Está mal / Corregir"}</button>
+                      {corrigiendo===i?"✕ Cerrar":<><Pencil size={12}/> Está mal / Corregir</>}</button>
                     {corrigiendo===i&&(
                       <CorregirPickBox pick={p}
                         onAplicar={(nuevo)=>aplicarCorreccion(i,nuevo)}
@@ -1191,7 +1191,7 @@ export default function Box(){
         {bbFeature.activo&&(
           <div style={{background:`${Q.violet}12`,border:`1px solid ${Q.violet}55`,borderRadius:RADII.md,
             padding:"8px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:SPACING[8]}}>
-            <span style={{fontSize:16}}>🛠️</span>
+            <Wrench size={16}/>
             <div style={{color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
               <b style={{color:Q.violet}}>Bet Builder activo</b> · combiná hasta {bbFeature.max_picks||4} mercados del mismo partido</div>
           </div>
@@ -1220,14 +1220,14 @@ export default function Box(){
           <div style={{background:ov(0.04),border:`1px solid ${Q.border}`,
             borderRadius:RADII.lg,padding:"12px 16px",marginBottom:10}}>
             <div style={{color:Q.text,fontSize:13.5,fontWeight:700,
-              marginBottom:3}}>🎲 Armar combinada</div>
+              marginBottom:3}}><Dices size={13}/> Armar combinada</div>
             <div style={{color:Q.muted,fontSize:12,marginBottom:9,
               lineHeight:1.4}}>
               El sistema la arma con partidos de hoy.
               {genCupo&&` Quedan ${genCupo.quedan} de ${genCupo.tope} hoy.`}</div>
             <div style={{display:"flex",gap:SPACING[8]}}>
-              {[["seguro",<><Icon name="shield-check" size={13}/> Seguro</>],["equilibrado","⚖️ Medio"],
-                ["arriesgado","🚀 Fuerte"]].map(([k,l])=>(
+              {[["seguro",<><Icon name="shield-check" size={13}/> Seguro</>],["equilibrado",<><Scale size={13}/> Medio</>],
+                ["arriesgado",<><Rocket size={13}/> Fuerte</>]].map(([k,l])=>(
                 <button key={k} onClick={()=>generarCombo(k)}
                   disabled={genProc||(genCupo&&genCupo.quedan<=0)}
                   style={{flex:1,background:ov(0.05),
@@ -1269,7 +1269,7 @@ export default function Box(){
         )}
         {deportes&&deportes.length===0&&(
           <div style={{textAlign:"center",padding:SPACING[40]}}>
-            <div style={{fontSize:34,marginBottom:10}}>📭</div>
+            <div style={{marginBottom:10}}><Inbox size={34} color={Q.muted}/></div>
             <div style={{color:Q.muted,fontSize:15}}>No hay partidos disponibles ahora</div>
           </div>
         )}

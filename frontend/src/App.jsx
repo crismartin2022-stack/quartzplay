@@ -10,7 +10,7 @@ import Icon from "./Icon";
 // lucide-react carries the icons this screen's emoji have no match for
 // among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
 // no live-feed mark, no handshake, no bolt, no gift.
-import { Video, Handshake, Zap, Gift, Image as ImageIcon, User, Flame, Coins, Link, Bell } from "lucide-react";
+import { Video, Handshake, Zap, Gift, Image as ImageIcon, User, Flame, Coins, Link, Bell, Calendar, Rocket, Store, Target, Shield, Scale, Dices, Moon, Lightbulb, Pencil, Repeat, Smartphone, PartyPopper, Eye, Heart, Construction } from "lucide-react";
 
 
 // Superposiciones (hover, vidrio).
@@ -507,7 +507,7 @@ function useUsuario(){
 function SinBackend({ titulo, detalle }){
   return(
     <GCard style={{padding:"24px 20px",textAlign:"center",margin:"12px 0"}}>
-      <div style={{fontSize:30,marginBottom:10}}>🚧</div>
+      <div style={{marginBottom:10}}><Construction size={30} color={Q.muted}/></div>
       <div style={{color:Q.text,fontWeight:700,fontSize:14,
         fontFamily:F_BODY,marginBottom:6}}>{titulo}</div>
       <div style={{color:Q.muted,fontSize:12,lineHeight:1.5,
@@ -631,7 +631,7 @@ function EstadisticasPartido({ ev, onCerrar }){
         )}
 
         <div style={{display:"flex",gap:SPACING[8],marginBottom:14}}>
-          {[["stats","📊 Estadísticas"],["previa","📅 Historial"]].map(([k,l])=>(
+          {[["stats",<><Icon name="chart-no-axes-combined" size={13}/> Estadísticas</>],["previa",<><Calendar size={13}/> Historial</>]].map(([k,l])=>(
             <button key={k} onClick={()=>setTab(k)} style={{flex:1,
               background:tab===k?`${Q.violet}33`:ov(0.04),
               border:`1px solid ${tab===k?Q.violet:Q.border}`,borderRadius:RADII.md,
@@ -681,7 +681,7 @@ function EstadisticasPartido({ ev, onCerrar }){
             {previa&&(!previa.disponible||(previa.head_to_head||[]).length===0)&&(
               <div style={{color:Q.muted,fontSize:12,textAlign:"center",padding:SPACING[24],
                 fontFamily:F_BODY}}>
-                📅 No hay historial disponible para este partido.</div>
+                <Calendar size={13}/> No hay historial disponible para este partido.</div>
             )}
             {previa&&Array.isArray(previa.head_to_head)&&previa.head_to_head.length>0&&(
               <div>
@@ -871,7 +871,7 @@ function FloatingBetslip({ bets, onBet, onClear, onLocal, color=Q.violet,
           <div style={{background:`${Q.gold}14`,border:`1px solid ${Q.gold}44`,
             borderRadius:RADII.md,padding:"8px 8px",marginBottom:8,fontSize:12,
             color:Q.gold,fontFamily:F_BODY}}>
-            🚀 Sumá {boostInfo.siguiente.picks-boostInfo.cuentan}{" "}
+            <Rocket size={13}/> Sumá {boostInfo.siguiente.picks-boostInfo.cuentan}{" "}
             {boostInfo.siguiente.picks-boostInfo.cuentan===1?"selección":"selecciones"}
             {" "}y ganás {boostInfo.siguiente.pct}% extra
           </div>
@@ -880,7 +880,7 @@ function FloatingBetslip({ bets, onBet, onClear, onLocal, color=Q.violet,
           <div style={{background:`${Q.gold}14`,border:`1px solid ${Q.gold}44`,
             borderRadius:RADII.md,padding:"8px 8px",marginBottom:8,fontSize:12,
             color:Q.gold,fontFamily:F_BODY}}>
-            🚀 Potencializador +{boostInfo.pct}% · se paga si acertás todas
+            <Rocket size={13}/> Potencializador +{boostInfo.pct}% · se paga si acertás todas
           </div>
         )}
 
@@ -917,7 +917,7 @@ function FloatingBetslip({ bets, onBet, onClear, onLocal, color=Q.violet,
             background:ov(0.04),border:`1px solid ${Q.border}`,
             borderRadius:RADII.lg,padding:"0 12px",cursor:genCodigo?"wait":"pointer",color:Q.muted,
             fontSize:12,fontFamily:F_BODY,whiteSpace:"nowrap",
-          }}>{genCodigo?"...":"🏪 Local"}</button>
+          }}>{genCodigo?"...":<><Store size={12}/> Local</>}</button>
         </div>
       </GCard>
     </div>
@@ -1240,7 +1240,7 @@ function ScreenLive({ onAction, onBet, onLocal, moneda, betsIniciales,
             <div style={{display:"flex",alignItems:"center",gap:SPACING[8]}}>
               {lastUpdate&&<span style={{color:Q.dim,fontSize:12}}>{lastUpdate}</span>}
               <button onClick={fetchLive} style={{background:"transparent",border:`1px solid ${Q.border}`,
-                borderRadius:RADII.md,padding:"4px 8px",cursor:"pointer",color:Q.muted,fontSize:12}}>🔄</button>
+                borderRadius:RADII.md,padding:"4px 8px",cursor:"pointer",color:Q.muted,fontSize:12}}>↻ Actualizar</button>
             </div>
           </div>
 
@@ -1349,7 +1349,7 @@ function ScreenPool({ onAction }){
     <div style={{background:Q.void,minHeight:"100%",padding:"16px 12px"}}>
       <BotMsg time="">
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,
-          fontFamily:F_BODY}}>🎯 Pools</div>
+          fontFamily:F_BODY}}><Target size={13}/> Pools</div>
         <SinBackend titulo="Todavía no está disponible"
           detalle={"Los pozos compartidos necesitan que el servidor lleve la "+
                    "cuenta de quién entra y con cuánto. Eso todavía no existe, "+
@@ -1417,15 +1417,15 @@ function GenerarCombo({ moneda, onUsar, userId }){
   };
 
   const PERFILES=[
-    ["seguro","🛡️ Seguro","Cuotas bajas, más chances"],
-    ["equilibrado","⚖️ Equilibrado","El punto medio"],
-    ["arriesgado","🚀 Arriesgado","Pocas chances, premio grande"],
+    ["seguro",<><Shield size={13}/> Seguro</>,"Cuotas bajas, más chances"],
+    ["equilibrado",<><Scale size={13}/> Equilibrado</>,"El punto medio"],
+    ["arriesgado",<><Rocket size={13}/> Arriesgado</>,"Pocas chances, premio grande"],
   ];
 
   return(
     <GCard style={{padding:SPACING[16],marginBottom:12}}>
       <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:3,
-        fontFamily:F_BODY}}>🎲 Armá tu combinada</div>
+        fontFamily:F_BODY}}><Dices size={13}/> Armá tu combinada</div>
       <div style={{color:Q.muted,fontSize:12,marginBottom:10,
         lineHeight:1.5}}>
         Elegí el estilo y el sistema te arma una con partidos de hoy.
@@ -1559,7 +1559,7 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
         <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,
           fontFamily:F_BODY}}><Zap size={13}/> AI Combos</div>
         <GCard style={{padding:SPACING[24],textAlign:"center",margin:"12px 0"}}>
-          <div style={{fontSize:30,marginBottom:8}}>🌙</div>
+          <div style={{marginBottom:8}}><Moon size={30} color={Q.muted}/></div>
           <div style={{color:Q.muted,fontSize:13,
             fontFamily:F_BODY}}>
             No hay combos disponibles ahora
@@ -1663,7 +1663,7 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
               </GCard>
             ))}
             <NDiv color={Q.violet}/>
-            {combo.note&&<div style={{color:Q.muted,fontSize:12,fontStyle:"italic",marginBottom:10}}>💡 {combo.note}</div>}
+            {combo.note&&<div style={{color:Q.muted,fontSize:12,fontStyle:"italic",marginBottom:10}}><Lightbulb size={12}/> {combo.note}</div>}
             {/* Monto: ANTES de la fila de cuota. Debajo quedaba fuera
                 del alto de la tarjeta y no se veía. */}
             <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
@@ -1726,7 +1726,7 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
                   border:`1px solid ${Q.cyan}`,borderRadius:RADII.lg,padding:"12px",marginTop:8,
                   color:Q.cyan,fontWeight:700,fontSize:13,cursor:"pointer",
                   fontFamily:F_BODY}}>
-                  ✏️ Editar este combo</button>
+                  <Pencil size={13}/> Editar este combo</button>
 
                 {!codeGenerated[sel]?(
                   <>
@@ -1736,7 +1736,7 @@ function ScreenCombo({ onAction, onBet, refCode, onEditar, moneda, userId }){
                     color:Q.muted,fontWeight:600,fontSize:13,
                     cursor:generando?"wait":"pointer",
                     fontFamily:F_BODY,
-                  }}>{generando?"Generando...":"🏪 Generar código para local"}</button>
+                  }}>{generando?"Generando...":<><Store size={13}/> Generar código para local</>}</button>
                   {genError&&<div style={{color:Q.red,fontSize:12,marginTop:6,
                     textAlign:"center",fontFamily:F_BODY}}>{genError}</div>}
                   </>
@@ -1829,7 +1829,7 @@ function ScreenBetConfirmed({ bets, stake, odd, code, onAction, onRepetir, userI
               border:"none",borderRadius:RADII.md,padding:"12px",color:inkOn(Q.violet, Q.violet2),
               fontSize:14,fontWeight:700,cursor:"pointer",
               fontFamily:F_BODY}}>
-              🔁 Mantener selecciones ({bets.length})</button>
+              <Repeat size={14}/> Mantener selecciones ({bets.length})</button>
           )}
 
           <QKB rows={[
@@ -2477,7 +2477,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
                   border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:RADII.md,
                   padding:"4px 12px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
                   fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
-                  {corrigiendo===i?"✕ Cerrar":"✏️ Está mal"}</button>
+                  {corrigiendo===i?"✕ Cerrar":<><Pencil size={12}/> Está mal</>}</button>
                 {corrigiendo===i&&(
                   <CorregirPickApp pick={p}
                     onAplicar={(nuevo)=>aplicarCorreccion(i,nuevo)}
@@ -2583,7 +2583,7 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
                   fontFamily:F_BODY}}>Cuota {fmt(boleto.odd_total||res.cuota_total)}x</div>
                 <div style={{color:Q.muted,fontSize:12,marginTop:12,lineHeight:1.5,
                   fontFamily:F_BODY}}>
-                  📲 Anotá o captura este código.<br/>
+                  <Smartphone size={13}/> Anotá o captura este código.<br/>
                   Llevalo a una agencia para pagar y jugar,
                   o cargalo desde el bot.</div>
                 {refCode&&<div style={{color:Q.violet2,fontSize:12,marginTop:8,
@@ -2606,11 +2606,11 @@ function ScreenMejorar({ onAction, onBet, user, refCode, escaneo, setEscaneo }){
 // APP ROOT
 // ═══════════════════════════════════════════════════════════════
 const STEPS=[
-  {k:"home",     l:"🏠 Inicio"},
-  {k:"prematch", l:"📋 Prematch"},
-  {k:"live",     l:"🔴 En Vivo"},
-  {k:"combo",    l:"⚡ Combos IA"},
-  {k:"mybets",   l:"📊 Mis apuestas"},
+  {k:"home",     l:<><Icon name="house" size={12}/> Inicio</>},
+  {k:"prematch", l:<><Icon name="clipboard-list" size={12}/> Prematch</>},
+  {k:"live",     l:<><Icon name="circle-dot" size={12} color={Q.red}/> En Vivo</>},
+  {k:"combo",    l:<><Zap size={12}/> Combos IA</>},
+  {k:"mybets",   l:<><Icon name="chart-no-axes-combined" size={12}/> Mis apuestas</>},
 ];
 
 // ── Captura de errores: nunca más pantalla negra ──────────────
@@ -3602,9 +3602,9 @@ function SuperBonoGanaste({ premio, onCerrar }){
         : "linear-gradient(160deg,#1A0B33,#4A148C)",
       transition:"background 1s ease-in-out"}}>
 
-      <div style={{fontSize:64,marginBottom:8,
+      <div style={{marginBottom:8,
         transform:fase?"scale(1.08)":"scale(1)",
-        transition:"transform 1.1s ease-in-out"}}>🎉</div>
+        transition:"transform 1.1s ease-in-out"}}><PartyPopper size={64} color="#fff"/></div>
 
       <div style={{color:"#FFD54F",fontWeight:900,
         fontSize:"clamp(30px,10vw,52px)",lineHeight:1.05,
@@ -4124,7 +4124,7 @@ function PulsoDesafios({ user, onVerMias }){
               borderTop:i?`1px solid ${Q.border}`:"none"}}>
               <div style={{display:"flex",gap:SPACING[8],alignItems:"baseline"}}>
                 <span style={{fontSize:12,flexShrink:0}}>
-                  {a.tipo==="tomado"?"🤝":"👀"}</span>
+                  {a.tipo==="tomado"?<Handshake size={12}/>:<Eye size={12}/>}</span>
                 <span style={{color:Q.text,fontSize:12,lineHeight:1.4,
                   minWidth:0,flex:1,
                   fontFamily:F_BODY}}>{a.texto}</span>
@@ -4379,7 +4379,7 @@ function MuroDesafios({ user, onCambio, onVerMias }){
             <button onClick={()=>like(p.id)}
               style={{background:"none",border:"none",cursor:"pointer",
                 color:p.me_gusta?Q.red:Q.muted,fontSize:12,padding:0}}>
-              {p.me_gusta?"♥":"♡"} {p.likes>0?p.likes:""}</button>
+              {p.me_gusta?<Heart size={12} fill="currentColor"/>:"♡"} {p.likes>0?p.likes:""}</button>
             <button onClick={()=>setVerCom(verCom===p.id?null:p.id)}
               style={{background:"none",border:"none",cursor:"pointer",
                 color:Q.muted,fontSize:12,padding:0}}>
@@ -6152,7 +6152,7 @@ function ScreenRegistro({ user, onListo }){
       <div style={{padding:"32px 16px",minHeight:"100%",display:"flex",
         flexDirection:"column",justifyContent:"center"}}>
         <div style={{textAlign:"center",marginBottom:20}}>
-          <div style={{fontSize:44,marginBottom:8}}>🔗</div>
+          <div style={{marginBottom:8}}><Link size={44} color={Q.text}/></div>
           <div style={{color:Q.text,fontWeight:800,fontSize:18,
             fontFamily:F_BODY}}>¿Sos vos?</div>
         </div>
@@ -6418,7 +6418,7 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
               <div style={{background:`${Q.cyan}0C`,border:`1px solid ${Q.cyan}44`,borderRadius:RADII.md,
                 padding:"8px 12px",marginBottom:8,fontSize:12,color:Q.cyan,lineHeight:1.4,
                 fontFamily:F_BODY}}>
-                🔗 Combinada del mismo partido · cuota ajustada por correlación</div>
+                <Link size={13}/> Combinada del mismo partido · cuota ajustada por correlación</div>
             )}
 
             <input value={monto} onChange={e=>setMonto(e.target.value.replace(/\D/g,""))}
@@ -6441,7 +6441,7 @@ function ScreenBuilder({ picks, onAdd, onQuitar, onLimpiar, onBet, onLocal, onNa
               }} style={{flex:"0 0 auto",background:ov(0.05),
                 border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"0 16px",cursor:"pointer",
                 color:Q.muted,fontSize:12,fontFamily:F_BODY}}>
-                {genLocal?"...":"🏪 Local"}</button>
+                {genLocal?"...":<><Store size={12}/> Local</>}</button>
               <button onClick={()=>onBet(picks,montoNum||0,tot)} disabled={montoNum<=0}
                 style={{flex:1,background:montoNum>0?`linear-gradient(135deg,${Q.violet},${Q.cyan})`:ov(0.06),
                   border:"none",borderRadius:RADII.md,padding:"12px",color:montoNum>0?inkOn(Q.violet, Q.cyan):Q.text,fontWeight:800,fontSize:14,

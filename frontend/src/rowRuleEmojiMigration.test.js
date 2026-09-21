@@ -133,7 +133,7 @@ describe("the help chat header's sound toggle takes Bell", () => {
 describe("the four new lucide-react names are imported explicitly", () => {
   test("App.jsx imports Flame, Coins, Link and Bell alongside the rest", () => {
     expect(APP).toMatch(
-      /import\s*\{\s*Video,\s*Handshake,\s*Zap,\s*Gift,\s*Image as ImageIcon,\s*User,\s*Flame,\s*Coins,\s*Link,\s*Bell\s*\}\s*from\s*"lucide-react";/
+      /import\s*\{\s*Video,\s*Handshake,\s*Zap,\s*Gift,\s*Image as ImageIcon,\s*User,\s*Flame,\s*Coins,\s*Link,\s*Bell,\s*Calendar,\s*Rocket,\s*Store,\s*Target,\s*Shield,\s*Scale,\s*Dices,\s*Moon,\s*Lightbulb,\s*Pencil,\s*Repeat,\s*Smartphone,\s*PartyPopper,\s*Eye,\s*Heart,\s*Construction\s*\}\s*from\s*"lucide-react";/
     );
   });
 

@@ -20,7 +20,7 @@ import { oscuro as Q, F_NUM, F_BODY, inkOn, RADII, SPACING } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot from "./Mascot";
 import Icon from "./Icon";
-import { Handshake, Video } from "lucide-react";
+import { Handshake, Video, Repeat, Dices, Shield, Scale, Rocket, Bell, Image as ImageIcon, Pencil, Smartphone, Flame, Coins, Eye, Banknote, Heart, Headphones, Zap } from "lucide-react";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 
@@ -637,7 +637,7 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
           border:`1px solid ${Q.violet}`,borderRadius:RADII.md,padding:"12px",
           color:Q.cyan,fontSize:13.5,fontWeight:700,cursor:"pointer",
           fontFamily:F_BODY}}>
-          🔁 Mantener selecciones ({picks.length})</button>
+          <Repeat size={14}/> Mantener selecciones ({picks.length})</button>
 
         <button onClick={()=>{setEmitidos(null);onLimpiar();}}
           style={{..._btnPrim(),marginTop:8}}>Armar otro boleto</button>
@@ -682,17 +682,17 @@ function Boleto({ picks, onQuitar, onLimpiar, moneda="ARS", onCargar, sesionUser
           {/* O que el sistema la arme: para el que entra sin saber
               qué jugar y se iría sin apostar. */}
           <div style={{color:Q.text,fontSize:12.5,fontWeight:700,
-            marginBottom:8}}>🎲 O armala automáticamente</div>
+            marginBottom:8}}><Dices size={13}/> O armala automáticamente</div>
           <div style={{display:"flex",gap:SPACING[8]}}>
-            {[["seguro","🛡️"],["equilibrado","⚖️"],
-              ["arriesgado","🚀"]].map(([k,ic])=>(
+            {[["seguro",<Shield size={12}/>],["equilibrado",<Scale size={12}/>],
+              ["arriesgado",<Rocket size={12}/>]].map(([k,ic])=>(
               <button key={k} onClick={()=>generarCombo&&generarCombo(k)}
                 disabled={genProc}
                 style={{flex:1,background:Q.inset,
                   border:`1px solid ${Q.border}`,borderRadius:RADII.md,
                   padding:"12px 4px",cursor:"pointer",color:Q.cyan,
                   fontSize:12,fontFamily:F_BODY,textTransform:"capitalize"}}>
-                {genProc?"…":`${ic} ${k}`}</button>
+                {genProc?"…":<>{ic} {k}</>}</button>
             ))}
           </div>
         </div>
@@ -945,9 +945,9 @@ function ChatSoporte({ userId, origen, onCerrar }){
         </div>
         <div style={{display:"flex",alignItems:"center",gap:SPACING[8]}}>
           <button onClick={cambiarSonido} title="Sonido de aviso"
-            style={{background:"transparent",border:"none",fontSize:16,
+            style={{background:"transparent",border:"none",
               cursor:"pointer",padding:0,opacity:sonido?1:0.4}}>
-            {sonido?"🔔":"🔕"}</button>
+            <Bell size={16}/></button>
           {onCerrar&&(
             <button onClick={onCerrar} style={{background:"transparent",
               border:"none",color:Q.muted,fontSize:20,cursor:"pointer",
@@ -2118,7 +2118,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
             padding:"20px 12px",textAlign:"center",cursor:"pointer"}}>
             <input type="file" accept="image/*" multiple onChange={elegir}
               style={{display:"none"}}/>
-            <div style={{fontSize:26,marginBottom:5}}>🖼️</div>
+            <div style={{marginBottom:5}}><ImageIcon size={26}/></div>
             <div style={{color:Q.text,fontWeight:700,fontSize:12,
               fontFamily:F_BODY}}>
               {imagenes.length>0?"Agregar más":"Archivo"}</div>
@@ -2216,7 +2216,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                   border:`1px solid ${corrigiendo===i?Q.cyan:Q.dim}`,borderRadius:RADII.md,
                   padding:"4px 12px",cursor:"pointer",color:corrigiendo===i?Q.cyan:Q.muted,
                   fontSize:12,fontWeight:700,fontFamily:F_BODY}}>
-                  {corrigiendo===i?"✕ Cerrar":"✏️ Está mal"}</button>
+                  {corrigiendo===i?"✕ Cerrar":<><Pencil size={12}/> Está mal</>}</button>
                 {corrigiendo===i&&(
                   <CorregirPickWeb pick={p}
                     onAplicar={(nuevo)=>aplicarCorreccion(i,nuevo)}
@@ -2334,7 +2334,7 @@ function BetBestWeb({ onAction, sesion, onAbrirLogin, refCode, escaneo, setEscan
                   fontFamily:F_BODY}}>Cuota {fmt(boleto.odd_total||res.cuota_total)}x</div>
                 <div style={{color:Q.muted,fontSize:12,marginTop:12,lineHeight:1.5,
                   fontFamily:F_BODY}}>
-                  📲 Anotá o captura este código.<br/>
+                  <Smartphone size={13}/> Anotá o captura este código.<br/>
                   Llevalo a una agencia para pagar y jugar,
                   o cargalo desde el bot.</div>
                 {refCode&&<div style={{color:Q.violet2,fontSize:12,marginTop:8,
@@ -2404,11 +2404,11 @@ function ModalNoSesion({ onCerrar, onIngresar, refCode }){
 // APP ROOT
 // ═══════════════════════════════════════════════════════════════
 const STEPS=[
-  {k:"home",     l:"🏠 Inicio"},
-  {k:"prematch", l:"📋 Prematch"},
-  {k:"live",     l:"🔴 En Vivo"},
-  {k:"combo",    l:"⚡ Combos IA"},
-  {k:"mybets",   l:"📊 Mis apuestas"},
+  {k:"home",     l:<><Icon name="house" size={12}/> Inicio</>},
+  {k:"prematch", l:<><Icon name="clipboard-list" size={12}/> Prematch</>},
+  {k:"live",     l:<><Icon name="circle-dot" size={12} color={Q.red}/> En Vivo</>},
+  {k:"combo",    l:<><Zap size={12}/> Combos IA</>},
+  {k:"mybets",   l:<><Icon name="chart-no-axes-combined" size={12}/> Mis apuestas</>},
 ];
 
 
@@ -2458,8 +2458,8 @@ function CampanaWeb({ sesion }){
         title="Novedades"
         style={{position:"relative",background:"transparent",
           border:"none",cursor:"pointer",padding:"8px 8px",
-          fontSize:17,lineHeight:1}}>
-        🔔
+          lineHeight:1}}>
+        <Bell size={17} role="img" aria-label="Novedades"/>
         {sinLeer>0&&(
           <span style={{position:"absolute",top:2,right:2,
             minWidth:15,height:15,borderRadius:RADII.md,background:Q.red,
@@ -2588,7 +2588,7 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
 
   const ICONO={deportivas:<Icon name="trophy" size={13}/>,casino:<Icon name="spade" size={13}/>,
     casino_vivo:<Video size={13}/>,desafios:<Handshake size={13}/>,
-    carga:<Icon name="wallet-cards" size={13}/>,retiro:"💸"};
+    carga:<Icon name="wallet-cards" size={13}/>,retiro:<Banknote size={13}/>};
 
   return(
     <div style={{position:"fixed",inset:0,zIndex:500,
@@ -3146,8 +3146,8 @@ function DesafiosWeb({ sesion, ancho }){
 
       <div style={{display:"flex",gap:SPACING[8],marginBottom:16,
         overflowX:"auto"}}>
-        {[["muro","🔥 Muro"],["crear","➕ Desafiar"],
-          ["mias","📋 Mías"],["iacoin","🪙 IACOIN"]].map(([k,l])=>(
+        {[["muro",<><Flame size={13}/> Muro</>],["crear",<><Icon name="plus" size={13}/> Desafiar</>],
+          ["mias",<><Icon name="clipboard-list" size={13}/> Mías</>],["iacoin",<><Coins size={13}/> IACOIN</>]].map(([k,l])=>(
           <button key={k} onClick={()=>setTab(k)}
             style={{background:tab===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${tab===k?Q.violet:Q.border}`,
@@ -3323,7 +3323,7 @@ function PulsoDesafiosWeb({ user, onVerMias }){
               borderTop:i?`1px solid ${Q.border}`:"none"}}>
               <div style={{display:"flex",gap:SPACING[8],alignItems:"baseline"}}>
                 <span style={{fontSize:12,flexShrink:0}}>
-                  {a.tipo==="tomado"?"🤝":"👀"}</span>
+                  {a.tipo==="tomado"?<Handshake size={12}/>:<Eye size={12}/>}</span>
                 <span style={{color:Q.text,fontSize:12,lineHeight:1.4,
                   minWidth:0,flex:1,
                   fontFamily:F_BODY}}>{a.texto}</span>
@@ -3531,7 +3531,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
 
       {posts&&posts.length===0&&abiertos.length===0&&(
         <div style={{textAlign:"center",padding:"40px 20px"}}>
-          <div style={{fontSize:34,marginBottom:12}}>👋</div>
+          <div style={{marginBottom:12}}><Handshake size={34} color={Q.muted}/></div>
           <div style={{color:Q.muted,fontSize:13.5,lineHeight:1.6,
             fontFamily:F_BODY}}>
             Todavía no hay nada por acá.<br/>Creá el primer desafío.</div>
@@ -3561,7 +3561,7 @@ function MuroDesafiosWeb({ user, onCambio, onVerMias }){
               style={{background:"none",border:"none",cursor:"pointer",
                 color:p.me_gusta?Q.pink:Q.muted,fontSize:13,padding:0,
                 fontFamily:F_BODY}}>
-              {p.me_gusta?"♥":"♡"} {p.likes>0?p.likes:""}</button>
+              {p.me_gusta?<Heart size={13} fill="currentColor"/>:"♡"} {p.likes>0?p.likes:""}</button>
             <button onClick={()=>setVerCom(verCom===p.id?null:p.id)}
               style={{background:"none",border:"none",cursor:"pointer",
                 color:Q.muted,fontSize:13,padding:0,fontFamily:F_BODY}}>
@@ -4637,8 +4637,8 @@ export default function Web(){
           <div style={{display:"flex",alignItems:"center",gap:SPACING[4]}}>
             <button onClick={()=>setVerAyuda(true)} title="Ayuda"
               style={{background:"transparent",border:"none",
-                cursor:"pointer",padding:"8px 8px",fontSize:17,
-                lineHeight:1}}>🎧</button>
+                cursor:"pointer",padding:"8px 8px",
+                lineHeight:1}}><Headphones size={17} role="img" aria-label="Ayuda"/></button>
             <CampanaWeb sesion={sesion}/>
             <button onClick={()=>setVerPerfil(true)} title="Mi cuenta"
               style={{background:"transparent",border:"none",
