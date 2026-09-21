@@ -7959,24 +7959,24 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
   },[]);
 
   const TABS=[
-    {k:"codigo",   l:"Código / Bot"},
-    {k:"envivo",   l:<><Icon name="circle-dot" size={12}/> En Vivo</>},
-    {k:"manual",   l:"Apuesta manual"},
-    {k:"combos",   l:<><Zap size={12}/> Combos IA</>},
-    {k:"mejorar",  l:<><Icon name="scan-line" size={12}/> Mejorar</>},
-    {k:"clientes", l:<><Icon name="users" size={12}/> Clientes</>},
-    {k:"misagencias", l:<><Building2 size={12}/> Mis agencias</>},
-    {k:"influencers", l:<><Star size={12}/> Influencers</>},
-    {k:"historial",l:"Historial"},
-    {k:"cashout",  l:<><Icon name="wallet-cards" size={12}/> Cash out</>},
-    {k:"bonos",    l:<><Gift size={12}/> Bonos</>},
-    {k:"cierres",  l:"Cierres"},
-    {k:"mensajes", l:"Mensajes"},
-    {k:"terminales", l:"Terminales"},
-    {k:"desafios", l:"Desafíos"},
-    {k:"asesor", l:"Asesor"},
-    {k:"soporte",  l:"Soporte"},
-    {k:"config",   l:"Config"},
+    {k:"codigo",   i:<Bot size={12}/>, l:"Código / Bot"},
+    {k:"envivo",   i:<Icon name="circle-dot" size={12}/>, l:"En Vivo"},
+    {k:"manual",   i:<Pencil size={12}/>, l:"Apuesta manual"},
+    {k:"combos",   i:<Zap size={12}/>, l:"Combos IA"},
+    {k:"mejorar",  i:<Icon name="scan-line" size={12}/>, l:"Mejorar"},
+    {k:"clientes", i:<Icon name="users" size={12}/>, l:"Clientes"},
+    {k:"misagencias", i:<Building2 size={12}/>, l:"Mis agencias"},
+    {k:"influencers", i:<Star size={12}/>, l:"Influencers"},
+    {k:"historial",i:<Icon name="clock-3" size={12}/>, l:"Historial"},
+    {k:"cashout",  i:<Icon name="wallet-cards" size={12}/>, l:"Cash out"},
+    {k:"bonos",    i:<Gift size={12}/>, l:"Bonos"},
+    {k:"cierres",  i:<Icon name="chart-no-axes-combined" size={12}/>, l:"Cierres"},
+    {k:"mensajes", i:<Icon name="message-circle" size={12}/>, l:"Mensajes"},
+    {k:"terminales", i:<Monitor size={12}/>, l:"Terminales"},
+    {k:"desafios", i:<Icon name="trophy" size={12}/>, l:"Desafíos"},
+    {k:"asesor", i:<Handshake size={12}/>, l:"Asesor"},
+    {k:"soporte",  i:<Headphones size={12}/>, l:"Soporte"},
+    {k:"config",   i:<Icon name="sliders-horizontal" size={12}/>, l:"Config"},
   ].filter(t=>{
     const perm = agencia.permiso || "ambos";
     if(t.k==="misagencias") return perm==="crea_agencias"||perm==="ambos";
@@ -8056,7 +8056,7 @@ function AgenciaPanel({ agencia, onLogout, onSesionExpirada }){
             fontFamily:F_BODY,
             position:"relative",
           }}>
-            {t.l}
+            {t.i}<span style={{marginLeft:SPACING[8]}}>{t.l}</span>
             {t.k==="mensajes"&&msgPendientes>0&&(
               <span style={{position:"absolute",top:-4,right:-4,
                 background:Q.red,color:"#fff",borderRadius:RADII.md,
