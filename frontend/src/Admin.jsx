@@ -85,7 +85,7 @@ function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=fa
       // whole complaint. A secondary action reads perfectly well as a
       // raised surface with a coloured label: the colour still says what
       // kind of action it is, without drawing a frame around it.
-      background:disabled?"rgba(255,255,255,0.04)":outline?Q.raised:`linear-gradient(135deg,${color},${color}CC)`,
+      background:disabled?"rgba(255,255,255,0.04)":outline?"rgba(255,255,255,0.06)":`linear-gradient(135deg,${color},${color}CC)`,
       border:outline&&!disabled?"none":`1px solid ${disabled?Q.dim:color}`, borderRadius:RADII.md,
       color:disabled?Q.muted:outline?color:"#fff",
       fontSize:fs, fontWeight:700, cursor:disabled?"not-allowed":"pointer",
@@ -2514,10 +2514,10 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                     color:Q.text,fontSize:14,marginBottom:10,
                     fontFamily:F_BODY}}/>
                 <div style={{display:"flex",gap:SPACING[8]}}>
-                  <Btn label="− Retirar" onClick={()=>mover(-1)} color={Q.amber}
-                    outline full disabled={operando}/>
                   <Btn label="+ Cargar" onClick={()=>mover(1)} color={Q.green}
                     full disabled={operando}/>
+                  <Btn label="− Retirar" onClick={()=>mover(-1)} color={Q.amber}
+                    outline full disabled={operando}/>
                 </div>
               </GCard>
             )}
@@ -2531,12 +2531,12 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                     Bloqueado por {f.bloqueado_por||"—"}
                     {f.bloqueado_motivo?` · ${f.bloqueado_motivo}`:""}</div>
                   {/* Unblocking, resetting the password and reassigning the agency are independent one-tap actions, so they share a line */}
-                  <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-                    <div style={{flex:"1 1 auto",minWidth:170}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+                    <div>
                       <Btn label="Desbloquear cliente" onClick={toggleBloqueo}
                         color={Q.green} full disabled={operando}/>
                     </div>
-                    <div style={{flex:"1 1 auto",minWidth:190}}>
+                    <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                         color={Q.amber} outline full/>
                     </div>
@@ -2567,8 +2567,8 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
                   </div>
                   <div style={{height:8}}/>
                   {/* Reset and agency reassignment are unrelated to this confirmation, so they get their own line below it */}
-                  <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-                    <div style={{flex:"1 1 auto",minWidth:190}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+                    <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                         color={Q.amber} outline full/>
                     </div>
@@ -2580,12 +2580,12 @@ function FichaCliente({ userId, adminKey, onCerrar, onCambio, onNoAutorizado }){
               ):(
                 <div>
                   {/* Blocking is destructive but is still a quick account action like the other two, so it shares the line too — flagged in the change report */}
-                  <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-                    <div style={{flex:"1 1 auto",minWidth:170}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+                    <div>
                       <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
                         color={Q.red} outline full disabled={operando}/>
                     </div>
-                    <div style={{flex:"1 1 auto",minWidth:190}}>
+                    <div>
                       <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                         color={Q.amber} outline full/>
                     </div>
@@ -4248,16 +4248,16 @@ function DetalleInfluencer({ code, adminKey, desde, hasta, onCerrar, onNoAutoriz
                 ))}
               </div>
               {/* Settling, resetting and configuring are independent one-tap actions on this account, so they share a line */}
-              <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-                <div style={{flex:"1 1 auto",minWidth:170}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+                <div>
                   <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
                     color={Q.gold} full disabled={proc}/>
                 </div>
-                <div style={{flex:"1 1 auto",minWidth:190}}>
+                <div>
                   <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                     color={Q.amber} outline full/>
                 </div>
-                <div style={{flex:"1 1 auto",minWidth:200}}>
+                <div>
                   <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
                     color={Q.violet} outline full/>
                 </div>
@@ -4502,7 +4502,7 @@ function AsignarAgenciaAdmin({ adminKey, userId, esDirecto, agenciaActual, onCam
   // Collapsed state renders as one flex item so it can sit in the same
   // row as the sibling account-action buttons instead of stacking below them.
   if(!abierto) return(
-    <div style={{flex:"1 1 auto",minWidth:200}}>
+    <div>
       <Btn label={esDirecto?<><Link size={13}/> Vincular a una agencia</>:<><RefreshCw size={13}/> Cambiar de agencia</>}
         onClick={()=>setAbierto(true)} color={Q.cyan} outline full/>
     </div>
@@ -4951,8 +4951,8 @@ function FichaAgencia({ agencia, adminKey, onCambio, onNoAutorizado }){
               color:Q.text,fontSize:16,marginBottom:8,
               fontFamily:F_BODY}}/>
           <div style={{display:"flex",gap:SPACING[8]}}>
-            <Btn label="− Descontar" onClick={()=>cargarCC(-1)} color={Q.amber} outline full disabled={proc}/>
             <Btn label="+ Cargar" onClick={()=>cargarCC(1)} color={Q.green} full disabled={proc}/>
+            <Btn label="− Descontar" onClick={()=>cargarCC(-1)} color={Q.amber} outline full disabled={proc}/>
           </div>
         </div>
       )}

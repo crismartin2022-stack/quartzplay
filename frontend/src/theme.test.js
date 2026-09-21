@@ -42,8 +42,8 @@ describe("theme module — one source of colour", () => {
     expect(themeModule.THEMES).toBeUndefined();
     expect(Object.keys(themeModule).sort()).toEqual(
       [
-        "ELEVATION", "F_BODY", "F_NUM", "INK_DARK", "INK_LIGHT", "RADII",
-        "SPACING", "TEXT", "inkOn", "oscuro",
+        "ELEVATION", "F_BODY", "F_MONO", "F_NUM", "INK_DARK", "INK_LIGHT",
+        "RADII", "SPACING", "TEXT", "inkOn", "oscuro",
       ].sort()
     );
   });

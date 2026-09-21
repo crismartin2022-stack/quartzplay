@@ -50,7 +50,7 @@ class CazaError extends Component {
   }
 }
 
-import { oscuro as Q, F_BODY, RADII, SPACING, TEXT , ELEVATION } from "./theme";
+import { oscuro as Q, F_BODY, F_MONO, RADII, SPACING, TEXT, ELEVATION, inkOn } from "./theme";
 
 const ars = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 
@@ -291,7 +291,7 @@ function Btn({ label, onClick, color=Q.violet, outline=false, size="md", full=fa
       // whole complaint. A secondary action reads perfectly well as a
       // raised surface with a coloured label: the colour still says what
       // kind of action it is, without drawing a frame around it.
-      background:disabled?"rgba(255,255,255,0.04)":outline?Q.raised:`linear-gradient(135deg,${color},${color}CC)`,
+      background:disabled?"rgba(255,255,255,0.04)":outline?"rgba(255,255,255,0.06)":`linear-gradient(135deg,${color},${color}CC)`,
       border:outline&&!disabled?"none":`1px solid ${disabled?Q.dim:color}`,borderRadius:RADII.lg,
       color:disabled?Q.muted:outline?color:"#fff",
       fontSize:fs,fontWeight:700,cursor:disabled?"not-allowed":"pointer",
@@ -3411,6 +3411,7 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
     setTgProc(false);
   };
   const [movs,setMovs]=useState(null);
+  const isDesktop=useDesktopShellWidth();
   const [monto,setMonto]=useState(montoInicial(agencia?.moneda));
   const [modo,setModo]=useState("carga");   // carga | retiro
   const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
@@ -3549,55 +3550,84 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         </div>
       )}
 
+      {/* The cash desk. Left composes the figure, right decides and
+          commits it — the order the work actually happens in at a
+          counter. Below the shell breakpoint it stacks into one column,
+          because the agency runs this screen from a phone. */}
       <GCard style={{padding:SPACING[16],marginBottom:12}}>
-        <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
-          {[["carga",<><Icon name="plus" size={13}/> Cargar</>,Q.green],["retiro",<><Minus size={13}/> Retirar</>,Q.amber]].map(([k,l,c])=>(
-            <button key={k} onClick={()=>setModo(k)} style={{
-              flex:1,background:modo===k?`${c}22`:"rgba(255,255,255,0.04)",
-              border:`1.5px solid ${modo===k?c:Q.border}`,borderRadius:RADII.md,
-              padding:"8px",cursor:"pointer",color:modo===k?c:Q.muted,
-              fontSize:13,fontWeight:700,fontFamily:F_BODY,
-            }}>{l}</button>
-          ))}
+        <div style={{display:"grid",
+          gridTemplateColumns:isDesktop?"minmax(0,1fr) 260px":"minmax(0,1fr)",
+          gap:SPACING[16],alignItems:"start"}}>
+
+          <div>
+            {/* The amount is a readout, not a field with a frame around it.
+                Monospace with tabular figures so the digits keep their
+                place while the number is being typed — on a screen where
+                cash moves, a digit that shifts is a digit misread. This
+                input is also the free-entry field: there used to be a
+                second one labelled "Otro" bound to the same `monto`, so
+                the same number appeared twice and either copy could be
+                edited. */}
+            <div style={{background:Q.inset,borderRadius:RADII.md,
+              padding:"12px 16px",marginBottom:SPACING[12]}}>
+              <input type="number" inputMode="numeric" min="0" value={monto}
+                onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
+                aria-label={modo==="carga"?"Monto a cargar":"Monto a retirar"}
+                style={{width:"100%",minWidth:0,background:"transparent",
+                  border:"none",outline:"none",padding:0,
+                  color:modo==="carga"?Q.green:Q.amber,
+                  fontSize:TEXT[32],fontWeight:700,fontFamily:F_MONO,
+                  fontVariantNumeric:"tabular-nums",letterSpacing:0.5}}/>
+            </div>
+
+            {/* Shortcut keys, sized for a thumb rather than drawn as
+                outlined pills. They fit as many per row as the column
+                allows instead of being squeezed into four. */}
+            <div style={{display:"grid",
+              gridTemplateColumns:"repeat(auto-fit,minmax(72px,1fr))",
+              gap:SPACING[8]}}>
+              {montosDe(agencia?.moneda).map(v=>(
+                <button key={v} onClick={()=>setMonto(v)} style={{
+                  background:monto===v
+                    ? `linear-gradient(135deg,${Q.violet},${Q.violet}CC)`
+                    : Q.raised,
+                  border:"none",borderRadius:RADII.md,padding:"16px 8px",
+                  cursor:"pointer",color:monto===v?"#fff":Q.text,
+                  fontSize:TEXT[16],fontWeight:700,fontFamily:F_MONO,
+                  fontVariantNumeric:"tabular-nums",
+                }}>{v>=1000?`${v/1000}K`:v}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:SPACING[8]}}>
+            {/* A segmented control, because this picks a mode. Drawn as
+                two equal buttons it read as two actions, which is what
+                made the card confusing: three things looked clickable
+                and only the last one moved money. */}
+            <div style={{display:"flex",background:Q.inset,
+              borderRadius:RADII.md,padding:SPACING[4],gap:SPACING[4]}}>
+              {[["carga",<><Icon name="plus" size={13}/> Cargar</>,Q.green],
+                ["retiro",<><Minus size={13}/> Retirar</>,Q.amber]].map(([k,l,c])=>(
+                <button key={k} onClick={()=>setModo(k)} style={{
+                  flex:1,background:modo===k?c:"transparent",border:"none",
+                  borderRadius:RADII.sm,padding:"8px 8px",cursor:"pointer",
+                  color:modo===k?inkOn(c):Q.muted,
+                  fontSize:TEXT[13],fontWeight:700,fontFamily:F_BODY,
+                }}>{l}</button>
+              ))}
+            </div>
+
+            {msg&&<div style={{fontSize:TEXT[12],
+              color:msg.ok?Q.green:Q.red,
+              fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
+
+            <Btn label={proc?"PROCESANDO...":
+              `${modo==="carga"?"CARGAR":"RETIRAR"} ${ars(monto)}`}
+              onClick={aplicar} color={modo==="carga"?Q.green:Q.amber} full size="lg"
+              disabled={proc||!monto}/>
+          </div>
         </div>
-
-        <input type="number" value={monto} onChange={e=>setMonto(Number(e.target.value))}
-          style={{width:"100%",background:"rgba(255,255,255,0.06)",
-            border:`1.5px solid ${modo==="carga"?Q.green:Q.amber}`,borderRadius:RADII.md,
-            padding:"12px 16px",color:Q.text,fontSize:22,fontWeight:700,
-            fontFamily:F_BODY,marginBottom:10}}/>
-
-        <div style={{display:"flex",gap:SPACING[4],marginBottom:12}}>
-          {montosDe(agencia?.moneda).map(v=>(
-            <button key={v} onClick={()=>setMonto(v)} style={{
-              flex:1,background:monto===v?`${Q.violet}33`:"rgba(255,255,255,0.04)",
-              border:`1px solid ${monto===v?Q.violet:Q.border}`,borderRadius:RADII.md,
-              padding:"8px 4px",cursor:"pointer",color:monto===v?Q.cyan:Q.muted,
-              fontSize:12,fontFamily:F_BODY,
-            }}>{v>=1000?`${v/1000}K`:v}</button>
-          ))}
-        </div>
-        {/* Campo libre: las fichas son atajos, no un límite */}
-        <div style={{display:"flex",alignItems:"center",gap:SPACING[8],marginBottom:8}}>
-          <span style={{color:Q.muted,fontSize:12,flexShrink:0,
-            fontFamily:F_BODY}}>Otro:</span>
-          <input type="number" inputMode="numeric" min="0" value={monto}
-            onChange={e=>setMonto(Math.max(0,Number(e.target.value)||0))}
-            aria-label="Monto a apostar"
-            style={{flex:1,minWidth:0,background:"rgba(255,255,255,0.05)",
-              border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"8px 8px",
-              color:Q.text,fontSize:13,fontWeight:700,
-              fontFamily:F_BODY}}/>
-        </div>
-
-        {msg&&<div style={{fontSize:12,marginBottom:10,
-          color:msg.ok?Q.green:Q.red,
-          fontFamily:F_BODY}}><Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
-
-        <Btn label={proc?"PROCESANDO...":
-          `${modo==="carga"?"CARGAR":"RETIRAR"} ${ars(monto)}`}
-          onClick={aplicar} color={modo==="carga"?Q.green:Q.amber} full size="lg"
-          disabled={proc||!monto}/>
       </GCard>
 
       {/* Bloqueo */}
@@ -3605,16 +3635,16 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
         <GCard glow={ficha.bloqueado?null:Q.red} style={{padding:SPACING[16],marginBottom:12}}>
           {ficha.bloqueado?(
             /* Unblocking, resetting the password and linking Telegram are independent one-tap actions, so they share a line */
-            <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-              <div style={{flex:"1 1 auto",minWidth:160}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+              <div>
                 <Btn label={proc?"...":"Desbloquear cliente"} onClick={toggleBloqueo}
                   color={Q.green} full disabled={proc}/>
               </div>
-              <div style={{flex:"1 1 auto",minWidth:190}}>
+              <div>
                 <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                   color={Q.amber} outline full/>
               </div>
-              <div style={{flex:"1 1 auto",minWidth:170}}>
+              <div>
                 <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
                   color={Q.cyan} outline full disabled={tgProc}/>
               </div>
@@ -3640,12 +3670,12 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
               </div>
               <div style={{height:8}}/>
               {/* Reset and Telegram are unrelated to this confirmation, so they get their own line below it */}
-              <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-                <div style={{flex:"1 1 auto",minWidth:190}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+                <div>
                   <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                     color={Q.amber} outline full/>
                 </div>
-                <div style={{flex:"1 1 auto",minWidth:170}}>
+                <div>
                   <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
                     color={Q.cyan} outline full disabled={tgProc}/>
                 </div>
@@ -3653,16 +3683,16 @@ function FichaCliente({ agencia, user, onVolver, onSesionExpirada }){
             </div>
           ):(
             /* Blocking is destructive but is still a quick account action like the other two, so it shares the line too — flagged in the change report */
-            <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-              <div style={{flex:"1 1 auto",minWidth:160}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+              <div>
                 <Btn label={<><Lock size={13}/> Bloquear cliente</>} onClick={toggleBloqueo}
                   color={Q.red} outline full disabled={proc}/>
               </div>
-              <div style={{flex:"1 1 auto",minWidth:190}}>
+              <div>
                 <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                   color={Q.amber} outline full/>
               </div>
-              <div style={{flex:"1 1 auto",minWidth:170}}>
+              <div>
                 <Btn label={tgProc?"...":<><Smartphone size={13}/> Conectar Telegram</>} onClick={conectarTelegram}
                   color={Q.cyan} outline full disabled={tgProc}/>
               </div>
@@ -7437,16 +7467,16 @@ function DetalleInfluencerAgencia({ code, agencia, desde, hasta, onCerrar, onSes
                 ))}
               </div>
               {/* Settling, resetting and configuring are independent one-tap actions on this account, so they share a line */}
-              <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-                <div style={{flex:"1 1 auto",minWidth:170}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+                <div>
                   <Btn label={proc?"...":<><Icon name="wallet-cards" size={13}/> Liquidar comisión</>} onClick={liquidar}
                     color={Q.gold} full disabled={proc}/>
                 </div>
-                <div style={{flex:"1 1 auto",minWidth:190}}>
+                <div>
                   <Btn label={<><Key size={13}/> Resetear contraseña</>} onClick={()=>setResetOpen(true)}
                     color={Q.amber} outline full/>
                 </div>
-                <div style={{flex:"1 1 auto",minWidth:200}}>
+                <div>
                   <Btn label={<><Icon name="sliders-horizontal" size={13}/> Configurar influencer</>} onClick={()=>setConfigOpen(v=>!v)}
                     color={Q.violet} outline full/>
                 </div>
@@ -9121,12 +9151,12 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
       {editando&&(
         <div style={{marginTop:12}}>
           {/* Editing the image and finishing are two independent choices at this step, so they share a line */}
-          <div style={{display:"flex",gap:SPACING[8],flexWrap:"wrap"}}>
-            <div style={{flex:"1 1 auto",minWidth:220}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:SPACING[8]}}>
+            <div>
               <Btn label={<><Palette size={13}/> Editar imagen (crear placa)</>} onClick={()=>setEditando({...editando,_abrir:true})}
                 color={Q.violet} outline full/>
             </div>
-            <div style={{flex:"1 1 auto",minWidth:110}}>
+            <div>
               <Btn label="✓ Listo" onClick={onListo} color={Q.green} full/>
             </div>
           </div>
