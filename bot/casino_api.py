@@ -27202,7 +27202,13 @@ async def wallet(request: Request):
                 return JSONResponse({"status":False,
                     "error":"player_not_found"})
 
-            if True:
+            # El descuento de arriba ya está confirmado: es un UPDATE
+            # suelto, a propósito, porque la transacción costaba 82ms
+            # por giro. El precio de esa decisión es que nadie revierte
+            # solo lo que sigue, así que si algo falla hay que devolver
+            # el saldo a mano. Sin esto, el jugador pierde la apuesta y
+            # la jugada no queda registrada en ningún lado.
+            try:
                 # Qué juego fue. El proveedor manda el id de sesión,
                 # así que se cruza contra las sesiones abiertas. Sin
                 # esto, la columna guardaba "gameplay" para todo y el
@@ -27230,7 +27236,7 @@ async def wallet(request: Request):
                 # La agencia del jugador ya vino en la primera
                 # consulta: no hace falta volver a preguntarla.
                 if not agencia_j:
-                    agencia_j = row["creado_por"]
+                    agencia_j = fila["creado_por"]
 
                 await conn.execute("""
                     INSERT INTO casino_rounds
@@ -27243,6 +27249,18 @@ async def wallet(request: Request):
                     bet_cents, int(win*100),
                     bet_cents-int(win*100), transaction,
                     juego_id, juego_tit, agencia_j, sid or None)
+            except Exception as e:
+                # Devolver lo descontado y avisar que el giro falló. El
+                # proveedor reintenta con el mismo 'transaction', y ahí
+                # vuelve a pasar por el control de repetidos, que no lo
+                # encuentra porque la jugada no llegó a registrarse.
+                await conn.execute(
+                    "UPDATE users SET balance = balance - $2 WHERE id=$1",
+                    uid, amount_cents)
+                log.error(f"[WALLET] giro revertido para {player} "
+                          f"· tx={transaction} · {type(e).__name__}: {e}")
+                return JSONResponse({"status":False,
+                    "error":"internal_error"})
         new_bal = Decimal(new_balance)/100
         return JSONResponse({"status":True,
             "balance":str(new_bal.quantize(Decimal("0.01"))),
