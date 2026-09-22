@@ -8,6 +8,8 @@ import Admin from "./Admin";
 import Box from "./Box";
 import Web from "./Web";
 import Casino from "./Casino";
+import RouletteOff from "./RouletteOff";
+import { ROULETTE_ENABLED } from "./features";
 import { getFrontendConfig } from "./config";
 import { oscuro } from "./theme";
 
@@ -17,12 +19,16 @@ const host = window.location.hostname;
 const { casinoHosts } = getFrontendConfig();
 const esCasino = casinoHosts.includes(host);
 
+// Both ways in — the /casino path and a dedicated casino host — go through
+// the same switch, so turning the roulette off cannot leave one door open.
+const Roulette = ROULETTE_ENABLED ? Casino : RouletteOff;
+
 const Component = path.startsWith('/admin')   ? Admin
                 : path.startsWith('/agencia') ? Agencia
                 : path.startsWith('/box')     ? Box
                 : path.startsWith('/sitio')   ? Web
-                : path.startsWith('/casino')  ? Casino
-                : esCasino                    ? Casino
+                : path.startsWith('/casino')  ? Roulette
+                : esCasino                    ? Roulette
                 : App;
 
 // The document's own colours, declared once for every screen.
