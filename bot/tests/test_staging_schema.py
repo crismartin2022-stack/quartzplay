@@ -26,6 +26,13 @@ SLICE_CHAIN = [
     "20260917010400_quartzplay_security_baseline.sql",
 ]
 
+# Migrations added after the two pinned chains above, as the product grows.
+# They are not part of the Foundation manifest: they are ordinary changes the
+# owner applies to staging first and then to production.
+RUNTIME_CHAIN = [
+    "20260923210000_psp_eventos_bitacora.sql",
+]
+
 # Backward-compatible alias: this is the pinned Foundation-only chain the
 # manifest's executable_chain still describes (the manifest is the Foundation
 # manifest, not the combined executable ledger).
@@ -37,7 +44,10 @@ class FoundationSchemaTests(unittest.TestCase):
         manifest = json.loads(MANIFEST.read_text())
         executable_files = sorted(file.name for file in MIGRATIONS.glob("*.sql"))
 
-        self.assertEqual(executable_files, sorted(FOUNDATION_CHAIN + SLICE_CHAIN))
+        self.assertEqual(
+            executable_files,
+            sorted(FOUNDATION_CHAIN + SLICE_CHAIN + RUNTIME_CHAIN),
+        )
         self.assertEqual(manifest["executable_chain"], FOUNDATION_CHAIN)
         self.assertEqual(
             {

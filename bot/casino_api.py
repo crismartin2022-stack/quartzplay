@@ -20113,6 +20113,8 @@ async def _arrancar_combos_ia():
     asyncio.create_task(_volcar_presencias())
     asyncio.create_task(_refrescar_ganadores_sb())
     asyncio.create_task(_loop_riesgo())
+    asyncio.create_task(_loop_psp_reintentos())
+    log.info("[PSP] barrido de avisos sin procesar programado (cada minuto)")
     log.info("[IA] generador de combos programado (cada 3h)")
     log.info("[LIQ] liquidaciones automáticas programadas (diario)")
 
@@ -21593,73 +21595,196 @@ async def psp_webhook_cashin(request: Request):
     request_id = body.get("requestId")
     if not request_id:
         return {"ok": True}
-    monto_psp = body.get("amount")
 
     pool = await get_db()
     async with pool.acquire() as conn:
-        credited = None
-        async with conn.transaction():
-            carga = await conn.fetchrow("""
-                SELECT id, user_id, monto, estado, agencia_code FROM psp_cargas
-                WHERE request_id=$1 FOR UPDATE
-            """, request_id)
-            if not carga or str(carga["user_id"]) != uid:
-                return {"ok": True}
-
-            if body.get("event") == "EXPIRED":
-                if carga["estado"] == "pendiente":
-                    await conn.execute(
-                        "UPDATE psp_cargas SET estado='vencido' WHERE id=$1", carga["id"])
-                return {"ok": True}
-
-            # Idempotencia: se acredita una sola vez; una transferencia que llega
-            # después del vencimiento igual se acredita porque el dinero ingresó.
-            if carga["estado"] not in ("pendiente", "vencido"):
-                return {"ok": True}
-            # Usar el monto real del pago si vino, si no el esperado
-            monto = int(float(monto_psp)) if monto_psp else carga["monto"]
-            await conn.execute("""
-                UPDATE users SET balance = balance + $2 WHERE id=$1
-            """, carga["user_id"], monto * 100)
-            await conn.execute("""
-                UPDATE psp_cargas SET estado='acreditado', monto=$2, acreditado_at=NOW()
-                WHERE id=$1
-            """, carga["id"], monto)
-            try:
-                await conn.execute("""
-                    INSERT INTO wallet_transactions (user_id, type, amount, method, status)
-                    VALUES ($1, 'deposito', $2, 'psp', 'done')
-                """, carga["user_id"], monto * 100)
-            except Exception:
-                pass
-            # Registrar en agencia_movimientos para que aparezca en los reportes
-            try:
-                await conn.execute("""
-                    INSERT INTO agencia_movimientos
-                        (agencia_code, tipo, user_id, monto, detalle, operador)
-                    VALUES ($1, 'carga', $2, $3, $4, 'psp')
-                """, carga["agencia_code"] or "admin", carga["user_id"], monto,
-                    "Carga digital PSP")
-            except Exception:
-                pass
-            # Disparar bono automático si corresponde (primer depósito)
-            try:
-                b = await _intentar_otorgar_bono_auto(
-                    conn, carga["user_id"], carga["agencia_code"] or "", "primer_deposito", monto)
-                if not b:
-                    await _intentar_otorgar_bono_auto(
-                        conn, carga["user_id"], carga["agencia_code"] or "", "cualquier_deposito", monto)
-            except Exception as e:
-                log.error(f"[PSP] bono auto error: {e}")
-            credited = (carga["user_id"], monto)
-        if credited:
-            credited_user_id, credited_monto = credited
-            try:
-                await avisar_cliente(conn, credited_user_id,
-                    f"✅ Se acreditó tu carga de ${credited_monto:,.0f}".replace(",","."))
-            except Exception:
-                pass
+        # Primero se guarda el aviso, después se procesa. Si el proceso se
+        # reinicia en medio, la fila queda en 'recibido' y el barrido la
+        # levanta. Sin esto, un reinicio borraba todo rastro de que el
+        # aviso había llegado, y el depósito quedaba sin acreditar.
+        evento_id, ya_procesado = await _psp_guardar_evento(
+            conn, "cashin", request_id, uid, body)
+        if ya_procesado:
+            return {"ok": True}
+        try:
+            await _psp_procesar_cashin(conn, evento_id, uid, body)
+        except Exception as e:
+            await _psp_marcar_fallido(conn, evento_id, e)
+            log.error(f"[PSP] cashin {request_id} falló, queda para el barrido: {e}")
     return {"ok": True}
+
+
+async def _psp_guardar_evento(conn, tipo, request_id, uid, body):
+    """Deja el aviso en la bitácora y dice si ya estaba procesado.
+
+    Se escribe fuera de transacción a propósito: tiene que quedar
+    confirmado antes de empezar a procesar, que es justamente lo que
+    sobrevive a un reinicio.
+    """
+    fila = await conn.fetchrow("""
+        INSERT INTO psp_eventos (tipo, evento, request_id, uid, cuerpo)
+        VALUES ($1, $2, $3, $4, $5::jsonb)
+        ON CONFLICT (tipo, request_id, evento) DO UPDATE
+            SET cuerpo = EXCLUDED.cuerpo
+        RETURNING id, estado
+    """, tipo, str(body.get("event") or ""), str(request_id), str(uid or ""),
+        json.dumps(body))
+    return fila["id"], fila["estado"] == "procesado"
+
+
+async def _psp_marcar_fallido(conn, evento_id, error):
+    try:
+        await conn.execute("""
+            UPDATE psp_eventos
+               SET estado='fallido', intentos=intentos+1, ultimo_error=$2
+             WHERE id=$1
+        """, evento_id, f"{type(error).__name__}: {error}"[:500])
+    except Exception as e:
+        log.error(f"[PSP] no se pudo marcar el evento {evento_id}: {e}")
+
+
+async def _psp_procesar_cashin(conn, evento_id, uid, body):
+    """Acredita la carga. Es el camino de siempre, ahora reutilizable
+    por el barrido: la única condición es que sea seguro repetirlo."""
+    request_id = body.get("requestId")
+    monto_psp = body.get("amount")
+    credited = None
+    async with conn.transaction():
+        carga = await conn.fetchrow("""
+            SELECT id, user_id, monto, estado, agencia_code FROM psp_cargas
+            WHERE request_id=$1 FOR UPDATE
+        """, request_id)
+        if not carga or str(carga["user_id"]) != uid:
+            # No es una carga nuestra: queda procesado igual, no hay nada
+            # que reintentar.
+            await _psp_marcar_procesado(conn, evento_id)
+            return
+
+        if body.get("event") == "EXPIRED":
+            if carga["estado"] == "pendiente":
+                await conn.execute(
+                    "UPDATE psp_cargas SET estado='vencido' WHERE id=$1", carga["id"])
+            await _psp_marcar_procesado(conn, evento_id)
+            return
+
+        # Idempotencia: se acredita una sola vez; una transferencia que llega
+        # después del vencimiento igual se acredita porque el dinero ingresó.
+        if carga["estado"] not in ("pendiente", "vencido"):
+            await _psp_marcar_procesado(conn, evento_id)
+            return
+        # Usar el monto real del pago si vino, si no el esperado
+        monto = int(float(monto_psp)) if monto_psp else carga["monto"]
+        await conn.execute("""
+            UPDATE users SET balance = balance + $2 WHERE id=$1
+        """, carga["user_id"], monto * 100)
+        await conn.execute("""
+            UPDATE psp_cargas SET estado='acreditado', monto=$2, acreditado_at=NOW()
+            WHERE id=$1
+        """, carga["id"], monto)
+        try:
+            await conn.execute("""
+                INSERT INTO wallet_transactions (user_id, type, amount, method, status)
+                VALUES ($1, 'deposito', $2, 'psp', 'done')
+            """, carga["user_id"], monto * 100)
+        except Exception:
+            pass
+        # Registrar en agencia_movimientos para que aparezca en los reportes
+        try:
+            await conn.execute("""
+                INSERT INTO agencia_movimientos
+                    (agencia_code, tipo, user_id, monto, detalle, operador)
+                VALUES ($1, 'carga', $2, $3, $4, 'psp')
+            """, carga["agencia_code"] or "admin", carga["user_id"], monto,
+                "Carga digital PSP")
+        except Exception:
+            pass
+        # Disparar bono automático si corresponde (primer depósito)
+        try:
+            b = await _intentar_otorgar_bono_auto(
+                conn, carga["user_id"], carga["agencia_code"] or "", "primer_deposito", monto)
+            if not b:
+                await _intentar_otorgar_bono_auto(
+                    conn, carga["user_id"], carga["agencia_code"] or "", "cualquier_deposito", monto)
+        except Exception as e:
+            log.error(f"[PSP] bono auto error: {e}")
+        # El evento se marca dentro de la misma transacción que acredita:
+        # o quedan las dos cosas, o no queda ninguna.
+        await _psp_marcar_procesado(conn, evento_id)
+        credited = (carga["user_id"], monto)
+    if credited:
+        credited_user_id, credited_monto = credited
+        try:
+            await avisar_cliente(conn, credited_user_id,
+                f"✅ Se acreditó tu carga de ${credited_monto:,.0f}".replace(",","."))
+        except Exception:
+            pass
+
+
+async def _psp_marcar_procesado(conn, evento_id):
+    await conn.execute("""
+        UPDATE psp_eventos
+           SET estado='procesado', procesado_at=NOW(), intentos=intentos+1
+         WHERE id=$1
+    """, evento_id)
+
+
+# Cuántas veces se reintenta un aviso antes de darlo por perdido y pedir
+# que lo mire una persona. Diez intentos con un minuto entre cada uno son
+# diez minutos: suficiente para una base que volvió, corto para que nadie
+# se entere tarde.
+PSP_MAX_INTENTOS = 10
+
+
+async def _loop_psp_reintentos():
+    """Levanta los avisos de pago que quedaron sin procesar.
+
+    Existe por un caso concreto: la API se reinicia justo después de
+    recibir un aviso y antes de acreditarlo. La bitácora guarda el aviso;
+    esto lo termina. Los dos minutos de espera evitan pisar un aviso que
+    todavía se está procesando en otra petición.
+    """
+    while True:
+        try:
+            pool = await get_db()
+            async with pool.acquire() as conn:
+                pendientes = await conn.fetch("""
+                    SELECT id, tipo, uid, cuerpo, intentos FROM psp_eventos
+                     WHERE estado <> 'procesado'
+                       AND intentos < $1
+                       AND recibido_at < NOW() - INTERVAL '2 minutes'
+                     ORDER BY recibido_at
+                     LIMIT 50
+                """, PSP_MAX_INTENTOS)
+                for ev in pendientes:
+                    cuerpo = ev["cuerpo"]
+                    if isinstance(cuerpo, str):
+                        cuerpo = json.loads(cuerpo)
+                    try:
+                        if ev["tipo"] == "cashin":
+                            await _psp_procesar_cashin(
+                                conn, ev["id"], ev["uid"], cuerpo)
+                            log.info(f"[PSP] aviso {ev['id']} recuperado por el barrido")
+                        else:
+                            # Los avisos de retiro no se reprocesan solos:
+                            # mueven dinero hacia afuera y los mira una persona.
+                            await _psp_marcar_fallido(
+                                conn, ev["id"], RuntimeError("retiro pendiente de revisión"))
+                    except Exception as e:
+                        await _psp_marcar_fallido(conn, ev["id"], e)
+                        log.error(f"[PSP] reintento {ev['id']} falló: {e}")
+
+                # Lo que agotó los reintentos deja de ser un problema técnico
+                # y pasa a ser plata de alguien esperando: tiene que verse.
+                trabados = await conn.fetchval("""
+                    SELECT count(*) FROM psp_eventos
+                     WHERE estado <> 'procesado' AND intentos >= $1
+                """, PSP_MAX_INTENTOS)
+                if trabados:
+                    log.error(f"[PSP] {trabados} aviso(s) sin procesar tras "
+                              f"{PSP_MAX_INTENTOS} intentos: requieren revisión manual")
+        except Exception as e:
+            log.error(f"[PSP] loop de reintentos: {e}")
+        await asyncio.sleep(60)
 
 
 # ── PAYOUT (retiro digital del cliente) ───────────────────────
