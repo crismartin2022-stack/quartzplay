@@ -243,6 +243,10 @@ class RecordingConnection:
         self.retiros = [dict(row) for row in (retiros or [])]
         self.user = user
         self.calls = []
+        # Bitácora de avisos: el manejador guarda el aviso antes de
+        # procesarlo, para que un reinicio no lo haga desaparecer.
+        self.eventos = {}
+        self._siguiente_evento = 1
 
     def transaction(self):
         return _Txn()
@@ -264,6 +268,14 @@ class RecordingConnection:
             return next((dict(row) for row in self.retiros if row["id"] == args[0]), None)
         if q.startswith("SELECT id, creado_por FROM users"):
             return dict(self.user) if self.user else None
+        if q.startswith("INSERT INTO psp_eventos"):
+            clave = (args[0], args[2], args[1])
+            fila = self.eventos.get(clave)
+            if fila is None:
+                fila = {"id": self._siguiente_evento, "estado": "recibido"}
+                self.eventos[clave] = fila
+                self._siguiente_evento += 1
+            return dict(fila)
         raise AssertionError(f"unexpected fetchrow: {q}")
 
     async def fetchval(self, query, *args):
@@ -282,6 +294,10 @@ class RecordingConnection:
             row = self._carga_by_id(args[0])
             row["estado"] = "acreditado"
             row["monto"] = args[1]
+        elif q.startswith("UPDATE psp_eventos"):
+            for fila in self.eventos.values():
+                if fila["id"] == args[0]:
+                    fila["estado"] = "procesado" if "procesado" in q else "fallido"
         elif q.startswith("UPDATE users SET balance"):
             pass
         elif q.startswith("INSERT INTO wallet_transactions"):
