@@ -201,3 +201,63 @@ def estado_de_verificacion(origen_registro: str | None,
         "puede_jugar": True,
         "motivo": motivo,
     }
+
+
+# ── El formulario ────────────────────────────────────────────────
+
+import re
+
+USUARIO_VALIDO = re.compile(r"[a-z0-9._-]{3,40}")
+
+# Ocho y no seis, que es lo que pide el alta de mostrador. Allá la clave la
+# elige un cajero frente a la persona y la cuenta no está expuesta; acá
+# cualquiera puede probar claves desde internet, toda la noche.
+LARGO_MINIMO_CLAVE = 8
+
+
+class DatosInvalidos(ValueError):
+    """Algo del formulario no sirve. El mensaje es para la persona."""
+
+
+def validar_usuario(crudo: str) -> str:
+    # Sin recortar: si alguien escribe de más y se lo cortamos en silencio,
+    # se va con un usuario distinto del que eligió y no se entera hasta que
+    # intenta entrar.
+    usuario = (crudo or "").strip().lower()
+    if not usuario:
+        raise DatosInvalidos("Elegí un nombre de usuario")
+    if not USUARIO_VALIDO.fullmatch(usuario):
+        raise DatosInvalidos(
+            "El usuario admite letras, números, punto, guion y guion bajo, "
+            "de 3 a 40 caracteres")
+    return usuario
+
+
+def validar_clave(clave: str) -> str:
+    if len(clave or "") < LARGO_MINIMO_CLAVE:
+        raise DatosInvalidos(
+            f"La clave necesita al menos {LARGO_MINIMO_CLAVE} caracteres")
+    return clave
+
+
+def validar_nombre(crudo: str) -> str:
+    nombre = (crudo or "").strip()[:120]
+    if len(nombre) < 2:
+        raise DatosInvalidos("Decinos tu nombre")
+    return nombre
+
+
+def validar_edad_declarada(declaro: object) -> bool:
+    """La edad se declara, no se verifica. Todavía.
+
+    Se guarda la fecha de la declaración: el día que el negocio decida
+    exigir una prueba, se sabe quién declaró qué y cuándo.
+    """
+    if declaro is not True:
+        raise DatosInvalidos("Tenés que confirmar que sos mayor de edad")
+    return True
+
+
+def limpiar_referido(crudo: str) -> str:
+    """El código de agencia que trajo al jugador. Opcional."""
+    return (crudo or "").strip().upper()[:40]

@@ -209,3 +209,60 @@ def test_una_vez_verificado_el_aviso_desaparece():
 
     assert estado["puede_retirar"] is True
     assert estado["motivo"] == ""
+
+
+# ── El formulario ────────────────────────────────────────────────
+
+from registro_publico import (
+    DatosInvalidos,
+    LARGO_MINIMO_CLAVE,
+    limpiar_referido,
+    validar_clave,
+    validar_edad_declarada,
+    validar_nombre,
+    validar_usuario,
+)
+
+
+def test_el_usuario_se_guarda_en_minusculas():
+    assert validar_usuario("  JuanPerez  ") == "juanperez"
+
+
+@pytest.mark.parametrize("malo", ["", "ab", "con espacio", "acentuación", "x" * 41])
+def test_un_usuario_que_no_sirve_se_rechaza_con_motivo(malo):
+    with pytest.raises(DatosInvalidos):
+        validar_usuario(malo)
+
+
+def test_la_clave_publica_pide_mas_que_la_de_mostrador():
+    """En el mostrador la clave la elige un cajero frente a la persona. Acá
+    cualquiera puede probar claves desde internet, toda la noche."""
+    assert LARGO_MINIMO_CLAVE > 6
+
+    with pytest.raises(DatosInvalidos):
+        validar_clave("1234567")
+
+    assert validar_clave("12345678") == "12345678"
+
+
+def test_hay_que_decir_el_nombre():
+    with pytest.raises(DatosInvalidos):
+        validar_nombre(" ")
+    assert validar_nombre("  Juan Pérez ") == "Juan Pérez"
+
+
+@pytest.mark.parametrize("respuesta", [None, False, "si", 1, "true"])
+def test_sin_confirmar_la_mayoria_de_edad_no_se_registra(respuesta):
+    """Tiene que ser un sí explícito: un 'si' de texto o un 1 son formas de
+    que el navegador mande cualquier cosa y la cuenta quede creada igual."""
+    with pytest.raises(DatosInvalidos, match="mayor"):
+        validar_edad_declarada(respuesta)
+
+
+def test_confirmando_la_edad_se_puede_seguir():
+    assert validar_edad_declarada(True) is True
+
+
+def test_el_codigo_de_referido_se_normaliza():
+    assert limpiar_referido("  age001 ") == "AGE001"
+    assert limpiar_referido(None) == ""
