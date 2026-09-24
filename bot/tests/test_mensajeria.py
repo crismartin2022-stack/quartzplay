@@ -145,3 +145,36 @@ def test_el_mensaje_no_lleva_enlaces():
     texto = texto_del_codigo("123456", 10)
 
     assert "http" not in texto.lower()
+
+
+# ── Messaging Service ────────────────────────────────────────────
+
+CON_SERVICIO = Credenciales(cuenta="AC123", token="secreto", remitente_sms="",
+                            remitente_whatsapp="",
+                            servicio_mensajeria="MG0000000000")
+
+
+def test_con_un_messaging_service_alcanza_para_mandar_sms():
+    """Con tres países de reglas distintas, dejar que Twilio elija el
+    remitente es lo recomendado. No hace falta comprar un número suelto."""
+    assert canales_disponibles(CON_SERVICIO) == [SMS]
+
+
+def test_el_servicio_viaja_como_servicio_y_no_como_remitente(monkeypatch):
+    twilio = TwilioFalso().parchear(monkeypatch)
+
+    asyncio.run(enviar_codigo("+593991234567", "123456", SMS, cred=CON_SERVICIO))
+
+    enviado = twilio.pedidos[0]["data"]
+    assert enviado["MessagingServiceSid"] == "MG0000000000"
+    assert "From" not in enviado
+
+
+def test_si_estan_los_dos_gana_el_servicio(monkeypatch):
+    twilio = TwilioFalso().parchear(monkeypatch)
+    ambos = Credenciales(cuenta="AC123", token="s", remitente_sms="+15550001111",
+                         remitente_whatsapp="", servicio_mensajeria="MG111")
+
+    asyncio.run(enviar_codigo("+593991234567", "123456", SMS, cred=ambos))
+
+    assert twilio.pedidos[0]["data"]["MessagingServiceSid"] == "MG111"
