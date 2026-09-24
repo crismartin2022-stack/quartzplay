@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
 import psp_webhook_auth
+import mensajeria
 import registro_publico
 from config import cors_headers, get_runtime_settings
 from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
@@ -27409,3 +27410,174 @@ async def wallet(request: Request):
             "balance":str(new_bal.quantize(Decimal("0.01"))),
             "transaction":transaction})
     return JSONResponse({"status":False,"error":"invalid_packet"})
+
+
+# ── VERIFICACIÓN DEL TELÉFONO ─────────────────────────────────
+#
+# El registro no la pide: entrar, depositar y jugar son libres. La pide el
+# retiro, que es donde hay riesgo y donde una cuenta fantasma hace daño.
+#
+# Los dos endpoints valen para el jugador de Telegram y para el del
+# navegador, con la misma resolución de identidad que usa /api/apuesta.
+
+TELEFONO_SECRETO = os.environ.get("TELEFONO_CODIGO_SECRETO", "") or os.environ.get(
+    "ADMIN_API_KEY", "")
+
+
+async def _jugador_actual(request: Request, body: dict):
+    """El id del jugador, venga de Telegram o del navegador."""
+    user = validar_init_data(body.get("init_data", ""))
+    if user and user.get("id"):
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            fila = await conn.fetchrow(
+                "SELECT id FROM users WHERE telegram_id=$1", int(user["id"]))
+        if fila:
+            return fila["id"]
+    web_id = await jugador_de_sesion(request.headers.get("authorization"))
+    if web_id is None:
+        raise HTTPException(401, "Iniciá sesión para verificar tu teléfono")
+    return web_id
+
+
+def _ip_de(request: Request) -> str:
+    """La IP real detrás del proxy de la plataforma."""
+    reenviada = request.headers.get("x-forwarded-for", "")
+    if reenviada:
+        return reenviada.split(",")[0].strip()
+    return request.client.host if request.client else "0.0.0.0"
+
+
+@app.get("/api/telefono/canales")
+async def telefono_canales():
+    """Qué canales se pueden ofrecer hoy. La pantalla no debe mostrar
+    WhatsApp mientras su remitente espera aprobación."""
+    return {"canales": mensajeria.canales_disponibles()}
+
+
+@app.post("/api/me/telefono/codigo")
+async def me_telefono_codigo(request: Request):
+    """Manda un código al teléfono del jugador.
+    body: {init_data?, telefono, pais, canal?}"""
+    body = await request.json()
+    jugador_id = await _jugador_actual(request, body)
+
+    canal = (body.get("canal") or mensajeria.SMS).lower()
+    if canal not in mensajeria.canales_disponibles():
+        raise HTTPException(503, "Ese canal no está disponible")
+
+    try:
+        telefono = registro_publico.normalizar_telefono(
+            body.get("telefono") or "", (body.get("pais") or "").upper())
+    except registro_publico.TelefonoInvalido as e:
+        raise HTTPException(400, str(e))
+
+    ip = _ip_de(request)
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        # El número no puede estar ya verificado por otra cuenta: si no, la
+        # verificación no significa nada y una persona abre diez cuentas.
+        de_otro = await conn.fetchval("""
+            SELECT id FROM users WHERE telefono_e164=$1 AND id<>$2
+        """, telefono, jugador_id)
+        if de_otro:
+            raise HTTPException(409, "Ese teléfono ya está en uso")
+
+        # Los frenos. Sin esto, cualquiera llama en bucle y quema el crédito.
+        por_telefono = await conn.fetchval("""
+            SELECT count(*) FROM verificaciones_telefono
+             WHERE telefono_e164=$1
+               AND enviado_at > NOW() - ($2 || ' minutes')::interval
+        """, telefono, str(registro_publico.LIMITE_POR_TELEFONO.en_minutos))
+        por_ip = await conn.fetchval("""
+            SELECT count(*) FROM verificaciones_telefono
+             WHERE ip=$1::inet
+               AND enviado_at > NOW() - ($2 || ' minutes')::interval
+        """, ip, str(registro_publico.LIMITE_POR_IP.en_minutos))
+        try:
+            registro_publico.revisar_limite(
+                por_telefono or 0, registro_publico.LIMITE_POR_TELEFONO)
+            registro_publico.revisar_limite(
+                por_ip or 0, registro_publico.LIMITE_POR_IP)
+        except registro_publico.FrenoActivado as e:
+            raise HTTPException(429, str(e))
+
+        codigo = registro_publico.generar_codigo()
+        await conn.execute("""
+            INSERT INTO verificaciones_telefono
+                (telefono_e164, codigo_hash, canal, proveedor, ip, expira_at)
+            VALUES ($1,$2,$3,'twilio',$4::inet,
+                    NOW() + ($5 || ' minutes')::interval)
+        """, telefono,
+            registro_publico.hash_codigo(codigo, telefono, TELEFONO_SECRETO),
+            canal, ip, str(registro_publico.VIGENCIA_MINUTOS))
+
+    try:
+        await mensajeria.enviar_codigo(
+            telefono, codigo, canal, registro_publico.VIGENCIA_MINUTOS)
+    except mensajeria.MensajeriaNoConfigurada:
+        raise HTTPException(503, "La verificación por ahora no está disponible")
+    except mensajeria.EnvioFallido:
+        otros = [c for c in mensajeria.canales_disponibles() if c != canal]
+        raise HTTPException(502, {
+            "message": "No pudimos enviarte el código",
+            "otros_canales": otros,
+        })
+
+    return {"ok": True, "canal": canal,
+            "vence_en_minutos": registro_publico.VIGENCIA_MINUTOS}
+
+
+@app.post("/api/me/telefono/verificar")
+async def me_telefono_verificar(request: Request):
+    """Comprueba el código y deja el teléfono verificado.
+    body: {init_data?, telefono, pais, codigo}"""
+    body = await request.json()
+    jugador_id = await _jugador_actual(request, body)
+
+    try:
+        telefono = registro_publico.normalizar_telefono(
+            body.get("telefono") or "", (body.get("pais") or "").upper())
+    except registro_publico.TelefonoInvalido as e:
+        raise HTTPException(400, str(e))
+    codigo = "".join(ch for ch in (body.get("codigo") or "") if ch.isdigit())
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        fila = await conn.fetchrow("""
+            SELECT id, codigo_hash, intentos FROM verificaciones_telefono
+             WHERE telefono_e164=$1 AND consumido_at IS NULL
+               AND expira_at > NOW()
+             ORDER BY enviado_at DESC LIMIT 1
+        """, telefono)
+        if not fila:
+            raise HTTPException(400, "Pedí un código nuevo: el anterior venció")
+        if (fila["intentos"] or 0) >= registro_publico.MAX_INTENTOS:
+            raise HTTPException(429, "Demasiados intentos. Pedí un código nuevo")
+
+        await conn.execute(
+            "UPDATE verificaciones_telefono SET intentos=intentos+1 WHERE id=$1",
+            fila["id"])
+
+        if not registro_publico.codigo_coincide(
+                fila["codigo_hash"], codigo, telefono, TELEFONO_SECRETO):
+            raise HTTPException(400, "El código no coincide")
+
+        async with conn.transaction():
+            await conn.execute(
+                "UPDATE verificaciones_telefono SET consumido_at=NOW() WHERE id=$1",
+                fila["id"])
+            await conn.execute("""
+                UPDATE users
+                   SET telefono_e164=$2, telefono_verificado_at=NOW(),
+                       telefono=COALESCE(NULLIF(telefono,''), $2)
+                 WHERE id=$1
+            """, jugador_id, telefono)
+
+        u = await conn.fetchrow("""
+            SELECT origen_registro, telefono_verificado_at FROM users WHERE id=$1
+        """, jugador_id)
+
+    log.info(f"[TEL] jugador {jugador_id} verificó su teléfono")
+    return {"ok": True, "estado": registro_publico.estado_de_verificacion(
+        u["origen_registro"], u["telefono_verificado_at"])}
