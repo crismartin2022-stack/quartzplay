@@ -16300,7 +16300,8 @@ async def cliente_login(request: Request):
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
             SELECT id, username, nombre_completo, balance, saldo_bono,
-                   moneda, password_hash, bloqueado, creado_por
+                   moneda, password_hash, bloqueado, creado_por,
+                   origen_registro, telefono_verificado_at
             FROM users WHERE LOWER(username)=$1
         """, uname)
         # Mismo mensaje para usuario inexistente y clave incorrecta: si
@@ -16334,6 +16335,11 @@ async def cliente_login(request: Request):
             "puede_cargar": False,
             "puede_retirar": False,
         },
+        # El mismo bloque que devuelve el registro. Sin esto, el jugador que
+        # cierra sesión y vuelve a entrar pierde la marca de "teléfono sin
+        # verificar" y cree que ya puede retirar, hasta que lo intenta.
+        "verificacion": registro_publico.estado_de_verificacion(
+            row["origen_registro"], row["telefono_verificado_at"]),
     }
 
 
