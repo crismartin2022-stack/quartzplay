@@ -131,9 +131,19 @@ LIMITE_POR_TELEFONO = Limite(3, 60, "Ya pediste varios códigos para ese número
 # haber un locutorio o una oficina entera.
 LIMITE_POR_IP = Limite(10, 60, "Demasiados intentos desde tu conexión. Probá más tarde.")
 
-# Registros completos por IP en un día: frena la creación masiva de cuentas
-# aunque cada una use un número distinto.
-LIMITE_REGISTROS_POR_IP = Limite(5, 60 * 24, "Demasiadas cuentas creadas desde tu conexión.")
+# Registros completos por IP. Son dos frenos, y cada uno ataja algo distinto.
+#
+# Los números están puestos mirando a quién dejan afuera. En Ecuador,
+# Argentina y Venezuela la mayoría entra por datos móviles con CGNAT: cientos
+# de personas comparten una misma IP pública. Un local con cinco muchachos en
+# el mismo wifi es un caso normal, no un ataque. Un tope diario bajo rebota
+# gente real y nadie se entera, porque el que se frustra no escribe a
+# soporte: se va.
+#
+# El que de verdad ataja al bot es el freno corto. El bot registra rápido;
+# la familia registra despacio.
+LIMITE_REGISTROS_POR_IP = Limite(20, 60 * 24, "Demasiadas cuentas creadas desde tu conexión.")
+LIMITE_RAFAGA_REGISTROS = Limite(3, 10, "Estás creando cuentas muy seguido. Esperá unos minutos.")
 
 
 class FrenoActivado(Exception):

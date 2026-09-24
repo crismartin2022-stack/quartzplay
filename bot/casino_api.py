@@ -27623,17 +27623,20 @@ async def cliente_registro(request: Request):
 
     pool = await get_db()
     async with pool.acquire() as conn:
-        # Freno por conexión: sin esto, una sola persona abre cien cuentas.
-        recientes = await conn.fetchval("""
-            SELECT count(*) FROM users
-             WHERE registro_ip=$1::inet
-               AND registro_at > NOW() - ($2 || ' minutes')::interval
-        """, ip, str(registro_publico.LIMITE_REGISTROS_POR_IP.en_minutos))
-        try:
-            registro_publico.revisar_limite(
-                recientes or 0, registro_publico.LIMITE_REGISTROS_POR_IP)
-        except registro_publico.FrenoActivado as e:
-            raise HTTPException(429, str(e))
+        # Freno por conexión. Dos ventanas: una corta contra la ráfaga del
+        # bot, y un tope diario holgado, porque detrás de una misma IP
+        # pública puede haber un barrio entero por CGNAT.
+        for limite in (registro_publico.LIMITE_RAFAGA_REGISTROS,
+                       registro_publico.LIMITE_REGISTROS_POR_IP):
+            recientes = await conn.fetchval("""
+                SELECT count(*) FROM users
+                 WHERE registro_ip=$1::inet
+                   AND registro_at > NOW() - ($2 || ' minutes')::interval
+            """, ip, str(limite.en_minutos))
+            try:
+                registro_publico.revisar_limite(recientes or 0, limite)
+            except registro_publico.FrenoActivado as e:
+                raise HTTPException(429, str(e))
 
         if await conn.fetchval("SELECT 1 FROM users WHERE LOWER(username)=$1", usuario):
             raise HTTPException(409, "Ese usuario ya está tomado")

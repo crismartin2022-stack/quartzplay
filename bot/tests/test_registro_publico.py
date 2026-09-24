@@ -11,6 +11,8 @@ from registro_publico import (
     FrenoActivado,
     LIMITE_POR_IP,
     LIMITE_POR_TELEFONO,
+    LIMITE_RAFAGA_REGISTROS,
+    LIMITE_REGISTROS_POR_IP,
     TelefonoInvalido,
     codigo_coincide,
     generar_codigo,
@@ -149,6 +151,34 @@ def test_el_limite_por_ip_es_mas_holgado_que_el_del_telefono():
     """Detrás de una misma conexión puede haber una oficina entera; detrás
     de un mismo número, no."""
     assert LIMITE_POR_IP.cuantos > LIMITE_POR_TELEFONO.cuantos
+
+
+def test_el_tope_diario_de_registros_deja_entrar_a_un_barrio_entero():
+    """En Ecuador, Argentina y Venezuela la mayoría entra por datos móviles
+    con CGNAT: mucha gente real comparte una IP pública. Un tope bajo rebota
+    jugadores y no nos enteramos, porque el que se frustra no reclama."""
+    assert LIMITE_REGISTROS_POR_IP.cuantos >= 20
+    assert LIMITE_REGISTROS_POR_IP.en_minutos == 60 * 24
+
+
+def test_la_rafaga_se_corta_antes_que_el_tope_diario():
+    """Es el freno que de verdad ataja al bot: registra rápido. Una familia
+    registra despacio, así que nunca lo toca."""
+    assert LIMITE_RAFAGA_REGISTROS.cuantos < LIMITE_REGISTROS_POR_IP.cuantos
+    assert LIMITE_RAFAGA_REGISTROS.en_minutos < LIMITE_REGISTROS_POR_IP.en_minutos
+
+    revisar_limite(LIMITE_RAFAGA_REGISTROS.cuantos - 1, LIMITE_RAFAGA_REGISTROS)
+    with pytest.raises(FrenoActivado):
+        revisar_limite(LIMITE_RAFAGA_REGISTROS.cuantos, LIMITE_RAFAGA_REGISTROS)
+
+
+def test_el_mensaje_de_la_rafaga_dice_que_es_cuestion_de_esperar():
+    """"Demasiadas cuentas" suena a puerta cerrada. Si solo hay que esperar
+    unos minutos, decilo: el jugador vuelve."""
+    with pytest.raises(FrenoActivado) as e:
+        revisar_limite(LIMITE_RAFAGA_REGISTROS.cuantos, LIMITE_RAFAGA_REGISTROS)
+
+    assert "esperá" in str(e.value).lower()
 
 
 # ── El candado del retiro ────────────────────────────────────────
