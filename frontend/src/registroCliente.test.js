@@ -1,10 +1,13 @@
 // La lógica del formulario de registro, probada sin navegador: qué habilita
 // el botón, qué mensaje se muestra ante cada dato malo y ante cada rechazo
-// del servidor, y qué queda guardado cuando el alta sale bien.
+// del servidor, y qué queda guardado cuando el alta —en sus dos pasos— sale
+// bien.
 import {
-  CLAVE_SESION, CLAVE_AVISO, MENSAJES,
-  camposCompletos, validarRegistro, cuerpoDeRegistro, normalizarReferido,
-  registrarCliente, guardarSesion, leerSesion,
+  CLAVE_SESION, CLAVE_AVISO, MENSAJES, PAISES_RESPALDO,
+  camposCompletos, validarRegistro, cuerpoDeInicio, normalizarReferido,
+  iniciarRegistro, confirmarRegistro, reenviarCodigoRegistro,
+  obtenerPaises, soloDigitos, formatearRestante,
+  guardarSesion, leerSesion,
   marcaTelefono, avisoVerificacion, avisoCerrado, cerrarAviso,
   ofreceVerificar,
 } from "./registroCliente";
@@ -14,6 +17,8 @@ const VALIDOS = {
   usuario: "ana.perez",
   correo: "ana@correo.com",
   clave: "unaclavelarga",
+  pais: "EC",
+  telefono: "987654321",
   referido: "",
   mayorDeEdad: true,
 };
@@ -43,6 +48,8 @@ describe("qué habilita el botón de crear cuenta", () => {
     ["usuario", { usuario: "   " }],
     ["correo", { correo: "" }],
     ["clave", { clave: "" }],
+    ["país", { pais: "" }],
+    ["teléfono", { telefono: "" }],
   ])("sin %s, sigue apagado", (_campo, falta) => {
     expect(camposCompletos({ ...VALIDOS, ...falta })).toBe(false);
   });
@@ -109,6 +116,24 @@ describe("qué error se muestra por cada dato que el servidor va a rechazar", ()
       .toBeUndefined();
   });
 
+  test("sin país elegido, pide elegirlo", () => {
+    expect(validarRegistro({ ...VALIDOS, pais: "" }).errores.pais)
+      .toBe(MENSAJES.pais);
+  });
+
+  test.each([
+    ["vacío", ""],
+    ["cuatro dígitos", "1234"],
+  ])("un teléfono de %s no alcanza", (_caso, telefono) => {
+    expect(validarRegistro({ ...VALIDOS, telefono }).errores.telefono)
+      .toBe(MENSAJES.telefono);
+  });
+
+  test("un teléfono con espacios o guiones se cuenta por sus dígitos", () => {
+    expect(validarRegistro({ ...VALIDOS, telefono: "98-765-4321" }).errores.telefono)
+      .toBeUndefined();
+  });
+
   test("sin la casilla de edad, lo dice con las palabras del servidor", () => {
     expect(validarRegistro({ ...VALIDOS, mayorDeEdad: false }).errores.mayorDeEdad)
       .toBe(MENSAJES.edad);
@@ -120,22 +145,31 @@ describe("qué error se muestra por cada dato que el servidor va a rechazar", ()
   });
 });
 
-describe("el cuerpo que viaja al servidor", () => {
+describe("el cuerpo que viaja a /api/cliente/registro/iniciar", () => {
   test("manda el usuario en minúsculas y sin espacios", () => {
-    expect(cuerpoDeRegistro({ ...VALIDOS, usuario: "  Ana.Perez  " }).username)
+    expect(cuerpoDeInicio({ ...VALIDOS, usuario: "  Ana.Perez  " }).username)
       .toBe("ana.perez");
   });
 
   test("la mayoría de edad viaja como booleano, no como texto", () => {
-    expect(cuerpoDeRegistro(VALIDOS).mayor_de_edad).toBe(true);
+    expect(cuerpoDeInicio(VALIDOS).mayor_de_edad).toBe(true);
+  });
+
+  test("el país viaja en mayúsculas, como lo espera el servidor", () => {
+    expect(cuerpoDeInicio({ ...VALIDOS, pais: "ec" }).pais).toBe("EC");
+  });
+
+  test("el teléfono viaja tal como se escribió, sin el indicativo", () => {
+    expect(cuerpoDeInicio({ ...VALIDOS, telefono: " 98 765 4321 " }).telefono)
+      .toBe("98 765 4321");
   });
 
   test("sin código de referido, la clave no viaja", () => {
-    expect("referido" in cuerpoDeRegistro(VALIDOS)).toBe(false);
+    expect("referido" in cuerpoDeInicio(VALIDOS)).toBe(false);
   });
 
   test("con código de referido, viaja en mayúsculas", () => {
-    expect(cuerpoDeRegistro({ ...VALIDOS, referido: " agencia-7 " }).referido)
+    expect(cuerpoDeInicio({ ...VALIDOS, referido: " agencia-7 " }).referido)
       .toBe("AGENCIA-7");
   });
 
@@ -144,12 +178,154 @@ describe("el cuerpo que viaja al servidor", () => {
   });
 
   test("la clave viaja tal cual, con espacios incluidos", () => {
-    expect(cuerpoDeRegistro({ ...VALIDOS, clave: " con espacios " }).password)
+    expect(cuerpoDeInicio({ ...VALIDOS, clave: " con espacios " }).password)
       .toBe(" con espacios ");
   });
 });
 
-describe("el alta contra el servidor", () => {
+describe("la lista de países del selector", () => {
+  test("con la API arriba, usa lo que contesta dentro de `paises`", async () => {
+    const lista = [{ codigo: "EC", nombre: "Ecuador", indicativo: "+593" }];
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, { paises: lista }));
+    const r = await obtenerPaises({ api: "http://x", fetchImpl: pedir });
+    expect(r).toEqual(lista);
+    expect(pedir.mock.calls[0][0]).toBe("http://x/api/paises");
+  });
+
+  test("si la API contesta mal, cae al respaldo de los tres mercados", async () => {
+    const r = await obtenerPaises({
+      api: "http://x", fetchImpl: async () => respuestaFalsa(false, 500, {}),
+    });
+    expect(r).toEqual(PAISES_RESPALDO);
+  });
+
+  test("sin red, cae al mismo respaldo: el formulario sigue andando", async () => {
+    const r = await obtenerPaises({
+      api: "http://x", fetchImpl: async () => { throw new TypeError("Failed to fetch"); },
+    });
+    expect(r).toEqual(PAISES_RESPALDO);
+  });
+
+  test("una lista vacía tampoco sirve: también cae al respaldo", async () => {
+    const r = await obtenerPaises({
+      api: "http://x", fetchImpl: async () => respuestaFalsa(true, 200, { paises: [] }),
+    });
+    expect(r).toEqual(PAISES_RESPALDO);
+  });
+
+  test("una respuesta sin la clave `paises` también cae al respaldo", async () => {
+    const r = await obtenerPaises({
+      api: "http://x", fetchImpl: async () => respuestaFalsa(true, 200, { ok: true }),
+    });
+    expect(r).toEqual(PAISES_RESPALDO);
+  });
+
+  test("Ecuador, Argentina y Venezuela encabezan el respaldo, en ese orden", () => {
+    expect(PAISES_RESPALDO.map((p) => p.codigo)).toEqual(["EC", "AR", "VE"]);
+  });
+});
+
+describe("dígitos y cuenta atrás, las dos cosas que arma el modal de código", () => {
+  test.each([
+    ["123456", "123456"],
+    ["12 34 56", "123456"],
+    ["1a2b3c", "123"],
+    ["", ""],
+  ])("soloDigitos(%s) → %s", (entrada, esperado) => {
+    expect(soloDigitos(entrada)).toBe(esperado);
+  });
+
+  test.each([
+    [125, "2:05"],
+    [59, "0:59"],
+    [0, "0:00"],
+    [-5, "0:00"],
+  ])("formatearRestante(%s) → %s", (segundos, esperado) => {
+    expect(formatearRestante(segundos)).toBe(esperado);
+  });
+});
+
+describe("iniciar el alta: pide el código y no crea la cuenta todavía", () => {
+  test("no sale a la red si el formulario no está bien", async () => {
+    const pedir = jest.fn();
+    const r = await iniciarRegistro({
+      campos: { ...VALIDOS, clave: "corta" }, api: "http://x", fetchImpl: pedir,
+    });
+    expect(pedir).not.toHaveBeenCalled();
+    expect(r.ok).toBe(false);
+    expect(r.mensaje).toBe(MENSAJES.clave);
+  });
+
+  test("con datos buenos pega en /iniciar, no en el alta directa", async () => {
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, {
+      pendiente: "tok-pend", correo_enmascarado: "a•••@correo.com", expira_en_minutos: 15,
+    }));
+    await iniciarRegistro({ campos: VALIDOS, api: "http://x", fetchImpl: pedir });
+    const [url, opciones] = pedir.mock.calls[0];
+    expect(url).toBe("http://x/api/cliente/registro/iniciar");
+    expect(opciones.method).toBe("POST");
+    expect(JSON.parse(opciones.body).username).toBe("ana.perez");
+  });
+
+  test("devuelve el token pendiente, el correo tapado y cuánto tarda en vencer", async () => {
+    const r = await iniciarRegistro({
+      campos: VALIDOS, api: "http://x",
+      fetchImpl: async () => respuestaFalsa(true, 200, {
+        pendiente: "tok-pend", correo_enmascarado: "a•••@correo.com", expira_en_minutos: 15,
+      }),
+    });
+    expect(r.ok).toBe(true);
+    expect(r.pendiente).toBe("tok-pend");
+    expect(r.correoEnmascarado).toBe("a•••@correo.com");
+    expect(r.expiraEnMinutos).toBe(15);
+  });
+
+  test.each([
+    [409, "Ese usuario ya está tomado"],
+    [409, "Ya hay una cuenta con ese correo"],
+    [429, "Probá de nuevo en un rato"],
+    [400, "Necesitamos un correo válido para que puedas recuperar tu cuenta"],
+    [503, "No pudimos mandarte el código por correo. Probá de nuevo en un rato."],
+  ])("el %s del servidor se muestra tal cual lo escribió", async (status, detail) => {
+    const r = await iniciarRegistro({
+      campos: VALIDOS, api: "http://x",
+      fetchImpl: async () => respuestaFalsa(false, status, { detail }),
+    });
+    expect(r.ok).toBe(false);
+    expect(r.mensaje).toBe(detail);
+  });
+
+  test("un detail con forma de diccionario también se lee", async () => {
+    const r = await iniciarRegistro({
+      campos: VALIDOS, api: "http://x",
+      fetchImpl: async () => respuestaFalsa(false, 400, {
+        detail: { reason: "invalido", message: "Revisá los datos" },
+      }),
+    });
+    expect(r.mensaje).toBe("Revisá los datos");
+  });
+
+  test("un rechazo sin texto no muestra «[object Object]» ni un código", async () => {
+    const r = await iniciarRegistro({
+      campos: VALIDOS, api: "http://x",
+      fetchImpl: async () => respuestaFalsa(false, 500, {}),
+    });
+    expect(r.ok).toBe(false);
+    expect(r.mensaje).not.toMatch(/object|500/);
+    expect(r.mensaje.length).toBeGreaterThan(0);
+  });
+
+  test("sin red lo dice con las palabras que ya usa el ingreso", async () => {
+    const r = await iniciarRegistro({
+      campos: VALIDOS, api: "http://x",
+      fetchImpl: async () => { throw new TypeError("Failed to fetch"); },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.mensaje).toBe("Sin conexión con el servidor");
+  });
+});
+
+describe("confirmar el código: recién ahí existe la cuenta", () => {
   const RESPUESTA = {
     token: "tok-123",
     user: { id: 7, username: "ana.perez", nombre: "Ana Pérez", saldo: 0 },
@@ -160,79 +336,89 @@ describe("el alta contra el servidor", () => {
     },
   };
 
-  test("no sale a la red si el formulario no está bien", async () => {
-    const pedir = jest.fn();
-    const r = await registrarCliente({
-      campos: { ...VALIDOS, clave: "corta" }, api: "http://x", fetchImpl: pedir,
-    });
-    expect(pedir).not.toHaveBeenCalled();
-    expect(r.ok).toBe(false);
-    expect(r.mensaje).toBe(MENSAJES.clave);
-  });
-
-  test("con datos buenos pega en el endpoint del registro", async () => {
+  test("pega en /confirmar con el token pendiente y solo los dígitos del código", async () => {
     const pedir = jest.fn(async () => respuestaFalsa(true, 200, RESPUESTA));
-    await registrarCliente({ campos: VALIDOS, api: "http://x", fetchImpl: pedir });
+    await confirmarRegistro({
+      pendiente: "tok-pend", codigo: "1 2 3 4 5 6", api: "http://x", fetchImpl: pedir,
+    });
     const [url, opciones] = pedir.mock.calls[0];
-    expect(url).toBe("http://x/api/cliente/registro");
-    expect(opciones.method).toBe("POST");
-    expect(JSON.parse(opciones.body).username).toBe("ana.perez");
+    expect(url).toBe("http://x/api/cliente/registro/confirmar");
+    const cuerpo = JSON.parse(opciones.body);
+    expect(cuerpo.pendiente).toBe("tok-pend");
+    expect(cuerpo.codigo).toBe("123456");
   });
 
-  test("devuelve la sesión entera, con la verificación que manda el servidor", async () => {
-    const r = await registrarCliente({
-      campos: VALIDOS, api: "http://x",
+  test("con el código bueno, devuelve exactamente lo que manda el login", async () => {
+    const r = await confirmarRegistro({
+      pendiente: "tok-pend", codigo: "123456", api: "http://x",
       fetchImpl: async () => respuestaFalsa(true, 200, RESPUESTA),
     });
     expect(r.ok).toBe(true);
     expect(r.sesion).toEqual(RESPUESTA);
   });
 
-  test.each([
-    [409, "Ese usuario ya está tomado"],
-    [409, "Ya hay una cuenta con ese correo"],
-    [429, "Probá de nuevo en un rato"],
-    [400, "Necesitamos un correo válido para que puedas recuperar tu cuenta"],
-  ])("el %s del servidor se muestra tal cual lo escribió", async (status, detail) => {
-    const r = await registrarCliente({
-      campos: VALIDOS, api: "http://x",
-      fetchImpl: async () => respuestaFalsa(false, status, { detail }),
-    });
-    expect(r.ok).toBe(false);
-    expect(r.mensaje).toBe(detail);
-  });
-
-  test("un detail con forma de diccionario también se lee", async () => {
-    const r = await registrarCliente({
-      campos: VALIDOS, api: "http://x",
+  test("un código que no coincide muestra cuántos intentos quedan, tal como lo escribió el servidor", async () => {
+    const r = await confirmarRegistro({
+      pendiente: "tok-pend", codigo: "000000", api: "http://x",
       fetchImpl: async () => respuestaFalsa(false, 400, {
-        detail: { reason: "invalido", message: "Revisá los datos" },
+        detail: "Ese código no es. Te quedan 3 intentos.",
       }),
     });
-    expect(r.mensaje).toBe("Revisá los datos");
+    expect(r.ok).toBe(false);
+    expect(r.mensaje).toBe("Ese código no es. Te quedan 3 intentos.");
+    expect(r.expirado).toBe(false);
   });
 
-  test("un rechazo sin texto no muestra «[object Object]» ni un código", async () => {
-    const r = await registrarCliente({
-      campos: VALIDOS, api: "http://x",
-      fetchImpl: async () => respuestaFalsa(false, 500, {}),
+  test("un código vencido (410) se marca como expirado, para empujar al reenvío", async () => {
+    const r = await confirmarRegistro({
+      pendiente: "tok-pend", codigo: "123456", api: "http://x",
+      fetchImpl: async () => respuestaFalsa(false, 410, { detail: "El código venció" }),
     });
     expect(r.ok).toBe(false);
-    expect(r.mensaje).not.toMatch(/object|500/);
-    expect(r.mensaje.length).toBeGreaterThan(0);
+    expect(r.expirado).toBe(true);
+    expect(r.mensaje).toBe("El código venció");
   });
 
-  test("sin red lo dice con las palabras que ya usa el ingreso", async () => {
-    const r = await registrarCliente({
-      campos: VALIDOS, api: "http://x",
+  test("sin red lo dice con las mismas palabras", async () => {
+    const r = await confirmarRegistro({
+      pendiente: "tok-pend", codigo: "123456", api: "http://x",
       fetchImpl: async () => { throw new TypeError("Failed to fetch"); },
     });
     expect(r.ok).toBe(false);
     expect(r.mensaje).toBe("Sin conexión con el servidor");
+    expect(r.expirado).toBe(false);
   });
 });
 
-describe("la sesión queda guardada al registrarse", () => {
+describe("reenviar el código sin perder el token pendiente", () => {
+  test("pega en /reenviar con el pendiente y nada más", async () => {
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, { expira_en_minutos: 15 }));
+    await reenviarCodigoRegistro({ pendiente: "tok-pend", api: "http://x", fetchImpl: pedir });
+    const [url, opciones] = pedir.mock.calls[0];
+    expect(url).toBe("http://x/api/cliente/registro/reenviar");
+    expect(JSON.parse(opciones.body)).toEqual({ pendiente: "tok-pend" });
+  });
+
+  test("devuelve cuánto tarda en vencer el código nuevo", async () => {
+    const r = await reenviarCodigoRegistro({
+      pendiente: "tok-pend", api: "http://x",
+      fetchImpl: async () => respuestaFalsa(true, 200, { expira_en_minutos: 15 }),
+    });
+    expect(r.ok).toBe(true);
+    expect(r.expiraEnMinutos).toBe(15);
+  });
+
+  test("pedirlo antes de tiempo (429) se muestra tal cual lo escribió el servidor", async () => {
+    const r = await reenviarCodigoRegistro({
+      pendiente: "tok-pend", api: "http://x",
+      fetchImpl: async () => respuestaFalsa(false, 429, { detail: "Esperá un poco para pedir otro" }),
+    });
+    expect(r.ok).toBe(false);
+    expect(r.mensaje).toBe("Esperá un poco para pedir otro");
+  });
+});
+
+describe("la sesión queda guardada al confirmar el código", () => {
   const RESPUESTA = {
     token: "tok-123",
     user: { id: 7, username: "ana.perez" },
@@ -240,10 +426,10 @@ describe("la sesión queda guardada al registrarse", () => {
       puede_retirar: false, motivo: "Para retirar verificá tu teléfono." },
   };
 
-  test("registrarse y guardar deja la sesión donde el sitio la busca al recargar", async () => {
+  test("confirmar y guardar deja la sesión donde el sitio la busca al recargar", async () => {
     const almacen = almacenFalso();
-    const r = await registrarCliente({
-      campos: VALIDOS, api: "http://x",
+    const r = await confirmarRegistro({
+      pendiente: "tok-pend", codigo: "123456", api: "http://x",
       fetchImpl: async () => respuestaFalsa(true, 200, RESPUESTA),
     });
     guardarSesion(r.sesion, almacen);
@@ -254,8 +440,8 @@ describe("la sesión queda guardada al registrarse", () => {
 
   test("la verificación sobrevive al guardado: la marca no se pierde al recargar", async () => {
     const almacen = almacenFalso();
-    const r = await registrarCliente({
-      campos: VALIDOS, api: "http://x",
+    const r = await confirmarRegistro({
+      pendiente: "tok-pend", codigo: "123456", api: "http://x",
       fetchImpl: async () => respuestaFalsa(true, 200, RESPUESTA),
     });
     guardarSesion(r.sesion, almacen);
