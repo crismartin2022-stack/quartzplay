@@ -15092,9 +15092,7 @@ async def me_retirar(request: Request):
     queda un código para cobrar en efectivo en el mostrador de su agencia.
     body: {init_data, monto}"""
     body = await request.json()
-    user = validar_init_data(body.get("init_data", ""))
-    if not user or not user.get("id"):
-        raise HTTPException(401, "No autenticado")
+    jugador_id = await _jugador_actual(request, body)
     try:
         monto = int(body.get("monto", 0))
     except (TypeError, ValueError):
@@ -15102,15 +15100,13 @@ async def me_retirar(request: Request):
     if monto <= 0:
         raise HTTPException(400, "El monto debe ser mayor a cero")
 
-    tg_id = str(user["id"])
     pool = await get_db()
     async with pool.acquire() as conn:
         u = await conn.fetchrow("""
             SELECT id, balance, moneda, creado_por,
                    origen_registro, telefono_verificado_at
-            FROM users
-            WHERE telegram_id::text=$1 OR id::text=$1
-        """, tg_id)
+            FROM users WHERE id=$1
+        """, jugador_id)
         if not u:
             raise HTTPException(404, "Usuario no encontrado")
         # Mismo candado que el retiro digital: cobrar en el mostrador también
@@ -21828,9 +21824,9 @@ async def me_psp_retirar(request: Request):
     Según el modo (auto/manual) se ejecuta o espera aprobación.
     body: {init_data, monto, destino (CVU/CBU)}"""
     body = await request.json()
-    user = validar_init_data(body.get("init_data", ""))
-    if not user or not user.get("id"):
-        raise HTTPException(401, "No autenticado")
+    # Telegram o navegador: desde que el jugador se puede registrar en el
+    # sitio, exigir identidad de Telegram para retirar lo dejaba sin salida.
+    jugador_id = await _jugador_actual(request, body)
     try:
         monto = int(body.get("monto", 0))
     except (TypeError, ValueError):
@@ -21841,15 +21837,13 @@ async def me_psp_retirar(request: Request):
     if len(destino) != 22:
         raise HTTPException(400, "El CVU/CBU debe tener 22 dígitos")
 
-    tg_id = str(user["id"])
     pool = await get_db()
     async with pool.acquire() as conn:
         u = await conn.fetchrow("""
             SELECT id, balance, creado_por, rollover_pendiente,
                    origen_registro, telefono_verificado_at
-            FROM users
-            WHERE telegram_id::text=$1 OR id::text=$1
-        """, tg_id)
+            FROM users WHERE id=$1
+        """, jugador_id)
         if not u:
             raise HTTPException(404, "Usuario no encontrado")
         # El que se registró solo tiene que haber verificado su teléfono para
