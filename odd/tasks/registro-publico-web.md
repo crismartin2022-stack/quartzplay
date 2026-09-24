@@ -117,16 +117,16 @@ propia, y los bonos de casa.
       verificar" en el perfil y el recordatorio al iniciar sesión, que
       explique qué puede y qué no. Y cambiar el mensaje que hoy dice que la
       clave la da la agencia.
-- [ ] **T7 — El teléfono en el formulario.** Campo de teléfono con
+- [x] **T7 — El teléfono en el formulario.** Campo de teléfono con
       selector de indicativo, solo países de Latam. Se guarda sin
       verificar: **no** se escribe `telefono_e164` hasta que el código
       llegue, porque esa columna es única y un número ajeno escrito a mano
       dejaría afuera a su dueño real.
-- [ ] **T8 — El correo, verificado antes de crear la cuenta.** El registro
+- [x] **T8 — El correo, verificado antes de crear la cuenta.** El registro
       pasa a dos pasos: se guarda el intento, se manda el código, y la
       fila en `users` nace recién cuando el código coincide. El proveedor
       de correo queda detrás de la misma puerta que Twilio.
-- [ ] **T9 — Cómo verifico mi teléfono.** En el perfil y en el aviso, el
+- [x] **T9 — Cómo verifico mi teléfono.** En el perfil y en el aviso, el
       camino completo con sus acciones: elegir canal, pedir el código,
       escribirlo, y qué se destraba al lograrlo. Queda armado aunque
       Twilio todavía no mande nada.
@@ -139,6 +139,29 @@ Twilio entrega mal hacia Venezuela: bloqueos de operadoras y mensajes que
 no llegan. Si el registro depende de un SMS que nunca llega, se pierde al
 jugador en la puerta. Por eso T4 deja el canal desacoplado: cambiar a
 WhatsApp o a correo no debe obligar a rehacer el flujo.
+
+## Evidencia (2026-09-24)
+
+Rama `feat/registro-correo-telefono`, siete unidades de trabajo:
+
+- `0872df4` el tope por IP pasa a 20/día + 3 en 10 minutos (CGNAT).
+- `e093e3b` tabla `registro_pendiente`, migración
+  `20260925090000_registro_pendiente_correo.sql`.
+- `19e4ae6` 19 países de Latam y `bot/correo.py` (Resend por HTTP, sin
+  dependencia nueva; falla cerrado; `CORREO_MODO=consola` solo staging).
+- `4a59b0e` el registro en dos pasos; se **borra** el endpoint viejo de un
+  paso, porque dejarlo abierto salteaba la verificación entera.
+- `97c9174` el teléfono verificado pisa al declarado.
+- `01013d6` selector de país y el modal del código en el sitio.
+- `6d4c3d5` panel para verificar el teléfono, con el aviso honesto de que
+  todavía no hay canal disponible.
+
+Pruebas: bot 332 en verde; frontend 1044 en 57 suites, `registroCliente`
+97; `react-scripts build` compila sin avisos. Verificado por el orquestador,
+no solo reportado.
+
+Pendiente del dueño: cuenta de Resend con `mail.iaqp.lat` en región
+São Paulo, y las variables `RESEND_API_KEY` y `CORREO_DESDE`.
 
 ## Checks
 
