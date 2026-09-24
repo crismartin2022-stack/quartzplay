@@ -17,10 +17,14 @@ import {
   hasIdentity,
 } from "./betBestActions";
 import {
-  camposCompletos, validarRegistro, registrarCliente,
+  MENSAJES as MENSAJES_REGISTRO,
+  camposCompletos, validarRegistro,
+  iniciarRegistro, confirmarRegistro, reenviarCodigoRegistro,
+  obtenerPaises, PAISES_RESPALDO, soloDigitos, formatearRestante,
   leerSesion, guardarSesion,
   marcaTelefono, avisoVerificacion, avisoCerrado, cerrarAviso,
-  ofreceVerificar,
+  ofreceVerificar, avisoSinCanales,
+  pedirCodigoTelefono, verificarCodigoTelefono,
 } from "./registroCliente";
 import { oscuro as Q, F_NUM, F_BODY, inkOn, RADII, SPACING } from "./theme";
 import BrandMark from "./BrandMark";
@@ -2550,7 +2554,7 @@ function CampanaWeb({ sesion }){
 }
 
 
-function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
+function PerfilWeb({ sesion, setSesion, onCerrar, inicial, onAbrirVerificarTelefono }){
   const [vista,setVista]=useState(inicial||"cuenta");
   const [d,setD]=useState(null);
   const [hist,setHist]=useState(null);
@@ -2668,7 +2672,8 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial }){
           <>
             {/* El estado del teléfono va arriba de los datos, no
                 escondido al final: es lo que decide si puede cobrar. */}
-            <MarcaTelefonoWeb verificacion={sesion?.verificacion}/>
+            <MarcaTelefonoWeb verificacion={sesion?.verificacion}
+              onVerificar={onAbrirVerificarTelefono}/>
 
             {[["Usuario",u.username],["Nombre",u.nombre],
               ["Teléfono",d?.telefono],["Moneda",u.moneda],
@@ -4388,12 +4393,23 @@ function Ingresar({ onEntro, onCerrar, onRegistrar }){
 // jugador solo existía si una agencia lo daba de alta o si entraba por
 // Telegram.
 //
-// Lo que NO pide: teléfono. Entrar, depositar y jugar son libres. El
-// teléfono verificado lo exige el retiro, que es donde está el riesgo, y
-// eso se dice acá abajo con todas las letras en vez de esperar a que la
-// persona se choque con la pared el día que quiera cobrar.
+// El alta pide teléfono, pero no lo verifica ahí mismo: entrar, depositar
+// y jugar son libres. El teléfono verificado lo exige el retiro, que es
+// donde está el riesgo, y eso se dice acá abajo con todas las letras en
+// vez de esperar a que la persona se choque con la pared el día que
+// quiera cobrar.
 //
-// Al salir bien entra directo: `onEntro` recibe la misma respuesta que
+// Dos pasos, no uno: `crear()` manda los datos y un código al correo
+// (`paso==="formulario"`); `confirmar()` cambia ese código por la cuenta
+// (`paso==="codigo"`). Sin el correo confirmado, cualquiera se registra
+// con una bandeja ajena y la recuperación de clave termina apuntando a
+// otra persona. El día que entre el login con Google este paso entero se
+// salta —Google ya probó el correo—, y por eso vive separado en su propio
+// estado (`paso`, `pendiente`) en vez de mezclado con la validación del
+// resto del formulario: saltearlo va a ser una rama nueva, no una
+// reescritura de esta.
+//
+// Al confirmar entra directo: `onEntro` recibe la misma respuesta que
 // devuelve el login —token y usuario— más el bloque `verificacion`, y la
 // raíz la guarda igual que a cualquier sesión. Pedirle iniciar sesión de
 // nuevo al que se acaba de registrar es hacerle escribir dos veces lo
@@ -4401,8 +4417,10 @@ function Ingresar({ onEntro, onCerrar, onRegistrar }){
 function Registrar({ onEntro, onCerrar, onIngresar, refCode }){
   const [campos,setCampos]=useState({
     nombre:"", usuario:"", correo:"", clave:"",
+    pais:PAISES_RESPALDO[0].codigo, telefono:"",
     referido:refCode||"", mayorDeEdad:false,
   });
+  const [paises,setPaises]=useState(PAISES_RESPALDO);
   // El código de agencia empieza plegado: la enorme mayoría no tiene uno,
   // y un campo de más es un campo que hace dudar. Si vino por un enlace
   // de agencia (?ref=), ya está escrito y se muestra abierto.
@@ -4410,6 +4428,34 @@ function Registrar({ onEntro, onCerrar, onIngresar, refCode }){
   const [errores,setErrores]=useState({});
   const [err,setErr]=useState("");
   const [proc,setProc]=useState(false);
+
+  // "formulario": todavía está escribiendo sus datos.
+  // "codigo": ya se mandó el código al correo; falta confirmarlo.
+  const [paso,setPaso]=useState("formulario");
+  const [pendiente,setPendiente]=useState(null); // {token, correo}
+  const [codigo,setCodigo]=useState("");
+  const [confErr,setConfErr]=useState("");
+  const [confProc,setConfProc]=useState(false);
+  const [avisoReenvio,setAvisoReenvio]=useState("");
+  const [restanteVence,setRestanteVence]=useState(0);
+  const [restanteReenvio,setRestanteReenvio]=useState(0);
+
+  useEffect(()=>{
+    let vivo=true;
+    obtenerPaises({api:API}).then(l=>{ if(vivo&&l&&l.length) setPaises(l); });
+    return()=>{ vivo=false; };
+  },[]);
+
+  // La cuenta atrás del código: un segundo menos por tic, para el
+  // vencimiento y para el bloqueo del botón de reenvío por igual.
+  useEffect(()=>{
+    if(paso!=="codigo") return;
+    const id=setInterval(()=>{
+      setRestanteVence(s=>Math.max(0,s-1));
+      setRestanteReenvio(s=>Math.max(0,s-1));
+    },1000);
+    return()=>clearInterval(id);
+  },[paso]);
 
   const poner=(campo,valor)=>{
     setCampos(c=>({...c,[campo]:valor}));
@@ -4429,11 +4475,54 @@ function Registrar({ onEntro, onCerrar, onIngresar, refCode }){
     const revision=validarRegistro(campos);
     if(!revision.ok){ setErrores(revision.errores); setErr(""); return; }
     setProc(true); setErr(""); setErrores({});
-    const r=await registrarCliente({campos, api:API});
-    if(r.ok){ onEntro(r.sesion); return; }
-    setErrores(r.errores||{});
-    setErr(r.mensaje);
+    const r=await iniciarRegistro({campos, api:API});
     setProc(false);
+    if(!r.ok){ setErrores(r.errores||{}); setErr(r.mensaje); return; }
+    setPendiente({token:r.pendiente, correo:r.correoEnmascarado});
+    setRestanteVence((r.expiraEnMinutos||15)*60);
+    setRestanteReenvio(60);
+    setCodigo(""); setConfErr(""); setAvisoReenvio("");
+    setPaso("codigo");
+  };
+
+  // Vuelve al formulario sin perder nada de lo que ya se escribió: sirve
+  // para corregir un correo mal tipeado sin tener que llenar todo de
+  // nuevo. `campos` no se toca acá, así que queda intacto.
+  const volver=()=>{
+    setPaso("formulario"); setPendiente(null);
+    setCodigo(""); setConfErr("");
+  };
+
+  const confirmar=useCallback(async(valorCodigo)=>{
+    if(confProc||!pendiente) return;
+    setConfProc(true); setConfErr("");
+    const r=await confirmarRegistro({pendiente:pendiente.token, codigo:valorCodigo, api:API});
+    setConfProc(false);
+    if(!r.ok){
+      setConfErr(r.mensaje);
+      if(r.expirado) setRestanteVence(0);
+      return;
+    }
+    onEntro(r.sesion);
+  },[confProc,pendiente,onEntro]);
+
+  const cambiarCodigo=(valor)=>{
+    const d=soloDigitos(valor).slice(0,6);
+    setCodigo(d); setConfErr("");
+    // Se auto-manda apenas están las 6 cifras: no hace falta ir a buscar
+    // un botón aparte cuando ya se pegó o tipeó el código entero.
+    if(d.length===6) confirmar(d);
+  };
+
+  const reenviar=async()=>{
+    if(restanteReenvio>0||confProc||!pendiente) return;
+    setConfProc(true); setConfErr(""); setAvisoReenvio("");
+    const r=await reenviarCodigoRegistro({pendiente:pendiente.token, api:API});
+    setConfProc(false);
+    if(!r.ok){ setConfErr(r.mensaje); return; }
+    setRestanteVence((r.expiraEnMinutos||15)*60);
+    setRestanteReenvio(60);
+    setAvisoReenvio("Te mandamos un código nuevo.");
   };
 
   const campo=(malo)=>({width:"100%",background:Q.inset,
@@ -4452,11 +4541,60 @@ function Registrar({ onEntro, onCerrar, onIngresar, refCode }){
         width:"100%",maxWidth:380,margin:"auto"}}>
         <div style={{..._phead(),color:Q.text,display:"flex",
           justifyContent:"space-between",alignItems:"center"}}>
-          Crear cuenta
+          {paso==="codigo"?"Confirmá tu correo":"Crear cuenta"}
           <button onClick={onCerrar} aria-label="Cerrar"
             style={{background:"transparent",border:"none",color:Q.muted,
               fontSize:22,cursor:"pointer",padding:0}}>×</button>
         </div>
+
+        {paso==="codigo"?(
+        <div style={{padding:SPACING[16]}}>
+          <div style={{color:Q.muted,fontSize:13,lineHeight:1.55,
+            marginBottom:14,fontFamily:F_BODY}}>
+            Te mandamos un código a{" "}
+            <b style={{color:Q.text}}>{pendiente?.correo}</b>. Escribilo
+            acá abajo para terminar de crear tu cuenta.</div>
+
+          <input value={codigo}
+            onChange={e=>cambiarCodigo(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&codigo.length===6&&confirmar(codigo)}
+            type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6}
+            autoComplete="one-time-code" placeholder="000000"
+            aria-label="Código de verificación"
+            style={{...campo(Boolean(confErr)),fontFamily:F_NUM,fontSize:24,
+              fontWeight:700,letterSpacing:6,textAlign:"center"}}/>
+          {aviso(confErr)}
+
+          <div style={{display:"flex",justifyContent:"space-between",
+            alignItems:"center",marginTop:10,fontSize:12,color:Q.dim,
+            fontFamily:F_BODY}}>
+            <span>{restanteVence>0
+              ?`Vence en ${formatearRestante(restanteVence)}`
+              :"El código venció"}</span>
+            <button onClick={reenviar} disabled={restanteReenvio>0||confProc}
+              style={{background:"transparent",border:"none",
+                color:restanteReenvio>0?Q.dim:Q.cyan,fontWeight:700,
+                cursor:restanteReenvio>0?"default":"pointer",padding:0,
+                fontFamily:F_BODY,fontSize:12}}>
+              {restanteReenvio>0?`Reenviar (${restanteReenvio}s)`:"Reenviar código"}
+            </button>
+          </div>
+          {avisoReenvio&&(
+            <div style={{color:Q.green,fontSize:12,marginTop:6,
+              fontFamily:F_BODY}}>{avisoReenvio}</div>
+          )}
+
+          <button onClick={()=>confirmar(codigo)}
+            disabled={codigo.length!==6||confProc}
+            style={{..._btnPrim(),marginTop:14,
+              opacity:codigo.length===6?1:.5,
+              cursor:codigo.length===6?"pointer":"default"}}>
+            {confProc?"Confirmando…":"Confirmar código"}</button>
+
+          <button onClick={volver} style={{..._btnGhost(),marginTop:8}}>
+            ¿Escribiste mal el correo? Volvé y corregilo</button>
+        </div>
+        ):(
         <div style={{padding:SPACING[16]}}>
           <div style={{marginBottom:12}}>
             <input value={campos.nombre}
@@ -4489,7 +4627,7 @@ function Registrar({ onEntro, onCerrar, onIngresar, refCode }){
             {aviso(errores.correo)||(
               <div style={{color:Q.dim,fontSize:12,marginTop:4,
                 lineHeight:1.45,fontFamily:F_BODY}}>
-                Es por donde recuperás la cuenta si perdés la clave.</div>
+                Te mandamos ahí un código para confirmar la cuenta.</div>
             )}
           </div>
 
@@ -4503,6 +4641,31 @@ function Registrar({ onEntro, onCerrar, onIngresar, refCode }){
               <div style={{color:Q.dim,fontSize:12,marginTop:4,
                 lineHeight:1.45,fontFamily:F_BODY}}>
                 Al menos 8 caracteres.</div>
+            )}
+          </div>
+
+          <div style={{marginBottom:12}}>
+            <div style={{display:"flex",gap:SPACING[8]}}>
+              <select value={campos.pais}
+                onChange={e=>poner("pais",e.target.value)}
+                aria-label="País"
+                style={{...campo(errores.pais),flex:"0 0 116px",padding:"12px 8px"}}>
+                {paises.map(p=>(
+                  <option key={p.codigo} value={p.codigo}>
+                    {p.indicativo} {p.codigo}</option>
+                ))}
+              </select>
+              <input value={campos.telefono}
+                onChange={e=>poner("telefono",e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&listo&&crear()}
+                type="tel" inputMode="tel" placeholder="Tu celular"
+                aria-label="Teléfono" autoComplete="tel-national"
+                style={{...campo(errores.telefono),flex:1}}/>
+            </div>
+            {aviso(errores.pais||errores.telefono)||(
+              <div style={{color:Q.dim,fontSize:12,marginTop:4,
+                lineHeight:1.45,fontFamily:F_BODY}}>
+                Lo vas a poder verificar más adelante, antes de retirar.</div>
             )}
           </div>
 
@@ -4547,18 +4710,19 @@ function Registrar({ onEntro, onCerrar, onIngresar, refCode }){
           <button onClick={crear} disabled={!listo}
             style={{..._btnPrim(),marginTop:12,
               opacity:listo?1:.5,cursor:listo?"pointer":"default"}}>
-            {proc?"Creando tu cuenta…":"Crear cuenta"}</button>
+            {proc?"Mandando el código…":"Crear cuenta"}</button>
 
           {/* La regla de la casa, dicha antes de apretar y no después:
-              se entra, se deposita y se juega sin teléfono; el retiro es
-              lo único que pide verificarlo. */}
+              pedimos el teléfono pero no lo verificamos acá; se deposita
+              y se juega igual, y el retiro es lo único que después va a
+              pedir verificarlo. */}
           <div style={{display:"flex",alignItems:"flex-start",
             gap:SPACING[8],marginTop:12,color:Q.dim,fontSize:12,
             lineHeight:1.5,fontFamily:F_BODY}}>
             <Icon name="shield-check" size={14} color={Q.muted}/>
-            <span>No te pedimos el teléfono para registrarte: depositás y
-              jugás enseguida. Para retirar, después vas a tener que
-              verificarlo.</span>
+            <span>Pedimos tu teléfono pero todavía no lo verificamos:
+              depositás y jugás enseguida igual. Vas a tener que
+              verificarlo antes de poder retirar.</span>
           </div>
 
           {onIngresar&&(
@@ -4566,6 +4730,7 @@ function Registrar({ onEntro, onCerrar, onIngresar, refCode }){
               ¿Ya tenés cuenta? Iniciá sesión</button>
           )}
         </div>
+        )}
       </div>
     </div>
   );
@@ -4581,9 +4746,10 @@ function Registrar({ onEntro, onCerrar, onIngresar, refCode }){
 // La acción de verificar pide dos cosas antes de aparecer: que
 // `GET /api/telefono/canales` traiga algún canal —hoy trae la lista
 // vacía, porque Twilio no está configurado— y que esta pantalla tenga
-// adónde mandar a la persona. Falta lo segundo, así que hoy se muestra
-// el estado sin la acción: un botón que no puede mandar un código es
-// peor que ningún botón, porque promete y falla.
+// adónde mandar a la persona (`onVerificar`, que abre `VerificarTelefonoWeb`
+// más abajo). Mientras falte el canal no se muestra un botón que promete
+// y no puede cumplir: se dice la verdad —todavía no está disponible— con
+// `avisoSinCanales`.
 function MarcaTelefonoWeb({ verificacion, onVerificar }){
   const marca=marcaTelefono(verificacion);
   const [canales,setCanales]=useState(null);
@@ -4602,6 +4768,9 @@ function MarcaTelefonoWeb({ verificacion, onVerificar }){
   if(!marca) return null;
 
   const c=marca.verificado?Q.green:Q.amber;
+  const hayFlujo=Boolean(onVerificar);
+  const puedeOfrecer=ofreceVerificar(canales,hayFlujo);
+  const faltaCanal=avisoSinCanales(canales,hayFlujo);
   return(
     <div style={{display:"flex",alignItems:"flex-start",gap:SPACING[8],
       background:`${c}14`,border:`1px solid ${c}55`,borderRadius:RADII.md,
@@ -4614,12 +4783,16 @@ function MarcaTelefonoWeb({ verificacion, onVerificar }){
           <div style={{color:Q.muted,fontSize:12.5,marginTop:4,
             lineHeight:1.5}}>{marca.detalle}</div>
         )}
-        {ofreceVerificar(canales,Boolean(onVerificar))&&(
+        {puedeOfrecer&&(
           <button onClick={onVerificar} style={{background:"transparent",
             border:`1px solid ${c}`,borderRadius:RADII.sm,padding:"8px 12px",
             color:c,fontSize:12.5,fontWeight:700,cursor:"pointer",
             marginTop:8,fontFamily:F_BODY}}>
             Verificar mi teléfono</button>
+        )}
+        {faltaCanal.mostrar&&(
+          <div style={{color:Q.muted,fontSize:12,marginTop:8,
+            lineHeight:1.5}}>{faltaCanal.linea}</div>
         )}
       </div>
     </div>
@@ -4628,22 +4801,278 @@ function MarcaTelefonoWeb({ verificacion, onVerificar }){
 
 // El aviso al entrar: una línea con lo que puede y lo que no, escrita
 // por el servidor. Se cierra y no vuelve en esta pestaña; en la próxima
-// visita vuelve, porque el retiro sigue frenado.
-function AvisoTelefonoWeb({ verificacion, onCerrar }){
+// visita vuelve, porque el retiro sigue frenado. Trae su propia acción
+// de verificar, con la misma regla que `MarcaTelefonoWeb`: solo se
+// ofrece cuando hay algún canal disponible.
+function AvisoTelefonoWeb({ verificacion, onCerrar, onVerificar }){
   const aviso=avisoVerificacion(verificacion);
+  const [canales,setCanales]=useState(null);
+
+  useEffect(()=>{
+    if(!aviso.mostrar) return;
+    let vivo=true;
+    fetch(`${API}/api/telefono/canales`)
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{ if(vivo&&d) setCanales(d.canales||[]); })
+      .catch(()=>{});
+    return()=>{ vivo=false; };
+    // eslint-disable-next-line
+  },[aviso.mostrar]);
+
   if(!aviso.mostrar) return null;
+
+  const hayFlujo=Boolean(onVerificar);
+  const puedeOfrecer=ofreceVerificar(canales,hayFlujo);
+  const faltaCanal=avisoSinCanales(canales,hayFlujo);
+
   return(
     <div style={{background:`${Q.amber}14`,
       borderBottom:`1px solid ${Q.amber}44`,padding:"8px 16px",
-      display:"flex",alignItems:"center",gap:SPACING[8],
       fontFamily:F_BODY}}>
-      <Icon name="shield-alert" size={16} color={Q.amber}/>
-      <span style={{flex:1,minWidth:0,color:Q.text,fontSize:12.5,
-        lineHeight:1.45}}>{aviso.linea}</span>
-      <button onClick={onCerrar} aria-label="Cerrar aviso"
-        style={{background:"transparent",border:"none",color:Q.muted,
-          fontSize:16,cursor:"pointer",padding:0,lineHeight:1,
-          flexShrink:0}}>×</button>
+      <div style={{display:"flex",alignItems:"center",gap:SPACING[8]}}>
+        <Icon name="shield-alert" size={16} color={Q.amber}/>
+        <span style={{flex:1,minWidth:0,color:Q.text,fontSize:12.5,
+          lineHeight:1.45}}>{aviso.linea}</span>
+        {puedeOfrecer&&(
+          <button onClick={onVerificar} style={{background:"transparent",
+            border:`1px solid ${Q.amber}`,borderRadius:RADII.sm,
+            padding:"4px 8px",color:Q.amber,fontSize:12.5,fontWeight:700,
+            cursor:"pointer",whiteSpace:"nowrap",fontFamily:F_BODY}}>
+            Verificar</button>
+        )}
+        <button onClick={onCerrar} aria-label="Cerrar aviso"
+          style={{background:"transparent",border:"none",color:Q.muted,
+            fontSize:16,cursor:"pointer",padding:0,lineHeight:1,
+            flexShrink:0}}>×</button>
+      </div>
+      {faltaCanal.mostrar&&(
+        <div style={{color:Q.dim,fontSize:12,marginTop:4,paddingLeft:24,
+          lineHeight:1.4}}>{faltaCanal.linea}</div>
+      )}
+    </div>
+  );
+}
+
+// ── Verificar el teléfono ───────────────────────────────────────
+//
+// El panel que abren tanto `MarcaTelefonoWeb` como `AvisoTelefonoWeb`.
+// Solo se llega acá cuando ya hay al menos un canal disponible
+// (`ofreceVerificar`), así que no repite el estado "no disponible": esa
+// verdad la dicen las dos piezas de arriba, antes de ofrecer el botón.
+//
+// No pre-carga el teléfono ni el país: `GET /api/cliente/me` no los
+// devuelve juntos hoy, así que se le pide a la persona que los confirme
+// acá, igual que en el alta. Dos pasos adentro: pedir el código
+// (`paso==="pedir"`) y escribirlo (`paso==="codigo"`), con la misma
+// cuenta atrás y el mismo bloqueo de reenvío que el alta.
+function VerificarTelefonoWeb({ sesion, setSesion, onCerrar }){
+  const [paises,setPaises]=useState(PAISES_RESPALDO);
+  const [pais,setPais]=useState(PAISES_RESPALDO[0].codigo);
+  const [telefono,setTelefono]=useState("");
+  const [canales,setCanales]=useState(null);
+  const [canal,setCanal]=useState("");
+  const [paso,setPaso]=useState("pedir");
+  const [codigo,setCodigo]=useState("");
+  const [err,setErr]=useState("");
+  const [proc,setProc]=useState(false);
+  const [avisoReenvio,setAvisoReenvio]=useState("");
+  const [restanteVence,setRestanteVence]=useState(0);
+  const [restanteReenvio,setRestanteReenvio]=useState(0);
+
+  useEffect(()=>{
+    let vivo=true;
+    obtenerPaises({api:API}).then(l=>{ if(vivo&&l&&l.length) setPaises(l); });
+    fetch(`${API}/api/telefono/canales`)
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{ if(vivo&&d) setCanales(d.canales||[]); })
+      .catch(()=>{ if(vivo) setCanales([]); });
+    return()=>{ vivo=false; };
+  },[]);
+
+  // El canal elegido sigue siendo válido apenas se sabe cuáles hay: si
+  // el que estaba elegido dejó de estar disponible, salta al primero
+  // que sí lo está.
+  useEffect(()=>{
+    if(!canales||!canales.length) return;
+    setCanal(c=>canales.includes(c)?c:canales[0]);
+  },[canales]);
+
+  useEffect(()=>{
+    if(paso!=="codigo") return;
+    const id=setInterval(()=>{
+      setRestanteVence(s=>Math.max(0,s-1));
+      setRestanteReenvio(s=>Math.max(0,s-1));
+    },1000);
+    return()=>clearInterval(id);
+  },[paso]);
+
+  const CANAL_ETIQUETA={sms:"SMS", whatsapp:"WhatsApp"};
+
+  const pedir=async()=>{
+    if(proc) return;
+    if(soloDigitos(telefono).length<6){ setErr(MENSAJES_REGISTRO.telefono); return; }
+    setProc(true); setErr("");
+    const r=await pedirCodigoTelefono({telefono, pais, canal, api:API, token:sesion.token});
+    setProc(false);
+    if(!r.ok){ setErr(r.mensaje); return; }
+    setPaso("codigo"); setCodigo("");
+    setRestanteVence((r.venceEnMinutos||10)*60);
+    setRestanteReenvio(60);
+  };
+
+  const volver=()=>{ setPaso("pedir"); setCodigo(""); setErr(""); };
+
+  const confirmar=useCallback(async(valorCodigo)=>{
+    if(proc) return;
+    setProc(true); setErr("");
+    const r=await verificarCodigoTelefono({
+      telefono, pais, codigo:valorCodigo, api:API, token:sesion.token,
+    });
+    setProc(false);
+    if(!r.ok){ setErr(r.mensaje); return; }
+    setSesion(s=>s?{...s, verificacion:r.estado||s.verificacion}:s);
+    onCerrar();
+  },[proc,telefono,pais,sesion.token,setSesion,onCerrar]);
+
+  const cambiarCodigo=(valor)=>{
+    const d=soloDigitos(valor).slice(0,6);
+    setCodigo(d); setErr("");
+    if(d.length===6) confirmar(d);
+  };
+
+  const reenviar=async()=>{
+    if(restanteReenvio>0||proc) return;
+    setProc(true); setErr(""); setAvisoReenvio("");
+    const r=await pedirCodigoTelefono({telefono, pais, canal, api:API, token:sesion.token});
+    setProc(false);
+    if(!r.ok){ setErr(r.mensaje); return; }
+    setRestanteVence((r.venceEnMinutos||10)*60);
+    setRestanteReenvio(60);
+    setAvisoReenvio("Te mandamos un código nuevo.");
+  };
+
+  const campo=(malo)=>({width:"100%",background:Q.inset,
+    border:`1px solid ${malo?Q.red:Q.border}`,borderRadius:RADII.md,
+    padding:"12px 12px",color:Q.text,fontSize:15,fontFamily:F_BODY});
+
+  return(
+    <div onClick={onCerrar} style={{position:"fixed",inset:0,zIndex:200,
+      background:"rgba(5,9,20,.9)",display:"flex",alignItems:"center",
+      justifyContent:"center",padding:SPACING[16],overflowY:"auto"}}>
+      <div onClick={e=>e.stopPropagation()} style={{..._panel(),
+        width:"100%",maxWidth:380,margin:"auto"}}>
+        <div style={{..._phead(),color:Q.text,display:"flex",
+          justifyContent:"space-between",alignItems:"center"}}>
+          Verificar teléfono
+          <button onClick={onCerrar} aria-label="Cerrar"
+            style={{background:"transparent",border:"none",color:Q.muted,
+              fontSize:22,cursor:"pointer",padding:0}}>×</button>
+        </div>
+
+        {paso==="codigo"?(
+        <div style={{padding:SPACING[16]}}>
+          <div style={{color:Q.muted,fontSize:13,lineHeight:1.55,
+            marginBottom:14,fontFamily:F_BODY}}>
+            Te mandamos un código por{" "}
+            <b style={{color:Q.text}}>{CANAL_ETIQUETA[canal]||canal}</b> a
+            tu teléfono. Escribilo acá abajo.</div>
+
+          <input value={codigo}
+            onChange={e=>cambiarCodigo(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&codigo.length===6&&confirmar(codigo)}
+            type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6}
+            autoComplete="one-time-code" placeholder="000000"
+            aria-label="Código de verificación"
+            style={{...campo(Boolean(err)),fontFamily:F_NUM,fontSize:24,
+              fontWeight:700,letterSpacing:6,textAlign:"center"}}/>
+          {err&&<div style={{color:Q.red,fontSize:12,marginTop:4,
+            lineHeight:1.45,fontFamily:F_BODY}}>{err}</div>}
+
+          <div style={{display:"flex",justifyContent:"space-between",
+            alignItems:"center",marginTop:10,fontSize:12,color:Q.dim,
+            fontFamily:F_BODY}}>
+            <span>{restanteVence>0
+              ?`Vence en ${formatearRestante(restanteVence)}`
+              :"El código venció"}</span>
+            <button onClick={reenviar} disabled={restanteReenvio>0||proc}
+              style={{background:"transparent",border:"none",
+                color:restanteReenvio>0?Q.dim:Q.cyan,fontWeight:700,
+                cursor:restanteReenvio>0?"default":"pointer",padding:0,
+                fontFamily:F_BODY,fontSize:12}}>
+              {restanteReenvio>0?`Reenviar (${restanteReenvio}s)`:"Reenviar código"}
+            </button>
+          </div>
+          {avisoReenvio&&(
+            <div style={{color:Q.green,fontSize:12,marginTop:6,
+              fontFamily:F_BODY}}>{avisoReenvio}</div>
+          )}
+
+          <button onClick={()=>confirmar(codigo)}
+            disabled={codigo.length!==6||proc}
+            style={{..._btnPrim(),marginTop:14,
+              opacity:codigo.length===6?1:.5,
+              cursor:codigo.length===6?"pointer":"default"}}>
+            {proc?"Confirmando…":"Confirmar código"}</button>
+
+          <button onClick={volver} style={{..._btnGhost(),marginTop:8}}>
+            ¿Número equivocado? Volvé y corregilo</button>
+        </div>
+        ):(
+        <div style={{padding:SPACING[16]}}>
+          {canales===null?(
+            <div style={{color:Q.muted,fontSize:13,textAlign:"center",
+              padding:"12px 0",fontFamily:F_BODY}}>Cargando…</div>
+          ):(
+          <>
+            <div style={{display:"flex",gap:SPACING[8],marginBottom:4}}>
+              <select value={pais} onChange={e=>setPais(e.target.value)}
+                aria-label="País"
+                style={{...campo(false),flex:"0 0 116px",padding:"12px 8px"}}>
+                {paises.map(p=>(
+                  <option key={p.codigo} value={p.codigo}>
+                    {p.indicativo} {p.codigo}</option>
+                ))}
+              </select>
+              <input value={telefono} onChange={e=>{ setTelefono(e.target.value); setErr(""); }}
+                type="tel" inputMode="tel" placeholder="Tu celular"
+                aria-label="Teléfono" autoComplete="tel-national"
+                style={{...campo(Boolean(err)),flex:1}}/>
+            </div>
+            <div style={{color:Q.dim,fontSize:12,marginTop:4,marginBottom:12,
+              lineHeight:1.45,fontFamily:F_BODY}}>
+              El mismo número al que te vamos a mandar el código.</div>
+
+            {canales.length>1&&(
+              <div style={{display:"flex",gap:SPACING[8],marginBottom:12}}>
+                {canales.map(ch=>(
+                  <button key={ch} onClick={()=>setCanal(ch)}
+                    style={{flex:1,background:canal===ch?`${Q.violet}33`:"transparent",
+                      border:`1px solid ${canal===ch?Q.violet:Q.border}`,
+                      borderRadius:RADII.md,padding:"8px",cursor:"pointer",
+                      color:canal===ch?Q.cyan:Q.muted,fontSize:13,
+                      fontWeight:canal===ch?700:400,fontFamily:F_BODY}}>
+                    {CANAL_ETIQUETA[ch]||ch}</button>
+                ))}
+              </div>
+            )}
+
+            {err&&(
+              <div style={{background:`${Q.red}1A`,
+                border:`1px solid ${Q.red}`,borderRadius:RADII.md,
+                padding:"8px 12px",marginBottom:12,fontSize:12.5,
+                color:Q.text,lineHeight:1.5,fontFamily:F_BODY}}>{err}</div>
+            )}
+
+            <button onClick={pedir} disabled={proc||!canales.length}
+              style={{..._btnPrim(),
+                opacity:proc||!canales.length?.5:1,
+                cursor:proc||!canales.length?"default":"pointer"}}>
+              {proc?"Mandando el código…":"Mandar código"}</button>
+          </>
+          )}
+        </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -4744,6 +5173,10 @@ export default function Web(){
   const [consultar,setConsultar]=useState(false);
   const [verJR,setVerJR]=useState(false);
   const [verPerfil,setVerPerfil]=useState(false);
+  // El panel de verificar el teléfono se abre desde dos lugares —el
+  // aviso al entrar y la pestaña de cuenta del perfil— así que vive acá
+  // arriba, no adentro de ninguno de los dos.
+  const [verVerificarTel,setVerVerificarTel]=useState(false);
   const [verAyuda,setVerAyuda]=useState(false);
   // Lo escaneado en Bet Best vive acá: si el cliente sale a mirar
   // otra cosa y vuelve, no tiene que sacar la foto de nuevo.
@@ -5057,6 +5490,7 @@ export default function Web(){
           qué puede y qué no. Lo dice el servidor, no la pantalla. */}
       {sesion&&!avisoVerCerrado&&(
         <AvisoTelefonoWeb verificacion={sesion.verificacion}
+          onVerificar={()=>setVerVerificarTel(true)}
           onCerrar={()=>{
             setAvisoVerCerrado(true);
             cerrarAviso(typeof sessionStorage!=="undefined"?sessionStorage:null);
@@ -5120,7 +5554,13 @@ export default function Web(){
 
       {verPerfil&&sesion&&(
         <PerfilWeb sesion={sesion} setSesion={setSesion}
-          onCerrar={()=>setVerPerfil(false)}/>
+          onCerrar={()=>setVerPerfil(false)}
+          onAbrirVerificarTelefono={()=>setVerVerificarTel(true)}/>
+      )}
+
+      {verVerificarTel&&sesion&&(
+        <VerificarTelefonoWeb sesion={sesion} setSesion={setSesion}
+          onCerrar={()=>setVerVerificarTel(false)}/>
       )}
 
       {verJR&&sesion?.user?.id&&(
@@ -5135,7 +5575,8 @@ export default function Web(){
           {sesion ? (
             <PerfilWeb sesion={sesion} setSesion={setSesion}
               inicial="historial"
-              onCerrar={()=>setVista("prematch")}/>
+              onCerrar={()=>setVista("prematch")}
+              onAbrirVerificarTelefono={()=>setVerVerificarTel(true)}/>
           ) : (
             <div style={{padding:"40px 24px",textAlign:"center",
               maxWidth:420,margin:"0 auto"}}>

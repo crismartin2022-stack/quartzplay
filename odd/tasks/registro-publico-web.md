@@ -38,6 +38,14 @@ Y el **negocio**, que pasa a poder captar jugadores directamente.
 - **La edad se declara, no se verifica.** Por ahora una casilla de mayoría
   de edad, registrada con fecha. No es una operación regulada, pero queda
   preparado para endurecerlo cuando el negocio lo defina.
+- **El teléfono se pide en el registro, pero no se verifica ahí.** Se
+  elige el indicativo de país de una lista de Latam y se guarda el número
+  tal como lo declaró. La verificación sigue siendo la que abre los
+  retiros, no la que abre la cuenta.
+- **El correo sí se verifica antes de crear la cuenta.** El jugador
+  completa el formulario, toca *Crear cuenta*, recibe un código en su
+  correo y lo escribe en un modal. Recién ahí existe la cuenta. Quien
+  entra con Google se saltea este paso: Google ya probó el correo.
 - **Mercados iniciales: Ecuador, Argentina y Venezuela.**
 
 ## Lo que ya existe y no hay que inventar
@@ -86,29 +94,42 @@ propia, y los bonos de casa.
 
 ## Tasks
 
-- [ ] **T1 — Los cimientos.** Migración: `google_sub` (único), unicidad
+- [x] **T1 — Los cimientos.** Migración: `google_sub` (único), unicidad
       real de teléfono y email, `telefono_verificado_at`, `edad_declarada_at`
       y el origen del registro. Sin esto, todo lo demás es arena.
-- [ ] **T2 — El freno.** Límite de peticiones por IP y por teléfono en los
+- [x] **T2 — El freno.** Límite de peticiones por IP y por teléfono en los
       endpoints de registro y de envío de código, con respuesta clara al
       usuario. Se prueba con una ráfaga.
 - [ ] **T3 — Entrar con Google.** Verificación del token de Google contra
       su clave pública, en nuestra propia API. Sin Supabase Auth: la
       plataforma se muda a AWS y esto tiene que viajar con nosotros.
-- [ ] **T4 — El código, por WhatsApp o SMS.** Envío y validación, con el
+- [x] **T4 — El código, por WhatsApp o SMS.** Envío y validación, con el
       proveedor y el canal detrás de una interfaz: hoy Twilio, mañana lo
       que haga falta. Falla cerrado si no hay credenciales, como ya hace el
       PSP. Si un canal falla, se ofrece el otro.
-- [ ] **T4b — El candado del retiro.** Sin teléfono verificado no se
+- [x] **T4b — El candado del retiro.** Sin teléfono verificado no se
       retira, y el servidor lo impide (no alcanza con esconder el botón).
       Además, hoy el retiro digital solo acepta identidad de Telegram
       (`casino_api.py:21821`): un jugador del navegador no puede retirar
       aunque verifique. Hay que aceptar también la sesión web.
-- [ ] **T5 — La pantalla.** El registro en el sitio, con el referido
+- [x] **T5 — La pantalla.** El registro en el sitio, con el referido
       opcional y la casilla de mayoría de edad. La marca de "teléfono sin
       verificar" en el perfil y el recordatorio al iniciar sesión, que
       explique qué puede y qué no. Y cambiar el mensaje que hoy dice que la
       clave la da la agencia.
+- [x] **T7 — El teléfono en el formulario.** Campo de teléfono con
+      selector de indicativo, solo países de Latam. Se guarda sin
+      verificar: **no** se escribe `telefono_e164` hasta que el código
+      llegue, porque esa columna es única y un número ajeno escrito a mano
+      dejaría afuera a su dueño real.
+- [x] **T8 — El correo, verificado antes de crear la cuenta.** El registro
+      pasa a dos pasos: se guarda el intento, se manda el código, y la
+      fila en `users` nace recién cuando el código coincide. El proveedor
+      de correo queda detrás de la misma puerta que Twilio.
+- [x] **T9 — Cómo verifico mi teléfono.** En el perfil y en el aviso, el
+      camino completo con sus acciones: elegir canal, pedir el código,
+      escribirlo, y qué se destraba al lograrlo. Queda armado aunque
+      Twilio todavía no mande nada.
 - [ ] **T6 — Asignar a una agencia.** Desde admin, mover un jugador de la
       casa a una agencia, con registro de quién lo hizo y cuándo.
 
@@ -118,6 +139,29 @@ Twilio entrega mal hacia Venezuela: bloqueos de operadoras y mensajes que
 no llegan. Si el registro depende de un SMS que nunca llega, se pierde al
 jugador en la puerta. Por eso T4 deja el canal desacoplado: cambiar a
 WhatsApp o a correo no debe obligar a rehacer el flujo.
+
+## Evidencia (2026-09-24)
+
+Rama `feat/registro-correo-telefono`, siete unidades de trabajo:
+
+- `0872df4` el tope por IP pasa a 20/día + 3 en 10 minutos (CGNAT).
+- `e093e3b` tabla `registro_pendiente`, migración
+  `20260925090000_registro_pendiente_correo.sql`.
+- `19e4ae6` 19 países de Latam y `bot/correo.py` (Resend por HTTP, sin
+  dependencia nueva; falla cerrado; `CORREO_MODO=consola` solo staging).
+- `4a59b0e` el registro en dos pasos; se **borra** el endpoint viejo de un
+  paso, porque dejarlo abierto salteaba la verificación entera.
+- `97c9174` el teléfono verificado pisa al declarado.
+- `01013d6` selector de país y el modal del código en el sitio.
+- `6d4c3d5` panel para verificar el teléfono, con el aviso honesto de que
+  todavía no hay canal disponible.
+
+Pruebas: bot 332 en verde; frontend 1044 en 57 suites, `registroCliente`
+97; `react-scripts build` compila sin avisos. Verificado por el orquestador,
+no solo reportado.
+
+Pendiente del dueño: cuenta de Resend con `mail.iaqp.lat` en región
+São Paulo, y las variables `RESEND_API_KEY` y `CORREO_DESDE`.
 
 ## Checks
 

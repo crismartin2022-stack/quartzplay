@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
 import psp_webhook_auth
+import correo
 import mensajeria
 import registro_publico
 from config import cors_headers, get_runtime_settings
@@ -27420,7 +27421,11 @@ async def wallet(request: Request):
 # Los dos endpoints valen para el jugador de Telegram y para el del
 # navegador, con la misma resolución de identidad que usa /api/apuesta.
 
-TELEFONO_SECRETO = os.environ.get("TELEFONO_CODIGO_SECRETO", "") or os.environ.get(
+# El mismo secreto ata el hash del código de teléfono y, más abajo, el del
+# código de correo del registro pendiente: los dos usan hash_codigo/
+# codigo_coincide de registro_publico.py, que piden un secreto de servidor
+# y no dos.
+CODIGO_SECRETO = os.environ.get("TELEFONO_CODIGO_SECRETO", "") or os.environ.get(
     "ADMIN_API_KEY", "")
 
 
@@ -27509,7 +27514,7 @@ async def me_telefono_codigo(request: Request):
             VALUES ($1,$2,$3,'twilio',$4::inet,
                     NOW() + ($5 || ' minutes')::interval)
         """, telefono,
-            registro_publico.hash_codigo(codigo, telefono, TELEFONO_SECRETO),
+            registro_publico.hash_codigo(codigo, telefono, CODIGO_SECRETO),
             canal, ip, str(registro_publico.VIGENCIA_MINUTOS))
 
     try:
@@ -27560,7 +27565,7 @@ async def me_telefono_verificar(request: Request):
             fila["id"])
 
         if not registro_publico.codigo_coincide(
-                fila["codigo_hash"], codigo, telefono, TELEFONO_SECRETO):
+                fila["codigo_hash"], codigo, telefono, CODIGO_SECRETO):
             raise HTTPException(400, "El código no coincide")
 
         async with conn.transaction():
@@ -27570,7 +27575,17 @@ async def me_telefono_verificar(request: Request):
             await conn.execute("""
                 UPDATE users
                    SET telefono_e164=$2, telefono_verificado_at=NOW(),
-                       telefono=COALESCE(NULLIF(telefono,''), $2)
+                       -- El número verificado pisa al declarado, siempre.
+                       -- Antes solo rellenaba si `telefono` estaba vacío, para
+                       -- no borrar lo que había cargado una agencia. Esa
+                       -- premisa cambió: desde el registro web, `telefono` ya
+                       -- viene con lo que el jugador tipeó y nadie comprobó.
+                       -- Si después verifica otro número y no pisamos, la
+                       -- ficha queda mostrando un número que sabemos que no
+                       -- es, y soporte termina llamando al equivocado.
+                       -- Lo que alguien demostró controlar gana sobre lo que
+                       -- alguien escribió.
+                       telefono=$2
                  WHERE id=$1
             """, jugador_id, telefono)
 
@@ -27592,16 +27607,39 @@ async def me_telefono_verificar(request: Request):
 # de caja). Si trae el código de una agencia, queda de esa agencia desde el
 # primer momento y esa agencia cobra como siempre.
 #
-# Lo que NO pide: teléfono. Entrar, depositar y jugar son libres; el
-# teléfono verificado lo exige el retiro, que es donde está el riesgo.
+# Son dos pasos, no uno. La cuenta no se crea al llenar el formulario: se
+# crea recién al confirmar el código que llega por correo. Mientras tanto
+# solo existe una fila de `registro_pendiente` que vence sola. Antes había
+# un único POST que insertaba en `users` de una: eso dejaba entrar cuentas
+# con un correo que nadie comprobó, y el correo es la única forma que tiene
+# el jugador "de la casa" de recuperar su cuenta. Ese endpoint viejo ya no
+# existe: dejarlo andando al lado de este hubiera sido una forma de saltear
+# la comprobación entera.
+#
+# El teléfono sí se pide ahora, pero solo se guarda como texto libre
+# (`users.telefono`): es lo que la persona escribió, no un hecho. Pasa a
+# `telefono_e164` -y recién ahí cuenta para el índice único- el día que
+# completa `POST /api/me/telefono/verificar`. Escribirlo antes sería
+# regalarle a cualquiera la posibilidad de tipear el número de otra
+# persona y dejarla bloqueada para siempre de registrarse con el suyo.
 
 CASA = "admin"
 
 
-@app.post("/api/cliente/registro")
-async def cliente_registro(request: Request):
-    """Alta del jugador desde el sitio.
-    body: {nombre, username, password, email, mayor_de_edad, referido?}"""
+@app.get("/api/paises")
+async def paises_disponibles():
+    """Los países habilitados para el teléfono del registro. Sin bandera:
+    de dibujarla se encarga la pantalla, no el backend."""
+    return {"paises": registro_publico.paises_disponibles()}
+
+
+@app.post("/api/cliente/registro/iniciar")
+async def cliente_registro_iniciar(request: Request):
+    """Primer paso del alta desde el sitio: valida todo, guarda el registro
+    a la espera del código y lo manda por correo. Todavía no crea al
+    jugador.
+    body: {nombre, username, password, email, mayor_de_edad, pais,
+           telefono, referido?}"""
     body = await request.json()
 
     try:
@@ -27611,39 +27649,148 @@ async def cliente_registro(request: Request):
         registro_publico.validar_edad_declarada(body.get("mayor_de_edad"))
         # El correo es obligatorio acá y no en el alta de mostrador por un
         # motivo concreto: al jugador de la casa no hay agencia que le
-        # resetee la clave. El correo es su única forma de volver a entrar.
-        correo = registro_publico.normalizar_email(body.get("email") or "")
+        # resetee la clave. El correo es su única forma de volver a entrar,
+        # y ahora además es la puerta que confirma que la cuenta es suya.
+        correo_normalizado = registro_publico.normalizar_email(body.get("email") or "")
     except registro_publico.DatosInvalidos as e:
         raise HTTPException(400, str(e))
     except ValueError:
         raise HTTPException(400, "Necesitamos un correo válido para que puedas recuperar tu cuenta")
+
+    try:
+        telefono = registro_publico.normalizar_telefono(
+            body.get("telefono") or "", (body.get("pais") or "").upper())
+    except registro_publico.TelefonoInvalido as e:
+        raise HTTPException(400, str(e))
 
     referido = registro_publico.limpiar_referido(body.get("referido"))
     ip = _ip_de(request)
 
     pool = await get_db()
     async with pool.acquire() as conn:
-        # Freno por conexión: sin esto, una sola persona abre cien cuentas.
-        recientes = await conn.fetchval("""
-            SELECT count(*) FROM users
-             WHERE registro_ip=$1::inet
-               AND registro_at > NOW() - ($2 || ' minutes')::interval
-        """, ip, str(registro_publico.LIMITE_REGISTROS_POR_IP.en_minutos))
-        try:
-            registro_publico.revisar_limite(
-                recientes or 0, registro_publico.LIMITE_REGISTROS_POR_IP)
-        except registro_publico.FrenoActivado as e:
-            raise HTTPException(429, str(e))
+        # Barrido oportunista de filas vencidas. No hace falta un job
+        # aparte: alcanza con limpiar un poco cada vez que alguien empieza
+        # un registro nuevo, y se guarda una hora de margen por si hace
+        # falta investigar un intento que quedó a medias.
+        await conn.execute(
+            "DELETE FROM registro_pendiente WHERE expira_at < NOW() - interval '1 hour'")
+
+        # El freno por conexión se mide contra `registro_pendiente` y no
+        # contra `users`, porque la cuenta ya no se crea en este paso pero
+        # el correo sí se manda, y mandar correos de más cuesta plata igual
+        # que quemar crédito de SMS. Dos ventanas: una corta contra la
+        # ráfaga del bot, y un tope diario holgado, porque detrás de una
+        # misma IP pública puede haber un barrio entero por CGNAT.
+        for limite in (registro_publico.LIMITE_RAFAGA_REGISTROS,
+                       registro_publico.LIMITE_REGISTROS_POR_IP):
+            recientes = await conn.fetchval("""
+                SELECT count(*) FROM registro_pendiente
+                 WHERE ip=$1::inet
+                   AND creado_at > NOW() - ($2 || ' minutes')::interval
+            """, ip, str(limite.en_minutos))
+            try:
+                registro_publico.revisar_limite(recientes or 0, limite)
+            except registro_publico.FrenoActivado as e:
+                raise HTTPException(429, str(e))
 
         if await conn.fetchval("SELECT 1 FROM users WHERE LOWER(username)=$1", usuario):
             raise HTTPException(409, "Ese usuario ya está tomado")
         if await conn.fetchval(
-                "SELECT 1 FROM users WHERE email_normalizado=$1", correo):
+                "SELECT 1 FROM users WHERE email_normalizado=$1", correo_normalizado):
+            raise HTTPException(409, "Ya hay una cuenta con ese correo")
+
+        token = registro_publico.generar_token_pendiente()
+        codigo = registro_publico.generar_codigo()
+
+        await conn.execute("""
+            INSERT INTO registro_pendiente
+                (token, username, password_hash, nombre_completo, email,
+                 email_normalizado, telefono, referido_code, ip,
+                 codigo_hash, expira_at)
+            VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$8::inet,$9,
+                    NOW() + ($10 || ' minutes')::interval)
+        """, token, usuario, auth.hash_password(clave), nombre, correo_normalizado,
+            telefono, referido or None, ip,
+            registro_publico.hash_codigo(codigo, token, CODIGO_SECRETO),
+            str(registro_publico.VIGENCIA_PENDIENTE_MINUTOS))
+
+    try:
+        await correo.enviar_codigo(
+            correo_normalizado, codigo, registro_publico.VIGENCIA_PENDIENTE_MINUTOS)
+    except correo.CorreoNoConfigurado:
+        raise HTTPException(503, "No podemos enviar el código en este momento")
+    except correo.EnvioFallido:
+        raise HTTPException(502, "No pudimos enviarte el código. Probá de nuevo en un rato")
+
+    log.info(f"[REG] registro pendiente iniciado ({usuario}) · ip {ip}")
+
+    return {
+        "pendiente": token,
+        "correo_enmascarado": registro_publico.enmascarar_correo(correo_normalizado),
+        "expira_en_minutos": registro_publico.VIGENCIA_PENDIENTE_MINUTOS,
+    }
+
+
+@app.post("/api/cliente/registro/confirmar")
+async def cliente_registro_confirmar(request: Request):
+    """Segundo y último paso: si el código coincide, ahí sí se crea la
+    cuenta. Devuelve la misma forma que devolvía el alta de un solo paso,
+    para que la sesión arranque enseguida.
+    body: {pendiente, codigo}"""
+    body = await request.json()
+    token = (body.get("pendiente") or "").strip()
+    codigo = "".join(ch for ch in (body.get("codigo") or "") if ch.isdigit())
+    if not token:
+        raise HTTPException(400, "Falta el registro pendiente")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        fila = await conn.fetchrow("""
+            SELECT id, username, password_hash, nombre_completo, email,
+                   email_normalizado, telefono, referido_code, ip,
+                   codigo_hash, intentos, expira_at
+              FROM registro_pendiente WHERE token=$1
+        """, token)
+        if not fila:
+            raise HTTPException(400, "Ese registro no existe. Empezá de nuevo")
+
+        if fila["expira_at"] <= datetime.now(timezone.utc):
+            await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
+            raise HTTPException(410, "El código venció. Empezá el registro de nuevo")
+
+        if not registro_publico.codigo_coincide(
+                fila["codigo_hash"], codigo, token, CODIGO_SECRETO):
+            intentos = (fila["intentos"] or 0) + 1
+            restantes = registro_publico.MAX_INTENTOS_PENDIENTE - intentos
+            if restantes <= 0:
+                # Se agotaron los intentos: la fila muere acá mismo, no
+                # espera a vencer sola. Volver a intentar con este token ya
+                # no tiene sentido, así que la persona empieza de nuevo.
+                await conn.execute(
+                    "DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
+                raise HTTPException(400, "Agotaste los intentos. Empezá el registro de nuevo")
+            await conn.execute(
+                "UPDATE registro_pendiente SET intentos=$2 WHERE id=$1",
+                fila["id"], intentos)
+            raise HTTPException(400, f"El código no coincide. Te quedan {restantes} intentos")
+
+        # Dos personas pueden haber empezado el registro al mismo tiempo con
+        # el mismo usuario o correo: lo que se comprobó al iniciar puede
+        # haber dejado de ser cierto. Se vuelve a comprobar acá, justo antes
+        # de crear la cuenta de verdad.
+        if await conn.fetchval(
+                "SELECT 1 FROM users WHERE LOWER(username)=$1", fila["username"]):
+            await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
+            raise HTTPException(409, "Ese usuario ya está tomado")
+        if await conn.fetchval(
+                "SELECT 1 FROM users WHERE email_normalizado=$1", fila["email_normalizado"]):
+            await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
             raise HTTPException(409, "Ya hay una cuenta con ese correo")
 
         # El referido tiene que ser una agencia de verdad y activa. Si no lo
         # es, no se rechaza el registro: se lo toma como jugador de la casa.
         # Perder un alta por un código mal tipeado sería absurdo.
+        referido = fila["referido_code"] or ""
         dueno = CASA
         if referido:
             agencia = await conn.fetchval(
@@ -27653,41 +27800,98 @@ async def cliente_registro(request: Request):
             else:
                 log.info(f"[REG] código de referido desconocido: {referido}")
 
-        fila = await conn.fetchrow("""
+        nueva = await conn.fetchrow("""
             INSERT INTO users
                 (username, password_hash, nombre_completo, email,
                  email_normalizado, creado_por, origen_registro,
                  edad_declarada_at, registro_ip, registro_at, referido_code,
-                 telegram_id)
-            VALUES ($1,$2,$3,$4,$4,$5,'web',NOW(),$6::inet,NOW(),$7,
+                 telefono, telegram_id)
+            VALUES ($1,$2,$3,$4,$5,$6,'web',NOW(),$7::inet,NOW(),$8,$9,
                     -- Telegram es obligatorio en el esquema viejo y este
                     -- jugador no tiene: se usa un negativo, como ya hace el
                     -- alta de mostrador.
                     -nextval('users_id_seq'))
             RETURNING id, username, nombre_completo, balance, saldo_bono,
                       moneda, creado_por, origen_registro, telefono_verificado_at
-        """, usuario, auth.hash_password(clave), nombre, correo, dueno, ip,
-            referido or None)
+        """, fila["username"], fila["password_hash"], fila["nombre_completo"],
+            fila["email"], fila["email_normalizado"], dueno, fila["ip"],
+            referido or None, fila["telefono"])
 
-    token = auth.create_session(f"cliente:{fila['id']}")
-    await sesion_guardar(token, f"cliente:{fila['id']}")
-    log.info(f"[REG] alta web {fila['id']} ({usuario}) · dueño {dueno}")
+        await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
+
+    token_sesion = auth.create_session(f"cliente:{nueva['id']}")
+    await sesion_guardar(token_sesion, f"cliente:{nueva['id']}")
+    log.info(f"[REG] alta web {nueva['id']} ({nueva['username']}) · dueño {dueno}")
 
     return {
-        "token": token,
+        "token": token_sesion,
         "user": {
-            "id": fila["id"],
-            "username": fila["username"],
-            "nombre": fila["nombre_completo"] or fila["username"],
-            "saldo": int(fila["balance"] or 0) // 100,
-            "saldo_bono": int(fila["saldo_bono"] or 0) // 100,
-            "moneda": fila["moneda"] or "ARS",
-            "agencia": fila["creado_por"],
+            "id": nueva["id"],
+            "username": nueva["username"],
+            "nombre": nueva["nombre_completo"] or nueva["username"],
+            "saldo": int(nueva["balance"] or 0) // 100,
+            "saldo_bono": int(nueva["saldo_bono"] or 0) // 100,
+            "moneda": nueva["moneda"] or "ARS",
+            "agencia": nueva["creado_por"],
             "puede_cargar": False,
             "puede_retirar": False,
         },
         # Lo que alimenta la marca del perfil y el aviso: puede jugar, no
         # puede retirar hasta verificar el teléfono.
         "verificacion": registro_publico.estado_de_verificacion(
-            fila["origen_registro"], fila["telefono_verificado_at"]),
+            nueva["origen_registro"], nueva["telefono_verificado_at"]),
+    }
+
+
+@app.post("/api/cliente/registro/reenviar")
+async def cliente_registro_reenviar(request: Request):
+    """Reenvía el código del registro pendiente: uno nuevo, con la ventana
+    de vigencia y los intentos reiniciados.
+    body: {pendiente}"""
+    body = await request.json()
+    token = (body.get("pendiente") or "").strip()
+    if not token:
+        raise HTTPException(400, "Falta el registro pendiente")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        fila = await conn.fetchrow("""
+            SELECT id, email_normalizado, reenvios, expira_at
+              FROM registro_pendiente WHERE token=$1
+        """, token)
+        if not fila:
+            raise HTTPException(400, "Ese registro no existe. Empezá de nuevo")
+        if fila["expira_at"] <= datetime.now(timezone.utc):
+            await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
+            raise HTTPException(410, "El código venció. Empezá el registro de nuevo")
+
+        try:
+            registro_publico.revisar_limite(
+                fila["reenvios"] or 0, registro_publico.LIMITE_REENVIO_PENDIENTE)
+        except registro_publico.FrenoActivado as e:
+            raise HTTPException(429, str(e))
+
+        codigo = registro_publico.generar_codigo()
+        correo_normalizado = fila["email_normalizado"]
+        await conn.execute("""
+            UPDATE registro_pendiente
+               SET codigo_hash=$2, intentos=0, reenvios=reenvios+1,
+                   expira_at=NOW() + ($3 || ' minutes')::interval
+             WHERE id=$1
+        """, fila["id"],
+            registro_publico.hash_codigo(codigo, token, CODIGO_SECRETO),
+            str(registro_publico.VIGENCIA_PENDIENTE_MINUTOS))
+
+    try:
+        await correo.enviar_codigo(
+            correo_normalizado, codigo, registro_publico.VIGENCIA_PENDIENTE_MINUTOS)
+    except correo.CorreoNoConfigurado:
+        raise HTTPException(503, "No podemos enviar el código en este momento")
+    except correo.EnvioFallido:
+        raise HTTPException(502, "No pudimos enviarte el código. Probá de nuevo en un rato")
+
+    return {
+        "pendiente": token,
+        "correo_enmascarado": registro_publico.enmascarar_correo(correo_normalizado),
+        "expira_en_minutos": registro_publico.VIGENCIA_PENDIENTE_MINUTOS,
     }
