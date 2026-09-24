@@ -27575,7 +27575,17 @@ async def me_telefono_verificar(request: Request):
             await conn.execute("""
                 UPDATE users
                    SET telefono_e164=$2, telefono_verificado_at=NOW(),
-                       telefono=COALESCE(NULLIF(telefono,''), $2)
+                       -- El número verificado pisa al declarado, siempre.
+                       -- Antes solo rellenaba si `telefono` estaba vacío, para
+                       -- no borrar lo que había cargado una agencia. Esa
+                       -- premisa cambió: desde el registro web, `telefono` ya
+                       -- viene con lo que el jugador tipeó y nadie comprobó.
+                       -- Si después verifica otro número y no pisamos, la
+                       -- ficha queda mostrando un número que sabemos que no
+                       -- es, y soporte termina llamando al equivocado.
+                       -- Lo que alguien demostró controlar gana sobre lo que
+                       -- alguien escribió.
+                       telefono=$2
                  WHERE id=$1
             """, jugador_id, telefono)
 
