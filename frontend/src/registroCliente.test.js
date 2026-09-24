@@ -9,7 +9,8 @@ import {
   obtenerPaises, soloDigitos, formatearRestante,
   guardarSesion, leerSesion,
   marcaTelefono, avisoVerificacion, avisoCerrado, cerrarAviso,
-  ofreceVerificar,
+  ofreceVerificar, avisoSinCanales,
+  pedirCodigoTelefono, verificarCodigoTelefono,
 } from "./registroCliente";
 
 const VALIDOS = {
@@ -555,5 +556,97 @@ describe("no se ofrece verificar lo que hoy no se puede verificar", () => {
 
   test("con canal y con flujo, recién ahí se ofrece", () => {
     expect(ofreceVerificar(["sms"], true)).toBe(true);
+  });
+});
+
+describe("decir la verdad cuando no hay ningún canal", () => {
+  test("sin flujo adónde llevar a la persona, no hay nada que avisar", () => {
+    expect(avisoSinCanales([], false).mostrar).toBe(false);
+  });
+
+  test("mientras los canales todavía no llegaron, tampoco se avisa nada", () => {
+    expect(avisoSinCanales(null, true).mostrar).toBe(false);
+  });
+
+  test("con canales disponibles, no hace falta el aviso: se ofrece el botón", () => {
+    expect(avisoSinCanales(["sms"], true).mostrar).toBe(false);
+  });
+
+  test("con la lista vacía y flujo, avisa que todavía no está disponible", () => {
+    const aviso = avisoSinCanales([], true);
+    expect(aviso.mostrar).toBe(true);
+    expect(aviso.linea).toMatch(/no está disponible/i);
+  });
+});
+
+describe("pedir y verificar el código del teléfono, desde el perfil", () => {
+  test("pedir el código manda el token de sesión en el encabezado", async () => {
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, { vence_en_minutos: 10 }));
+    await pedirCodigoTelefono({
+      telefono: "987654321", pais: "ec", canal: "sms",
+      api: "http://x", token: "tok-123", fetchImpl: pedir,
+    });
+    const [url, opciones] = pedir.mock.calls[0];
+    expect(url).toBe("http://x/api/me/telefono/codigo");
+    expect(opciones.headers.Authorization).toBe("Bearer tok-123");
+    const cuerpo = JSON.parse(opciones.body);
+    expect(cuerpo.pais).toBe("EC");
+    expect(cuerpo.canal).toBe("sms");
+  });
+
+  test("un teléfono ya usado por otra cuenta (409) se muestra tal cual", async () => {
+    const r = await pedirCodigoTelefono({
+      telefono: "987654321", pais: "EC", canal: "sms",
+      api: "http://x", token: "tok-123",
+      fetchImpl: async () => respuestaFalsa(false, 409, { detail: "Ese teléfono ya está en uso" }),
+    });
+    expect(r.ok).toBe(false);
+    expect(r.mensaje).toBe("Ese teléfono ya está en uso");
+  });
+
+  test("sin Twilio configurado (503), lo dice tal cual", async () => {
+    const r = await pedirCodigoTelefono({
+      telefono: "987654321", pais: "EC", canal: "sms",
+      api: "http://x", token: "tok-123",
+      fetchImpl: async () => respuestaFalsa(false, 503, {
+        detail: "La verificación por ahora no está disponible",
+      }),
+    });
+    expect(r.ok).toBe(false);
+    expect(r.mensaje).toBe("La verificación por ahora no está disponible");
+  });
+
+  test("verificar manda el token de sesión y solo los dígitos del código", async () => {
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, {
+      estado: { puede_retirar: true },
+    }));
+    await verificarCodigoTelefono({
+      telefono: "987654321", pais: "EC", codigo: "1 2 3 4 5 6",
+      api: "http://x", token: "tok-123", fetchImpl: pedir,
+    });
+    const [url, opciones] = pedir.mock.calls[0];
+    expect(url).toBe("http://x/api/me/telefono/verificar");
+    expect(opciones.headers.Authorization).toBe("Bearer tok-123");
+    expect(JSON.parse(opciones.body).codigo).toBe("123456");
+  });
+
+  test("con el código bueno, devuelve el estado nuevo que manda el servidor", async () => {
+    const r = await verificarCodigoTelefono({
+      telefono: "987654321", pais: "EC", codigo: "123456",
+      api: "http://x", token: "tok-123",
+      fetchImpl: async () => respuestaFalsa(true, 200, { estado: { puede_retirar: true } }),
+    });
+    expect(r.ok).toBe(true);
+    expect(r.estado).toEqual({ puede_retirar: true });
+  });
+
+  test("un código que no coincide se muestra tal cual lo escribió el servidor", async () => {
+    const r = await verificarCodigoTelefono({
+      telefono: "987654321", pais: "EC", codigo: "000000",
+      api: "http://x", token: "tok-123",
+      fetchImpl: async () => respuestaFalsa(false, 400, { detail: "El código no coincide" }),
+    });
+    expect(r.ok).toBe(false);
+    expect(r.mensaje).toBe("El código no coincide");
   });
 });

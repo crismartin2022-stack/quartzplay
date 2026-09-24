@@ -398,8 +398,87 @@ export function cerrarAviso(almacen) {
 // esté configurado. Un botón "Verificar mi teléfono" que no puede mandar
 // nada es peor que no tener botón: promete y falla. Así que la acción pide
 // las dos cosas — que haya un canal por donde mandar el código, y que esta
-// pantalla tenga adónde llevar a la persona. Hoy falta la segunda, así que
-// se muestra el estado sin la acción.
+// pantalla tenga adónde llevar a la persona.
 export function ofreceVerificar(canales, hayFlujo) {
   return Array.isArray(canales) && canales.length > 0 && hayFlujo === true;
+}
+
+// Lo que le toca decir a la pantalla cuando ya se sabe que no hay ningún
+// canal: no un botón muerto, sino la verdad. Mientras `canales` todavía no
+// llegó (`null`) no se dice nada, para no avisar algo que un instante
+// después puede ser mentira.
+export function avisoSinCanales(canales, hayFlujo) {
+  if (hayFlujo !== true) return { mostrar: false, linea: "" };
+  if (!Array.isArray(canales) || canales.length > 0) return { mostrar: false, linea: "" };
+  return {
+    mostrar: true,
+    linea: "Por ahora no podemos mandarte un código: la verificación "
+      + "todavía no está disponible. Te avisamos apenas lo esté.",
+  };
+}
+
+// ── Verificar el teléfono ────────────────────────────────────────
+//
+// Los mismos dos endpoints valen para el jugador de Telegram y para el
+// del navegador (`_jugador_actual`, del lado del servidor). Acá solo se
+// manda la mitad del navegador: el token de la sesión en el encabezado,
+// igual que el resto del sitio habla con la API.
+export async function pedirCodigoTelefono({ telefono, pais, canal, api, token, fetchImpl } = {}) {
+  const pedir = fetchImpl || (typeof fetch === "function" ? fetch : null);
+  if (!pedir) return { ok: false, mensaje: SIN_CONEXION };
+
+  let respuesta;
+  try {
+    respuesta = await pedir(`${api}/api/me/telefono/codigo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        telefono: texto(telefono).trim(),
+        pais: texto(pais).trim().toUpperCase(),
+        canal,
+      }),
+    });
+  } catch (e) {
+    return { ok: false, mensaje: SIN_CONEXION };
+  }
+
+  let cuerpo = {};
+  try { cuerpo = await respuesta.json(); } catch (e) { cuerpo = {}; }
+
+  if (!respuesta.ok) {
+    const { mensaje } = mensajeDeDetalle(cuerpo.detail);
+    return { ok: false, mensaje };
+  }
+
+  return { ok: true, mensaje: "", venceEnMinutos: cuerpo.vence_en_minutos || 10 };
+}
+
+export async function verificarCodigoTelefono({ telefono, pais, codigo, api, token, fetchImpl } = {}) {
+  const pedir = fetchImpl || (typeof fetch === "function" ? fetch : null);
+  if (!pedir) return { ok: false, mensaje: SIN_CONEXION };
+
+  let respuesta;
+  try {
+    respuesta = await pedir(`${api}/api/me/telefono/verificar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        telefono: texto(telefono).trim(),
+        pais: texto(pais).trim().toUpperCase(),
+        codigo: soloDigitos(codigo),
+      }),
+    });
+  } catch (e) {
+    return { ok: false, mensaje: SIN_CONEXION };
+  }
+
+  let cuerpo = {};
+  try { cuerpo = await respuesta.json(); } catch (e) { cuerpo = {}; }
+
+  if (!respuesta.ok) {
+    const { mensaje } = mensajeDeDetalle(cuerpo.detail);
+    return { ok: false, mensaje };
+  }
+
+  return { ok: true, mensaje: "", estado: cuerpo.estado || null };
 }
