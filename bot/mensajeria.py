@@ -43,10 +43,15 @@ class Credenciales:
     token: str
     remitente_sms: str
     remitente_whatsapp: str
+    # Un "Messaging Service" es una bolsa de remitentes: Twilio elige el
+    # mejor para cada país. Con tres países de reglas distintas es lo que
+    # ellos mismos recomiendan, así que se acepta en vez del número suelto.
+    servicio_mensajeria: str = ""
 
     @property
     def sms_listo(self) -> bool:
-        return bool(self.cuenta and self.token and self.remitente_sms)
+        return bool(self.cuenta and self.token
+                    and (self.remitente_sms or self.servicio_mensajeria))
 
     @property
     def whatsapp_listo(self) -> bool:
@@ -59,6 +64,7 @@ def credenciales_del_entorno() -> Credenciales:
         token=os.environ.get("TWILIO_AUTH_TOKEN", ""),
         remitente_sms=os.environ.get("TWILIO_SMS_FROM", ""),
         remitente_whatsapp=os.environ.get("TWILIO_WHATSAPP_FROM", ""),
+        servicio_mensajeria=os.environ.get("TWILIO_MESSAGING_SERVICE_SID", ""),
     )
 
 
@@ -95,7 +101,9 @@ def _remitente(cred: Credenciales, canal: str) -> str:
         return f"whatsapp:{cred.remitente_whatsapp}"
     if not cred.sms_listo:
         raise MensajeriaNoConfigurada("falta configurar el envío de SMS")
-    return cred.remitente_sms
+    # El servicio manda sobre el número suelto: si están los dos, es porque
+    # alguien quiso que Twilio eligiera el remitente.
+    return cred.servicio_mensajeria or cred.remitente_sms
 
 
 async def enviar_codigo(telefono_e164: str, codigo: str, canal: str = SMS,
@@ -112,9 +120,13 @@ async def enviar_codigo(telefono_e164: str, codigo: str, canal: str = SMS,
     url = f"{TWILIO_API}/Accounts/{cred.cuenta}/Messages.json"
     datos = {
         "To": _destino(telefono_e164, canal),
-        "From": desde,
         "Body": texto_del_codigo(codigo, minutos),
     }
+    # Con un Messaging Service no se manda remitente: lo elige Twilio.
+    if desde.startswith("MG"):
+        datos["MessagingServiceSid"] = desde
+    else:
+        datos["From"] = desde
     async with httpx.AsyncClient(timeout=TIEMPO_LIMITE) as client:
         r = await client.post(url, data=datos, auth=(cred.cuenta, cred.token))
 
