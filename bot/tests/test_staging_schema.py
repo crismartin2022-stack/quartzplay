@@ -31,6 +31,7 @@ SLICE_CHAIN = [
 # owner applies to staging first and then to production.
 RUNTIME_CHAIN = [
     "20260923210000_psp_eventos_bitacora.sql",
+    "20260924140000_registro_publico_cimientos.sql",
 ]
 
 # Backward-compatible alias: this is the pinned Foundation-only chain the

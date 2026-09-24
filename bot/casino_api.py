@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
 import psp_webhook_auth
+import registro_publico
 from config import cors_headers, get_runtime_settings
 from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
 from log_hygiene import silence_request_urls
@@ -15104,11 +15105,19 @@ async def me_retirar(request: Request):
     pool = await get_db()
     async with pool.acquire() as conn:
         u = await conn.fetchrow("""
-            SELECT id, balance, moneda, creado_por FROM users
+            SELECT id, balance, moneda, creado_por,
+                   origen_registro, telefono_verificado_at
+            FROM users
             WHERE telegram_id::text=$1 OR id::text=$1
         """, tg_id)
         if not u:
             raise HTTPException(404, "Usuario no encontrado")
+        # Mismo candado que el retiro digital: cobrar en el mostrador también
+        # es sacar plata, y una cuenta sin teléfono verificado no cobra.
+        puede, motivo = registro_publico.puede_retirar(
+            u["origen_registro"], u["telefono_verificado_at"])
+        if not puede:
+            raise HTTPException(403, motivo)
         saldo_pesos = (u["balance"] or 0) / 100
         if monto > saldo_pesos:
             raise HTTPException(400, f"Saldo insuficiente (tenés {saldo_pesos:.0f})")
@@ -21835,11 +21844,20 @@ async def me_psp_retirar(request: Request):
     pool = await get_db()
     async with pool.acquire() as conn:
         u = await conn.fetchrow("""
-            SELECT id, balance, creado_por, rollover_pendiente FROM users
+            SELECT id, balance, creado_por, rollover_pendiente,
+                   origen_registro, telefono_verificado_at
+            FROM users
             WHERE telegram_id::text=$1 OR id::text=$1
         """, tg_id)
         if not u:
             raise HTTPException(404, "Usuario no encontrado")
+        # El que se registró solo tiene que haber verificado su teléfono para
+        # cobrar. Acá, en el servidor: esconder el botón no es un candado, y
+        # es plata saliendo hacia una cuenta que nadie verificó.
+        puede, motivo = registro_publico.puede_retirar(
+            u["origen_registro"], u["telefono_verificado_at"])
+        if not puede:
+            raise HTTPException(403, motivo)
         if not await _psp_activa_para(conn, u["creado_por"] or ""):
             raise HTTPException(403, "El retiro digital no está disponible")
         # No se puede retirar si tiene rollover de bono pendiente
