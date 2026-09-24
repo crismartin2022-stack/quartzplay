@@ -27581,3 +27581,113 @@ async def me_telefono_verificar(request: Request):
     log.info(f"[TEL] jugador {jugador_id} verificó su teléfono")
     return {"ok": True, "estado": registro_publico.estado_de_verificacion(
         u["origen_registro"], u["telefono_verificado_at"])}
+
+
+# ── REGISTRO DESDE EL SITIO ───────────────────────────────────
+#
+# La primera puerta de entrada que no pasa por una agencia ni por Telegram.
+#
+# El jugador que se registra solo queda como "de la casa" (creado_por
+# 'admin', la misma marca que ya usan el alta por Telegram y los movimientos
+# de caja). Si trae el código de una agencia, queda de esa agencia desde el
+# primer momento y esa agencia cobra como siempre.
+#
+# Lo que NO pide: teléfono. Entrar, depositar y jugar son libres; el
+# teléfono verificado lo exige el retiro, que es donde está el riesgo.
+
+CASA = "admin"
+
+
+@app.post("/api/cliente/registro")
+async def cliente_registro(request: Request):
+    """Alta del jugador desde el sitio.
+    body: {nombre, username, password, email, mayor_de_edad, referido?}"""
+    body = await request.json()
+
+    try:
+        nombre = registro_publico.validar_nombre(body.get("nombre"))
+        usuario = registro_publico.validar_usuario(body.get("username"))
+        clave = registro_publico.validar_clave(body.get("password") or "")
+        registro_publico.validar_edad_declarada(body.get("mayor_de_edad"))
+        # El correo es obligatorio acá y no en el alta de mostrador por un
+        # motivo concreto: al jugador de la casa no hay agencia que le
+        # resetee la clave. El correo es su única forma de volver a entrar.
+        correo = registro_publico.normalizar_email(body.get("email") or "")
+    except registro_publico.DatosInvalidos as e:
+        raise HTTPException(400, str(e))
+    except ValueError:
+        raise HTTPException(400, "Necesitamos un correo válido para que puedas recuperar tu cuenta")
+
+    referido = registro_publico.limpiar_referido(body.get("referido"))
+    ip = _ip_de(request)
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        # Freno por conexión: sin esto, una sola persona abre cien cuentas.
+        recientes = await conn.fetchval("""
+            SELECT count(*) FROM users
+             WHERE registro_ip=$1::inet
+               AND registro_at > NOW() - ($2 || ' minutes')::interval
+        """, ip, str(registro_publico.LIMITE_REGISTROS_POR_IP.en_minutos))
+        try:
+            registro_publico.revisar_limite(
+                recientes or 0, registro_publico.LIMITE_REGISTROS_POR_IP)
+        except registro_publico.FrenoActivado as e:
+            raise HTTPException(429, str(e))
+
+        if await conn.fetchval("SELECT 1 FROM users WHERE LOWER(username)=$1", usuario):
+            raise HTTPException(409, "Ese usuario ya está tomado")
+        if await conn.fetchval(
+                "SELECT 1 FROM users WHERE email_normalizado=$1", correo):
+            raise HTTPException(409, "Ya hay una cuenta con ese correo")
+
+        # El referido tiene que ser una agencia de verdad y activa. Si no lo
+        # es, no se rechaza el registro: se lo toma como jugador de la casa.
+        # Perder un alta por un código mal tipeado sería absurdo.
+        dueno = CASA
+        if referido:
+            agencia = await conn.fetchval(
+                "SELECT code FROM agencias WHERE UPPER(code)=$1", referido)
+            if agencia:
+                dueno = agencia
+            else:
+                log.info(f"[REG] código de referido desconocido: {referido}")
+
+        fila = await conn.fetchrow("""
+            INSERT INTO users
+                (username, password_hash, nombre_completo, email,
+                 email_normalizado, creado_por, origen_registro,
+                 edad_declarada_at, registro_ip, registro_at, referido_code,
+                 telegram_id)
+            VALUES ($1,$2,$3,$4,$4,$5,'web',NOW(),$6::inet,NOW(),$7,
+                    -- Telegram es obligatorio en el esquema viejo y este
+                    -- jugador no tiene: se usa un negativo, como ya hace el
+                    -- alta de mostrador.
+                    -nextval('users_id_seq'))
+            RETURNING id, username, nombre_completo, balance, saldo_bono,
+                      moneda, creado_por, origen_registro, telefono_verificado_at
+        """, usuario, auth.hash_password(clave), nombre, correo, dueno, ip,
+            referido or None)
+
+    token = auth.create_session(f"cliente:{fila['id']}")
+    await sesion_guardar(token, f"cliente:{fila['id']}")
+    log.info(f"[REG] alta web {fila['id']} ({usuario}) · dueño {dueno}")
+
+    return {
+        "token": token,
+        "user": {
+            "id": fila["id"],
+            "username": fila["username"],
+            "nombre": fila["nombre_completo"] or fila["username"],
+            "saldo": int(fila["balance"] or 0) // 100,
+            "saldo_bono": int(fila["saldo_bono"] or 0) // 100,
+            "moneda": fila["moneda"] or "ARS",
+            "agencia": fila["creado_por"],
+            "puede_cargar": False,
+            "puede_retirar": False,
+        },
+        # Lo que alimenta la marca del perfil y el aviso: puede jugar, no
+        # puede retirar hasta verificar el teléfono.
+        "verificacion": registro_publico.estado_de_verificacion(
+            fila["origen_registro"], fila["telefono_verificado_at"]),
+    }

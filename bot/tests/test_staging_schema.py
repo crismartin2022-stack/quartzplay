@@ -32,6 +32,7 @@ SLICE_CHAIN = [
 RUNTIME_CHAIN = [
     "20260923210000_psp_eventos_bitacora.sql",
     "20260924140000_registro_publico_cimientos.sql",
+    "20260924180000_registro_web_origen.sql",
 ]
 
 # Backward-compatible alias: this is the pinned Foundation-only chain the
