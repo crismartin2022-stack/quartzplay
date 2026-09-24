@@ -13,12 +13,15 @@ from registro_publico import (
     LIMITE_POR_TELEFONO,
     LIMITE_RAFAGA_REGISTROS,
     LIMITE_REGISTROS_POR_IP,
+    PAISES,
+    PAISES_LATAM,
     TelefonoInvalido,
     codigo_coincide,
     generar_codigo,
     hash_codigo,
     normalizar_email,
     normalizar_telefono,
+    paises_disponibles,
     revisar_limite,
 )
 
@@ -67,11 +70,44 @@ def test_venezuela_se_normaliza_igual():
     ("12345", "EC"),            # corto
     ("99123456789", "EC"),      # largo
     ("no-es-un-numero", "AR"),
-    ("1123456789", "CO"),       # país no habilitado
+    ("911234567", "ES"),        # país no habilitado (no es Latinoamérica)
 ])
 def test_un_numero_que_no_sirve_se_rechaza_con_motivo(malo, pais):
     with pytest.raises(TelefonoInvalido):
         normalizar_telefono(malo, pais)
+
+
+@pytest.mark.parametrize("escrito,pais,esperado", [
+    ("11961234567", "BR", "+5511961234567"),   # celular de Brasil
+    ("3001234567", "CO", "+573001234567"),     # celular de Colombia
+    ("5512345678", "MX", "+525512345678"),     # celular de México (CDMX)
+])
+def test_los_nuevos_paises_latam_tambien_normalizan(escrito, pais, esperado):
+    """Ampliar `PAISES` a toda la región no sirve de nada si la
+    normalización de esos países no funciona: cada uno tiene sus propias
+    reglas de móvil, y `phonenumbers` es quien las conoce."""
+    assert normalizar_telefono(escrito, pais) == esperado
+
+
+def test_ecuador_argentina_y_venezuela_van_primero_en_el_selector():
+    """Son los mercados de lanzamiento: tienen que aparecer arriba del
+    selector de país, no perdidos en el orden alfabético del resto."""
+    primeros = [codigo for codigo, _, _ in PAISES_LATAM[:3]]
+    assert primeros == ["EC", "AR", "VE"]
+
+
+def test_el_resto_de_los_paises_va_alfabetico_por_nombre():
+    resto = [nombre for _, nombre, _ in PAISES_LATAM[3:]]
+    assert resto == sorted(resto)
+
+
+def test_paises_disponibles_es_lo_que_sirve_el_endpoint():
+    """Sin bandera: eso lo dibuja la pantalla, no el backend."""
+    paises = paises_disponibles()
+
+    assert paises[0] == {"codigo": "EC", "nombre": "Ecuador", "indicativo": "+593"}
+    assert all(set(p) == {"codigo", "nombre", "indicativo"} for p in paises)
+    assert len(paises) == len(PAISES) == len(PAISES_LATAM)
 
 
 def test_el_mismo_numero_escrito_distinto_es_el_mismo_numero():
@@ -296,3 +332,53 @@ def test_confirmando_la_edad_se_puede_seguir():
 def test_el_codigo_de_referido_se_normaliza():
     assert limpiar_referido("  age001 ") == "AGE001"
     assert limpiar_referido(None) == ""
+
+
+# ── El registro pendiente ────────────────────────────────────────
+
+from registro_publico import (
+    LIMITE_REENVIO_PENDIENTE,
+    MAX_INTENTOS_PENDIENTE,
+    MAX_REENVIOS_PENDIENTE,
+    VIGENCIA_PENDIENTE_MINUTOS,
+    enmascarar_correo,
+    generar_token_pendiente,
+)
+
+
+def test_el_token_pendiente_no_se_repite():
+    """Es lo único que identifica el registro a medio hacer desde el
+    navegador: si se pudiera adivinar o repetir, cualquiera podría
+    confirmar el registro de otro."""
+    tokens = {generar_token_pendiente() for _ in range(50)}
+    assert len(tokens) == 50
+
+
+def test_el_correo_enmascarado_no_se_muestra_entero():
+    assert enmascarar_correo("juan.perez@gmail.com") == "j•••@gmail.com"
+    assert enmascarar_correo("a@x.com") == "a•••@x.com"
+
+
+@pytest.mark.parametrize("malo", ["", "sinarroba", None])
+def test_el_correo_enmascarado_no_rompe_con_algo_invalido(malo):
+    # Nunca debería llegar acá un correo inválido (ya lo filtró
+    # normalizar_email antes), pero si llegara, no tiene que explotar.
+    assert "@" not in enmascarar_correo(malo) or enmascarar_correo(malo) == malo
+
+
+def test_el_registro_pendiente_vence_antes_que_el_codigo_de_telefono_dure_mas():
+    """15 minutos, no 10: por correo hay que salir del casillero de mails,
+    y eso tarda más que mirar un SMS que ya está en la pantalla."""
+    assert VIGENCIA_PENDIENTE_MINUTOS == 15
+
+
+def test_el_tope_de_intentos_del_registro_es_finito():
+    assert MAX_INTENTOS_PENDIENTE == 5
+
+
+def test_el_limite_de_reenvios_frena_antes_de_vencer_la_fila():
+    assert MAX_REENVIOS_PENDIENTE == LIMITE_REENVIO_PENDIENTE.cuantos
+
+    revisar_limite(LIMITE_REENVIO_PENDIENTE.cuantos - 1, LIMITE_REENVIO_PENDIENTE)
+    with pytest.raises(FrenoActivado):
+        revisar_limite(LIMITE_REENVIO_PENDIENTE.cuantos, LIMITE_REENVIO_PENDIENTE)
