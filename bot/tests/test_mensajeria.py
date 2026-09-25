@@ -285,6 +285,28 @@ def test_el_mensaje_no_lleva_enlaces():
     assert "http" not in texto.lower()
 
 
+# El alfabeto GSM-7 (GSM 03.38). Un solo carácter fuera de acá empuja el SMS
+# entero a UCS-2, y el segmento baja de 160 caracteres a 70.
+GSM7 = set(
+    "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ"
+    " !\"#¤%&'()*+,-./0123456789:;<=>?¡"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿"
+    "abcdefghijklmnopqrstuvwxyzäöñüà"
+)
+
+
+def test_el_mensaje_entra_en_un_solo_segmento():
+    """Medido en Dexatel el 2026-09-25: con la tilde de "código" el mensaje
+    salía en UCS-2 y contaba 2 segmentos, o sea el doble de plata por cada
+    verificación. Un solo carácter fuera de GSM-7 arrastra al mensaje entero.
+    """
+    texto = texto_del_codigo("123456", 10)
+
+    fuera = sorted(set(texto) - GSM7)
+    assert not fuera, f"caracteres que rompen GSM-7: {fuera}"
+    assert len(texto) <= 160
+
+
 def test_el_mensaje_no_menciona_el_vertical():
     """Es lo que sostiene que esto es un OTP transaccional y no publicidad de
     apuestas. Twilio cerró la cuenta justamente por esa clasificación, y el

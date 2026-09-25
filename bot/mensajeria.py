@@ -142,8 +142,16 @@ def texto_del_codigo(codigo: str, minutos: int) -> str:
     varios países los operadores directamente lo bloquean. Tampoco menciona
     apuestas ni juego: es lo que hace que esto pase como OTP transaccional y
     no como publicidad de un vertical restringido.
+
+    Y sin tildes, que no es descuido. El alfabeto GSM-7 no incluye la "ó"
+    —incluye "é" y "ò", pero no "ó"—, así que un solo carácter fuera de ese
+    alfabeto empuja el mensaje entero a UCS-2. Ahí el segmento baja de 160
+    caracteres a 70, y este mensaje de 76 pasa a costar dos SMS en vez de
+    uno. Medido en Dexatel el 2026-09-25: encoding UCS-2, segment_count 2.
+
+    Escribir "codigo" sin tilde parte el costo de la verificación al medio.
     """
-    return (f"Tu código de iaqp es {codigo}. "
+    return (f"Tu codigo de iaqp es {codigo}. "
             f"Vence en {minutos} minutos. No lo compartas con nadie.")
 
 
