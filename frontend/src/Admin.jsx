@@ -13792,7 +13792,9 @@ function TabMensajeria({ adminKey, onNoAutorizado }){
 // Debajo de las credenciales, dentro de la misma pestaña Mensajería. Ver
 // odd/tasks/remitentes-por-pais-y-whatsapp.md: un remitente no es un
 // secreto (el jugador lo ve en su teléfono), así que esta sección no
-// enmascara nada, a diferencia de la de arriba.
+// enmascara nada. La de arriba tampoco lo enmascara ya: solo esconde los
+// campos que el servidor marca con `secreto`, que son las dos claves de
+// API y nada más.
 function SeccionRemitentes({ adminKey, onNoAutorizado, paises, proveedores }){
   const [remitentes,setRemitentes]=useState({[AMBITO_SMS]:[],[CANAL_WHATSAPP]:[]});
   const [cargando,setCargando]=useState(true);

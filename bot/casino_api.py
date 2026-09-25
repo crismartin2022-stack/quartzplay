@@ -27485,6 +27485,20 @@ CAMPOS_MENSAJERIA = {
     },
 }
 
+# Cuáles de esos campos son de verdad secretos.
+#
+# El criterio es uno solo: ¿saber este valor le permite a alguien hacer algo
+# que no podría hacer sin él? La clave de Dexatel y la de Resend, sí. Un
+# remitente no: es el nombre que el jugador ve en su teléfono cuando le
+# llega el código, y el UUID de una plantilla no sirve para nada sin la
+# clave. Enmascararlos no protege nada y sí esconde lo que el admin
+# necesita leer para entender por qué un envío salió como salió.
+#
+# Peor todavía: "IAQP Col" enmascarado da "IAQP… Col", que parece un valor
+# roto cuando en realidad está perfecto.
+CAMPOS_SECRETOS = {("sms", "clave"), ("correo", "api_key")}
+
+
 # Canales válidos de `remitentes_mensajeria`. Los mismos nombres que ya usa
 # `mensajeria.SMS`/`mensajeria.WHATSAPP`, para no inventar un segundo
 # vocabulario de canales.
@@ -28086,11 +28100,14 @@ async def admin_mensajeria_listar(_=Depends(auth.require_admin)):
             filas = await _filas_credenciales(conn, ambito)
             campos_resp = {}
             for clave, var_entorno in campos.items():
+                es_secreto = (ambito, clave) in CAMPOS_SECRETOS
+                mostrar = (secretos.enmascarar if es_secreto else (lambda v: v))
                 fila = filas.get(clave)
                 if fila:
                     campos_resp[clave] = {
                         "configurado": True,
-                        "mascara": secretos.enmascarar(fila["valor"]),
+                        "secreto": es_secreto,
+                        "mascara": mostrar(fila["valor"]),
                         "origen": "base",
                         "actualizado_por": fila["actualizado_por"],
                         "actualizado_at": _fecha_local(fila["actualizado_at"]),
@@ -28099,7 +28116,8 @@ async def admin_mensajeria_listar(_=Depends(auth.require_admin)):
                 valor_entorno = os.environ.get(var_entorno, "")
                 campos_resp[clave] = {
                     "configurado": bool(valor_entorno),
-                    "mascara": secretos.enmascarar(valor_entorno) if valor_entorno else None,
+                    "secreto": es_secreto,
+                    "mascara": mostrar(valor_entorno) if valor_entorno else None,
                     "origen": "entorno" if valor_entorno else None,
                     "actualizado_por": None,
                     "actualizado_at": None,

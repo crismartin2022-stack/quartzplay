@@ -4,11 +4,12 @@
 //
 // Ver odd/tasks/credenciales-mensajeria-admin.md para la decisión completa.
 // En corto: el secreto de verdad (la clave de Dexatel, la de Resend) vive
-// cifrado en la base y nunca vuelve al navegador. Lo que este módulo recibe
-// del servidor es siempre una vista enmascarada («e211…5194»), de dónde sale
-// el valor hoy («base» o «entorno») y quién lo tocó por última vez. Nada de
-// acá decide esa forma: la decide el servidor, y este módulo la lee tal
-// cual llega, igual que `registroCliente.js` lee `verificacion` sin
+// cifrado en la base y nunca vuelve al navegador; llega enmascarado
+// («e211…5194») y marcado con `secreto: true`. Los demás campos —el
+// remitente, la dirección de salida— no son secretos y llegan enteros: son
+// datos que el admin necesita leer, y esconderlos no protege nada.
+// Nada de acá decide cuál es cuál: lo decide el servidor, y este módulo lo
+// lee tal cual llega, igual que `registroCliente.js` lee `verificacion` sin
 // deducirla.
 //
 // El contrato de abajo está tomado de los cuatro endpoints reales en
