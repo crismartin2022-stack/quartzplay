@@ -13685,10 +13685,12 @@ function TabMensajeria({ adminKey, onNoAutorizado }){
                 )}
                 {!enBase&&<div style={{marginBottom:10}}/>}
 
-                <input type="password" autoComplete="off"
+                <input type={campo.secreto?"password":"text"} autoComplete="off"
                   value={nuevos[k]||""}
                   onChange={e=>setNuevos(n=>({...n,[k]:e.target.value}))}
-                  placeholder={`Pegar un valor nuevo para ${etiqueta.toLowerCase()}`}
+                  placeholder={campo.secreto
+                    ?`Pegar un valor nuevo para ${etiqueta.toLowerCase()}`
+                    :`Escribir ${etiqueta.toLowerCase()}`}
                   style={{...inp,marginBottom:8}}/>
 
                 <div style={{display:"flex",gap:SPACING[8]}}>
