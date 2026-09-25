@@ -375,6 +375,33 @@ def test_probar_sms_manda_de_verdad_y_devuelve_la_respuesta_cruda(api, monkeypat
     assert proveedor.pedidos[0]["headers"]["X-Dexatel-Key"] == "clave-secreta-de-verdad"
 
 
+def test_solo_se_enmascara_lo_que_de_verdad_es_secreto(api, monkeypatch):
+    """El remitente es el nombre que el jugador ve en su teléfono, no una
+    credencial. Enmascararlo no protege nada y le esconde al admin lo que
+    necesita para entender por qué un envío salió como salió. Además
+    "IAQP Col" enmascarado da "IAQP… Col", que parece roto estando bien."""
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    monkeypatch.setenv("DEXATEL_API_KEY", "clave-secreta-de-verdad")
+    monkeypatch.setenv("DEXATEL_SMS_FROM", "IAQP Col")
+    monkeypatch.setenv("CORREO_DESDE", "codigos@mail.iaqp.lat")
+    headers = admin_headers(api, monkeypatch)
+    use_fake_pool(api, monkeypatch, FakeConnCredenciales())
+
+    campos = req(api.app, "GET", "/api/admin/mensajeria",
+                 headers=headers).json()["proveedores"]
+
+    # El remitente se lee entero, y el correo de salida también.
+    assert campos["sms"]["campos"]["remitente_sms"]["mascara"] == "IAQP Col"
+    assert campos["sms"]["campos"]["remitente_sms"]["secreto"] is False
+    assert campos["correo"]["campos"]["remitente"]["mascara"] == "codigos@mail.iaqp.lat"
+
+    # La clave sigue enmascarada, que es lo único que importa esconder.
+    clave = campos["sms"]["campos"]["clave"]
+    assert clave["secreto"] is True
+    assert clave["mascara"] != "clave-secreta-de-verdad"
+    assert "clave-secreta-de-verdad" not in json.dumps(campos)
+
+
 def test_probar_con_pais_usa_el_remitente_de_ese_pais(api, monkeypatch):
     """Sin esto la prueba mentiría. Diría "el SMS salió" habiendo salido por
     el remitente del entorno, cuando lo que el admin quiere saber es si
