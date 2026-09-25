@@ -575,3 +575,31 @@ describe("si WhatsApp se puede ofrecer: remitente Y plantilla, los dos a la vez"
     expect(whatsappListo(undefined).listo).toBe(false);
   });
 });
+
+// ── La marca de secreto ─────────────────────────────────────────
+
+test("el campo secreto llega marcado y el que no, también", () => {
+  // Es lo que decide si la pantalla lo escribe a la vista o detrás de
+  // puntitos. Una dirección de correo escondida no protege nada, y sí hace
+  // que se cargue a ciegas y un tipeo mal hecho pase sin que nadie lo vea.
+  const proveedores = normalizarProveedores({
+    sms: { campos: {
+      clave: { configurado: true, mascara: "e211…5194", secreto: true, origen: "entorno" },
+      remitente_sms: { configurado: true, mascara: "IAQP Col", secreto: false, origen: "entorno" },
+    } },
+  });
+
+  const campos = proveedores[0].campos;
+  expect(campos.find((c) => c.clave === "clave").secreto).toBe(true);
+  expect(campos.find((c) => c.clave === "remitente_sms").secreto).toBe(false);
+});
+
+test("si el servidor no dice nada, el campo no se asume secreto", () => {
+  // Asumir que sí sería peor de lo que parece: volvería a esconder los
+  // remitentes, que es justo lo que había que dejar de hacer.
+  const proveedores = normalizarProveedores({
+    sms: { campos: { remitente_sms: { configurado: true, mascara: "IAQP Col" } } },
+  });
+
+  expect(proveedores[0].campos[0].secreto).toBe(false);
+});

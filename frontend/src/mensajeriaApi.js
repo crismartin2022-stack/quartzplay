@@ -124,6 +124,11 @@ export function normalizarProveedores(crudo) {
           clave,
           etiqueta: etiquetaCampo(clave),
           mascara: c.mascara ?? null,
+          // Lo decide el servidor, no la pantalla. Un campo que no es
+          // secreto se escribe a la vista: una dirección de correo o un
+          // remitente detrás de puntitos no protege nada y sí hace que
+          // cargarlos a ciegas termine en un tipeo mal hecho que nadie ve.
+          secreto: c.secreto === true,
           configurado: c.configurado === true,
           origen: c.origen ?? null,
           actualizadoPor: c.actualizado_por ?? null,
