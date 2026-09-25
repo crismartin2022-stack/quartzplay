@@ -1,4 +1,4 @@
-import os, re, time, hashlib, asyncio, hmac, json, logging, ast, secrets, random
+import os, re, time, hashlib, asyncio, hmac, json, logging, ast, secrets, random, dataclasses
 from decimal import Decimal
 from datetime import datetime, timezone, timedelta
 from typing import NamedTuple
@@ -27474,6 +27474,10 @@ CAMPOS_MENSAJERIA = {
         "clave": "DEXATEL_API_KEY",
         "remitente_sms": "DEXATEL_SMS_FROM",
         "remitente_whatsapp": "DEXATEL_WHATSAPP_FROM",
+        # UUID de la plantilla aprobada por Meta. Sin ella `whatsapp_listo`
+        # da falso aunque haya remitente: `/v1/verifications` no manda texto
+        # libre, y sin plantilla no hay OTP de WhatsApp posible.
+        "plantilla_whatsapp": "DEXATEL_WHATSAPP_TEMPLATE",
     },
     "correo": {
         "api_key": "RESEND_API_KEY",
@@ -27481,10 +27485,19 @@ CAMPOS_MENSAJERIA = {
     },
 }
 
+# Canales válidos de `remitentes_mensajeria`. Los mismos nombres que ya usa
+# `mensajeria.SMS`/`mensajeria.WHATSAPP`, para no inventar un segundo
+# vocabulario de canales.
+CANALES_REMITENTES = (mensajeria.SMS, mensajeria.WHATSAPP)
+
 _cache_credenciales: dict = {}
 
 
 def _invalidar_cache_credenciales():
+    """Limpia también los remitentes por país (`remitentes:<canal>`): viven
+    en el mismo diccionario porque la razón de cachear es la misma — no
+    pagar un viaje a la base en cada envío — y un cambio en cualquiera de
+    las dos pantallas de admin tiene que regir de inmediato."""
     _cache_credenciales.clear()
 
 
@@ -27528,8 +27541,50 @@ async def _credenciales_sms() -> mensajeria.Credenciales:
                 or entorno.remitente_sms,
             remitente_whatsapp=(filas.get("remitente_whatsapp") or {}).get("valor")
                 or entorno.remitente_whatsapp,
+            plantilla_whatsapp=(filas.get("plantilla_whatsapp") or {}).get("valor")
+                or entorno.plantilla_whatsapp,
         )
     return _cache_credenciales["sms"]
+
+
+# ── Remitentes por país: la base manda, el entorno respalda igual ────
+#
+# Misma idea que las credenciales de arriba, pero acá la fila no reemplaza a
+# una variable: se suma. `elegir_remitente` (en `mensajeria.py`, sin tocar
+# red ni base) hace la resolución de verdad; esta función solo le entrega la
+# lista de remitentes activos de un canal, ya leída y cacheada.
+
+async def _remitentes_activos(canal: str) -> list[dict]:
+    clave_cache = f"remitentes:{canal}"
+    if clave_cache not in _cache_credenciales:
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            filas = await conn.fetch(
+                "SELECT remitente, paises FROM remitentes_mensajeria "
+                "WHERE canal=$1 AND activo=true", canal)
+        _cache_credenciales[clave_cache] = [
+            {"remitente": f["remitente"], "paises": list(f["paises"] or [])}
+            for f in filas
+        ]
+    return _cache_credenciales[clave_cache]
+
+
+async def _credenciales_para_envio(canal: str, pais: str) -> mensajeria.Credenciales:
+    """La credencial ya lista para `mensajeria.enviar_codigo`, con el
+    remitente resuelto para `pais`. El resto (clave, plantilla) no depende
+    del país: viene tal cual de `_credenciales_sms()`."""
+    cred = await _credenciales_sms()
+    remitentes = await _remitentes_activos(canal)
+    pais_nombre = registro_publico.PAISES.get(pais)
+
+    if canal == mensajeria.WHATSAPP:
+        elegido = mensajeria.elegir_remitente(
+            remitentes, pais, respaldo=cred.remitente_whatsapp, pais_nombre=pais_nombre)
+        return dataclasses.replace(cred, remitente_whatsapp=elegido)
+
+    elegido = mensajeria.elegir_remitente(
+        remitentes, pais, respaldo=cred.remitente_sms, pais_nombre=pais_nombre)
+    return dataclasses.replace(cred, remitente_sms=elegido)
 
 
 async def _credenciales_correo() -> correo.Credenciales:
@@ -27565,11 +27620,21 @@ async def me_telefono_codigo(request: Request):
     if canal not in mensajeria.canales_disponibles(cred_sms):
         raise HTTPException(503, "Ese canal no está disponible")
 
+    pais = (body.get("pais") or "").upper()
     try:
         telefono = registro_publico.normalizar_telefono(
-            body.get("telefono") or "", (body.get("pais") or "").upper())
+            body.get("telefono") or "", pais)
     except registro_publico.TelefonoInvalido as e:
         raise HTTPException(400, str(e))
+
+    # Se resuelve el remitente antes de gastar un turno de los frenos: si no
+    # hay nada para mandarle a este país, no tiene sentido quemarle a la
+    # persona uno de sus reintentos por algo que no es culpa suya.
+    try:
+        cred_envio = await _credenciales_para_envio(canal, pais)
+    except mensajeria.MensajeriaNoConfigurada as e:
+        log.error("[MENSAJERIA] %s", e)
+        raise HTTPException(503, "La verificación por ahora no está disponible")
 
     ip = _ip_de(request)
     pool = await get_db()
@@ -27614,8 +27679,9 @@ async def me_telefono_codigo(request: Request):
     try:
         await mensajeria.enviar_codigo(
             telefono, codigo, canal, registro_publico.VIGENCIA_MINUTOS,
-            cred=cred_sms)
-    except mensajeria.MensajeriaNoConfigurada:
+            cred=cred_envio)
+    except mensajeria.MensajeriaNoConfigurada as e:
+        log.error("[MENSAJERIA] %s", e)
         raise HTTPException(503, "La verificación por ahora no está disponible")
     except mensajeria.EnvioFallido:
         otros = [c for c in mensajeria.canales_disponibles(cred_sms) if c != canal]
@@ -28153,3 +28219,116 @@ async def admin_mensajeria_probar(request: Request, _=Depends(auth.require_admin
 
     return {"ok": True, "identificador": identificador,
             "status_proveedor": crudo.get("status"), "respuesta": crudo.get("cuerpo")}
+
+
+# ── Remitentes por país, desde el panel de admin ──────────────────────
+#
+# Config → Mensajería. Complementa las credenciales de arriba: acá se
+# administra CUÁL remitente usar según el país de destino, no la clave de
+# la API. Sin cifrar a propósito (ver el comentario de la migración): el
+# remitente viaja en cada mensaje y el jugador ya lo ve en su teléfono, así
+# que ocultarlo en la base no protege nada y sí complica diagnosticar por
+# qué un envío salió con un remitente y no con otro.
+#
+# Igual que con las credenciales: guardar invalida el caché de
+# `_remitentes_activos`, así que un cambio en el panel rige en el próximo
+# envío, sin reiniciar nada.
+
+@app.get("/api/admin/remitentes")
+async def admin_remitentes_listar(_=Depends(auth.require_admin)):
+    """Por canal: cada remitente con sus países, si está activo, quién lo
+    tocó y cuándo. El selector de países lo arma la pantalla con `GET
+    /api/paises`; acá solo van los códigos ISO que ya se marcaron."""
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        filas = await conn.fetch(
+            "SELECT id, canal, remitente, paises, activo, "
+            "actualizado_por, actualizado_at FROM remitentes_mensajeria "
+            "ORDER BY canal, remitente")
+    remitentes = {canal: [] for canal in CANALES_REMITENTES}
+    for f in filas:
+        remitentes.setdefault(f["canal"], []).append({
+            "id": f["id"],
+            "remitente": f["remitente"],
+            "paises": list(f["paises"] or []),
+            "activo": f["activo"],
+            "actualizado_por": f["actualizado_por"],
+            "actualizado_at": _fecha_local(f["actualizado_at"]),
+        })
+    return {"remitentes": remitentes}
+
+
+@app.post("/api/admin/remitentes")
+async def admin_remitentes_guardar(request: Request, _=Depends(auth.require_admin)):
+    """Crea o actualiza un remitente (UPSERT por canal+remitente, igual que
+    las credenciales de arriba).
+
+    body: {"canal": "sms"|"whatsapp", "remitente": "...",
+           "paises"?: ["AR","CO",...], "activo"?: true}
+
+    Países vacíos = remitente por defecto del canal. Un código que no está
+    en `PAISES_LATAM` se rechaza acá y no al momento de mandar: si se coló
+    uno mal escrito, ningún envío a ese país lo iba a usar nunca, y el
+    error recién aparecía el día que alguien de ese país intentara
+    verificarse — demasiado tarde para servir de algo.
+    """
+    body = await request.json()
+    canal = (body.get("canal") or "").strip().lower()
+    remitente = (body.get("remitente") or "").strip()
+    paises = body.get("paises") if body.get("paises") is not None else []
+    activo = body.get("activo", True)
+
+    if canal not in CANALES_REMITENTES:
+        raise HTTPException(400, "Canal inválido: usá 'sms' o 'whatsapp'")
+    if not remitente:
+        raise HTTPException(400, "Falta el remitente")
+    if not isinstance(paises, list):
+        raise HTTPException(400, "'paises' debe ser una lista de códigos ISO")
+    paises = [str(p).strip().upper() for p in paises]
+    desconocidos = [p for p in paises if p not in registro_publico.PAISES]
+    if desconocidos:
+        raise HTTPException(400, f"País no habilitado: {', '.join(desconocidos)}")
+    if not isinstance(activo, bool):
+        raise HTTPException(400, "'activo' debe ser verdadero o falso")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        fila = await conn.fetchrow("""
+            INSERT INTO remitentes_mensajeria
+                (canal, remitente, paises, activo, actualizado_por, actualizado_at)
+            VALUES ($1,$2,$3,$4,'admin',NOW())
+            ON CONFLICT (canal, remitente)
+            DO UPDATE SET paises=$3, activo=$4, actualizado_por='admin',
+                          actualizado_at=NOW()
+            RETURNING id, canal, remitente, paises, activo, actualizado_at
+        """, canal, remitente, paises, activo)
+
+    _invalidar_cache_credenciales()
+    log.warning("[MENSAJERIA] admin guardó remitente %s.%s (países: %s, activo: %s)",
+                canal, remitente, ", ".join(paises) or "(defecto)", activo)
+    return {"ok": True, "remitente": {
+        "id": fila["id"], "canal": fila["canal"], "remitente": fila["remitente"],
+        "paises": list(fila["paises"] or []), "activo": fila["activo"],
+        "actualizado_at": _fecha_local(fila["actualizado_at"]),
+    }}
+
+
+@app.delete("/api/admin/remitentes/{remitente_id}")
+async def admin_remitentes_borrar(remitente_id: int, _=Depends(auth.require_admin)):
+    """Saca el remitente entero, por id — no por nombre: el remitente es
+    texto libre ("IAQP Col") y forzarlo a viajar en la URL es una fuente de
+    problemas de escape que un id numérico no tiene.
+
+    Los envíos a los países que cubría caen al siguiente escalón de la
+    resolución (el remitente por defecto del canal, o el entorno), sin
+    reiniciar nada."""
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        borrado = await conn.fetchval(
+            "DELETE FROM remitentes_mensajeria WHERE id=$1 RETURNING id",
+            remitente_id)
+    if not borrado:
+        raise HTTPException(404, "Ese remitente no existe")
+    _invalidar_cache_credenciales()
+    log.warning("[MENSAJERIA] admin borró el remitente #%s", remitente_id)
+    return {"ok": True}

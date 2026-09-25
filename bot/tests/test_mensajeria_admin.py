@@ -54,10 +54,14 @@ class _Transaccion:
 
 
 class FakeConnCredenciales:
-    """(ambito, clave) -> fila, como la tabla real."""
+    """(ambito, clave) -> fila de `credenciales_mensajeria`, y por separado
+    id -> fila de `remitentes_mensajeria`. Dos tablas distintas, pero una
+    misma conexión falsa: los endpoints de admin comparten `get_db()`."""
 
-    def __init__(self, filas=None):
+    def __init__(self, filas=None, remitentes=None):
         self.filas = dict(filas or {})  # {(ambito, clave): {"valor_cifrado", "actualizado_por", "actualizado_at"}}
+        self.remitentes = dict(remitentes or {})  # {id: {"canal","remitente","paises","activo","actualizado_por","actualizado_at"}}
+        self._siguiente_id = max(self.remitentes, default=0) + 1
         self.fetch_calls = []
         self.execute_calls = []
 
@@ -75,7 +79,44 @@ class FakeConnCredenciales:
                  "actualizado_at": f["actualizado_at"]}
                 for (a, clave), f in self.filas.items() if a == ambito
             ]
+        if q.startswith("SELECT id, canal, remitente, paises, activo, "
+                         "actualizado_por, actualizado_at FROM remitentes_mensajeria"):
+            filas = sorted(self.remitentes.items(),
+                           key=lambda kv: (kv[1]["canal"], kv[1]["remitente"]))
+            return [{"id": rid, **f} for rid, f in filas]
+        if q.startswith("SELECT remitente, paises FROM remitentes_mensajeria"):
+            (canal,) = args
+            return [{"remitente": f["remitente"], "paises": f["paises"]}
+                    for f in self.remitentes.values()
+                    if f["canal"] == canal and f["activo"]]
         raise AssertionError(f"fetch inesperado: {q}")
+
+    async def fetchrow(self, query, *args):
+        q = " ".join(query.split())
+        self.fetch_calls.append((q, args))
+        if q.startswith("INSERT INTO remitentes_mensajeria"):
+            canal, remitente, paises, activo = args
+            existente = next(
+                (rid for rid, f in self.remitentes.items()
+                 if f["canal"] == canal and f["remitente"] == remitente), None)
+            rid = existente if existente is not None else self._siguiente_id
+            if existente is None:
+                self._siguiente_id += 1
+            self.remitentes[rid] = {
+                "canal": canal, "remitente": remitente, "paises": list(paises),
+                "activo": activo, "actualizado_por": "admin",
+                "actualizado_at": "2026-09-25T12:00:00+00:00",
+            }
+            return {"id": rid, **self.remitentes[rid]}
+        raise AssertionError(f"fetchrow inesperado: {q}")
+
+    async def fetchval(self, query, *args):
+        q = " ".join(query.split())
+        self.fetch_calls.append((q, args))
+        if q.startswith("DELETE FROM remitentes_mensajeria WHERE id=$1 RETURNING id"):
+            (rid,) = args
+            return self.remitentes.pop(rid, None) and rid
+        raise AssertionError(f"fetchval inesperado: {q}")
 
     async def execute(self, query, *args):
         q = " ".join(query.split())
@@ -396,3 +437,204 @@ def test_ningun_endpoint_de_mensajeria_devuelve_el_secreto_completo(api, monkeyp
 
     for respuesta in (r_guardar, r_get, r_probar, r_borrar):
         assert secreto not in respuesta.text
+
+
+# ── Remitentes por país: el panel de admin ────────────────────────
+#
+# `mensajeria.elegir_remitente` ya está probada sin base en
+# `test_mensajeria.py`; acá lo que importa es la parte que sí toca la base:
+# que el panel liste, guarde y borre remitentes, y que `_credenciales_para_envio`
+# los use de verdad para resolver el remitente de un envío.
+
+def test_remitentes_lista_vacia_por_defecto(api, monkeypatch):
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    headers = admin_headers(api, monkeypatch)
+    use_fake_pool(api, monkeypatch, FakeConnCredenciales())
+
+    r = req(api.app, "GET", "/api/admin/remitentes", headers=headers)
+
+    assert r.status_code == 200
+    assert r.json() == {"remitentes": {"sms": [], "whatsapp": []}}
+
+
+def test_remitentes_guardar_lo_deja_ver_en_el_get(api, monkeypatch):
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    headers = admin_headers(api, monkeypatch)
+    use_fake_pool(api, monkeypatch, FakeConnCredenciales())
+
+    r = req(api.app, "POST", "/api/admin/remitentes", headers=headers,
+            json_body={"canal": "sms", "remitente": "IAQP Col",
+                      "paises": ["ar", "co", "ve"]})
+
+    assert r.status_code == 200
+    guardado = r.json()["remitente"]
+    assert guardado["paises"] == ["AR", "CO", "VE"]  # se normaliza a mayúsculas
+    assert guardado["activo"] is True  # por defecto
+
+    r_get = req(api.app, "GET", "/api/admin/remitentes", headers=headers)
+    assert r_get.json()["remitentes"]["sms"][0]["remitente"] == "IAQP Col"
+
+
+def test_remitentes_guardar_de_nuevo_actualiza_en_vez_de_duplicar(api, monkeypatch):
+    """Mismo canal y remitente dos veces: la segunda vez corrige la lista de
+    países, no crea una segunda fila ambigua."""
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    headers = admin_headers(api, monkeypatch)
+    conn = FakeConnCredenciales()
+    use_fake_pool(api, monkeypatch, conn)
+
+    req(api.app, "POST", "/api/admin/remitentes", headers=headers,
+        json_body={"canal": "sms", "remitente": "IAQP Col", "paises": ["AR"]})
+    req(api.app, "POST", "/api/admin/remitentes", headers=headers,
+        json_body={"canal": "sms", "remitente": "IAQP Col", "paises": ["AR", "CO"]})
+
+    assert len(conn.remitentes) == 1
+    assert list(conn.remitentes.values())[0]["paises"] == ["AR", "CO"]
+
+
+def test_remitentes_pais_no_habilitado_se_rechaza(api, monkeypatch):
+    """Si se cuela un código mal escrito, ningún envío a ese país lo iba a
+    usar nunca: mejor que el panel lo diga ahora, no el día que alguien de
+    ese país intente verificarse."""
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    headers = admin_headers(api, monkeypatch)
+    conn = FakeConnCredenciales()
+    use_fake_pool(api, monkeypatch, conn)
+
+    r = req(api.app, "POST", "/api/admin/remitentes", headers=headers,
+            json_body={"canal": "sms", "remitente": "IAQP Col", "paises": ["ZZ"]})
+
+    assert r.status_code == 400
+    assert conn.remitentes == {}
+
+
+def test_remitentes_canal_invalido_se_rechaza(api, monkeypatch):
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    headers = admin_headers(api, monkeypatch)
+    use_fake_pool(api, monkeypatch, FakeConnCredenciales())
+
+    r = req(api.app, "POST", "/api/admin/remitentes", headers=headers,
+            json_body={"canal": "telegram", "remitente": "IAQP", "paises": []})
+
+    assert r.status_code == 400
+
+
+def test_remitentes_borrar_por_id(api, monkeypatch):
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    headers = admin_headers(api, monkeypatch)
+    conn = FakeConnCredenciales(remitentes={
+        1: {"canal": "sms", "remitente": "IAQP Col", "paises": ["AR"],
+            "activo": True, "actualizado_por": "admin",
+            "actualizado_at": "2026-09-25T12:00:00+00:00"},
+    })
+    use_fake_pool(api, monkeypatch, conn)
+
+    r = req(api.app, "DELETE", "/api/admin/remitentes/1", headers=headers)
+
+    assert r.status_code == 200
+    assert conn.remitentes == {}
+
+
+def test_remitentes_borrar_id_inexistente_da_404(api, monkeypatch):
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    headers = admin_headers(api, monkeypatch)
+    use_fake_pool(api, monkeypatch, FakeConnCredenciales())
+
+    r = req(api.app, "DELETE", "/api/admin/remitentes/999", headers=headers)
+
+    assert r.status_code == 404
+
+
+# ── La resolución de verdad: `_credenciales_para_envio` con la base ─
+
+def test_credenciales_para_envio_usa_el_remitente_del_pais_cubierto(api, monkeypatch):
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    monkeypatch.setenv("DEXATEL_API_KEY", "clave")
+    monkeypatch.setenv("DEXATEL_SMS_FROM", "iaqp-entorno")
+    monkeypatch.setenv("DEXATEL_WHATSAPP_FROM", "")
+    conn = FakeConnCredenciales(remitentes={
+        1: {"canal": "sms", "remitente": "IAQP Col", "paises": ["AR", "CO", "VE"],
+            "activo": True, "actualizado_por": "admin", "actualizado_at": "x"},
+        2: {"canal": "sms", "remitente": "IAQP EC", "paises": ["EC"],
+            "activo": True, "actualizado_por": "admin", "actualizado_at": "x"},
+    })
+    use_fake_pool(api, monkeypatch, conn)
+
+    cred = asyncio.run(api._credenciales_para_envio("sms", "EC"))
+
+    assert cred.remitente_sms == "IAQP EC"
+
+
+def test_credenciales_para_envio_sin_cobertura_cae_al_remitente_por_defecto(api, monkeypatch):
+    """El caso real que motivó la tabla: un país sin remitente propio no
+    puede quedar sin nada mientras haya un remitente por defecto del canal."""
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    monkeypatch.setenv("DEXATEL_API_KEY", "clave")
+    monkeypatch.setenv("DEXATEL_SMS_FROM", "")
+    monkeypatch.setenv("DEXATEL_WHATSAPP_FROM", "")
+    conn = FakeConnCredenciales(remitentes={
+        1: {"canal": "sms", "remitente": "IAQP Col", "paises": ["AR", "CO", "VE"],
+            "activo": True, "actualizado_por": "admin", "actualizado_at": "x"},
+        2: {"canal": "sms", "remitente": "IAQP", "paises": [],
+            "activo": True, "actualizado_por": "admin", "actualizado_at": "x"},
+    })
+    use_fake_pool(api, monkeypatch, conn)
+
+    cred = asyncio.run(api._credenciales_para_envio("sms", "PE"))
+
+    assert cred.remitente_sms == "IAQP"
+
+
+def test_credenciales_para_envio_sin_nada_el_error_nombra_el_pais(api, monkeypatch):
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    monkeypatch.setenv("DEXATEL_API_KEY", "clave")
+    monkeypatch.setenv("DEXATEL_SMS_FROM", "")
+    monkeypatch.setenv("DEXATEL_WHATSAPP_FROM", "")
+    conn = FakeConnCredenciales(remitentes={
+        1: {"canal": "sms", "remitente": "IAQP Col", "paises": ["AR", "CO", "VE"],
+            "activo": True, "actualizado_por": "admin", "actualizado_at": "x"},
+    })
+    use_fake_pool(api, monkeypatch, conn)
+
+    import mensajeria
+    with pytest.raises(mensajeria.SinRemitenteParaPais, match="Ecuador"):
+        asyncio.run(api._credenciales_para_envio("sms", "EC"))
+
+
+def test_credenciales_para_envio_ignora_remitentes_inactivos(api, monkeypatch):
+    """Un remitente dado de baja (revocado por la operadora, por ejemplo) no
+    puede seguir eligiéndose: por eso la lectura filtra por `activo=true`."""
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    monkeypatch.setenv("DEXATEL_API_KEY", "clave")
+    monkeypatch.setenv("DEXATEL_SMS_FROM", "")
+    monkeypatch.setenv("DEXATEL_WHATSAPP_FROM", "")
+    conn = FakeConnCredenciales(remitentes={
+        1: {"canal": "sms", "remitente": "IAQP EC", "paises": ["EC"],
+            "activo": False, "actualizado_por": "admin", "actualizado_at": "x"},
+    })
+    use_fake_pool(api, monkeypatch, conn)
+
+    import mensajeria
+    with pytest.raises(mensajeria.SinRemitenteParaPais):
+        asyncio.run(api._credenciales_para_envio("sms", "EC"))
+
+
+def test_credenciales_para_envio_se_cachea_y_se_invalida_al_guardar(api, monkeypatch):
+    """Mismo contrato que las credenciales: un cambio en el panel rige en el
+    próximo envío, sin reiniciar el proceso."""
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    monkeypatch.setenv("DEXATEL_API_KEY", "clave")
+    monkeypatch.setenv("DEXATEL_SMS_FROM", "iaqp-entorno")
+    monkeypatch.setenv("DEXATEL_WHATSAPP_FROM", "")
+    headers = admin_headers(api, monkeypatch)
+    conn = FakeConnCredenciales()
+    use_fake_pool(api, monkeypatch, conn)
+
+    # Sin filas todavía: cae al entorno, y se cachea.
+    assert asyncio.run(api._credenciales_para_envio("sms", "EC")).remitente_sms == "iaqp-entorno"
+
+    req(api.app, "POST", "/api/admin/remitentes", headers=headers,
+        json_body={"canal": "sms", "remitente": "IAQP EC", "paises": ["EC"]})
+
+    # El caché se invalidó al guardar: el próximo envío ya ve el remitente nuevo.
+    assert asyncio.run(api._credenciales_para_envio("sms", "EC")).remitente_sms == "IAQP EC"
