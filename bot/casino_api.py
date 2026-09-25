@@ -28180,7 +28180,13 @@ async def admin_mensajeria_probar(request: Request, _=Depends(auth.require_admin
     respuesta cruda del proveedor. Existe porque hoy una credencial mala
     se descubre recién cuando un jugador no puede verificarse.
 
-    body: {"proveedor": "sms"|"correo", "destino": "...", "canal"?: "sms"|"whatsapp"}
+    Si viene el país, la prueba elige el remitente igual que lo haría un
+    envío real. Sin eso la prueba mentiría: diría que el SMS sale cuando en
+    realidad salió por otro remitente que el del país del jugador, que es
+    justo lo que se quiere verificar.
+
+    body: {"proveedor": "sms"|"correo", "destino": "...",
+           "canal"?: "sms"|"whatsapp", "pais"?: "EC"}
     """
     body = await request.json()
     proveedor = (body.get("proveedor") or "").strip().lower()
@@ -28193,7 +28199,17 @@ async def admin_mensajeria_probar(request: Request, _=Depends(auth.require_admin
 
     if proveedor == "sms":
         canal = (body.get("canal") or mensajeria.SMS).lower()
-        cred = await _credenciales_sms()
+        pais = (body.get("pais") or "").upper()
+        if pais:
+            try:
+                destino = registro_publico.normalizar_telefono(destino, pais)
+            except registro_publico.TelefonoInvalido as e:
+                raise HTTPException(400, str(e))
+            cred = await _credenciales_para_envio(canal, pais)
+        else:
+            cred = await _credenciales_sms()
+        remitente_usado = (cred.remitente_whatsapp if canal == mensajeria.WHATSAPP
+                           else cred.remitente_sms)
         try:
             identificador = await mensajeria.enviar_codigo(
                 destino, codigo_prueba, canal,
@@ -28202,9 +28218,11 @@ async def admin_mensajeria_probar(request: Request, _=Depends(auth.require_admin
             raise HTTPException(503, str(e))
         except mensajeria.EnvioFallido:
             return {"ok": False, "status_proveedor": crudo.get("status"),
-                    "respuesta": crudo.get("cuerpo")}
+                    "respuesta": crudo.get("cuerpo"),
+                    "remitente": cred.remitente_sms or cred.remitente_whatsapp}
     elif proveedor == "correo":
         cred = await _credenciales_correo()
+        remitente_usado = cred.desde
         try:
             identificador = await correo.enviar_codigo(
                 destino, codigo_prueba,
@@ -28217,7 +28235,11 @@ async def admin_mensajeria_probar(request: Request, _=Depends(auth.require_admin
     else:
         raise HTTPException(400, "Proveedor inválido: usá 'sms' o 'correo'")
 
+    # El remitente usado se devuelve a propósito: en una cuenta con varios,
+    # saber que el SMS salió no alcanza. Lo que el admin necesita ver es por
+    # cuál salió, que es lo que va a cambiar si el país no está cubierto.
     return {"ok": True, "identificador": identificador,
+            "remitente": remitente_usado,
             "status_proveedor": crudo.get("status"), "respuesta": crudo.get("cuerpo")}
 
 

@@ -375,6 +375,33 @@ def test_probar_sms_manda_de_verdad_y_devuelve_la_respuesta_cruda(api, monkeypat
     assert proveedor.pedidos[0]["headers"]["X-Dexatel-Key"] == "clave-secreta-de-verdad"
 
 
+def test_probar_con_pais_usa_el_remitente_de_ese_pais(api, monkeypatch):
+    """Sin esto la prueba mentiría. Diría "el SMS salió" habiendo salido por
+    el remitente del entorno, cuando lo que el admin quiere saber es si
+    puede alcanzar a un jugador de ESE país. Además devuelve cuál usó: en
+    una cuenta con varios remitentes, saber que salió no alcanza."""
+    import mensajeria
+    monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
+    monkeypatch.setenv("DEXATEL_API_KEY", "clave-secreta-de-verdad")
+    monkeypatch.setenv("DEXATEL_SMS_FROM", "El de respaldo")
+    headers = admin_headers(api, monkeypatch)
+    conn = FakeConnCredenciales(remitentes={1: {
+        "canal": "sms", "remitente": "IAQP EC", "paises": ["EC"],
+        "activo": True, "actualizado_por": "admin", "actualizado_at": None}})
+    use_fake_pool(api, monkeypatch, conn)
+    proveedor = ProveedorFalso().parchear(monkeypatch, mensajeria)
+
+    r = req(api.app, "POST", "/api/admin/mensajeria/probar", headers=headers,
+            json_body={"proveedor": "sms", "destino": "0991234567",
+                       "pais": "EC"})
+
+    assert r.status_code == 200
+    assert r.json()["remitente"] == "IAQP EC"
+    assert proveedor.pedidos[0]["json"]["data"]["from"] == "IAQP EC"
+    # Y el número se normalizó con ese país, como en un envío real.
+    assert proveedor.pedidos[0]["json"]["data"]["to"] == ["593991234567"]
+
+
 def test_probar_devuelve_el_error_crudo_si_el_proveedor_rechaza(api, monkeypatch):
     import mensajeria
     monkeypatch.setenv("SECRETOS_CLAVE", LLAVE)
