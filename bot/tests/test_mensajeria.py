@@ -1,8 +1,12 @@
 """El envío del código, probado sin salir a internet.
 
 Lo que importa acá: que falle cerrado sin credenciales, que el código nunca
-aparezca en el registro, y que cambiar de SMS a WhatsApp sea un parámetro y
-no una reescritura.
+aparezca en el registro, que el texto no delate el vertical, y que cambiar de
+SMS a WhatsApp sea un parámetro y no una reescritura.
+
+Esa última garantía ya se cobró sola: Twilio cerró la cuenta y mudarse a
+Dexatel costó reescribir un módulo. Estas pruebas son las que permiten que la
+próxima mudanza cueste lo mismo.
 """
 
 import asyncio
@@ -23,20 +27,18 @@ from mensajeria import (
     texto_del_codigo,
 )
 
-SOLO_SMS = Credenciales(cuenta="AC123", token="secreto",
-                        remitente_sms="+15550001111", remitente_whatsapp="")
-COMPLETAS = Credenciales(cuenta="AC123", token="secreto",
-                         remitente_sms="+15550001111",
+SOLO_SMS = Credenciales(clave="secreta", remitente_sms="iaqp")
+COMPLETAS = Credenciales(clave="secreta", remitente_sms="iaqp",
                          remitente_whatsapp="+15550002222")
-VACIAS = Credenciales(cuenta="", token="", remitente_sms="", remitente_whatsapp="")
+VACIAS = Credenciales(clave="", remitente_sms="", remitente_whatsapp="")
 
 
-class TwilioFalso:
+class ProveedorFalso:
     """Se queda con lo que se le manda, en vez de mandarlo."""
 
     def __init__(self, status=201, cuerpo=None):
         self.status = status
-        self.cuerpo = cuerpo if cuerpo is not None else {"sid": "SM999"}
+        self.cuerpo = cuerpo if cuerpo is not None else {"data": [{"id": "MSG999"}]}
         self.pedidos = []
 
     def parchear(self, monkeypatch):
@@ -52,8 +54,8 @@ class TwilioFalso:
             async def __aexit__(self, *a):
                 return False
 
-            async def post(self, url, data=None, auth=None):
-                prueba.pedidos.append({"url": url, "data": data, "auth": auth})
+            async def post(self, url, json=None, headers=None):
+                prueba.pedidos.append({"url": url, "json": json, "headers": headers})
                 return httpx.Response(prueba.status, json=prueba.cuerpo,
                                       request=httpx.Request("POST", url))
 
@@ -85,32 +87,46 @@ def test_los_canales_disponibles_dependen_de_lo_configurado():
 
 # ── El envío ─────────────────────────────────────────────────────
 
-def test_un_sms_va_al_numero_con_el_remitente_de_sms(monkeypatch):
-    twilio = TwilioFalso().parchear(monkeypatch)
+def test_un_sms_va_al_numero_con_la_clave_en_la_cabecera(monkeypatch):
+    proveedor = ProveedorFalso().parchear(monkeypatch)
 
-    sid = asyncio.run(enviar_codigo("+593991234567", "123456", SMS, cred=SOLO_SMS))
+    ident = asyncio.run(enviar_codigo("+593991234567", "123456", SMS, cred=SOLO_SMS))
 
-    assert sid == "SM999"
-    enviado = twilio.pedidos[0]["data"]
-    assert enviado["To"] == "+593991234567"
-    assert enviado["From"] == "+15550001111"
-    assert "123456" in enviado["Body"]
+    assert ident == "MSG999"
+    pedido = proveedor.pedidos[0]
+    assert pedido["url"] == mensajeria.DEXATEL_API
+    assert pedido["headers"]["X-Dexatel-Key"] == "secreta"
+    assert pedido["json"]["to"] == "+593991234567"
+    assert pedido["json"]["from"] == "iaqp"
+    assert pedido["json"]["channel"] == "SMS"
+    assert "123456" in pedido["json"]["text"]
+
+
+def test_la_clave_viaja_en_la_cabecera_y_nunca_en_el_cuerpo(monkeypatch):
+    """Si se colara en el cuerpo terminaría en cualquier registro de pedidos
+    del proveedor, y una clave en un log es una clave filtrada."""
+    proveedor = ProveedorFalso().parchear(monkeypatch)
+
+    asyncio.run(enviar_codigo("+593991234567", "123456", SMS, cred=SOLO_SMS))
+
+    assert "secreta" not in str(proveedor.pedidos[0]["json"])
 
 
 def test_cambiar_a_whatsapp_es_un_parametro(monkeypatch):
     """Es la razón de que el canal esté detrás de esta puerta: el día que
     aprueben el remitente, no se reescribe nada."""
-    twilio = TwilioFalso().parchear(monkeypatch)
+    proveedor = ProveedorFalso().parchear(monkeypatch)
 
     asyncio.run(enviar_codigo("+584121234567", "123456", WHATSAPP, cred=COMPLETAS))
 
-    enviado = twilio.pedidos[0]["data"]
-    assert enviado["To"] == "whatsapp:+584121234567"
-    assert enviado["From"] == "whatsapp:+15550002222"
+    pedido = proveedor.pedidos[0]["json"]
+    assert pedido["to"] == "+584121234567"
+    assert pedido["from"] == "+15550002222"
+    assert pedido["channel"] == "WHATSAPP"
 
 
 def test_si_el_proveedor_rechaza_se_avisa_sin_detalles(monkeypatch):
-    TwilioFalso(status=400, cuerpo={"message": "unverified number"}).parchear(monkeypatch)
+    ProveedorFalso(status=400, cuerpo={"message": "unverified number"}).parchear(monkeypatch)
 
     with pytest.raises(EnvioFallido):
         asyncio.run(enviar_codigo("+593991234567", "123456", SMS, cred=SOLO_SMS))
@@ -119,7 +135,7 @@ def test_si_el_proveedor_rechaza_se_avisa_sin_detalles(monkeypatch):
 def test_el_codigo_nunca_queda_en_el_registro(monkeypatch, caplog):
     """El registro lo lee mucha más gente que la base. Un código ahí es una
     cuenta ajena servida."""
-    TwilioFalso(status=500, cuerpo={"message": "boom"}).parchear(monkeypatch)
+    ProveedorFalso(status=500, cuerpo={"message": "boom"}).parchear(monkeypatch)
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(EnvioFallido):
@@ -127,6 +143,55 @@ def test_el_codigo_nunca_queda_en_el_registro(monkeypatch, caplog):
 
     assert "987654" not in caplog.text
     assert "+593991234567" in caplog.text   # el número sí, para poder investigar
+
+
+# ── El identificador que devuelve el proveedor ───────────────────
+#
+# La documentación pública muestra el pedido pero no una respuesta de ejemplo.
+# Estas pruebas fijan que ninguna de las formas plausibles rompa el registro:
+# quedarse sin identificador no puede costarle la cuenta a una persona.
+
+@pytest.mark.parametrize("cuerpo,esperado", [
+    ({"data": [{"id": "A1"}]}, "A1"),
+    ({"data": {"id": "B2"}}, "B2"),
+    ({"id": "C3"}, "C3"),
+    ({"message_id": "D4"}, "D4"),
+    ({}, ""),
+    ([], ""),
+])
+def test_el_identificador_se_lee_de_cualquier_forma_razonable(monkeypatch, cuerpo, esperado):
+    ProveedorFalso(cuerpo=cuerpo).parchear(monkeypatch)
+
+    assert asyncio.run(
+        enviar_codigo("+593991234567", "123456", SMS, cred=SOLO_SMS)) == esperado
+
+
+def test_una_respuesta_que_no_es_json_no_tumba_el_registro(monkeypatch):
+    """El mensaje salió: el proveedor contestó 200. Fallar acá sería negarle
+    la verificación a alguien por un detalle de formato."""
+    class SinJson(ProveedorFalso):
+        def parchear(self, monkeypatch):
+            class ClienteFalso:
+                def __init__(self, *a, **k):
+                    pass
+
+                async def __aenter__(self):
+                    return self
+
+                async def __aexit__(self, *a):
+                    return False
+
+                async def post(self, url, json=None, headers=None):
+                    return httpx.Response(200, text="OK",
+                                          request=httpx.Request("POST", url))
+
+            monkeypatch.setattr(mensajeria.httpx, "AsyncClient", ClienteFalso)
+            return self
+
+    SinJson().parchear(monkeypatch)
+
+    assert asyncio.run(
+        enviar_codigo("+593991234567", "123456", SMS, cred=SOLO_SMS)) == ""
 
 
 # ── El texto ─────────────────────────────────────────────────────
@@ -147,34 +212,11 @@ def test_el_mensaje_no_lleva_enlaces():
     assert "http" not in texto.lower()
 
 
-# ── Messaging Service ────────────────────────────────────────────
+def test_el_mensaje_no_menciona_el_vertical():
+    """Es lo que sostiene que esto es un OTP transaccional y no publicidad de
+    apuestas. Twilio cerró la cuenta justamente por esa clasificación, y el
+    texto es la evidencia que se muestra al postular."""
+    texto = texto_del_codigo("123456", 10).lower()
 
-CON_SERVICIO = Credenciales(cuenta="AC123", token="secreto", remitente_sms="",
-                            remitente_whatsapp="",
-                            servicio_mensajeria="MG0000000000")
-
-
-def test_con_un_messaging_service_alcanza_para_mandar_sms():
-    """Con tres países de reglas distintas, dejar que Twilio elija el
-    remitente es lo recomendado. No hace falta comprar un número suelto."""
-    assert canales_disponibles(CON_SERVICIO) == [SMS]
-
-
-def test_el_servicio_viaja_como_servicio_y_no_como_remitente(monkeypatch):
-    twilio = TwilioFalso().parchear(monkeypatch)
-
-    asyncio.run(enviar_codigo("+593991234567", "123456", SMS, cred=CON_SERVICIO))
-
-    enviado = twilio.pedidos[0]["data"]
-    assert enviado["MessagingServiceSid"] == "MG0000000000"
-    assert "From" not in enviado
-
-
-def test_si_estan_los_dos_gana_el_servicio(monkeypatch):
-    twilio = TwilioFalso().parchear(monkeypatch)
-    ambos = Credenciales(cuenta="AC123", token="s", remitente_sms="+15550001111",
-                         remitente_whatsapp="", servicio_mensajeria="MG111")
-
-    asyncio.run(enviar_codigo("+593991234567", "123456", SMS, cred=ambos))
-
-    assert twilio.pedidos[0]["data"]["MessagingServiceSid"] == "MG111"
+    for palabra in ("apuesta", "casino", "juego", "bono", "gana"):
+        assert palabra not in texto

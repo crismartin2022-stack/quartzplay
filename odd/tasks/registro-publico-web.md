@@ -104,7 +104,7 @@ propia, y los bonos de casa.
       su clave pública, en nuestra propia API. Sin Supabase Auth: la
       plataforma se muda a AWS y esto tiene que viajar con nosotros.
 - [x] **T4 — El código, por WhatsApp o SMS.** Envío y validación, con el
-      proveedor y el canal detrás de una interfaz: hoy Twilio, mañana lo
+      proveedor y el canal detrás de una interfaz: hoy Dexatel, mañana lo
       que haga falta. Falla cerrado si no hay credenciales, como ya hace el
       PSP. Si un canal falla, se ofrece el otro.
 - [x] **T4b — El candado del retiro.** Sin teléfono verificado no se
@@ -125,20 +125,33 @@ propia, y los bonos de casa.
 - [x] **T8 — El correo, verificado antes de crear la cuenta.** El registro
       pasa a dos pasos: se guarda el intento, se manda el código, y la
       fila en `users` nace recién cuando el código coincide. El proveedor
-      de correo queda detrás de la misma puerta que Twilio.
+      de correo queda detrás de la misma puerta que el de SMS.
 - [x] **T9 — Cómo verifico mi teléfono.** En el perfil y en el aviso, el
       camino completo con sus acciones: elegir canal, pedir el código,
       escribirlo, y qué se destraba al lograrlo. Queda armado aunque
-      Twilio todavía no mande nada.
+      el proveedor de SMS todavía no mande nada.
 - [ ] **T6 — Asignar a una agencia.** Desde admin, mover un jugador de la
       casa a una agencia, con registro de quién lo hizo y cuándo.
 
-## Riesgo conocido: Venezuela
+## Riesgo conocido: el proveedor, antes que el país
 
-Twilio entrega mal hacia Venezuela: bloqueos de operadoras y mensajes que
-no llegan. Si el registro depende de un SMS que nunca llega, se pierde al
-jugador en la puerta. Por eso T4 deja el canal desacoplado: cambiar a
-WhatsApp o a correo no debe obligar a rehacer el flujo.
+**2026-09-25 — Twilio cerró la cuenta** apenas se pagó el primer plan. No fue
+un error del alta: prohíben el tráfico de apuestas en sus rutas de Estados
+Unidos y Canadá, y la revisión se aplica a nivel de cuenta aunque el tráfico
+vaya a Ecuador, Argentina y Venezuela. Vonage, Bird y Plivo tienen políticas
+equivalentes; no sirve mudarse a otro grande de allá.
+
+Se pasa a **Dexatel**, que declara iGaming entre los verticales que atiende.
+Costó reescribir `bot/mensajeria.py` y sus pruebas, nada más: es exactamente
+lo que la puerta chica de T4 estaba pagando por adelantado.
+
+Al postular, lo nuestro es **OTP transaccional**, no publicidad de apuestas.
+El texto no lleva enlaces, ni marca, ni la palabra apuestas, y hay una prueba
+que lo sostiene (`test_el_mensaje_no_menciona_el_vertical`).
+
+Sigue en pie el riesgo de entrega hacia Venezuela: si el código no llega, se
+pierde al jugador en la puerta. Por eso el canal queda desacoplado —el cuerpo
+del pedido lleva `channel`, y WhatsApp es cambiar un parámetro.
 
 ## Evidencia (2026-09-24)
 
@@ -168,7 +181,7 @@ São Paulo, y las variables `RESEND_API_KEY` y `CORREO_DESDE`.
 - `cd bot && python -m pytest tests -q` en verde.
 - Una ráfaga contra el endpoint de código tiene que ser rechazada.
 - Dos registros con el mismo teléfono: el segundo falla.
-- Sin credenciales de Twilio, el registro no queda a medias: falla cerrado.
+- Sin credenciales del proveedor, el registro no queda a medias: falla cerrado.
 
 ## Delivery
 

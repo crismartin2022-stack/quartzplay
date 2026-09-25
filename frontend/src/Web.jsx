@@ -4745,7 +4745,7 @@ function Registrar({ onEntro, onCerrar, onIngresar, refCode }){
 //
 // La acción de verificar pide dos cosas antes de aparecer: que
 // `GET /api/telefono/canales` traiga algún canal —hoy trae la lista
-// vacía, porque Twilio no está configurado— y que esta pantalla tenga
+// vacía, porque no hay proveedor de SMS configurado— y que esta pantalla tenga
 // adónde mandar a la persona (`onVerificar`, que abre `VerificarTelefonoWeb`
 // más abajo). Mientras falte el canal no se muestra un botón que promete
 // y no puede cumplir: se dice la verdad —todavía no está disponible— con

@@ -394,7 +394,7 @@ export function cerrarAviso(almacen) {
 
 // ── Ofrecer verificar, o no ──────────────────────────────────────
 //
-// `GET /api/telefono/canales` contesta `{"canales": []}` mientras Twilio no
+// `GET /api/telefono/canales` contesta `{"canales": []}` mientras el proveedor de SMS no
 // esté configurado. Un botón "Verificar mi teléfono" que no puede mandar
 // nada es peor que no tener botón: promete y falla. Así que la acción pide
 // las dos cosas — que haya un canal por donde mandar el código, y que esta
