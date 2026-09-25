@@ -22,14 +22,21 @@ from mensajeria import (
     Credenciales,
     EnvioFallido,
     MensajeriaNoConfigurada,
+    SinRemitenteParaPais,
     canales_disponibles,
+    elegir_remitente,
     enviar_codigo,
     texto_del_codigo,
 )
 
+PLANTILLA = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+
 SOLO_SMS = Credenciales(clave="secreta", remitente_sms="iaqp")
+CON_REMITENTE_WHATSAPP_SIN_PLANTILLA = Credenciales(
+    clave="secreta", remitente_sms="iaqp", remitente_whatsapp="+15550002222")
 COMPLETAS = Credenciales(clave="secreta", remitente_sms="iaqp",
-                         remitente_whatsapp="+15550002222")
+                         remitente_whatsapp="+15550002222",
+                         plantilla_whatsapp=PLANTILLA)
 VACIAS = Credenciales(clave="", remitente_sms="", remitente_whatsapp="")
 
 
@@ -77,12 +84,26 @@ def test_whatsapp_sin_remitente_aprobado_avisa_claro():
         asyncio.run(enviar_codigo("+593991234567", "123456", WHATSAPP, cred=SOLO_SMS))
 
 
+def test_whatsapp_con_remitente_pero_sin_plantilla_tambien_avisa_claro():
+    """La plantilla es tan obligatoria como el remitente: sin ella no hay
+    forma de mandar el OTP, porque `/v1/verifications` no acepta texto libre."""
+    with pytest.raises(MensajeriaNoConfigurada, match="WhatsApp"):
+        asyncio.run(enviar_codigo("+593991234567", "123456", WHATSAPP,
+                                  cred=CON_REMITENTE_WHATSAPP_SIN_PLANTILLA))
+
+
 def test_los_canales_disponibles_dependen_de_lo_configurado():
     """La pantalla pregunta esto: no tiene sentido ofrecer WhatsApp mientras
     el remitente espera aprobación."""
     assert canales_disponibles(SOLO_SMS) == [SMS]
     assert canales_disponibles(COMPLETAS) == [SMS, WHATSAPP]
     assert canales_disponibles(VACIAS) == []
+
+
+def test_los_canales_disponibles_omiten_whatsapp_sin_plantilla():
+    """Remitente aprobado pero plantilla todavía sin cargar: sigue sin
+    ofrecerse, porque enviar_codigo va a fallar igual si se intenta."""
+    assert canales_disponibles(CON_REMITENTE_WHATSAPP_SIN_PLANTILLA) == [SMS]
 
 
 # ── El envío ─────────────────────────────────────────────────────
@@ -143,10 +164,35 @@ def test_cambiar_a_whatsapp_es_un_parametro(monkeypatch):
 
     asyncio.run(enviar_codigo("+584121234567", "123456", WHATSAPP, cred=COMPLETAS))
 
-    datos = proveedor.pedidos[0]["json"]["data"]
-    assert datos["to"] == ["584121234567"]
-    assert datos["from"] == "+15550002222"
+    pedido = proveedor.pedidos[0]
+    datos = pedido["json"]["data"]
+    assert pedido["url"] == mensajeria.DEXATEL_VERIFICATIONS_API
+    assert datos["phone"] == "584121234567"
+    assert datos["sender"] == "+15550002222"
     assert datos["channel"] == "WHATSAPP"
+
+
+def test_whatsapp_manda_la_plantilla_y_el_codigo_no_el_texto_libre(monkeypatch):
+    """El texto vive en la plantilla aprobada por Meta: `texto_del_codigo` no
+    aplica acá. `code` es el OTP que ya generamos, nunca `text`."""
+    proveedor = ProveedorFalso().parchear(monkeypatch)
+
+    asyncio.run(enviar_codigo("+584121234567", "654321", WHATSAPP, cred=COMPLETAS))
+
+    datos = proveedor.pedidos[0]["json"]["data"]
+    assert datos["template"] == PLANTILLA
+    assert datos["code"] == "654321"
+    assert "text" not in datos
+
+
+def test_sms_sigue_yendo_a_messages_no_a_verifications(monkeypatch):
+    """El endpoint de verificaciones es solo para WhatsApp: el SMS de hoy no
+    se toca."""
+    proveedor = ProveedorFalso().parchear(monkeypatch)
+
+    asyncio.run(enviar_codigo("+593991234567", "123456", SMS, cred=SOLO_SMS))
+
+    assert proveedor.pedidos[0]["url"] == mensajeria.DEXATEL_API
 
 
 def test_si_el_proveedor_rechaza_se_avisa_sin_detalles(monkeypatch):
@@ -269,3 +315,67 @@ def test_el_mensaje_no_menciona_el_vertical():
 
     for palabra in ("apuesta", "casino", "juego", "bono", "gana"):
         assert palabra not in texto
+
+
+# ── Elegir remitente por país ──────────────────────────────────────
+#
+# La parte con los casos raros de la resolución vive acá, sin red ni base:
+# una lista de remitentes ya leída, un país, y el respaldo que ya resolvía
+# `credenciales_mensajeria`/el entorno antes de que esta tabla existiera.
+
+IAQP_COL = {"remitente": "IAQP Col", "paises": ["AR", "CO", "VE"]}
+IAQP_EC = {"remitente": "IAQP EC", "paises": ["EC"]}
+IAQP_DEFECTO = {"remitente": "IAQP", "paises": []}
+
+
+def test_un_pais_cubierto_usa_su_propio_remitente():
+    elegido = elegir_remitente([IAQP_COL, IAQP_EC], "CO", respaldo="")
+
+    assert elegido == "IAQP Col"
+
+
+def test_un_pais_sin_cobertura_cae_al_remitente_por_defecto():
+    """El caso real que motiva la tabla: Ecuador quedó afuera de "IAQP Col"
+    y no puede depender de que alguien note el país a mano."""
+    elegido = elegir_remitente([IAQP_COL, IAQP_DEFECTO], "PE", respaldo="")
+
+    assert elegido == "IAQP"
+
+
+def test_sin_cobertura_ni_defecto_cae_a_la_variable_de_entorno():
+    """El respaldo de hoy sigue funcionando igual mientras la tabla esté
+    vacía o incompleta: nadie queda peor que antes de que existiera."""
+    elegido = elegir_remitente([IAQP_COL], "PE", respaldo="DEXATEL_ENTORNO")
+
+    assert elegido == "DEXATEL_ENTORNO"
+
+
+def test_sin_nada_el_error_nombra_el_pais():
+    """"no pudimos enviarte el código" no le dice nada a nadie; el país sí."""
+    with pytest.raises(SinRemitenteParaPais, match="Ecuador"):
+        elegir_remitente([IAQP_COL], "EC", respaldo="", pais_nombre="Ecuador")
+
+
+def test_sin_nombre_de_pais_el_error_usa_el_codigo_iso():
+    """El nombre en español lo resuelve quien llama (tiene el diccionario de
+    países); si no lo manda, el código ISO también identifica el país."""
+    with pytest.raises(SinRemitenteParaPais, match="EC"):
+        elegir_remitente([], "EC", respaldo="")
+
+
+def test_dos_remitentes_cubren_el_mismo_pais_gana_el_primero():
+    """No debería pasar en la práctica (cada país se marca en un solo
+    remitente por canal), pero si pasa, el orden de la lista decide y no una
+    excepción a mitad de un envío."""
+    otro_col = {"remitente": "IAQP Col Nuevo", "paises": ["CO"]}
+    elegido = elegir_remitente([IAQP_COL, otro_col], "CO", respaldo="")
+
+    assert elegido == "IAQP Col"
+
+
+def test_el_defecto_no_le_gana_a_un_remitente_especifico_de_otro_pais():
+    """El remitente por defecto solo entra cuando nadie cubre el país, nunca
+    porque aparece antes en la lista."""
+    elegido = elegir_remitente([IAQP_DEFECTO, IAQP_EC], "EC", respaldo="")
+
+    assert elegido == "IAQP EC"

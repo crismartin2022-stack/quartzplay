@@ -34,15 +34,33 @@ SMS = "sms"
 WHATSAPP = "whatsapp"
 
 DEXATEL_API = "https://api.dexatel.com/v1/messages"
+# El OTP de WhatsApp no es un mensaje: es una verificación. Dexatel las separa
+# en un recurso propio (`/reference/verify-create-verification`), con su
+# propio contrato (plantilla en vez de texto libre, `code` en vez de `text`).
+# Mandar un OTP de WhatsApp por `/v1/messages` es el error que corrige este
+# módulo: servía para un mensaje común, pero un OTP de WhatsApp exige una
+# plantilla aprobada por Meta y ese endpoint no la acepta.
+DEXATEL_VERIFICATIONS_API = "https://api.dexatel.com/v1/verifications"
 TIEMPO_LIMITE = 15
 
-# Cómo nombra Dexatel a cada canal en el cuerpo del pedido.
+# Cómo nombra Dexatel a cada canal en el cuerpo del pedido. Mayúsculas en los
+# dos endpoints: la referencia de `/v1/verifications` lista `WHATSAPP` como
+# único valor válido (la guía de "get started" lo muestra en minúsculas, pero
+# la referencia manda).
 _CANAL_DEL_PROVEEDOR = {SMS: "SMS", WHATSAPP: "WHATSAPP"}
 
 
 class MensajeriaNoConfigurada(RuntimeError):
     """Falta una credencial. Se falla cerrado: mejor no registrar a nadie que
     dejar cuentas a medio verificar esperando un mensaje que no salió."""
+
+
+class SinRemitenteParaPais(MensajeriaNoConfigurada):
+    """No hay remitente activo para el país de destino, ni remitente por
+    defecto del canal, ni variable de entorno de respaldo. Se nombra el país
+    en el mensaje porque es lo único que le dice al dueño qué hacer: "no
+    pudimos enviarte el código" no dice nada, "no tenemos remitente
+    habilitado para Ecuador" dice exactamente qué falta."""
 
 
 class EnvioFallido(RuntimeError):
@@ -55,6 +73,10 @@ class Credenciales:
     clave: str
     remitente_sms: str
     remitente_whatsapp: str = ""
+    # UUID de la plantilla aprobada por Meta que contiene `{code}`. Sin ella
+    # no hay forma de mandar un OTP de WhatsApp: el texto libre no se acepta
+    # en `/v1/verifications`.
+    plantilla_whatsapp: str = ""
 
     @property
     def sms_listo(self) -> bool:
@@ -62,7 +84,7 @@ class Credenciales:
 
     @property
     def whatsapp_listo(self) -> bool:
-        return bool(self.clave and self.remitente_whatsapp)
+        return bool(self.clave and self.remitente_whatsapp and self.plantilla_whatsapp)
 
 
 def credenciales_del_entorno() -> Credenciales:
@@ -70,7 +92,35 @@ def credenciales_del_entorno() -> Credenciales:
         clave=os.environ.get("DEXATEL_API_KEY", ""),
         remitente_sms=os.environ.get("DEXATEL_SMS_FROM", ""),
         remitente_whatsapp=os.environ.get("DEXATEL_WHATSAPP_FROM", ""),
+        plantilla_whatsapp=os.environ.get("DEXATEL_WHATSAPP_TEMPLATE", ""),
     )
+
+
+def elegir_remitente(remitentes: list[dict], pais: str, respaldo: str,
+                     pais_nombre: str | None = None) -> str:
+    """Cuál remitente usar para mandar a `pais`, sin tocar red ni base.
+
+    `remitentes` son las filas activas de un solo canal, ya leídas de
+    `remitentes_mensajeria`: cada una `{"remitente": str, "paises": list[str]}`.
+    `respaldo` es lo que ya resuelve `credenciales_mensajeria`/el entorno para
+    ese canal — sigue funcionando igual que antes de que existiera esta tabla.
+
+    Orden, tal cual lo fija el feature doc:
+    1. El remitente activo cuyo listado de países incluya a `pais`.
+    2. El remitente por defecto del canal (listado de países vacío).
+    3. `respaldo`.
+    4. Si nada de eso hay, falla cerrado nombrando el país.
+    """
+    for fila in remitentes:
+        if pais in fila["paises"]:
+            return fila["remitente"]
+    for fila in remitentes:
+        if not fila["paises"]:
+            return fila["remitente"]
+    if respaldo:
+        return respaldo
+    raise SinRemitenteParaPais(
+        f"No tenemos remitente habilitado para {pais_nombre or pais}")
 
 
 def canales_disponibles(cred: Credenciales | None = None) -> list[str]:
@@ -152,30 +202,51 @@ async def enviar_codigo(telefono_e164: str, codigo: str, canal: str = SMS,
     cred = cred or credenciales_del_entorno()
     desde = _remitente(cred, canal)
 
-    # El cuerpo va envuelto en `data` y `to` es una lista, aunque mandemos
-    # uno solo: la API acepta hasta diez destinatarios por pedido. La página
-    # de "get started" muestra el JSON plano y sin envolver; es incorrecta,
-    # y mandarlo así devuelve 400 con "Request data is missing" (código 1007).
-    # La referencia de /reference/messages-send es la buena.
-    #
-    # El número va sin el "+": la referencia pide el código de país sin
-    # espacios ni caracteres especiales, y su propio ejemplo lo escribe así.
-    cuerpo = {
-        "data": {
-            "channel": _CANAL_DEL_PROVEEDOR[canal],
-            "from": desde,
-            "to": [telefono_e164.lstrip("+")],
-            "text": texto_del_codigo(codigo, minutos),
+    # El número va sin el "+" en los dos endpoints: la referencia pide el
+    # código de país sin espacios ni caracteres especiales, y su propio
+    # ejemplo lo escribe así.
+    numero = telefono_e164.lstrip("+")
+
+    if canal == WHATSAPP:
+        # `/v1/verifications`, no `/v1/messages`: un OTP de WhatsApp no es
+        # texto libre, es una plantilla aprobada por Meta que contiene
+        # `{code}`. El texto de `texto_del_codigo` no aplica acá — por eso
+        # no se usa — y el código va en `code`, no en `text`.
+        url = DEXATEL_VERIFICATIONS_API
+        cuerpo = {
+            "data": {
+                "channel": _CANAL_DEL_PROVEEDOR[canal],
+                "sender": desde,
+                "phone": numero,
+                "template": cred.plantilla_whatsapp,
+                "code": codigo,
+            }
         }
-    }
+    else:
+        # El cuerpo va envuelto en `data` y `to` es una lista, aunque
+        # mandemos uno solo: la API acepta hasta diez destinatarios por
+        # pedido. La página de "get started" muestra el JSON plano y sin
+        # envolver; es incorrecta, y mandarlo así devuelve 400 con "Request
+        # data is missing" (código 1007). La referencia de
+        # /reference/messages-send es la buena.
+        url = DEXATEL_API
+        cuerpo = {
+            "data": {
+                "channel": _CANAL_DEL_PROVEEDOR[canal],
+                "from": desde,
+                "to": [numero],
+                "text": texto_del_codigo(codigo, minutos),
+            }
+        }
     async with httpx.AsyncClient(timeout=TIEMPO_LIMITE) as client:
-        r = await client.post(DEXATEL_API, json=cuerpo,
+        r = await client.post(url, json=cuerpo,
                               headers={"X-Dexatel-Key": cred.clave,
                                        "Content-Type": "application/json"})
 
     if r.status_code >= 400:
         # Se registra el número y el motivo, nunca el código.
-        log.error("[SMS] %s -> %s: %s", telefono_e164, r.status_code, r.text[:200])
+        log.error("[%s] %s -> %s: %s", canal.upper(), telefono_e164,
+                  r.status_code, r.text[:200])
         if crudo is not None:
             crudo["status"] = r.status_code
             crudo["cuerpo"] = _cuerpo_o_texto(r)
