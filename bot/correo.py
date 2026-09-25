@@ -84,12 +84,19 @@ def texto_del_codigo(codigo: str, minutos: int) -> str:
 
 async def enviar_codigo(correo: str, codigo: str,
                         minutos: int = 15,
-                        cred: Credenciales | None = None) -> str:
+                        cred: Credenciales | None = None,
+                        crudo: dict | None = None) -> str:
     """Manda el código y devuelve el identificador del mensaje.
 
     El código viaja acá y en ningún otro lado: nunca se registra en el log,
     salvo que alguien haya prendido a propósito el modo consola de
     staging, que existe justamente para eso.
+
+    `crudo`, si se pasa un diccionario, se llena con la respuesta tal cual
+    la dio Resend (`status` y `cuerpo`). El botón de "probar" del panel de
+    admin lo usa para mostrar la respuesta cruda del proveedor; nadie más
+    lo necesita, así que el default es `None` y no cambia nada del
+    comportamiento de siempre.
     """
     cred = cred or credenciales_del_entorno()
 
@@ -98,6 +105,9 @@ async def enviar_codigo(correo: str, codigo: str,
             "[CORREO] modo consola activo: el código NO se está mandando "
             "de verdad. No usar en producción.")
         log.info("[CORREO] (consola) código para %s: %s", correo, codigo)
+        if crudo is not None:
+            crudo["status"] = None
+            crudo["cuerpo"] = "modo consola: no se mandó nada de verdad"
         return "consola"
 
     if not cred.listo:
@@ -116,6 +126,16 @@ async def enviar_codigo(correo: str, codigo: str,
     if r.status_code >= 400:
         # Se registra el correo y el motivo, nunca el código.
         log.error("[CORREO] %s -> %s: %s", correo, r.status_code, r.text[:200])
+        if crudo is not None:
+            try:
+                crudo["cuerpo"] = r.json()
+            except ValueError:
+                crudo["cuerpo"] = r.text
+            crudo["status"] = r.status_code
         raise EnvioFallido(f"{r.status_code}")
 
-    return (r.json() or {}).get("id", "")
+    cuerpo = r.json() or {}
+    if crudo is not None:
+        crudo["status"] = r.status_code
+        crudo["cuerpo"] = cuerpo
+    return cuerpo.get("id", "")

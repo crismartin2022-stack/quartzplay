@@ -127,11 +127,19 @@ def _identificador(cuerpo) -> str:
 
 async def enviar_codigo(telefono_e164: str, codigo: str, canal: str = SMS,
                         minutos: int = 10,
-                        cred: Credenciales | None = None) -> str:
+                        cred: Credenciales | None = None,
+                        crudo: dict | None = None) -> str:
     """Manda el código y devuelve el identificador del mensaje.
 
     El código viaja acá y en ningún otro lado: nunca se registra en el log,
     porque el log lo lee mucha más gente que la base.
+
+    `crudo`, si se pasa un diccionario, se llena con la respuesta tal cual
+    la dio Dexatel (`status` y `cuerpo`). Nadie que solo quiera mandar un
+    código lo necesita — por eso el default es `None` y no cambia nada del
+    comportamiento de siempre —, pero el botón de "probar" del panel de
+    admin sí: ahí el valor de la prueba es justamente ver la respuesta
+    cruda del proveedor, no solo si salió bien o mal.
     """
     cred = cred or credenciales_del_entorno()
     desde = _remitente(cred, canal)
@@ -160,9 +168,25 @@ async def enviar_codigo(telefono_e164: str, codigo: str, canal: str = SMS,
     if r.status_code >= 400:
         # Se registra el número y el motivo, nunca el código.
         log.error("[SMS] %s -> %s: %s", telefono_e164, r.status_code, r.text[:200])
+        if crudo is not None:
+            crudo["status"] = r.status_code
+            crudo["cuerpo"] = _cuerpo_o_texto(r)
         raise EnvioFallido(f"{r.status_code}")
 
     try:
-        return _identificador(r.json())
+        cuerpo = r.json()
     except ValueError:
-        return ""
+        cuerpo = None
+    if crudo is not None:
+        crudo["status"] = r.status_code
+        crudo["cuerpo"] = cuerpo if cuerpo is not None else r.text
+    return _identificador(cuerpo) if cuerpo is not None else ""
+
+
+def _cuerpo_o_texto(r):
+    """El JSON del proveedor si lo mandó, o el texto crudo si no. Se usa
+    solo para el canal `crudo`, nunca para lo que ve la persona."""
+    try:
+        return r.json()
+    except ValueError:
+        return r.text

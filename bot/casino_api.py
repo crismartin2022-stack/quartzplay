@@ -12,6 +12,7 @@ import psp_webhook_auth
 import correo
 import mensajeria
 import registro_publico
+import secretos
 from config import cors_headers, get_runtime_settings
 from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
 from log_hygiene import silence_request_urls
@@ -27453,11 +27454,103 @@ def _ip_de(request: Request) -> str:
     return request.client.host if request.client else "0.0.0.0"
 
 
+# ── Credenciales de mensajería: la base manda, el entorno respalda ──
+#
+# `mensajeria.py` y `correo.py` siguen sin tocar la base a propósito: son
+# fáciles de probar así, y esa garantía no se toca acá. La lectura de la
+# base vive en este módulo, que ya es dueño del pool, y arma un
+# `Credenciales` campo por campo: el valor de la base gana si existe, el
+# del entorno lo respalda si no. Sin fila y sin variable, el resultado es
+# igual de vacío que hoy — el fallo cerrado de `mensajeria`/`correo` no
+# cambia en nada.
+#
+# Se cachea en memoria porque un SMS no puede pagar un viaje a la base más
+# un descifrado AES-GCM en cada envío. El caché se limpia al guardar o
+# borrar una credencial (ver más abajo), así que un cambio en el panel
+# rige de inmediato, sin reiniciar el proceso.
+
+CAMPOS_MENSAJERIA = {
+    "sms": {
+        "clave": "DEXATEL_API_KEY",
+        "remitente_sms": "DEXATEL_SMS_FROM",
+        "remitente_whatsapp": "DEXATEL_WHATSAPP_FROM",
+    },
+    "correo": {
+        "api_key": "RESEND_API_KEY",
+        "remitente": "CORREO_DESDE",
+    },
+}
+
+_cache_credenciales: dict = {}
+
+
+def _invalidar_cache_credenciales():
+    _cache_credenciales.clear()
+
+
+async def _filas_credenciales(conn, ambito: str) -> dict:
+    """Las filas de un ámbito, ya descifradas. Vacío si no hay llave
+    maestra: sin ella no hay nada usable en la base, y cada campo cae al
+    entorno como si la fila no existiera."""
+    if not secretos.hay_llave():
+        return {}
+    filas = await conn.fetch(
+        "SELECT clave, valor_cifrado, actualizado_por, actualizado_at "
+        "FROM credenciales_mensajeria WHERE ambito=$1", ambito)
+    resultado = {}
+    for f in filas:
+        try:
+            valor = secretos.descifrar(f["valor_cifrado"])
+        except Exception:
+            # Una fila que no descifra (llave rotada, dato corrupto) no
+            # puede tumbar el envío: se trata como si no estuviera, y el
+            # entorno hace de respaldo igual que si faltara la fila.
+            log.error("[MENSAJERIA] no se pudo descifrar %s.%s",
+                      ambito, f["clave"])
+            continue
+        resultado[f["clave"]] = {
+            "valor": valor,
+            "actualizado_por": f["actualizado_por"],
+            "actualizado_at": f["actualizado_at"],
+        }
+    return resultado
+
+
+async def _credenciales_sms() -> mensajeria.Credenciales:
+    if "sms" not in _cache_credenciales:
+        entorno = mensajeria.credenciales_del_entorno()
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            filas = await _filas_credenciales(conn, "sms")
+        _cache_credenciales["sms"] = mensajeria.Credenciales(
+            clave=(filas.get("clave") or {}).get("valor") or entorno.clave,
+            remitente_sms=(filas.get("remitente_sms") or {}).get("valor")
+                or entorno.remitente_sms,
+            remitente_whatsapp=(filas.get("remitente_whatsapp") or {}).get("valor")
+                or entorno.remitente_whatsapp,
+        )
+    return _cache_credenciales["sms"]
+
+
+async def _credenciales_correo() -> correo.Credenciales:
+    if "correo" not in _cache_credenciales:
+        entorno = correo.credenciales_del_entorno()
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            filas = await _filas_credenciales(conn, "correo")
+        _cache_credenciales["correo"] = correo.Credenciales(
+            api_key=(filas.get("api_key") or {}).get("valor") or entorno.api_key,
+            desde=(filas.get("remitente") or {}).get("valor") or entorno.desde,
+            modo=entorno.modo,  # el escape de consola es solo del entorno
+        )
+    return _cache_credenciales["correo"]
+
+
 @app.get("/api/telefono/canales")
 async def telefono_canales():
     """Qué canales se pueden ofrecer hoy. La pantalla no debe mostrar
     WhatsApp mientras su remitente espera aprobación."""
-    return {"canales": mensajeria.canales_disponibles()}
+    return {"canales": mensajeria.canales_disponibles(await _credenciales_sms())}
 
 
 @app.post("/api/me/telefono/codigo")
@@ -27467,8 +27560,9 @@ async def me_telefono_codigo(request: Request):
     body = await request.json()
     jugador_id = await _jugador_actual(request, body)
 
+    cred_sms = await _credenciales_sms()
     canal = (body.get("canal") or mensajeria.SMS).lower()
-    if canal not in mensajeria.canales_disponibles():
+    if canal not in mensajeria.canales_disponibles(cred_sms):
         raise HTTPException(503, "Ese canal no está disponible")
 
     try:
@@ -27519,11 +27613,12 @@ async def me_telefono_codigo(request: Request):
 
     try:
         await mensajeria.enviar_codigo(
-            telefono, codigo, canal, registro_publico.VIGENCIA_MINUTOS)
+            telefono, codigo, canal, registro_publico.VIGENCIA_MINUTOS,
+            cred=cred_sms)
     except mensajeria.MensajeriaNoConfigurada:
         raise HTTPException(503, "La verificación por ahora no está disponible")
     except mensajeria.EnvioFallido:
-        otros = [c for c in mensajeria.canales_disponibles() if c != canal]
+        otros = [c for c in mensajeria.canales_disponibles(cred_sms) if c != canal]
         raise HTTPException(502, {
             "message": "No pudimos enviarte el código",
             "otros_canales": otros,
@@ -27716,7 +27811,8 @@ async def cliente_registro_iniciar(request: Request):
 
     try:
         await correo.enviar_codigo(
-            correo_normalizado, codigo, registro_publico.VIGENCIA_PENDIENTE_MINUTOS)
+            correo_normalizado, codigo, registro_publico.VIGENCIA_PENDIENTE_MINUTOS,
+            cred=await _credenciales_correo())
     except correo.CorreoNoConfigurado:
         raise HTTPException(503, "No podemos enviar el código en este momento")
     except correo.EnvioFallido:
@@ -27884,7 +27980,8 @@ async def cliente_registro_reenviar(request: Request):
 
     try:
         await correo.enviar_codigo(
-            correo_normalizado, codigo, registro_publico.VIGENCIA_PENDIENTE_MINUTOS)
+            correo_normalizado, codigo, registro_publico.VIGENCIA_PENDIENTE_MINUTOS,
+            cred=await _credenciales_correo())
     except correo.CorreoNoConfigurado:
         raise HTTPException(503, "No podemos enviar el código en este momento")
     except correo.EnvioFallido:
@@ -27895,3 +27992,164 @@ async def cliente_registro_reenviar(request: Request):
         "correo_enmascarado": registro_publico.enmascarar_correo(correo_normalizado),
         "expira_en_minutos": registro_publico.VIGENCIA_PENDIENTE_MINUTOS,
     }
+
+
+# ── Credenciales de mensajería, desde el panel de admin ──────────────
+#
+# Config → Mensajería. Antes de esto, cambiar el proveedor de SMS o de
+# correo era un comando de Railway CLI o entrar al panel de Railway a
+# mano — y en la práctica costó esperar a que alguien lo corriera
+# mientras el canal de verificación estaba caído. Estos cuatro endpoints
+# son la puerta chica para que el dueño lo resuelva solo.
+#
+# El valor completo no vuelve nunca: `GET` solo manda lo que da
+# `secretos.enmascarar`. Guardar y borrar cachean el resultado en memoria
+# (ver `_credenciales_sms`/`_credenciales_correo` más arriba) e invalidan
+# ese caché, así que el próximo envío ya usa lo nuevo sin reiniciar nada.
+
+@app.get("/api/admin/mensajeria")
+async def admin_mensajeria_listar(_=Depends(auth.require_admin)):
+    """Por proveedor y por campo: si está configurado, enmascarado, de
+    dónde sale (`base` o `entorno`), quién lo cambió y cuándo. También si
+    hay llave maestra en absoluto, porque sin ella la base no sirve de
+    nada aunque tenga filas."""
+    pool = await get_db()
+    proveedores = {}
+    async with pool.acquire() as conn:
+        for ambito, campos in CAMPOS_MENSAJERIA.items():
+            filas = await _filas_credenciales(conn, ambito)
+            campos_resp = {}
+            for clave, var_entorno in campos.items():
+                fila = filas.get(clave)
+                if fila:
+                    campos_resp[clave] = {
+                        "configurado": True,
+                        "mascara": secretos.enmascarar(fila["valor"]),
+                        "origen": "base",
+                        "actualizado_por": fila["actualizado_por"],
+                        "actualizado_at": _fecha_local(fila["actualizado_at"]),
+                    }
+                    continue
+                valor_entorno = os.environ.get(var_entorno, "")
+                campos_resp[clave] = {
+                    "configurado": bool(valor_entorno),
+                    "mascara": secretos.enmascarar(valor_entorno) if valor_entorno else None,
+                    "origen": "entorno" if valor_entorno else None,
+                    "actualizado_por": None,
+                    "actualizado_at": None,
+                }
+            proveedores[ambito] = {"campos": campos_resp}
+    return {"hay_llave_maestra": secretos.hay_llave(), "proveedores": proveedores}
+
+
+@app.post("/api/admin/mensajeria")
+async def admin_mensajeria_guardar(request: Request, _=Depends(auth.require_admin)):
+    """Guarda uno o más campos. body: {"valores": [{"ambito","clave","valor"}, ...]}
+
+    Nada se escribe si falta `SECRETOS_CLAVE`: mejor avisar claro que
+    guardar algo cifrado con una llave que en realidad no existe todavía."""
+    if not secretos.hay_llave():
+        raise HTTPException(503,
+            "Falta configurar SECRETOS_CLAVE en el servidor: no se puede "
+            "guardar ninguna credencial todavía")
+
+    body = await request.json()
+    valores = body.get("valores")
+    if not isinstance(valores, list) or not valores:
+        raise HTTPException(400,
+            "Falta 'valores': una lista de {ambito, clave, valor}")
+
+    a_guardar = []
+    for item in valores:
+        if not isinstance(item, dict):
+            raise HTTPException(400, "Cada valor debe ser un objeto")
+        ambito = (item.get("ambito") or "").strip()
+        clave = (item.get("clave") or "").strip()
+        valor = item.get("valor")
+        if ambito not in CAMPOS_MENSAJERIA or clave not in CAMPOS_MENSAJERIA[ambito]:
+            raise HTTPException(400, f"Campo desconocido: {ambito}.{clave}")
+        if not isinstance(valor, str) or not valor.strip():
+            raise HTTPException(400, f"Falta el valor de {ambito}.{clave}")
+        a_guardar.append((ambito, clave, secretos.cifrar(valor.strip())))
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            for ambito, clave, valor_cifrado in a_guardar:
+                await conn.execute("""
+                    INSERT INTO credenciales_mensajeria
+                        (ambito, clave, valor_cifrado, actualizado_por, actualizado_at)
+                    VALUES ($1,$2,$3,'admin',NOW())
+                    ON CONFLICT (ambito, clave)
+                    DO UPDATE SET valor_cifrado=$3, actualizado_por='admin',
+                                  actualizado_at=NOW()
+                """, ambito, clave, valor_cifrado)
+
+    _invalidar_cache_credenciales()
+    guardados = [{"ambito": a, "clave": c} for a, c, _ in a_guardar]
+    log.warning("[MENSAJERIA] admin actualizó %s",
+                ", ".join(f"{g['ambito']}.{g['clave']}" for g in guardados))
+    return {"ok": True, "guardados": guardados}
+
+
+@app.delete("/api/admin/mensajeria/{ambito}/{clave}")
+async def admin_mensajeria_borrar(ambito: str, clave: str,
+                                  _=Depends(auth.require_admin)):
+    """Saca la fila: el envío vuelve a usar la variable de entorno, sin
+    reiniciar nada, porque el caché se invalida acá mismo."""
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "DELETE FROM credenciales_mensajeria WHERE ambito=$1 AND clave=$2",
+            ambito, clave)
+    _invalidar_cache_credenciales()
+    log.warning("[MENSAJERIA] admin borró %s.%s", ambito, clave)
+    return {"ok": True}
+
+
+@app.post("/api/admin/mensajeria/probar")
+async def admin_mensajeria_probar(request: Request, _=Depends(auth.require_admin)):
+    """Manda un mensaje real a un destino que escribe el admin, con la
+    credencial activa ahora mismo (base o entorno), y devuelve la
+    respuesta cruda del proveedor. Existe porque hoy una credencial mala
+    se descubre recién cuando un jugador no puede verificarse.
+
+    body: {"proveedor": "sms"|"correo", "destino": "...", "canal"?: "sms"|"whatsapp"}
+    """
+    body = await request.json()
+    proveedor = (body.get("proveedor") or "").strip().lower()
+    destino = (body.get("destino") or "").strip()
+    if not destino:
+        raise HTTPException(400, "Falta el destino de la prueba")
+
+    crudo: dict = {}
+    codigo_prueba = f"{random.randint(0, 999999):06d}"
+
+    if proveedor == "sms":
+        canal = (body.get("canal") or mensajeria.SMS).lower()
+        cred = await _credenciales_sms()
+        try:
+            identificador = await mensajeria.enviar_codigo(
+                destino, codigo_prueba, canal,
+                registro_publico.VIGENCIA_MINUTOS, cred=cred, crudo=crudo)
+        except mensajeria.MensajeriaNoConfigurada as e:
+            raise HTTPException(503, str(e))
+        except mensajeria.EnvioFallido:
+            return {"ok": False, "status_proveedor": crudo.get("status"),
+                    "respuesta": crudo.get("cuerpo")}
+    elif proveedor == "correo":
+        cred = await _credenciales_correo()
+        try:
+            identificador = await correo.enviar_codigo(
+                destino, codigo_prueba,
+                registro_publico.VIGENCIA_PENDIENTE_MINUTOS, cred=cred, crudo=crudo)
+        except correo.CorreoNoConfigurado as e:
+            raise HTTPException(503, str(e))
+        except correo.EnvioFallido:
+            return {"ok": False, "status_proveedor": crudo.get("status"),
+                    "respuesta": crudo.get("cuerpo")}
+    else:
+        raise HTTPException(400, "Proveedor inválido: usá 'sms' o 'correo'")
+
+    return {"ok": True, "identificador": identificador,
+            "status_proveedor": crudo.get("status"), "respuesta": crudo.get("cuerpo")}
