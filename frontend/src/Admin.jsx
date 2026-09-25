@@ -12,6 +12,11 @@ import LineaTiempo from "./LineaTiempo";
 import { Zap, Gift, Handshake, Video, ArrowLeftRight, Ban, Banknote, Bell, Bot, Building2, Calendar, CalendarDays, CircleOff, Coins, Dices, Disc, Eye, Flame, FlaskConical, Gamepad2, GitBranch, Globe, Hand, Headphones, Image as ImageIcon, Inbox, Key, Link, Lock, Mail, Megaphone, MessageSquare, Monitor, PartyPopper, PenLine, Pencil, Plug, Printer, RefreshCw, Rocket, RotateCcw, Save, Scale, Shield, Smartphone, Star, Stethoscope, Store, Target, Trash2, TrendingDown, Volume2, VolumeX, Wrench } from "lucide-react";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 import MobileTabMenu from "./MobileTabMenu";
+import {
+  AMBITO_SMS, AMBITO_CORREO, NOMBRE_PROVEEDOR,
+  etiquetaOrigen,
+  listarMensajeria, guardarCredencial, borrarCredencial, probarEnvio,
+} from "./mensajeriaApi";
 
 const ars  = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt  = n => Number(n||0).toFixed(2);
@@ -5605,6 +5610,7 @@ function TabConfig({ adminKey, onNoAutorizado }){
     ["boost",<><Rocket size={13}/> Potencializador</>],
     ["mejora",<><Icon name="scan-line" size={13}/> Bet Best</>],
     ["flash",<><Zap size={13}/> Combo flash</>],
+    ["mensajeria",<><Mail size={13}/> Mensajería</>],
     ["productos",<><Gamepad2 size={13}/> Productos</>],
     ["recompensas",<><Megaphone size={13}/> Compartir</>],
     ["desafios",<><Handshake size={13}/> Desafíos</>],
@@ -5635,6 +5641,7 @@ function TabConfig({ adminKey, onNoAutorizado }){
       {sub==="boost"&&<TabBoost adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
       {sub==="mejora"&&<TabMejora adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
       {sub==="flash"&&<TabFlash adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
+      {sub==="mensajeria"&&<TabMensajeria adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
       {sub==="productos"&&<TabProductosPermisos adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
       {sub==="recompensas"&&<TabRecompensas adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
       {sub==="desafios"&&<TabDesafios adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
@@ -13510,6 +13517,234 @@ function TabFlash({ adminKey, onNoAutorizado }){
 
       <Btn label={proc?"Guardando…":"Guardar"} onClick={()=>guardar()}
         color={Q.violet} full disabled={proc}/>
+    </div>
+  );
+}
+
+// ── Mensajería: credenciales de SMS y correo ────────────────────
+// Ver odd/tasks/credenciales-mensajeria-admin.md. La lógica de red y de
+// validación vive en mensajeriaApi.js, probada aparte; acá solo hay forma.
+function TabMensajeria({ adminKey, onNoAutorizado }){
+  const [d,setD]=useState(null); // {proveedores, claveMaestra} | null mientras carga
+  const [cargando,setCargando]=useState(true);
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
+  // Un valor nuevo por campo, nunca precargado con la máscara: si se
+  // precargara, guardar sin tocar nada guardaría la máscara como si fuera
+  // la clave real.
+  const [nuevos,setNuevos]=useState({});
+  const [procesando,setProcesando]=useState({});
+
+  const cargar=async()=>{
+    setCargando(true);
+    const r=await listarMensajeria({adminKey, api:API, fetchImpl:fetch});
+    if(r.noAutorizado){ onNoAutorizado(); return; }
+    if(r.ok) setD(r);
+    else setMsg({text:r.mensaje||"No se pudo cargar", ok:false});
+    setCargando(false);
+  };
+  useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
+
+  const claveCampo=(ambito,clave)=>`${ambito}:${clave}`;
+
+  const guardarCampo=async(ambito,clave,etiqueta)=>{
+    const k=claveCampo(ambito,clave);
+    setProcesando(p=>({...p,[k]:true})); setMsg(null);
+    const r=await guardarCredencial({ambito, clave, valor:nuevos[k],
+      adminKey, api:API, fetchImpl:fetch});
+    if(r.noAutorizado){ onNoAutorizado(); return; }
+    setProcesando(p=>({...p,[k]:false}));
+    if(r.ok){
+      setMsg({text:`${etiqueta} guardado`, ok:true});
+      setNuevos(n=>({...n,[k]:""}));
+      cargar();
+    } else setMsg({text:r.mensaje||"Error", ok:false});
+  };
+
+  const borrarCampo=async(ambito,clave,etiqueta)=>{
+    if(!window.confirm(
+      `¿Quitar ${etiqueta}? Vuelve a usar la variable de entorno, sin reiniciar nada.`
+    )) return;
+    setMsg(null);
+    const r=await borrarCredencial({ambito, clave, adminKey, api:API, fetchImpl:fetch});
+    if(r.noAutorizado){ onNoAutorizado(); return; }
+    if(r.ok){ setMsg({text:`${etiqueta} quitado`, ok:true}); cargar(); }
+    else setMsg({text:r.mensaje||"Error", ok:false});
+  };
+
+  const [pruebaAmbito,setPruebaAmbito]=useState(AMBITO_SMS);
+  const [destino,setDestino]=useState("");
+  const [enviandoPrueba,setEnviandoPrueba]=useState(false);
+  const [pruebaMsg,setPruebaMsg]=useState(null);
+  const [pruebaResp,setPruebaResp]=useState(null);
+  const [pruebaStatus,setPruebaStatus]=useState(null);
+
+  const enviarPrueba=async()=>{
+    if(!window.confirm(
+      `¿Mandar un mensaje real a ${destino||"este destino"}? Tiene costo y no se puede deshacer.`
+    )) return;
+    setEnviandoPrueba(true); setPruebaMsg(null); setPruebaResp(null); setPruebaStatus(null);
+    const r=await probarEnvio({ambito:pruebaAmbito, destino, adminKey, api:API, fetchImpl:fetch});
+    if(r.noAutorizado){ onNoAutorizado(); return; }
+    setEnviandoPrueba(false);
+    setPruebaMsg({text:r.mensaje, ok:r.ok});
+    setPruebaResp(r.respuestaProveedor);
+    setPruebaStatus(r.statusProveedor);
+  };
+
+  const inp={width:"100%",background:"rgba(255,255,255,0.05)",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 12px",
+    color:Q.text,fontSize:14,fontFamily:F_BODY};
+
+  const proveedores=d?.proveedores||[];
+  const claveMaestra=!!d?.claveMaestra;
+
+  return(
+    <div>
+      <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
+        fontFamily:F_BODY}}><Mail size={14}/> Mensajería</div>
+      <div style={{color:Q.muted,fontSize:12,marginBottom:14,lineHeight:1.55,
+        fontFamily:F_BODY}}>
+        Las credenciales de SMS y correo que usa el sistema para mandar
+        códigos de verificación. El valor completo nunca vuelve acá: solo
+        una vista tapada, de dónde sale hoy y quién lo cambió.</div>
+
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
+
+      {!cargando&&!claveMaestra&&(
+        <GCard glow={Q.red} style={{padding:SPACING[16],marginBottom:16}}>
+          <div style={{color:Q.red,fontWeight:700,fontSize:13,marginBottom:4,
+            fontFamily:F_BODY}}>
+            <Icon name="triangle-alert" size={13}/> Guardar está desactivado</div>
+          <div style={{color:Q.muted,fontSize:12,lineHeight:1.55,
+            fontFamily:F_BODY}}>
+            El servidor no tiene configurada la clave maestra
+            (<span style={{fontFamily:F_MONO}}>SECRETOS_CLAVE</span>). Sin
+            ella no hay con qué cifrar lo que se guarde acá, así que la
+            pantalla no escribe nada hasta que se cargue esa variable en el
+            entorno. Probar un envío sigue funcionando: usa la credencial
+            que el sistema ya tiene, de la base o del entorno.</div>
+        </GCard>
+      )}
+
+      {cargando&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
+        padding:SPACING[16],fontFamily:F_BODY}}>Cargando…</div>}
+
+      {!cargando&&proveedores.map(prov=>(
+        <GCard key={prov.ambito} style={{padding:SPACING[16],marginBottom:16}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:12,
+            display:"flex",alignItems:"center",gap:SPACING[8],
+            fontFamily:F_BODY}}>
+            {prov.ambito===AMBITO_CORREO?<Mail size={14}/>:<Smartphone size={14}/>}
+            {prov.nombre||NOMBRE_PROVEEDOR[prov.ambito]||prov.ambito}</div>
+
+          {(prov.campos||[]).map(campo=>{
+            const etiqueta=campo.etiqueta;
+            const k=claveCampo(prov.ambito,campo.clave);
+            const enBase=campo.origen==="base";
+            // Tres estados, no dos: una fila en la base, la variable de
+            // entorno como respaldo, o nada en ninguno de los dos lados.
+            // Confundir "sin configurar" con "entorno" haría pensar que
+            // hay un respaldo activo cuando no hay con qué mandar nada.
+            const colorOrigen=enBase?Q.cyan:campo.origen==="entorno"?Q.dim:Q.amber;
+            return(
+              <div key={campo.clave} style={{marginBottom:16,
+                paddingBottom:16,borderBottom:`1px solid ${Q.border}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",
+                  alignItems:"center",gap:SPACING[8],marginBottom:6}}>
+                  <span style={{color:Q.text,fontWeight:700,fontSize:13,
+                    fontFamily:F_BODY}}>{etiqueta}</span>
+                  <HBadge label={etiquetaOrigen(campo.origen)} color={colorOrigen}/>
+                </div>
+
+                <div style={{color:campo.mascara?Q.muted:Q.dim,
+                  fontSize:13,marginBottom:4,fontFamily:F_MONO}}>
+                  {campo.mascara||"Sin configurar"}</div>
+                {enBase&&(campo.actualizadoPor||campo.actualizadoAt)&&(
+                  <div style={{color:Q.dim,fontSize:12,marginBottom:10,
+                    fontFamily:F_BODY}}>
+                    Cambiado por {campo.actualizadoPor||"—"}
+                    {campo.actualizadoAt?` · ${campo.actualizadoAt}`:""}</div>
+                )}
+                {!enBase&&<div style={{marginBottom:10}}/>}
+
+                <input type="password" autoComplete="off"
+                  value={nuevos[k]||""}
+                  onChange={e=>setNuevos(n=>({...n,[k]:e.target.value}))}
+                  placeholder={`Pegar un valor nuevo para ${etiqueta.toLowerCase()}`}
+                  style={{...inp,marginBottom:8}}/>
+
+                <div style={{display:"flex",gap:SPACING[8]}}>
+                  <Btn label={procesando[k]?"Guardando…":"Guardar"}
+                    onClick={()=>guardarCampo(prov.ambito,campo.clave,etiqueta)}
+                    color={Q.violet} size="sm"
+                    disabled={!claveMaestra||!(nuevos[k]||"").trim()||!!procesando[k]}/>
+                  {enBase&&(
+                    <button onClick={()=>borrarCampo(prov.ambito,campo.clave,etiqueta)}
+                      style={{background:"transparent",border:`1px solid ${Q.red}55`,
+                        borderRadius:RADII.md,padding:"0 16px",color:Q.red,
+                        fontSize:12,cursor:"pointer",fontFamily:F_BODY}}>
+                      Quitar</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </GCard>
+      ))}
+
+      <GCard style={{padding:SPACING[16]}}>
+        <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,
+          display:"flex",alignItems:"center",gap:SPACING[8],
+          fontFamily:F_BODY}}>
+          <Icon name="scan-search" size={14}/> Probar el envío</div>
+        <div style={{color:Q.muted,fontSize:12,marginBottom:12,lineHeight:1.55,
+          fontFamily:F_BODY}}>
+          Manda un mensaje real, ahora mismo, con la credencial que el
+          sistema está usando. Tiene costo: no se dispara solo, hay que
+          apretar el botón.</div>
+
+        <div style={{display:"flex",gap:SPACING[8],marginBottom:10}}>
+          {[[AMBITO_SMS,<><Smartphone size={13}/> SMS</>],
+            [AMBITO_CORREO,<><Mail size={13}/> Correo</>]].map(([k,l])=>(
+            <button key={k} onClick={()=>{setPruebaAmbito(k); setDestino("");}}
+              style={{flex:1,
+              background:pruebaAmbito===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
+              border:`1px solid ${pruebaAmbito===k?Q.violet:Q.border}`,
+              borderRadius:RADII.md,padding:"8px 4px",cursor:"pointer",
+              color:pruebaAmbito===k?Q.violet2||Q.violet:Q.muted,
+              fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
+          ))}
+        </div>
+
+        <input value={destino} onChange={e=>setDestino(e.target.value)}
+          placeholder={pruebaAmbito===AMBITO_CORREO
+            ? "correo@dominio.com" : "+54 9 11 2233-4455"}
+          style={{...inp,marginBottom:10}}/>
+
+        <Btn label={enviandoPrueba?"Enviando…":"Enviar prueba"}
+          onClick={enviarPrueba} color={Q.amber} full
+          disabled={enviandoPrueba||!destino.trim()}/>
+
+        {pruebaMsg&&<div style={{color:pruebaMsg.ok?Q.green:Q.red,fontSize:12.5,
+          marginTop:10,textAlign:"center",fontFamily:F_BODY}}>
+          <Icon name={pruebaMsg.ok?"circle-check":"triangle-alert"} size={13}/> {pruebaMsg.text}</div>}
+
+        {pruebaResp&&(
+          <>
+            {pruebaStatus!=null&&<div style={{color:Q.dim,fontSize:12,
+              marginTop:10,fontFamily:F_BODY}}>
+              Estado del proveedor: {pruebaStatus}</div>}
+            <pre style={{marginTop:6,background:"rgba(0,0,0,0.3)",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,
+              padding:"8px 12px",color:Q.muted,fontSize:12,fontFamily:F_MONO,
+              whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:200,
+              overflow:"auto"}}>
+              {JSON.stringify(pruebaResp,null,2)}</pre>
+          </>
+        )}
+      </GCard>
     </div>
   );
 }
