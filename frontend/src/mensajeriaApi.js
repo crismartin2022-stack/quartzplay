@@ -62,6 +62,11 @@ const ETIQUETA_CAMPO = {
   clave: "Clave de API",
   remitente_sms: "Remitente SMS",
   remitente_whatsapp: "Remitente WhatsApp",
+  // El servidor ya manda este campo (`CAMPOS_MENSAJERIA.sms.plantilla_whatsapp`
+  // en `casino_api.py`), pero hasta ahora no tenía etiqueta acá y se mostraba
+  // con la clave cruda. Sin ella no hay forma de decir, en la sección de
+  // remitentes, que a WhatsApp le falta la plantilla y no el remitente.
+  plantilla_whatsapp: "Plantilla de WhatsApp",
   api_key: "Clave de API",
   remitente: "Remitente",
 };
@@ -223,12 +228,16 @@ export async function borrarCredencial({ ambito, clave, adminKey, api, fetchImpl
 // maestra. El servidor contesta 200 con `ok:false` cuando el proveedor
 // rechaza el envío (no lo trata como error HTTP), así que ese caso se lee
 // del cuerpo, no del status.
-export async function probarEnvio({ ambito, destino, adminKey, api, fetchImpl } = {}) {
+// `pais` es opcional y solo tiene efecto en `ambito==="sms"`: es lo que le
+// permite al servidor resolver el remitente igual que lo haría un envío
+// real (`_credenciales_para_envio` en `casino_api.py`). Sin país, la prueba
+// usa el remitente por defecto del canal, como siempre.
+export async function probarEnvio({ ambito, destino, pais, adminKey, api, fetchImpl } = {}) {
   const revision = validarDestino(ambito, destino);
   if (!revision.ok) {
     return {
       ok: false, noAutorizado: false, mensaje: revision.mensaje,
-      respuestaProveedor: null, statusProveedor: null,
+      respuestaProveedor: null, statusProveedor: null, remitenteUsado: null,
     };
   }
 
@@ -236,7 +245,7 @@ export async function probarEnvio({ ambito, destino, adminKey, api, fetchImpl } 
   if (!pedir) {
     return {
       ok: false, noAutorizado: false, mensaje: SIN_CONEXION,
-      respuestaProveedor: null, statusProveedor: null,
+      respuestaProveedor: null, statusProveedor: null, remitenteUsado: null,
     };
   }
 
@@ -245,23 +254,32 @@ export async function probarEnvio({ ambito, destino, adminKey, api, fetchImpl } 
     respuesta = await pedir(`${api}/api/admin/mensajeria/probar`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...cabeceras(adminKey) },
-      body: JSON.stringify({ proveedor: ambito, destino: texto(destino).trim() }),
+      body: JSON.stringify({
+        proveedor: ambito, destino: texto(destino).trim(),
+        ...(ambito === AMBITO_SMS && texto(pais).trim() ? { pais: texto(pais).trim() } : {}),
+      }),
     });
   } catch (e) {
     return {
       ok: false, noAutorizado: false, mensaje: SIN_CONEXION,
-      respuestaProveedor: null, statusProveedor: null,
+      respuestaProveedor: null, statusProveedor: null, remitenteUsado: null,
     };
   }
   if (respuesta.status === 401) {
-    return { ok: false, noAutorizado: true, mensaje: "", respuestaProveedor: null, statusProveedor: null };
+    return {
+      ok: false, noAutorizado: true, mensaje: "",
+      respuestaProveedor: null, statusProveedor: null, remitenteUsado: null,
+    };
   }
 
   const cuerpo = await leerJSON(respuesta);
   if (!respuesta.ok) {
     // El 503 de "proveedor no configurado" (ni base ni entorno) llega así.
     const { mensaje } = mensajeDeDetalle(cuerpo.detail);
-    return { ok: false, noAutorizado: false, mensaje, respuestaProveedor: null, statusProveedor: null };
+    return {
+      ok: false, noAutorizado: false, mensaje,
+      respuestaProveedor: null, statusProveedor: null, remitenteUsado: null,
+    };
   }
 
   // La respuesta cruda del proveedor viaja tal cual para mostrarla: es la
@@ -274,5 +292,209 @@ export async function probarEnvio({ ambito, destino, adminKey, api, fetchImpl } 
     mensaje: proveedorOk ? "Enviado" : "El proveedor rechazó el envío",
     respuestaProveedor: cuerpo.respuesta ?? null,
     statusProveedor: cuerpo.status_proveedor ?? null,
+    // Con varios remitentes activos, saber que el envío salió no alcanza:
+    // hace falta saber por cuál salió, que es justo lo que cambia si el
+    // país de la prueba no está cubierto.
+    remitenteUsado: cuerpo.remitente ?? null,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REMITENTES POR PAÍS — la sección nueva de la pestaña Mensajería.
+//
+// Ver odd/tasks/remitentes-por-pais-y-whatsapp.md para la decisión
+// completa. En corto: a diferencia de las credenciales de arriba, un
+// remitente no es un secreto — es un nombre que el jugador ve en su
+// teléfono — así que viaja en texto plano, en su propia tabla
+// (`remitentes_mensajeria`), con su lista de países.
+//
+// `canal` es "sms"|"whatsapp" (los mismos nombres que ya usa
+// `mensajeria.SMS`/`mensajeria.WHATSAPP` en el bot), distinto de `ambito`
+// ("sms"|"correo") que usan las credenciales de arriba. Para SMS los dos
+// valores coinciden en el texto ("sms"), así que no hace falta una
+// segunda constante: `AMBITO_SMS` sirve para los dos.
+export const CANAL_WHATSAPP = "whatsapp";
+
+function normalizarRemitente(f) {
+  const c = f || {};
+  return {
+    id: c.id,
+    remitente: texto(c.remitente),
+    paises: Array.isArray(c.paises) ? c.paises : [],
+    activo: c.activo === true,
+    actualizadoPor: c.actualizado_por ?? null,
+    actualizadoAt: c.actualizado_at ?? null,
+  };
+}
+
+// ── GET /api/paises ──────────────────────────────────────────────
+// Público, sin `X-Admin-Key`: es la misma lista que ya consume el
+// registro de jugadores. La pantalla de remitentes la usa para el
+// checklist de países, no para inventar una lista propia que se
+// desincronice de `PAISES_LATAM`.
+export async function listarPaises({ api, fetchImpl } = {}) {
+  const vacio = { ok: false, mensaje: "", paises: [] };
+  const pedir = fetchImpl || (typeof fetch === "function" ? fetch : null);
+  if (!pedir) return { ...vacio, mensaje: SIN_CONEXION };
+
+  let respuesta;
+  try {
+    respuesta = await pedir(`${api}/api/paises`);
+  } catch (e) {
+    return { ...vacio, mensaje: SIN_CONEXION };
+  }
+  const cuerpo = await leerJSON(respuesta);
+  if (!respuesta.ok) {
+    const { mensaje } = mensajeDeDetalle(cuerpo.detail);
+    return { ...vacio, mensaje };
+  }
+  return { ok: true, mensaje: "", paises: Array.isArray(cuerpo.paises) ? cuerpo.paises : [] };
+}
+
+// ── GET /api/admin/remitentes ────────────────────────────────────
+// body real: {"remitentes": {"sms": [...], "whatsapp": [...]}}. Se
+// devuelven los dos canales siempre presentes (listas vacías si no hay
+// filas), para que la pantalla no tenga que adivinar si faltan por
+// cargar o si de verdad no hay ninguno todavía.
+export async function listarRemitentes({ adminKey, api, fetchImpl } = {}) {
+  const vacio = {
+    ok: false, noAutorizado: false, mensaje: "",
+    remitentes: { [AMBITO_SMS]: [], [CANAL_WHATSAPP]: [] },
+  };
+  const pedir = fetchImpl || (typeof fetch === "function" ? fetch : null);
+  if (!pedir) return { ...vacio, mensaje: SIN_CONEXION };
+
+  let respuesta;
+  try {
+    respuesta = await pedir(`${api}/api/admin/remitentes`, { headers: cabeceras(adminKey) });
+  } catch (e) {
+    return { ...vacio, mensaje: SIN_CONEXION };
+  }
+  if (respuesta.status === 401) return { ...vacio, noAutorizado: true };
+
+  const cuerpo = await leerJSON(respuesta);
+  if (!respuesta.ok) {
+    const { mensaje } = mensajeDeDetalle(cuerpo.detail);
+    return { ...vacio, mensaje };
+  }
+  const crudo = cuerpo.remitentes || {};
+  return {
+    ok: true, noAutorizado: false, mensaje: "",
+    remitentes: {
+      [AMBITO_SMS]: (crudo[AMBITO_SMS] || []).map(normalizarRemitente),
+      [CANAL_WHATSAPP]: (crudo[CANAL_WHATSAPP] || []).map(normalizarRemitente),
+    },
+  };
+}
+
+// Lo mínimo antes de salir a la red: el servidor vuelve a validar todo
+// (el país contra `PAISES_LATAM`, incluso), pero un remitente vacío es un
+// viaje que ya se sabe que va a fallar.
+export function validarRemitente({ canal, remitente }) {
+  if (canal !== AMBITO_SMS && canal !== CANAL_WHATSAPP) {
+    return { ok: false, mensaje: "Canal inválido" };
+  }
+  if (!texto(remitente).trim()) {
+    return { ok: false, mensaje: "Escribí un nombre de remitente" };
+  }
+  return { ok: true, mensaje: "" };
+}
+
+// ── POST /api/admin/remitentes ───────────────────────────────────
+// Upsert por (canal, remitente): no hay PATCH, así que editar (incluso
+// solo tildar/destildar "activo") re-manda la fila entera. `paises`
+// vacío es intencional -no un error de tipeo de la pantalla- y significa
+// "remitente por defecto de este canal".
+export async function guardarRemitente({ canal, remitente, paises, activo, adminKey, api, fetchImpl } = {}) {
+  const revision = validarRemitente({ canal, remitente });
+  if (!revision.ok) return { ok: false, noAutorizado: false, mensaje: revision.mensaje, remitente: null };
+
+  const pedir = fetchImpl || (typeof fetch === "function" ? fetch : null);
+  if (!pedir) return { ok: false, noAutorizado: false, mensaje: SIN_CONEXION, remitente: null };
+
+  let respuesta;
+  try {
+    respuesta = await pedir(`${api}/api/admin/remitentes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...cabeceras(adminKey) },
+      body: JSON.stringify({
+        canal, remitente: texto(remitente).trim(),
+        paises: Array.isArray(paises) ? paises : [],
+        activo: activo !== false,
+      }),
+    });
+  } catch (e) {
+    return { ok: false, noAutorizado: false, mensaje: SIN_CONEXION, remitente: null };
+  }
+  if (respuesta.status === 401) return { ok: false, noAutorizado: true, mensaje: "", remitente: null };
+
+  const cuerpo = await leerJSON(respuesta);
+  if (!respuesta.ok) {
+    // Acá llega, por ejemplo, "País no habilitado: XX" si se coló un
+    // código que no está en `PAISES_LATAM`.
+    const { mensaje } = mensajeDeDetalle(cuerpo.detail);
+    return { ok: false, noAutorizado: false, mensaje, remitente: null };
+  }
+  return {
+    ok: true, noAutorizado: false, mensaje: "Guardado",
+    remitente: cuerpo.remitente ? normalizarRemitente(cuerpo.remitente) : null,
+  };
+}
+
+// ── DELETE /api/admin/remitentes/{id} ────────────────────────────
+// Por id, no por nombre: el remitente es texto libre ("IAQP Col") y
+// forzarlo a viajar en la URL es una fuente de problemas de escape que
+// un id numérico no tiene. Los países que cubría caen al siguiente
+// escalón de `elegir_remitente` (el remitente por defecto, o el entorno).
+export async function borrarRemitente({ id, adminKey, api, fetchImpl } = {}) {
+  const pedir = fetchImpl || (typeof fetch === "function" ? fetch : null);
+  if (!pedir) return { ok: false, noAutorizado: false, mensaje: SIN_CONEXION };
+
+  let respuesta;
+  try {
+    respuesta = await pedir(`${api}/api/admin/remitentes/${encodeURIComponent(id)}`,
+      { method: "DELETE", headers: cabeceras(adminKey) });
+  } catch (e) {
+    return { ok: false, noAutorizado: false, mensaje: SIN_CONEXION };
+  }
+  if (respuesta.status === 401) return { ok: false, noAutorizado: true, mensaje: "" };
+  if (!respuesta.ok) {
+    const cuerpo = await leerJSON(respuesta);
+    const { mensaje } = mensajeDeDetalle(cuerpo.detail);
+    return { ok: false, noAutorizado: false, mensaje };
+  }
+  return { ok: true, noAutorizado: false, mensaje: "" };
+}
+
+// Qué países se quedan sin ningún remitente activo que los cubra. Es la
+// cuenta que sostiene el aviso de la pantalla: la misma que dejó a
+// Ecuador afuera en el feature doc, hecha visible antes de que un
+// jugador la sufra.
+//
+// Un remitente activo con `paises` vacío es el por defecto del canal y
+// cubre cualquier país que no tenga uno específico (mismo orden que
+// `elegir_remitente` en `mensajeria.py`), así que si existe uno no hay
+// país sin cobertura: el respaldo ya está.
+export function paisesSinCobertura(remitentes, paises) {
+  const activos = (remitentes || []).filter((r) => r.activo);
+  if (activos.some((r) => !r.paises || r.paises.length === 0)) return [];
+  const cubiertos = new Set(activos.flatMap((r) => r.paises || []));
+  return (paises || []).filter((p) => !cubiertos.has(p.codigo));
+}
+
+// Si WhatsApp se puede ofrecer: hace falta remitente Y plantilla
+// aprobada (`Credenciales.whatsapp_listo` en `mensajeria.py`), los dos a
+// la vez. Mostrar la lista de remitentes de WhatsApp sin decir esto
+// primero parece un canal listo para usarse cuando en realidad
+// `canales_disponibles()` lo está omitiendo del registro de jugadores.
+export function whatsappListo(proveedores) {
+  const sms = (proveedores || []).find((p) => p.ambito === AMBITO_SMS);
+  const campo = (clave) => (sms?.campos || []).find((c) => c.clave === clave);
+  const claveOk = !!campo("clave")?.configurado;
+  const remitenteOk = !!campo("remitente_whatsapp")?.configurado;
+  const plantillaOk = !!campo("plantilla_whatsapp")?.configurado;
+  return {
+    claveOk, remitenteOk, plantillaOk,
+    listo: claveOk && remitenteOk && plantillaOk,
   };
 }

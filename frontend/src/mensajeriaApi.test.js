@@ -5,9 +5,11 @@
 // "lee la forma real que manda `admin_mensajeria_listar`", que es un objeto
 // por ámbito y por campo, no una lista.
 import {
-  AMBITO_SMS, AMBITO_CORREO,
+  AMBITO_SMS, AMBITO_CORREO, CANAL_WHATSAPP,
   etiquetaCampo, etiquetaOrigen, validarDestino, normalizarProveedores,
   listarMensajeria, guardarCredencial, borrarCredencial, probarEnvio,
+  listarPaises, listarRemitentes, validarRemitente, guardarRemitente,
+  borrarRemitente, paisesSinCobertura, whatsappListo,
 } from "./mensajeriaApi";
 
 function respuestaFalsa(ok, status, cuerpo) {
@@ -43,6 +45,10 @@ describe("la etiqueta de cada campo: el servidor no manda ninguna, solo la clave
 
   test("un campo del todo desconocido muestra su propia clave, no queda en blanco", () => {
     expect(etiquetaCampo("algo_nuevo")).toBe("algo_nuevo");
+  });
+
+  test("la plantilla de WhatsApp tiene etiqueta propia, no la clave cruda del servidor", () => {
+    expect(etiquetaCampo("plantilla_whatsapp")).toBe("Plantilla de WhatsApp");
   });
 });
 
@@ -315,5 +321,257 @@ describe("probar el envío: la parte que cuesta plata", () => {
     });
     expect(r.noAutorizado).toBe(true);
     expect(r.respuestaProveedor).toBe(null);
+  });
+
+  test("con país y ambito sms, el país viaja en el body: es lo que deja al servidor elegir el remitente real", async () => {
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, { ok: true, remitente: "IAQP EC" }));
+    await probarEnvio({ ambito: "sms", destino: "+593987654321", pais: "EC", api: "http://x", fetchImpl: pedir });
+    const [, opciones] = pedir.mock.calls[0];
+    expect(JSON.parse(opciones.body)).toEqual({ proveedor: "sms", destino: "+593987654321", pais: "EC" });
+  });
+
+  test("sin país, no se manda 'pais' en el body: sigue siendo el remitente por defecto, como siempre", async () => {
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, { ok: true }));
+    await probarEnvio({ ambito: "sms", destino: "+5491122334455", api: "http://x", fetchImpl: pedir });
+    const [, opciones] = pedir.mock.calls[0];
+    expect(JSON.parse(opciones.body)).toEqual({ proveedor: "sms", destino: "+5491122334455" });
+  });
+
+  test("el país no aplica a correo: no tiene sentido ahí y no viaja aunque se pase", async () => {
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, { ok: true }));
+    await probarEnvio({ ambito: "correo", destino: "x@y.com", pais: "EC", api: "http://x", fetchImpl: pedir });
+    const [, opciones] = pedir.mock.calls[0];
+    expect(JSON.parse(opciones.body)).toEqual({ proveedor: "correo", destino: "x@y.com" });
+  });
+
+  test("el remitente que usó el envío viaja para mostrarlo: con varios remitentes, saber que salió no alcanza", async () => {
+    const r = await probarEnvio({
+      ambito: "sms", destino: "+593987654321", pais: "EC", api: "http://x",
+      fetchImpl: async () => respuestaFalsa(true, 200, { ok: true, remitente: "IAQP EC" }),
+    });
+    expect(r.remitenteUsado).toBe("IAQP EC");
+  });
+
+  test("sin remitente en la respuesta, no revienta: queda null, no undefined ni string vacío", async () => {
+    const r = await probarEnvio({
+      ambito: "correo", destino: "x@y.com", api: "http://x",
+      fetchImpl: async () => respuestaFalsa(true, 200, { ok: true }),
+    });
+    expect(r.remitenteUsado).toBe(null);
+  });
+});
+
+describe("GET /api/paises: el checklist de países de la pantalla de remitentes", () => {
+  test("pega sin X-Admin-Key: es el mismo endpoint público que usa el registro", async () => {
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, { paises: [] }));
+    await listarPaises({ api: "http://x", fetchImpl: pedir });
+    const [url, opciones] = pedir.mock.calls[0];
+    expect(url).toBe("http://x/api/paises");
+    expect(opciones).toBeUndefined();
+  });
+
+  test("devuelve la lista tal cual, con nombre legible por código", async () => {
+    const r = await listarPaises({
+      api: "http://x",
+      fetchImpl: async () => respuestaFalsa(true, 200, {
+        paises: [{ codigo: "EC", nombre: "Ecuador", indicativo: "+593" }],
+      }),
+    });
+    expect(r.ok).toBe(true);
+    expect(r.paises).toEqual([{ codigo: "EC", nombre: "Ecuador", indicativo: "+593" }]);
+  });
+
+  test("sin red, no revienta: lista vacía y el mismo mensaje de siempre", async () => {
+    const r = await listarPaises({
+      api: "http://x", fetchImpl: async () => { throw new TypeError("Failed to fetch"); },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.paises).toEqual([]);
+  });
+});
+
+describe("GET /api/admin/remitentes: la lista por canal", () => {
+  test("separa sms y whatsapp, cada uno con su propia lista", async () => {
+    const r = await listarRemitentes({
+      adminKey: "k", api: "http://x",
+      fetchImpl: async () => respuestaFalsa(true, 200, {
+        remitentes: {
+          sms: [{ id: 1, remitente: "IAQP Col", paises: ["AR", "CO"], activo: true,
+            actualizado_por: "ana", actualizado_at: "25/09 10:30" }],
+          whatsapp: [],
+        },
+      }),
+    });
+    expect(r.remitentes.sms).toHaveLength(1);
+    expect(r.remitentes.sms[0]).toEqual({
+      id: 1, remitente: "IAQP Col", paises: ["AR", "CO"], activo: true,
+      actualizadoPor: "ana", actualizadoAt: "25/09 10:30",
+    });
+    expect(r.remitentes[CANAL_WHATSAPP]).toEqual([]);
+  });
+
+  test("un canal ausente en la respuesta no revienta: queda como lista vacía, no undefined", async () => {
+    const r = await listarRemitentes({
+      api: "http://x",
+      fetchImpl: async () => respuestaFalsa(true, 200, { remitentes: { sms: [] } }),
+    });
+    expect(r.remitentes[CANAL_WHATSAPP]).toEqual([]);
+  });
+
+  test("un 401 se marca aparte, igual que en las credenciales", async () => {
+    const r = await listarRemitentes({
+      api: "http://x", fetchImpl: async () => respuestaFalsa(false, 401, {}),
+    });
+    expect(r.noAutorizado).toBe(true);
+  });
+
+  test("sin red, no revienta y devuelve los dos canales vacíos", async () => {
+    const r = await listarRemitentes({
+      api: "http://x", fetchImpl: async () => { throw new TypeError("Failed to fetch"); },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.remitentes).toEqual({ sms: [], whatsapp: [] });
+  });
+});
+
+describe("guardar un remitente: upsert por (canal, remitente), sin PATCH", () => {
+  test("sin remitente escrito, no sale a la red", async () => {
+    const pedir = jest.fn();
+    const r = await guardarRemitente({ canal: "sms", remitente: "  ", api: "http://x", fetchImpl: pedir });
+    expect(pedir).not.toHaveBeenCalled();
+    expect(r.ok).toBe(false);
+  });
+
+  test("un canal que no es sms ni whatsapp no sale a la red", async () => {
+    const pedir = jest.fn();
+    const r = await guardarRemitente({ canal: "correo", remitente: "IAQP", api: "http://x", fetchImpl: pedir });
+    expect(pedir).not.toHaveBeenCalled();
+    expect(r.mensaje).toBe("Canal inválido");
+  });
+
+  test("países vacíos u omitidos viajan como lista vacía: 'por defecto', no un error", async () => {
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, { ok: true, remitente: {} }));
+    await guardarRemitente({ canal: "sms", remitente: "IAQP Col", adminKey: "k", api: "http://x", fetchImpl: pedir });
+    const [url, opciones] = pedir.mock.calls[0];
+    expect(url).toBe("http://x/api/admin/remitentes");
+    expect(opciones.method).toBe("POST");
+    expect(JSON.parse(opciones.body)).toEqual({
+      canal: "sms", remitente: "IAQP Col", paises: [], activo: true,
+    });
+  });
+
+  test("activo:false viaja tal cual, no se pisa con el default", async () => {
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, { ok: true, remitente: {} }));
+    await guardarRemitente({
+      canal: "whatsapp", remitente: "IAQP WA", paises: ["EC"], activo: false,
+      adminKey: "k", api: "http://x", fetchImpl: pedir,
+    });
+    const [, opciones] = pedir.mock.calls[0];
+    expect(JSON.parse(opciones.body)).toEqual({
+      canal: "whatsapp", remitente: "IAQP WA", paises: ["EC"], activo: false,
+    });
+  });
+
+  test("un país no habilitado rebota con el mensaje del servidor, no uno genérico", async () => {
+    const r = await guardarRemitente({
+      canal: "sms", remitente: "IAQP", paises: ["ZZ"], api: "http://x",
+      fetchImpl: async () => respuestaFalsa(false, 400, { detail: "País no habilitado: ZZ" }),
+    });
+    expect(r.ok).toBe(false);
+    expect(r.mensaje).toBe("País no habilitado: ZZ");
+  });
+
+  test("un 401 no se confunde con un rechazo de validación", async () => {
+    const r = await guardarRemitente({
+      canal: "sms", remitente: "IAQP", api: "http://x",
+      fetchImpl: async () => respuestaFalsa(false, 401, {}),
+    });
+    expect(r.noAutorizado).toBe(true);
+  });
+});
+
+describe("borrar un remitente: por id, nunca por nombre", () => {
+  test("pega en DELETE con el id en la ruta", async () => {
+    const pedir = jest.fn(async () => respuestaFalsa(true, 200, { ok: true }));
+    await borrarRemitente({ id: 7, adminKey: "k", api: "http://x", fetchImpl: pedir });
+    const [url, opciones] = pedir.mock.calls[0];
+    expect(url).toBe("http://x/api/admin/remitentes/7");
+    expect(opciones.method).toBe("DELETE");
+  });
+
+  test("un id que ya no existe (404) muestra el mensaje del servidor", async () => {
+    const r = await borrarRemitente({
+      id: 99, api: "http://x",
+      fetchImpl: async () => respuestaFalsa(false, 404, { detail: "Ese remitente no existe" }),
+    });
+    expect(r.ok).toBe(false);
+    expect(r.mensaje).toBe("Ese remitente no existe");
+  });
+});
+
+describe("qué países se quedan sin remitente: el aviso que evita el caso Ecuador del feature doc", () => {
+  const PAISES = [{ codigo: "EC" }, { codigo: "AR" }, { codigo: "CO" }];
+
+  test("sin ningún remitente activo, todos quedan sin cubrir", () => {
+    expect(paisesSinCobertura([], PAISES).map((p) => p.codigo)).toEqual(["EC", "AR", "CO"]);
+  });
+
+  test("un remitente que cubre AR y CO deja a EC afuera, el caso exacto del feature doc", () => {
+    const r = paisesSinCobertura(
+      [{ activo: true, paises: ["AR", "CO"] }], PAISES);
+    expect(r.map((p) => p.codigo)).toEqual(["EC"]);
+  });
+
+  test("un remitente inactivo no cuenta como cobertura", () => {
+    const r = paisesSinCobertura(
+      [{ activo: false, paises: ["AR", "CO", "EC"] }], PAISES);
+    expect(r.map((p) => p.codigo)).toEqual(["EC", "AR", "CO"]);
+  });
+
+  test("un remitente activo por defecto (países vacíos) cubre todo: sin aviso", () => {
+    const r = paisesSinCobertura(
+      [{ activo: true, paises: [] }], PAISES);
+    expect(r).toEqual([]);
+  });
+
+  test("el por defecto gana aunque haya otro específico: el respaldo ya existe", () => {
+    const r = paisesSinCobertura(
+      [{ activo: true, paises: ["AR"] }, { activo: true, paises: [] }], PAISES);
+    expect(r).toEqual([]);
+  });
+});
+
+describe("si WhatsApp se puede ofrecer: remitente Y plantilla, los dos a la vez", () => {
+  function proveedoresCon(remitenteOk, plantillaOk, claveOk = true) {
+    return [{
+      ambito: "sms",
+      campos: [
+        { clave: "clave", configurado: claveOk },
+        { clave: "remitente_whatsapp", configurado: remitenteOk },
+        { clave: "plantilla_whatsapp", configurado: plantillaOk },
+      ],
+    }];
+  }
+
+  test("con clave, remitente y plantilla, WhatsApp está listo", () => {
+    expect(whatsappListo(proveedoresCon(true, true)).listo).toBe(true);
+  });
+
+  test("con remitente pero sin plantilla, no está listo: la plantilla es la que falta", () => {
+    const r = whatsappListo(proveedoresCon(true, false));
+    expect(r.listo).toBe(false);
+    expect(r.remitenteOk).toBe(true);
+    expect(r.plantillaOk).toBe(false);
+  });
+
+  test("con plantilla pero sin remitente, tampoco está listo", () => {
+    const r = whatsappListo(proveedoresCon(false, true));
+    expect(r.listo).toBe(false);
+    expect(r.remitenteOk).toBe(false);
+  });
+
+  test("sin proveedores todavía cargados, no revienta: se lee como no listo", () => {
+    expect(whatsappListo([]).listo).toBe(false);
+    expect(whatsappListo(undefined).listo).toBe(false);
   });
 });
