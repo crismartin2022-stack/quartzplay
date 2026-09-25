@@ -1,13 +1,23 @@
 """Mandar un código a un teléfono, por el canal que sea.
 
-El proveedor de hoy es Twilio y el canal de hoy es el SMS. Los dos están
-detrás de esta puerta chica a propósito: WhatsApp entrega mejor en la región
-—sobre todo en Venezuela, donde el SMS es el canal más frágil— y llega en
-cuanto el remitente esté aprobado, sin tocar el resto del flujo.
+El proveedor de hoy es Dexatel y el canal de hoy es el SMS. Los dos están
+detrás de esta puerta chica a propósito, y esa decisión ya se pagó sola:
+Twilio cerró la cuenta apenas se pagó el primer plan, y cambiar de proveedor
+costó reescribir este archivo, nada más.
 
-No se usa el SDK de Twilio: su API de mensajes es un POST con autenticación
-básica, y `httpx` ya es dependencia del proyecto. Una dependencia menos que
-auditar y que actualizar.
+Por qué no Twilio, para que no se intente de nuevo: prohíben el tráfico de
+apuestas en sus rutas de Estados Unidos y Canadá, y aunque el nuestro va a
+Ecuador, Argentina y Venezuela, la revisión se aplica a nivel de cuenta.
+Vonage, Bird y Plivo tienen políticas equivalentes. Dexatel declara iGaming
+entre los verticales que atiende.
+
+Lo que mandamos es un OTP transaccional, no publicidad de apuestas: seis
+dígitos para confirmar que alguien controla su teléfono. Esa distinción es
+la que hay que sostener ante cualquier proveedor, y por eso el texto no
+lleva enlaces, ni marca, ni la palabra apuestas.
+
+No se usa ningún SDK: la API es un POST con una cabecera, y `httpx` ya es
+dependencia del proyecto. Una dependencia menos que auditar y actualizar.
 """
 
 from __future__ import annotations
@@ -23,8 +33,11 @@ log = logging.getLogger("casino")
 SMS = "sms"
 WHATSAPP = "whatsapp"
 
-TWILIO_API = "https://api.twilio.com/2010-04-01"
+DEXATEL_API = "https://api.dexatel.com/v1/messages"
 TIEMPO_LIMITE = 15
+
+# Cómo nombra Dexatel a cada canal en el cuerpo del pedido.
+_CANAL_DEL_PROVEEDOR = {SMS: "SMS", WHATSAPP: "WHATSAPP"}
 
 
 class MensajeriaNoConfigurada(RuntimeError):
@@ -39,32 +52,24 @@ class EnvioFallido(RuntimeError):
 
 @dataclass(frozen=True)
 class Credenciales:
-    cuenta: str
-    token: str
+    clave: str
     remitente_sms: str
-    remitente_whatsapp: str
-    # Un "Messaging Service" es una bolsa de remitentes: Twilio elige el
-    # mejor para cada país. Con tres países de reglas distintas es lo que
-    # ellos mismos recomiendan, así que se acepta en vez del número suelto.
-    servicio_mensajeria: str = ""
+    remitente_whatsapp: str = ""
 
     @property
     def sms_listo(self) -> bool:
-        return bool(self.cuenta and self.token
-                    and (self.remitente_sms or self.servicio_mensajeria))
+        return bool(self.clave and self.remitente_sms)
 
     @property
     def whatsapp_listo(self) -> bool:
-        return bool(self.cuenta and self.token and self.remitente_whatsapp)
+        return bool(self.clave and self.remitente_whatsapp)
 
 
 def credenciales_del_entorno() -> Credenciales:
     return Credenciales(
-        cuenta=os.environ.get("TWILIO_ACCOUNT_SID", ""),
-        token=os.environ.get("TWILIO_AUTH_TOKEN", ""),
-        remitente_sms=os.environ.get("TWILIO_SMS_FROM", ""),
-        remitente_whatsapp=os.environ.get("TWILIO_WHATSAPP_FROM", ""),
-        servicio_mensajeria=os.environ.get("TWILIO_MESSAGING_SERVICE_SID", ""),
+        clave=os.environ.get("DEXATEL_API_KEY", ""),
+        remitente_sms=os.environ.get("DEXATEL_SMS_FROM", ""),
+        remitente_whatsapp=os.environ.get("DEXATEL_WHATSAPP_FROM", ""),
     )
 
 
@@ -84,26 +89,41 @@ def texto_del_codigo(codigo: str, minutos: int) -> str:
     """El mensaje que recibe la persona.
 
     Corto y sin enlaces: un mensaje con un enlace parece una estafa, y en
-    varios países los operadores directamente lo bloquean.
+    varios países los operadores directamente lo bloquean. Tampoco menciona
+    apuestas ni juego: es lo que hace que esto pase como OTP transaccional y
+    no como publicidad de un vertical restringido.
     """
     return (f"Tu código de iaqp es {codigo}. "
             f"Vence en {minutos} minutos. No lo compartas con nadie.")
-
-
-def _destino(telefono_e164: str, canal: str) -> str:
-    return f"whatsapp:{telefono_e164}" if canal == WHATSAPP else telefono_e164
 
 
 def _remitente(cred: Credenciales, canal: str) -> str:
     if canal == WHATSAPP:
         if not cred.whatsapp_listo:
             raise MensajeriaNoConfigurada("WhatsApp todavía no está habilitado")
-        return f"whatsapp:{cred.remitente_whatsapp}"
+        return cred.remitente_whatsapp
     if not cred.sms_listo:
         raise MensajeriaNoConfigurada("falta configurar el envío de SMS")
-    # El servicio manda sobre el número suelto: si están los dos, es porque
-    # alguien quiso que Twilio eligiera el remitente.
-    return cred.servicio_mensajeria or cred.remitente_sms
+    return cred.remitente_sms
+
+
+def _identificador(cuerpo) -> str:
+    """El id que devuelve el proveedor, buscado sin confiar en una sola forma.
+
+    La documentación pública muestra el pedido pero no una respuesta de
+    ejemplo, y los webhooks usan `message_id` mientras la API de envío suele
+    usar `id` dentro de `data`. Se prueban las tres formas y, si ninguna
+    aparece, el envío igual se da por bueno: el mensaje salió, y quedarnos
+    sin identificador no es motivo para negarle la cuenta a alguien.
+    """
+    if not isinstance(cuerpo, dict):
+        return ""
+    datos = cuerpo.get("data")
+    if isinstance(datos, list) and datos:
+        datos = datos[0]
+    if isinstance(datos, dict):
+        return str(datos.get("id") or datos.get("message_id") or "")
+    return str(cuerpo.get("id") or cuerpo.get("message_id") or "")
 
 
 async def enviar_codigo(telefono_e164: str, codigo: str, canal: str = SMS,
@@ -117,22 +137,23 @@ async def enviar_codigo(telefono_e164: str, codigo: str, canal: str = SMS,
     cred = cred or credenciales_del_entorno()
     desde = _remitente(cred, canal)
 
-    url = f"{TWILIO_API}/Accounts/{cred.cuenta}/Messages.json"
-    datos = {
-        "To": _destino(telefono_e164, canal),
-        "Body": texto_del_codigo(codigo, minutos),
+    cuerpo = {
+        "to": telefono_e164,
+        "from": desde,
+        "text": texto_del_codigo(codigo, minutos),
+        "channel": _CANAL_DEL_PROVEEDOR[canal],
     }
-    # Con un Messaging Service no se manda remitente: lo elige Twilio.
-    if desde.startswith("MG"):
-        datos["MessagingServiceSid"] = desde
-    else:
-        datos["From"] = desde
     async with httpx.AsyncClient(timeout=TIEMPO_LIMITE) as client:
-        r = await client.post(url, data=datos, auth=(cred.cuenta, cred.token))
+        r = await client.post(DEXATEL_API, json=cuerpo,
+                              headers={"X-Dexatel-Key": cred.clave,
+                                       "Content-Type": "application/json"})
 
     if r.status_code >= 400:
         # Se registra el número y el motivo, nunca el código.
         log.error("[SMS] %s -> %s: %s", telefono_e164, r.status_code, r.text[:200])
         raise EnvioFallido(f"{r.status_code}")
 
-    return (r.json() or {}).get("sid", "")
+    try:
+        return _identificador(r.json())
+    except ValueError:
+        return ""

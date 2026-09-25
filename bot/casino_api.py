@@ -27511,7 +27511,7 @@ async def me_telefono_codigo(request: Request):
         await conn.execute("""
             INSERT INTO verificaciones_telefono
                 (telefono_e164, codigo_hash, canal, proveedor, ip, expira_at)
-            VALUES ($1,$2,$3,'twilio',$4::inet,
+            VALUES ($1,$2,$3,'dexatel',$4::inet,
                     NOW() + ($5 || ' minutes')::interval)
         """, telefono,
             registro_publico.hash_codigo(codigo, telefono, CODIGO_SECRETO),

@@ -604,7 +604,7 @@ describe("pedir y verificar el código del teléfono, desde el perfil", () => {
     expect(r.mensaje).toBe("Ese teléfono ya está en uso");
   });
 
-  test("sin Twilio configurado (503), lo dice tal cual", async () => {
+  test("sin proveedor de correo configurado (503), lo dice tal cual", async () => {
     const r = await pedirCodigoTelefono({
       telefono: "987654321", pais: "EC", canal: "sms",
       api: "http://x", token: "tok-123",
