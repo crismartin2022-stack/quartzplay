@@ -96,10 +96,34 @@ def test_un_sms_va_al_numero_con_la_clave_en_la_cabecera(monkeypatch):
     pedido = proveedor.pedidos[0]
     assert pedido["url"] == mensajeria.DEXATEL_API
     assert pedido["headers"]["X-Dexatel-Key"] == "secreta"
-    assert pedido["json"]["to"] == "+593991234567"
-    assert pedido["json"]["from"] == "iaqp"
-    assert pedido["json"]["channel"] == "SMS"
-    assert "123456" in pedido["json"]["text"]
+    datos = pedido["json"]["data"]
+    assert datos["to"] == ["593991234567"]
+    assert datos["from"] == "iaqp"
+    assert datos["channel"] == "SMS"
+    assert "123456" in datos["text"]
+
+
+def test_el_cuerpo_va_envuelto_en_data_y_to_es_una_lista(monkeypatch):
+    """Fijado por un 400 real en staging el 2026-09-25: mandar el JSON plano
+    devuelve "Request data is missing" (código 1007). La página de
+    "get started" de Dexatel lo muestra sin envolver y está equivocada."""
+    proveedor = ProveedorFalso().parchear(monkeypatch)
+
+    asyncio.run(enviar_codigo("+573218952770", "123456", SMS, cred=SOLO_SMS))
+
+    cuerpo = proveedor.pedidos[0]["json"]
+    assert set(cuerpo) == {"data"}
+    assert isinstance(cuerpo["data"]["to"], list)
+
+
+def test_el_numero_viaja_sin_el_mas(monkeypatch):
+    """La referencia pide el código de país sin espacios ni caracteres
+    especiales, y su ejemplo lo escribe así."""
+    proveedor = ProveedorFalso().parchear(monkeypatch)
+
+    asyncio.run(enviar_codigo("+573218952770", "123456", SMS, cred=SOLO_SMS))
+
+    assert proveedor.pedidos[0]["json"]["data"]["to"] == ["573218952770"]
 
 
 def test_la_clave_viaja_en_la_cabecera_y_nunca_en_el_cuerpo(monkeypatch):
@@ -119,10 +143,10 @@ def test_cambiar_a_whatsapp_es_un_parametro(monkeypatch):
 
     asyncio.run(enviar_codigo("+584121234567", "123456", WHATSAPP, cred=COMPLETAS))
 
-    pedido = proveedor.pedidos[0]["json"]
-    assert pedido["to"] == "+584121234567"
-    assert pedido["from"] == "+15550002222"
-    assert pedido["channel"] == "WHATSAPP"
+    datos = proveedor.pedidos[0]["json"]["data"]
+    assert datos["to"] == ["584121234567"]
+    assert datos["from"] == "+15550002222"
+    assert datos["channel"] == "WHATSAPP"
 
 
 def test_si_el_proveedor_rechaza_se_avisa_sin_detalles(monkeypatch):
@@ -152,6 +176,9 @@ def test_el_codigo_nunca_queda_en_el_registro(monkeypatch, caplog):
 # quedarse sin identificador no puede costarle la cuenta a una persona.
 
 @pytest.mark.parametrize("cuerpo,esperado", [
+    # La forma real, tomada de /reference/messages-send.
+    ({"id": "550e8400-e29b-41d4-a716-446655440000", "status": "sent"},
+     "550e8400-e29b-41d4-a716-446655440000"),
     ({"data": [{"id": "A1"}]}, "A1"),
     ({"data": {"id": "B2"}}, "B2"),
     ({"id": "C3"}, "C3"),

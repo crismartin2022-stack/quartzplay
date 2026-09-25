@@ -110,11 +110,10 @@ def _remitente(cred: Credenciales, canal: str) -> str:
 def _identificador(cuerpo) -> str:
     """El id que devuelve el proveedor, buscado sin confiar en una sola forma.
 
-    La documentación pública muestra el pedido pero no una respuesta de
-    ejemplo, y los webhooks usan `message_id` mientras la API de envío suele
-    usar `id` dentro de `data`. Se prueban las tres formas y, si ninguna
-    aparece, el envío igual se da por bueno: el mensaje salió, y quedarnos
-    sin identificador no es motivo para negarle la cuenta a alguien.
+    La API de envío lo devuelve como `id` en la raíz, pero los webhooks usan
+    `message_id`. Se prueban las formas plausibles y, si ninguna aparece, el
+    envío igual se da por bueno: el mensaje salió, y quedarnos sin
+    identificador no es motivo para negarle la cuenta a alguien.
     """
     if not isinstance(cuerpo, dict):
         return ""
@@ -137,11 +136,21 @@ async def enviar_codigo(telefono_e164: str, codigo: str, canal: str = SMS,
     cred = cred or credenciales_del_entorno()
     desde = _remitente(cred, canal)
 
+    # El cuerpo va envuelto en `data` y `to` es una lista, aunque mandemos
+    # uno solo: la API acepta hasta diez destinatarios por pedido. La página
+    # de "get started" muestra el JSON plano y sin envolver; es incorrecta,
+    # y mandarlo así devuelve 400 con "Request data is missing" (código 1007).
+    # La referencia de /reference/messages-send es la buena.
+    #
+    # El número va sin el "+": la referencia pide el código de país sin
+    # espacios ni caracteres especiales, y su propio ejemplo lo escribe así.
     cuerpo = {
-        "to": telefono_e164,
-        "from": desde,
-        "text": texto_del_codigo(codigo, minutos),
-        "channel": _CANAL_DEL_PROVEEDOR[canal],
+        "data": {
+            "channel": _CANAL_DEL_PROVEEDOR[canal],
+            "from": desde,
+            "to": [telefono_e164.lstrip("+")],
+            "text": texto_del_codigo(codigo, minutos),
+        }
     }
     async with httpx.AsyncClient(timeout=TIEMPO_LIMITE) as client:
         r = await client.post(DEXATEL_API, json=cuerpo,
