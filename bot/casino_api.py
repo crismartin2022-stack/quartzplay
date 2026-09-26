@@ -1,4 +1,4 @@
-import os, re, time, hashlib, asyncio, hmac, json, logging, ast, secrets, random
+import os, re, time, hashlib, asyncio, hmac, json, logging, ast, secrets, random, dataclasses
 from decimal import Decimal
 from datetime import datetime, timezone, timedelta
 from typing import NamedTuple
@@ -9,7 +9,10 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
 import psp_webhook_auth
+import correo
+import mensajeria
 import registro_publico
+import secretos
 from config import cors_headers, get_runtime_settings
 from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
 from log_hygiene import silence_request_urls
@@ -15091,9 +15094,7 @@ async def me_retirar(request: Request):
     queda un código para cobrar en efectivo en el mostrador de su agencia.
     body: {init_data, monto}"""
     body = await request.json()
-    user = validar_init_data(body.get("init_data", ""))
-    if not user or not user.get("id"):
-        raise HTTPException(401, "No autenticado")
+    jugador_id = await _jugador_actual(request, body)
     try:
         monto = int(body.get("monto", 0))
     except (TypeError, ValueError):
@@ -15101,15 +15102,13 @@ async def me_retirar(request: Request):
     if monto <= 0:
         raise HTTPException(400, "El monto debe ser mayor a cero")
 
-    tg_id = str(user["id"])
     pool = await get_db()
     async with pool.acquire() as conn:
         u = await conn.fetchrow("""
             SELECT id, balance, moneda, creado_por,
                    origen_registro, telefono_verificado_at
-            FROM users
-            WHERE telegram_id::text=$1 OR id::text=$1
-        """, tg_id)
+            FROM users WHERE id=$1
+        """, jugador_id)
         if not u:
             raise HTTPException(404, "Usuario no encontrado")
         # Mismo candado que el retiro digital: cobrar en el mostrador también
@@ -16303,7 +16302,8 @@ async def cliente_login(request: Request):
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
             SELECT id, username, nombre_completo, balance, saldo_bono,
-                   moneda, password_hash, bloqueado, creado_por
+                   moneda, password_hash, bloqueado, creado_por,
+                   origen_registro, telefono_verificado_at
             FROM users WHERE LOWER(username)=$1
         """, uname)
         # Mismo mensaje para usuario inexistente y clave incorrecta: si
@@ -16337,6 +16337,11 @@ async def cliente_login(request: Request):
             "puede_cargar": False,
             "puede_retirar": False,
         },
+        # El mismo bloque que devuelve el registro. Sin esto, el jugador que
+        # cierra sesión y vuelve a entrar pierde la marca de "teléfono sin
+        # verificar" y cree que ya puede retirar, hasta que lo intenta.
+        "verificacion": registro_publico.estado_de_verificacion(
+            row["origen_registro"], row["telefono_verificado_at"]),
     }
 
 
@@ -21827,9 +21832,9 @@ async def me_psp_retirar(request: Request):
     Según el modo (auto/manual) se ejecuta o espera aprobación.
     body: {init_data, monto, destino (CVU/CBU)}"""
     body = await request.json()
-    user = validar_init_data(body.get("init_data", ""))
-    if not user or not user.get("id"):
-        raise HTTPException(401, "No autenticado")
+    # Telegram o navegador: desde que el jugador se puede registrar en el
+    # sitio, exigir identidad de Telegram para retirar lo dejaba sin salida.
+    jugador_id = await _jugador_actual(request, body)
     try:
         monto = int(body.get("monto", 0))
     except (TypeError, ValueError):
@@ -21840,15 +21845,13 @@ async def me_psp_retirar(request: Request):
     if len(destino) != 22:
         raise HTTPException(400, "El CVU/CBU debe tener 22 dígitos")
 
-    tg_id = str(user["id"])
     pool = await get_db()
     async with pool.acquire() as conn:
         u = await conn.fetchrow("""
             SELECT id, balance, creado_por, rollover_pendiente,
                    origen_registro, telefono_verificado_at
-            FROM users
-            WHERE telegram_id::text=$1 OR id::text=$1
-        """, tg_id)
+            FROM users WHERE id=$1
+        """, jugador_id)
         if not u:
             raise HTTPException(404, "Usuario no encontrado")
         # El que se registró solo tiene que haber verificado su teléfono para
@@ -27409,3 +27412,963 @@ async def wallet(request: Request):
             "balance":str(new_bal.quantize(Decimal("0.01"))),
             "transaction":transaction})
     return JSONResponse({"status":False,"error":"invalid_packet"})
+
+
+# ── VERIFICACIÓN DEL TELÉFONO ─────────────────────────────────
+#
+# El registro no la pide: entrar, depositar y jugar son libres. La pide el
+# retiro, que es donde hay riesgo y donde una cuenta fantasma hace daño.
+#
+# Los dos endpoints valen para el jugador de Telegram y para el del
+# navegador, con la misma resolución de identidad que usa /api/apuesta.
+
+# El mismo secreto ata el hash del código de teléfono y, más abajo, el del
+# código de correo del registro pendiente: los dos usan hash_codigo/
+# codigo_coincide de registro_publico.py, que piden un secreto de servidor
+# y no dos.
+CODIGO_SECRETO = os.environ.get("TELEFONO_CODIGO_SECRETO", "") or os.environ.get(
+    "ADMIN_API_KEY", "")
+
+
+async def _jugador_actual(request: Request, body: dict):
+    """El id del jugador, venga de Telegram o del navegador."""
+    user = validar_init_data(body.get("init_data", ""))
+    if user and user.get("id"):
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            fila = await conn.fetchrow(
+                "SELECT id FROM users WHERE telegram_id=$1", int(user["id"]))
+        if fila:
+            return fila["id"]
+    web_id = await jugador_de_sesion(request.headers.get("authorization"))
+    if web_id is None:
+        raise HTTPException(401, "Iniciá sesión para verificar tu teléfono")
+    return web_id
+
+
+def _ip_de(request: Request) -> str:
+    """La IP real detrás del proxy de la plataforma."""
+    reenviada = request.headers.get("x-forwarded-for", "")
+    if reenviada:
+        return reenviada.split(",")[0].strip()
+    return request.client.host if request.client else "0.0.0.0"
+
+
+# ── Credenciales de mensajería: la base manda, el entorno respalda ──
+#
+# `mensajeria.py` y `correo.py` siguen sin tocar la base a propósito: son
+# fáciles de probar así, y esa garantía no se toca acá. La lectura de la
+# base vive en este módulo, que ya es dueño del pool, y arma un
+# `Credenciales` campo por campo: el valor de la base gana si existe, el
+# del entorno lo respalda si no. Sin fila y sin variable, el resultado es
+# igual de vacío que hoy — el fallo cerrado de `mensajeria`/`correo` no
+# cambia en nada.
+#
+# Se cachea en memoria porque un SMS no puede pagar un viaje a la base más
+# un descifrado AES-GCM en cada envío. El caché se limpia al guardar o
+# borrar una credencial (ver más abajo), así que un cambio en el panel
+# rige de inmediato, sin reiniciar el proceso.
+
+CAMPOS_MENSAJERIA = {
+    "sms": {
+        "clave": "DEXATEL_API_KEY",
+        "remitente_sms": "DEXATEL_SMS_FROM",
+        "remitente_whatsapp": "DEXATEL_WHATSAPP_FROM",
+        # UUID de la plantilla aprobada por Meta. Sin ella `whatsapp_listo`
+        # da falso aunque haya remitente: `/v1/verifications` no manda texto
+        # libre, y sin plantilla no hay OTP de WhatsApp posible.
+        "plantilla_whatsapp": "DEXATEL_WHATSAPP_TEMPLATE",
+    },
+    "correo": {
+        "api_key": "RESEND_API_KEY",
+        "remitente": "CORREO_DESDE",
+    },
+}
+
+# Cuáles de esos campos son de verdad secretos.
+#
+# El criterio es uno solo: ¿saber este valor le permite a alguien hacer algo
+# que no podría hacer sin él? La clave de Dexatel y la de Resend, sí. Un
+# remitente no: es el nombre que el jugador ve en su teléfono cuando le
+# llega el código, y el UUID de una plantilla no sirve para nada sin la
+# clave. Enmascararlos no protege nada y sí esconde lo que el admin
+# necesita leer para entender por qué un envío salió como salió.
+#
+# Peor todavía: "IAQP Col" enmascarado da "IAQP… Col", que parece un valor
+# roto cuando en realidad está perfecto.
+CAMPOS_SECRETOS = {("sms", "clave"), ("correo", "api_key")}
+
+
+# Canales válidos de `remitentes_mensajeria`. Los mismos nombres que ya usa
+# `mensajeria.SMS`/`mensajeria.WHATSAPP`, para no inventar un segundo
+# vocabulario de canales.
+CANALES_REMITENTES = (mensajeria.SMS, mensajeria.WHATSAPP)
+
+_cache_credenciales: dict = {}
+
+
+def _invalidar_cache_credenciales():
+    """Limpia también los remitentes por país (`remitentes:<canal>`): viven
+    en el mismo diccionario porque la razón de cachear es la misma — no
+    pagar un viaje a la base en cada envío — y un cambio en cualquiera de
+    las dos pantallas de admin tiene que regir de inmediato."""
+    _cache_credenciales.clear()
+
+
+async def _filas_credenciales(conn, ambito: str) -> dict:
+    """Las filas de un ámbito, ya descifradas. Vacío si no hay llave
+    maestra: sin ella no hay nada usable en la base, y cada campo cae al
+    entorno como si la fila no existiera."""
+    if not secretos.hay_llave():
+        return {}
+    filas = await conn.fetch(
+        "SELECT clave, valor_cifrado, actualizado_por, actualizado_at "
+        "FROM credenciales_mensajeria WHERE ambito=$1", ambito)
+    resultado = {}
+    for f in filas:
+        try:
+            valor = secretos.descifrar(f["valor_cifrado"])
+        except Exception:
+            # Una fila que no descifra (llave rotada, dato corrupto) no
+            # puede tumbar el envío: se trata como si no estuviera, y el
+            # entorno hace de respaldo igual que si faltara la fila.
+            log.error("[MENSAJERIA] no se pudo descifrar %s.%s",
+                      ambito, f["clave"])
+            continue
+        resultado[f["clave"]] = {
+            "valor": valor,
+            "actualizado_por": f["actualizado_por"],
+            "actualizado_at": f["actualizado_at"],
+        }
+    return resultado
+
+
+async def _credenciales_sms() -> mensajeria.Credenciales:
+    if "sms" not in _cache_credenciales:
+        entorno = mensajeria.credenciales_del_entorno()
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            filas = await _filas_credenciales(conn, "sms")
+        _cache_credenciales["sms"] = mensajeria.Credenciales(
+            clave=(filas.get("clave") or {}).get("valor") or entorno.clave,
+            remitente_sms=(filas.get("remitente_sms") or {}).get("valor")
+                or entorno.remitente_sms,
+            remitente_whatsapp=(filas.get("remitente_whatsapp") or {}).get("valor")
+                or entorno.remitente_whatsapp,
+            plantilla_whatsapp=(filas.get("plantilla_whatsapp") or {}).get("valor")
+                or entorno.plantilla_whatsapp,
+        )
+    return _cache_credenciales["sms"]
+
+
+# ── Remitentes por país: la base manda, el entorno respalda igual ────
+#
+# Misma idea que las credenciales de arriba, pero acá la fila no reemplaza a
+# una variable: se suma. `elegir_remitente` (en `mensajeria.py`, sin tocar
+# red ni base) hace la resolución de verdad; esta función solo le entrega la
+# lista de remitentes activos de un canal, ya leída y cacheada.
+
+async def _remitentes_activos(canal: str) -> list[dict]:
+    clave_cache = f"remitentes:{canal}"
+    if clave_cache not in _cache_credenciales:
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            filas = await conn.fetch(
+                "SELECT remitente, paises FROM remitentes_mensajeria "
+                "WHERE canal=$1 AND activo=true", canal)
+        _cache_credenciales[clave_cache] = [
+            {"remitente": f["remitente"], "paises": list(f["paises"] or [])}
+            for f in filas
+        ]
+    return _cache_credenciales[clave_cache]
+
+
+async def _credenciales_para_envio(canal: str, pais: str) -> mensajeria.Credenciales:
+    """La credencial ya lista para `mensajeria.enviar_codigo`, con el
+    remitente resuelto para `pais`. El resto (clave, plantilla) no depende
+    del país: viene tal cual de `_credenciales_sms()`."""
+    cred = await _credenciales_sms()
+    remitentes = await _remitentes_activos(canal)
+    pais_nombre = registro_publico.PAISES.get(pais)
+
+    if canal == mensajeria.WHATSAPP:
+        elegido = mensajeria.elegir_remitente(
+            remitentes, pais, respaldo=cred.remitente_whatsapp, pais_nombre=pais_nombre)
+        return dataclasses.replace(cred, remitente_whatsapp=elegido)
+
+    elegido = mensajeria.elegir_remitente(
+        remitentes, pais, respaldo=cred.remitente_sms, pais_nombre=pais_nombre)
+    return dataclasses.replace(cred, remitente_sms=elegido)
+
+
+async def _credenciales_correo() -> correo.Credenciales:
+    if "correo" not in _cache_credenciales:
+        entorno = correo.credenciales_del_entorno()
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            filas = await _filas_credenciales(conn, "correo")
+        _cache_credenciales["correo"] = correo.Credenciales(
+            api_key=(filas.get("api_key") or {}).get("valor") or entorno.api_key,
+            desde=(filas.get("remitente") or {}).get("valor") or entorno.desde,
+            modo=entorno.modo,  # el escape de consola es solo del entorno
+        )
+    return _cache_credenciales["correo"]
+
+
+@app.get("/api/telefono/canales")
+async def telefono_canales():
+    """Qué canales se pueden ofrecer hoy. La pantalla no debe mostrar
+    WhatsApp mientras su remitente espera aprobación."""
+    return {"canales": mensajeria.canales_disponibles(await _credenciales_sms())}
+
+
+@app.post("/api/me/telefono/codigo")
+async def me_telefono_codigo(request: Request):
+    """Manda un código al teléfono del jugador.
+    body: {init_data?, telefono, pais, canal?}"""
+    body = await request.json()
+    jugador_id = await _jugador_actual(request, body)
+
+    cred_sms = await _credenciales_sms()
+    canal = (body.get("canal") or mensajeria.SMS).lower()
+    if canal not in mensajeria.canales_disponibles(cred_sms):
+        raise HTTPException(503, "Ese canal no está disponible")
+
+    pais = (body.get("pais") or "").upper()
+    try:
+        telefono = registro_publico.normalizar_telefono(
+            body.get("telefono") or "", pais)
+    except registro_publico.TelefonoInvalido as e:
+        raise HTTPException(400, str(e))
+
+    # Se resuelve el remitente antes de gastar un turno de los frenos: si no
+    # hay nada para mandarle a este país, no tiene sentido quemarle a la
+    # persona uno de sus reintentos por algo que no es culpa suya.
+    try:
+        cred_envio = await _credenciales_para_envio(canal, pais)
+    except mensajeria.MensajeriaNoConfigurada as e:
+        log.error("[MENSAJERIA] %s", e)
+        raise HTTPException(503, "La verificación por ahora no está disponible")
+
+    ip = _ip_de(request)
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        # El número no puede estar ya verificado por otra cuenta: si no, la
+        # verificación no significa nada y una persona abre diez cuentas.
+        de_otro = await conn.fetchval("""
+            SELECT id FROM users WHERE telefono_e164=$1 AND id<>$2
+        """, telefono, jugador_id)
+        if de_otro:
+            raise HTTPException(409, "Ese teléfono ya está en uso")
+
+        # Los frenos. Sin esto, cualquiera llama en bucle y quema el crédito.
+        por_telefono = await conn.fetchval("""
+            SELECT count(*) FROM verificaciones_telefono
+             WHERE telefono_e164=$1
+               AND enviado_at > NOW() - ($2 || ' minutes')::interval
+        """, telefono, str(registro_publico.LIMITE_POR_TELEFONO.en_minutos))
+        por_ip = await conn.fetchval("""
+            SELECT count(*) FROM verificaciones_telefono
+             WHERE ip=$1::inet
+               AND enviado_at > NOW() - ($2 || ' minutes')::interval
+        """, ip, str(registro_publico.LIMITE_POR_IP.en_minutos))
+        try:
+            registro_publico.revisar_limite(
+                por_telefono or 0, registro_publico.LIMITE_POR_TELEFONO)
+            registro_publico.revisar_limite(
+                por_ip or 0, registro_publico.LIMITE_POR_IP)
+        except registro_publico.FrenoActivado as e:
+            raise HTTPException(429, str(e))
+
+        codigo = registro_publico.generar_codigo()
+        await conn.execute("""
+            INSERT INTO verificaciones_telefono
+                (telefono_e164, codigo_hash, canal, proveedor, ip, expira_at)
+            VALUES ($1,$2,$3,'dexatel',$4::inet,
+                    NOW() + ($5 || ' minutes')::interval)
+        """, telefono,
+            registro_publico.hash_codigo(codigo, telefono, CODIGO_SECRETO),
+            canal, ip, str(registro_publico.VIGENCIA_MINUTOS))
+
+    try:
+        await mensajeria.enviar_codigo(
+            telefono, codigo, canal, registro_publico.VIGENCIA_MINUTOS,
+            cred=cred_envio)
+    except mensajeria.MensajeriaNoConfigurada as e:
+        log.error("[MENSAJERIA] %s", e)
+        raise HTTPException(503, "La verificación por ahora no está disponible")
+    except mensajeria.EnvioFallido:
+        otros = [c for c in mensajeria.canales_disponibles(cred_sms) if c != canal]
+        raise HTTPException(502, {
+            "message": "No pudimos enviarte el código",
+            "otros_canales": otros,
+        })
+
+    return {"ok": True, "canal": canal,
+            "vence_en_minutos": registro_publico.VIGENCIA_MINUTOS}
+
+
+@app.post("/api/me/telefono/verificar")
+async def me_telefono_verificar(request: Request):
+    """Comprueba el código y deja el teléfono verificado.
+    body: {init_data?, telefono, pais, codigo}"""
+    body = await request.json()
+    jugador_id = await _jugador_actual(request, body)
+
+    try:
+        telefono = registro_publico.normalizar_telefono(
+            body.get("telefono") or "", (body.get("pais") or "").upper())
+    except registro_publico.TelefonoInvalido as e:
+        raise HTTPException(400, str(e))
+    codigo = "".join(ch for ch in (body.get("codigo") or "") if ch.isdigit())
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        fila = await conn.fetchrow("""
+            SELECT id, codigo_hash, intentos FROM verificaciones_telefono
+             WHERE telefono_e164=$1 AND consumido_at IS NULL
+               AND expira_at > NOW()
+             ORDER BY enviado_at DESC LIMIT 1
+        """, telefono)
+        if not fila:
+            raise HTTPException(400, "Pedí un código nuevo: el anterior venció")
+        if (fila["intentos"] or 0) >= registro_publico.MAX_INTENTOS:
+            raise HTTPException(429, "Demasiados intentos. Pedí un código nuevo")
+
+        await conn.execute(
+            "UPDATE verificaciones_telefono SET intentos=intentos+1 WHERE id=$1",
+            fila["id"])
+
+        if not registro_publico.codigo_coincide(
+                fila["codigo_hash"], codigo, telefono, CODIGO_SECRETO):
+            raise HTTPException(400, "El código no coincide")
+
+        async with conn.transaction():
+            await conn.execute(
+                "UPDATE verificaciones_telefono SET consumido_at=NOW() WHERE id=$1",
+                fila["id"])
+            await conn.execute("""
+                UPDATE users
+                   SET telefono_e164=$2, telefono_verificado_at=NOW(),
+                       -- El número verificado pisa al declarado, siempre.
+                       -- Antes solo rellenaba si `telefono` estaba vacío, para
+                       -- no borrar lo que había cargado una agencia. Esa
+                       -- premisa cambió: desde el registro web, `telefono` ya
+                       -- viene con lo que el jugador tipeó y nadie comprobó.
+                       -- Si después verifica otro número y no pisamos, la
+                       -- ficha queda mostrando un número que sabemos que no
+                       -- es, y soporte termina llamando al equivocado.
+                       -- Lo que alguien demostró controlar gana sobre lo que
+                       -- alguien escribió.
+                       telefono=$2
+                 WHERE id=$1
+            """, jugador_id, telefono)
+
+        u = await conn.fetchrow("""
+            SELECT origen_registro, telefono_verificado_at FROM users WHERE id=$1
+        """, jugador_id)
+
+    log.info(f"[TEL] jugador {jugador_id} verificó su teléfono")
+    return {"ok": True, "estado": registro_publico.estado_de_verificacion(
+        u["origen_registro"], u["telefono_verificado_at"])}
+
+
+# ── REGISTRO DESDE EL SITIO ───────────────────────────────────
+#
+# La primera puerta de entrada que no pasa por una agencia ni por Telegram.
+#
+# El jugador que se registra solo queda como "de la casa" (creado_por
+# 'admin', la misma marca que ya usan el alta por Telegram y los movimientos
+# de caja). Si trae el código de una agencia, queda de esa agencia desde el
+# primer momento y esa agencia cobra como siempre.
+#
+# Son dos pasos, no uno. La cuenta no se crea al llenar el formulario: se
+# crea recién al confirmar el código que llega por correo. Mientras tanto
+# solo existe una fila de `registro_pendiente` que vence sola. Antes había
+# un único POST que insertaba en `users` de una: eso dejaba entrar cuentas
+# con un correo que nadie comprobó, y el correo es la única forma que tiene
+# el jugador "de la casa" de recuperar su cuenta. Ese endpoint viejo ya no
+# existe: dejarlo andando al lado de este hubiera sido una forma de saltear
+# la comprobación entera.
+#
+# El teléfono sí se pide ahora, pero solo se guarda como texto libre
+# (`users.telefono`): es lo que la persona escribió, no un hecho. Pasa a
+# `telefono_e164` -y recién ahí cuenta para el índice único- el día que
+# completa `POST /api/me/telefono/verificar`. Escribirlo antes sería
+# regalarle a cualquiera la posibilidad de tipear el número de otra
+# persona y dejarla bloqueada para siempre de registrarse con el suyo.
+
+CASA = "admin"
+
+
+@app.get("/api/paises")
+async def paises_disponibles():
+    """Los países habilitados para el teléfono del registro. Sin bandera:
+    de dibujarla se encarga la pantalla, no el backend."""
+    return {"paises": registro_publico.paises_disponibles()}
+
+
+@app.post("/api/cliente/registro/iniciar")
+async def cliente_registro_iniciar(request: Request):
+    """Primer paso del alta desde el sitio: valida todo, guarda el registro
+    a la espera del código y lo manda por correo. Todavía no crea al
+    jugador.
+    body: {nombre, username, password, email, mayor_de_edad, pais,
+           telefono, referido?}"""
+    body = await request.json()
+
+    try:
+        nombre = registro_publico.validar_nombre(body.get("nombre"))
+        usuario = registro_publico.validar_usuario(body.get("username"))
+        clave = registro_publico.validar_clave(body.get("password") or "")
+        registro_publico.validar_edad_declarada(body.get("mayor_de_edad"))
+        # El correo es obligatorio acá y no en el alta de mostrador por un
+        # motivo concreto: al jugador de la casa no hay agencia que le
+        # resetee la clave. El correo es su única forma de volver a entrar,
+        # y ahora además es la puerta que confirma que la cuenta es suya.
+        correo_normalizado = registro_publico.normalizar_email(body.get("email") or "")
+    except registro_publico.DatosInvalidos as e:
+        raise HTTPException(400, str(e))
+    except ValueError:
+        raise HTTPException(400, "Necesitamos un correo válido para que puedas recuperar tu cuenta")
+
+    try:
+        telefono = registro_publico.normalizar_telefono(
+            body.get("telefono") or "", (body.get("pais") or "").upper())
+    except registro_publico.TelefonoInvalido as e:
+        raise HTTPException(400, str(e))
+
+    referido = registro_publico.limpiar_referido(body.get("referido"))
+    ip = _ip_de(request)
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        # Barrido oportunista de filas vencidas. No hace falta un job
+        # aparte: alcanza con limpiar un poco cada vez que alguien empieza
+        # un registro nuevo, y se guarda una hora de margen por si hace
+        # falta investigar un intento que quedó a medias.
+        await conn.execute(
+            "DELETE FROM registro_pendiente WHERE expira_at < NOW() - interval '1 hour'")
+
+        # El freno por conexión se mide contra `registro_pendiente` y no
+        # contra `users`, porque la cuenta ya no se crea en este paso pero
+        # el correo sí se manda, y mandar correos de más cuesta plata igual
+        # que quemar crédito de SMS. Dos ventanas: una corta contra la
+        # ráfaga del bot, y un tope diario holgado, porque detrás de una
+        # misma IP pública puede haber un barrio entero por CGNAT.
+        for limite in (registro_publico.LIMITE_RAFAGA_REGISTROS,
+                       registro_publico.LIMITE_REGISTROS_POR_IP):
+            recientes = await conn.fetchval("""
+                SELECT count(*) FROM registro_pendiente
+                 WHERE ip=$1::inet
+                   AND creado_at > NOW() - ($2 || ' minutes')::interval
+            """, ip, str(limite.en_minutos))
+            try:
+                registro_publico.revisar_limite(recientes or 0, limite)
+            except registro_publico.FrenoActivado as e:
+                raise HTTPException(429, str(e))
+
+        if await conn.fetchval("SELECT 1 FROM users WHERE LOWER(username)=$1", usuario):
+            raise HTTPException(409, "Ese usuario ya está tomado")
+        if await conn.fetchval(
+                "SELECT 1 FROM users WHERE email_normalizado=$1", correo_normalizado):
+            raise HTTPException(409, "Ya hay una cuenta con ese correo")
+
+        token = registro_publico.generar_token_pendiente()
+        codigo = registro_publico.generar_codigo()
+
+        await conn.execute("""
+            INSERT INTO registro_pendiente
+                (token, username, password_hash, nombre_completo, email,
+                 email_normalizado, telefono, referido_code, ip,
+                 codigo_hash, expira_at)
+            VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$8::inet,$9,
+                    NOW() + ($10 || ' minutes')::interval)
+        """, token, usuario, auth.hash_password(clave), nombre, correo_normalizado,
+            telefono, referido or None, ip,
+            registro_publico.hash_codigo(codigo, token, CODIGO_SECRETO),
+            str(registro_publico.VIGENCIA_PENDIENTE_MINUTOS))
+
+    try:
+        await correo.enviar_codigo(
+            correo_normalizado, codigo, registro_publico.VIGENCIA_PENDIENTE_MINUTOS,
+            cred=await _credenciales_correo())
+    except correo.CorreoNoConfigurado:
+        raise HTTPException(503, "No podemos enviar el código en este momento")
+    except correo.EnvioFallido:
+        raise HTTPException(502, "No pudimos enviarte el código. Probá de nuevo en un rato")
+
+    log.info(f"[REG] registro pendiente iniciado ({usuario}) · ip {ip}")
+
+    return {
+        "pendiente": token,
+        "correo_enmascarado": registro_publico.enmascarar_correo(correo_normalizado),
+        "expira_en_minutos": registro_publico.VIGENCIA_PENDIENTE_MINUTOS,
+    }
+
+
+@app.post("/api/cliente/registro/confirmar")
+async def cliente_registro_confirmar(request: Request):
+    """Segundo y último paso: si el código coincide, ahí sí se crea la
+    cuenta. Devuelve la misma forma que devolvía el alta de un solo paso,
+    para que la sesión arranque enseguida.
+    body: {pendiente, codigo}"""
+    body = await request.json()
+    token = (body.get("pendiente") or "").strip()
+    codigo = "".join(ch for ch in (body.get("codigo") or "") if ch.isdigit())
+    if not token:
+        raise HTTPException(400, "Falta el registro pendiente")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        fila = await conn.fetchrow("""
+            SELECT id, username, password_hash, nombre_completo, email,
+                   email_normalizado, telefono, referido_code, ip,
+                   codigo_hash, intentos, expira_at
+              FROM registro_pendiente WHERE token=$1
+        """, token)
+        if not fila:
+            raise HTTPException(400, "Ese registro no existe. Empezá de nuevo")
+
+        if fila["expira_at"] <= datetime.now(timezone.utc):
+            await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
+            raise HTTPException(410, "El código venció. Empezá el registro de nuevo")
+
+        if not registro_publico.codigo_coincide(
+                fila["codigo_hash"], codigo, token, CODIGO_SECRETO):
+            intentos = (fila["intentos"] or 0) + 1
+            restantes = registro_publico.MAX_INTENTOS_PENDIENTE - intentos
+            if restantes <= 0:
+                # Se agotaron los intentos: la fila muere acá mismo, no
+                # espera a vencer sola. Volver a intentar con este token ya
+                # no tiene sentido, así que la persona empieza de nuevo.
+                await conn.execute(
+                    "DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
+                raise HTTPException(400, "Agotaste los intentos. Empezá el registro de nuevo")
+            await conn.execute(
+                "UPDATE registro_pendiente SET intentos=$2 WHERE id=$1",
+                fila["id"], intentos)
+            raise HTTPException(400, f"El código no coincide. Te quedan {restantes} intentos")
+
+        # Dos personas pueden haber empezado el registro al mismo tiempo con
+        # el mismo usuario o correo: lo que se comprobó al iniciar puede
+        # haber dejado de ser cierto. Se vuelve a comprobar acá, justo antes
+        # de crear la cuenta de verdad.
+        if await conn.fetchval(
+                "SELECT 1 FROM users WHERE LOWER(username)=$1", fila["username"]):
+            await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
+            raise HTTPException(409, "Ese usuario ya está tomado")
+        if await conn.fetchval(
+                "SELECT 1 FROM users WHERE email_normalizado=$1", fila["email_normalizado"]):
+            await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
+            raise HTTPException(409, "Ya hay una cuenta con ese correo")
+
+        # El referido tiene que ser una agencia de verdad y activa. Si no lo
+        # es, no se rechaza el registro: se lo toma como jugador de la casa.
+        # Perder un alta por un código mal tipeado sería absurdo.
+        referido = fila["referido_code"] or ""
+        dueno = CASA
+        if referido:
+            agencia = await conn.fetchval(
+                "SELECT code FROM agencias WHERE UPPER(code)=$1", referido)
+            if agencia:
+                dueno = agencia
+            else:
+                log.info(f"[REG] código de referido desconocido: {referido}")
+
+        nueva = await conn.fetchrow("""
+            INSERT INTO users
+                (username, password_hash, nombre_completo, email,
+                 email_normalizado, creado_por, origen_registro,
+                 edad_declarada_at, registro_ip, registro_at, referido_code,
+                 telefono, telegram_id)
+            VALUES ($1,$2,$3,$4,$5,$6,'web',NOW(),$7::inet,NOW(),$8,$9,
+                    -- Telegram es obligatorio en el esquema viejo y este
+                    -- jugador no tiene: se usa un negativo, como ya hace el
+                    -- alta de mostrador.
+                    -nextval('users_id_seq'))
+            RETURNING id, username, nombre_completo, balance, saldo_bono,
+                      moneda, creado_por, origen_registro, telefono_verificado_at
+        """, fila["username"], fila["password_hash"], fila["nombre_completo"],
+            fila["email"], fila["email_normalizado"], dueno, fila["ip"],
+            referido or None, fila["telefono"])
+
+        await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
+
+    token_sesion = auth.create_session(f"cliente:{nueva['id']}")
+    await sesion_guardar(token_sesion, f"cliente:{nueva['id']}")
+    log.info(f"[REG] alta web {nueva['id']} ({nueva['username']}) · dueño {dueno}")
+
+    return {
+        "token": token_sesion,
+        "user": {
+            "id": nueva["id"],
+            "username": nueva["username"],
+            "nombre": nueva["nombre_completo"] or nueva["username"],
+            "saldo": int(nueva["balance"] or 0) // 100,
+            "saldo_bono": int(nueva["saldo_bono"] or 0) // 100,
+            "moneda": nueva["moneda"] or "ARS",
+            "agencia": nueva["creado_por"],
+            "puede_cargar": False,
+            "puede_retirar": False,
+        },
+        # Lo que alimenta la marca del perfil y el aviso: puede jugar, no
+        # puede retirar hasta verificar el teléfono.
+        "verificacion": registro_publico.estado_de_verificacion(
+            nueva["origen_registro"], nueva["telefono_verificado_at"]),
+    }
+
+
+@app.post("/api/cliente/registro/reenviar")
+async def cliente_registro_reenviar(request: Request):
+    """Reenvía el código del registro pendiente: uno nuevo, con la ventana
+    de vigencia y los intentos reiniciados.
+    body: {pendiente}"""
+    body = await request.json()
+    token = (body.get("pendiente") or "").strip()
+    if not token:
+        raise HTTPException(400, "Falta el registro pendiente")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        fila = await conn.fetchrow("""
+            SELECT id, email_normalizado, reenvios, expira_at
+              FROM registro_pendiente WHERE token=$1
+        """, token)
+        if not fila:
+            raise HTTPException(400, "Ese registro no existe. Empezá de nuevo")
+        if fila["expira_at"] <= datetime.now(timezone.utc):
+            await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
+            raise HTTPException(410, "El código venció. Empezá el registro de nuevo")
+
+        try:
+            registro_publico.revisar_limite(
+                fila["reenvios"] or 0, registro_publico.LIMITE_REENVIO_PENDIENTE)
+        except registro_publico.FrenoActivado as e:
+            raise HTTPException(429, str(e))
+
+        codigo = registro_publico.generar_codigo()
+        correo_normalizado = fila["email_normalizado"]
+        await conn.execute("""
+            UPDATE registro_pendiente
+               SET codigo_hash=$2, intentos=0, reenvios=reenvios+1,
+                   expira_at=NOW() + ($3 || ' minutes')::interval
+             WHERE id=$1
+        """, fila["id"],
+            registro_publico.hash_codigo(codigo, token, CODIGO_SECRETO),
+            str(registro_publico.VIGENCIA_PENDIENTE_MINUTOS))
+
+    try:
+        await correo.enviar_codigo(
+            correo_normalizado, codigo, registro_publico.VIGENCIA_PENDIENTE_MINUTOS,
+            cred=await _credenciales_correo())
+    except correo.CorreoNoConfigurado:
+        raise HTTPException(503, "No podemos enviar el código en este momento")
+    except correo.EnvioFallido:
+        raise HTTPException(502, "No pudimos enviarte el código. Probá de nuevo en un rato")
+
+    return {
+        "pendiente": token,
+        "correo_enmascarado": registro_publico.enmascarar_correo(correo_normalizado),
+        "expira_en_minutos": registro_publico.VIGENCIA_PENDIENTE_MINUTOS,
+    }
+
+
+# ── Credenciales de mensajería, desde el panel de admin ──────────────
+#
+# Config → Mensajería. Antes de esto, cambiar el proveedor de SMS o de
+# correo era un comando de Railway CLI o entrar al panel de Railway a
+# mano — y en la práctica costó esperar a que alguien lo corriera
+# mientras el canal de verificación estaba caído. Estos cuatro endpoints
+# son la puerta chica para que el dueño lo resuelva solo.
+#
+# El valor completo no vuelve nunca: `GET` solo manda lo que da
+# `secretos.enmascarar`. Guardar y borrar cachean el resultado en memoria
+# (ver `_credenciales_sms`/`_credenciales_correo` más arriba) e invalidan
+# ese caché, así que el próximo envío ya usa lo nuevo sin reiniciar nada.
+
+@app.get("/api/admin/mensajeria")
+async def admin_mensajeria_listar(_=Depends(auth.require_admin)):
+    """Por proveedor y por campo: si está configurado, enmascarado, de
+    dónde sale (`base` o `entorno`), quién lo cambió y cuándo. También si
+    hay llave maestra en absoluto, porque sin ella la base no sirve de
+    nada aunque tenga filas."""
+    pool = await get_db()
+    proveedores = {}
+    async with pool.acquire() as conn:
+        for ambito, campos in CAMPOS_MENSAJERIA.items():
+            filas = await _filas_credenciales(conn, ambito)
+            campos_resp = {}
+            for clave, var_entorno in campos.items():
+                es_secreto = (ambito, clave) in CAMPOS_SECRETOS
+                mostrar = (secretos.enmascarar if es_secreto else (lambda v: v))
+                fila = filas.get(clave)
+                if fila:
+                    campos_resp[clave] = {
+                        "configurado": True,
+                        "secreto": es_secreto,
+                        "mascara": mostrar(fila["valor"]),
+                        "origen": "base",
+                        "actualizado_por": fila["actualizado_por"],
+                        "actualizado_at": _fecha_local(fila["actualizado_at"]),
+                    }
+                    continue
+                valor_entorno = os.environ.get(var_entorno, "")
+                campos_resp[clave] = {
+                    "configurado": bool(valor_entorno),
+                    "secreto": es_secreto,
+                    "mascara": mostrar(valor_entorno) if valor_entorno else None,
+                    "origen": "entorno" if valor_entorno else None,
+                    "actualizado_por": None,
+                    "actualizado_at": None,
+                }
+            proveedores[ambito] = {"campos": campos_resp}
+    return {"hay_llave_maestra": secretos.hay_llave(), "proveedores": proveedores}
+
+
+@app.post("/api/admin/mensajeria")
+async def admin_mensajeria_guardar(request: Request, _=Depends(auth.require_admin)):
+    """Guarda uno o más campos. body: {"valores": [{"ambito","clave","valor"}, ...]}
+
+    Nada se escribe si falta `SECRETOS_CLAVE`: mejor avisar claro que
+    guardar algo cifrado con una llave que en realidad no existe todavía."""
+    if not secretos.hay_llave():
+        raise HTTPException(503,
+            "Falta configurar SECRETOS_CLAVE en el servidor: no se puede "
+            "guardar ninguna credencial todavía")
+
+    body = await request.json()
+    valores = body.get("valores")
+    if not isinstance(valores, list) or not valores:
+        raise HTTPException(400,
+            "Falta 'valores': una lista de {ambito, clave, valor}")
+
+    a_guardar = []
+    for item in valores:
+        if not isinstance(item, dict):
+            raise HTTPException(400, "Cada valor debe ser un objeto")
+        ambito = (item.get("ambito") or "").strip()
+        clave = (item.get("clave") or "").strip()
+        valor = item.get("valor")
+        if ambito not in CAMPOS_MENSAJERIA or clave not in CAMPOS_MENSAJERIA[ambito]:
+            raise HTTPException(400, f"Campo desconocido: {ambito}.{clave}")
+        if not isinstance(valor, str) or not valor.strip():
+            raise HTTPException(400, f"Falta el valor de {ambito}.{clave}")
+        a_guardar.append((ambito, clave, secretos.cifrar(valor.strip())))
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            for ambito, clave, valor_cifrado in a_guardar:
+                await conn.execute("""
+                    INSERT INTO credenciales_mensajeria
+                        (ambito, clave, valor_cifrado, actualizado_por, actualizado_at)
+                    VALUES ($1,$2,$3,'admin',NOW())
+                    ON CONFLICT (ambito, clave)
+                    DO UPDATE SET valor_cifrado=$3, actualizado_por='admin',
+                                  actualizado_at=NOW()
+                """, ambito, clave, valor_cifrado)
+
+    _invalidar_cache_credenciales()
+    guardados = [{"ambito": a, "clave": c} for a, c, _ in a_guardar]
+    log.warning("[MENSAJERIA] admin actualizó %s",
+                ", ".join(f"{g['ambito']}.{g['clave']}" for g in guardados))
+    return {"ok": True, "guardados": guardados}
+
+
+@app.delete("/api/admin/mensajeria/{ambito}/{clave}")
+async def admin_mensajeria_borrar(ambito: str, clave: str,
+                                  _=Depends(auth.require_admin)):
+    """Saca la fila: el envío vuelve a usar la variable de entorno, sin
+    reiniciar nada, porque el caché se invalida acá mismo."""
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "DELETE FROM credenciales_mensajeria WHERE ambito=$1 AND clave=$2",
+            ambito, clave)
+    _invalidar_cache_credenciales()
+    log.warning("[MENSAJERIA] admin borró %s.%s", ambito, clave)
+    return {"ok": True}
+
+
+@app.post("/api/admin/mensajeria/probar")
+async def admin_mensajeria_probar(request: Request, _=Depends(auth.require_admin)):
+    """Manda un mensaje real a un destino que escribe el admin, con la
+    credencial activa ahora mismo (base o entorno), y devuelve la
+    respuesta cruda del proveedor. Existe porque hoy una credencial mala
+    se descubre recién cuando un jugador no puede verificarse.
+
+    Si viene el país, la prueba elige el remitente igual que lo haría un
+    envío real. Sin eso la prueba mentiría: diría que el SMS sale cuando en
+    realidad salió por otro remitente que el del país del jugador, que es
+    justo lo que se quiere verificar.
+
+    body: {"proveedor": "sms"|"correo", "destino": "...",
+           "canal"?: "sms"|"whatsapp", "pais"?: "EC"}
+    """
+    body = await request.json()
+    proveedor = (body.get("proveedor") or "").strip().lower()
+    destino = (body.get("destino") or "").strip()
+    if not destino:
+        raise HTTPException(400, "Falta el destino de la prueba")
+
+    crudo: dict = {}
+    codigo_prueba = f"{random.randint(0, 999999):06d}"
+
+    if proveedor == "sms":
+        canal = (body.get("canal") or mensajeria.SMS).lower()
+        pais = (body.get("pais") or "").upper()
+        if pais:
+            try:
+                destino = registro_publico.normalizar_telefono(destino, pais)
+            except registro_publico.TelefonoInvalido as e:
+                raise HTTPException(400, str(e))
+            cred = await _credenciales_para_envio(canal, pais)
+        else:
+            cred = await _credenciales_sms()
+        remitente_usado = (cred.remitente_whatsapp if canal == mensajeria.WHATSAPP
+                           else cred.remitente_sms)
+        try:
+            identificador = await mensajeria.enviar_codigo(
+                destino, codigo_prueba, canal,
+                registro_publico.VIGENCIA_MINUTOS, cred=cred, crudo=crudo)
+        except mensajeria.MensajeriaNoConfigurada as e:
+            raise HTTPException(503, str(e))
+        except mensajeria.EnvioFallido:
+            return {"ok": False, "status_proveedor": crudo.get("status"),
+                    "respuesta": crudo.get("cuerpo"),
+                    "remitente": cred.remitente_sms or cred.remitente_whatsapp}
+    elif proveedor == "correo":
+        cred = await _credenciales_correo()
+        remitente_usado = cred.desde
+        try:
+            identificador = await correo.enviar_codigo(
+                destino, codigo_prueba,
+                registro_publico.VIGENCIA_PENDIENTE_MINUTOS, cred=cred, crudo=crudo)
+        except correo.CorreoNoConfigurado as e:
+            raise HTTPException(503, str(e))
+        except correo.EnvioFallido:
+            return {"ok": False, "status_proveedor": crudo.get("status"),
+                    "respuesta": crudo.get("cuerpo")}
+    else:
+        raise HTTPException(400, "Proveedor inválido: usá 'sms' o 'correo'")
+
+    # El remitente usado se devuelve a propósito: en una cuenta con varios,
+    # saber que el SMS salió no alcanza. Lo que el admin necesita ver es por
+    # cuál salió, que es lo que va a cambiar si el país no está cubierto.
+    return {"ok": True, "identificador": identificador,
+            "remitente": remitente_usado,
+            "status_proveedor": crudo.get("status"), "respuesta": crudo.get("cuerpo")}
+
+
+# ── Remitentes por país, desde el panel de admin ──────────────────────
+#
+# Config → Mensajería. Complementa las credenciales de arriba: acá se
+# administra CUÁL remitente usar según el país de destino, no la clave de
+# la API. Sin cifrar a propósito (ver el comentario de la migración): el
+# remitente viaja en cada mensaje y el jugador ya lo ve en su teléfono, así
+# que ocultarlo en la base no protege nada y sí complica diagnosticar por
+# qué un envío salió con un remitente y no con otro.
+#
+# Igual que con las credenciales: guardar invalida el caché de
+# `_remitentes_activos`, así que un cambio en el panel rige en el próximo
+# envío, sin reiniciar nada.
+
+@app.get("/api/admin/remitentes")
+async def admin_remitentes_listar(_=Depends(auth.require_admin)):
+    """Por canal: cada remitente con sus países, si está activo, quién lo
+    tocó y cuándo. El selector de países lo arma la pantalla con `GET
+    /api/paises`; acá solo van los códigos ISO que ya se marcaron."""
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        filas = await conn.fetch(
+            "SELECT id, canal, remitente, paises, activo, "
+            "actualizado_por, actualizado_at FROM remitentes_mensajeria "
+            "ORDER BY canal, remitente")
+    remitentes = {canal: [] for canal in CANALES_REMITENTES}
+    for f in filas:
+        remitentes.setdefault(f["canal"], []).append({
+            "id": f["id"],
+            "remitente": f["remitente"],
+            "paises": list(f["paises"] or []),
+            "activo": f["activo"],
+            "actualizado_por": f["actualizado_por"],
+            "actualizado_at": _fecha_local(f["actualizado_at"]),
+        })
+    return {"remitentes": remitentes}
+
+
+@app.post("/api/admin/remitentes")
+async def admin_remitentes_guardar(request: Request, _=Depends(auth.require_admin)):
+    """Crea o actualiza un remitente (UPSERT por canal+remitente, igual que
+    las credenciales de arriba).
+
+    body: {"canal": "sms"|"whatsapp", "remitente": "...",
+           "paises"?: ["AR","CO",...], "activo"?: true}
+
+    Países vacíos = remitente por defecto del canal. Un código que no está
+    en `PAISES_LATAM` se rechaza acá y no al momento de mandar: si se coló
+    uno mal escrito, ningún envío a ese país lo iba a usar nunca, y el
+    error recién aparecía el día que alguien de ese país intentara
+    verificarse — demasiado tarde para servir de algo.
+    """
+    body = await request.json()
+    canal = (body.get("canal") or "").strip().lower()
+    remitente = (body.get("remitente") or "").strip()
+    paises = body.get("paises") if body.get("paises") is not None else []
+    activo = body.get("activo", True)
+
+    if canal not in CANALES_REMITENTES:
+        raise HTTPException(400, "Canal inválido: usá 'sms' o 'whatsapp'")
+    if not remitente:
+        raise HTTPException(400, "Falta el remitente")
+    if not isinstance(paises, list):
+        raise HTTPException(400, "'paises' debe ser una lista de códigos ISO")
+    paises = [str(p).strip().upper() for p in paises]
+    desconocidos = [p for p in paises if p not in registro_publico.PAISES]
+    if desconocidos:
+        raise HTTPException(400, f"País no habilitado: {', '.join(desconocidos)}")
+    if not isinstance(activo, bool):
+        raise HTTPException(400, "'activo' debe ser verdadero o falso")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        fila = await conn.fetchrow("""
+            INSERT INTO remitentes_mensajeria
+                (canal, remitente, paises, activo, actualizado_por, actualizado_at)
+            VALUES ($1,$2,$3,$4,'admin',NOW())
+            ON CONFLICT (canal, remitente)
+            DO UPDATE SET paises=$3, activo=$4, actualizado_por='admin',
+                          actualizado_at=NOW()
+            RETURNING id, canal, remitente, paises, activo, actualizado_at
+        """, canal, remitente, paises, activo)
+
+    _invalidar_cache_credenciales()
+    log.warning("[MENSAJERIA] admin guardó remitente %s.%s (países: %s, activo: %s)",
+                canal, remitente, ", ".join(paises) or "(defecto)", activo)
+    return {"ok": True, "remitente": {
+        "id": fila["id"], "canal": fila["canal"], "remitente": fila["remitente"],
+        "paises": list(fila["paises"] or []), "activo": fila["activo"],
+        "actualizado_at": _fecha_local(fila["actualizado_at"]),
+    }}
+
+
+@app.delete("/api/admin/remitentes/{remitente_id}")
+async def admin_remitentes_borrar(remitente_id: int, _=Depends(auth.require_admin)):
+    """Saca el remitente entero, por id — no por nombre: el remitente es
+    texto libre ("IAQP Col") y forzarlo a viajar en la URL es una fuente de
+    problemas de escape que un id numérico no tiene.
+
+    Los envíos a los países que cubría caen al siguiente escalón de la
+    resolución (el remitente por defecto del canal, o el entorno), sin
+    reiniciar nada."""
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        borrado = await conn.fetchval(
+            "DELETE FROM remitentes_mensajeria WHERE id=$1 RETURNING id",
+            remitente_id)
+    if not borrado:
+        raise HTTPException(404, "Ese remitente no existe")
+    _invalidar_cache_credenciales()
+    log.warning("[MENSAJERIA] admin borró el remitente #%s", remitente_id)
+    return {"ok": True}

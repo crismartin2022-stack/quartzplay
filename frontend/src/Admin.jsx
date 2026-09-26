@@ -12,6 +12,13 @@ import LineaTiempo from "./LineaTiempo";
 import { Zap, Gift, Handshake, Video, ArrowLeftRight, Ban, Banknote, Bell, Bot, Building2, Calendar, CalendarDays, CircleOff, Coins, Dices, Disc, Eye, Flame, FlaskConical, Gamepad2, GitBranch, Globe, Hand, Headphones, Image as ImageIcon, Inbox, Key, Link, Lock, Mail, Megaphone, MessageSquare, Monitor, PartyPopper, PenLine, Pencil, Plug, Printer, RefreshCw, Rocket, RotateCcw, Save, Scale, Shield, Smartphone, Star, Stethoscope, Store, Target, Trash2, TrendingDown, Volume2, VolumeX, Wrench } from "lucide-react";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 import MobileTabMenu from "./MobileTabMenu";
+import {
+  AMBITO_SMS, AMBITO_CORREO, CANAL_WHATSAPP, NOMBRE_PROVEEDOR,
+  etiquetaOrigen,
+  listarMensajeria, guardarCredencial, borrarCredencial, probarEnvio,
+  listarPaises, listarRemitentes, guardarRemitente, borrarRemitente,
+  paisesSinCobertura, whatsappListo,
+} from "./mensajeriaApi";
 
 const ars  = n => "$" + Math.round(n||0).toLocaleString("es-AR");
 const fmt  = n => Number(n||0).toFixed(2);
@@ -5605,6 +5612,7 @@ function TabConfig({ adminKey, onNoAutorizado }){
     ["boost",<><Rocket size={13}/> Potencializador</>],
     ["mejora",<><Icon name="scan-line" size={13}/> Bet Best</>],
     ["flash",<><Zap size={13}/> Combo flash</>],
+    ["mensajeria",<><Mail size={13}/> Mensajería</>],
     ["productos",<><Gamepad2 size={13}/> Productos</>],
     ["recompensas",<><Megaphone size={13}/> Compartir</>],
     ["desafios",<><Handshake size={13}/> Desafíos</>],
@@ -5635,6 +5643,7 @@ function TabConfig({ adminKey, onNoAutorizado }){
       {sub==="boost"&&<TabBoost adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
       {sub==="mejora"&&<TabMejora adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
       {sub==="flash"&&<TabFlash adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
+      {sub==="mensajeria"&&<TabMensajeria adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
       {sub==="productos"&&<TabProductosPermisos adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
       {sub==="recompensas"&&<TabRecompensas adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
       {sub==="desafios"&&<TabDesafios adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>}
@@ -13511,6 +13520,532 @@ function TabFlash({ adminKey, onNoAutorizado }){
       <Btn label={proc?"Guardando…":"Guardar"} onClick={()=>guardar()}
         color={Q.violet} full disabled={proc}/>
     </div>
+  );
+}
+
+// ── Mensajería: credenciales de SMS y correo ────────────────────
+// Ver odd/tasks/credenciales-mensajeria-admin.md. La lógica de red y de
+// validación vive en mensajeriaApi.js, probada aparte; acá solo hay forma.
+function TabMensajeria({ adminKey, onNoAutorizado }){
+  const [d,setD]=useState(null); // {proveedores, claveMaestra} | null mientras carga
+  const [cargando,setCargando]=useState(true);
+  const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
+  // Un valor nuevo por campo, nunca precargado con la máscara: si se
+  // precargara, guardar sin tocar nada guardaría la máscara como si fuera
+  // la clave real.
+  const [nuevos,setNuevos]=useState({});
+  const [procesando,setProcesando]=useState({});
+  // La lista de Latam de `GET /api/paises`: la sección de remitentes la
+  // usa para el checklist de países, y "Probar el envío" para elegir con
+  // qué país simular la resolución real del remitente. Se carga acá y no
+  // adentro de cada sección para no pedirla dos veces.
+  const [paises,setPaises]=useState([]);
+
+  const cargar=async()=>{
+    setCargando(true);
+    const [r,p]=await Promise.all([
+      listarMensajeria({adminKey, api:API, fetchImpl:fetch}),
+      listarPaises({api:API, fetchImpl:fetch}),
+    ]);
+    if(r.noAutorizado){ onNoAutorizado(); return; }
+    if(r.ok) setD(r);
+    else setMsg({text:r.mensaje||"No se pudo cargar", ok:false});
+    if(p.ok) setPaises(p.paises);
+    setCargando(false);
+  };
+  useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
+
+  const claveCampo=(ambito,clave)=>`${ambito}:${clave}`;
+
+  const guardarCampo=async(ambito,clave,etiqueta)=>{
+    const k=claveCampo(ambito,clave);
+    setProcesando(p=>({...p,[k]:true})); setMsg(null);
+    const r=await guardarCredencial({ambito, clave, valor:nuevos[k],
+      adminKey, api:API, fetchImpl:fetch});
+    if(r.noAutorizado){ onNoAutorizado(); return; }
+    setProcesando(p=>({...p,[k]:false}));
+    if(r.ok){
+      setMsg({text:`${etiqueta} guardado`, ok:true});
+      setNuevos(n=>({...n,[k]:""}));
+      cargar();
+    } else setMsg({text:r.mensaje||"Error", ok:false});
+  };
+
+  const borrarCampo=async(ambito,clave,etiqueta)=>{
+    if(!window.confirm(
+      `¿Quitar ${etiqueta}? Vuelve a usar la variable de entorno, sin reiniciar nada.`
+    )) return;
+    setMsg(null);
+    const r=await borrarCredencial({ambito, clave, adminKey, api:API, fetchImpl:fetch});
+    if(r.noAutorizado){ onNoAutorizado(); return; }
+    if(r.ok){ setMsg({text:`${etiqueta} quitado`, ok:true}); cargar(); }
+    else setMsg({text:r.mensaje||"Error", ok:false});
+  };
+
+  const [pruebaAmbito,setPruebaAmbito]=useState(AMBITO_SMS);
+  const [destino,setDestino]=useState("");
+  const [pruebaPais,setPruebaPais]=useState("");
+  const [enviandoPrueba,setEnviandoPrueba]=useState(false);
+  const [pruebaMsg,setPruebaMsg]=useState(null);
+  const [pruebaResp,setPruebaResp]=useState(null);
+  const [pruebaStatus,setPruebaStatus]=useState(null);
+  const [pruebaRemitente,setPruebaRemitente]=useState(null);
+
+  const enviarPrueba=async()=>{
+    if(!window.confirm(
+      `¿Mandar un mensaje real a ${destino||"este destino"}? Tiene costo y no se puede deshacer.`
+    )) return;
+    setEnviandoPrueba(true); setPruebaMsg(null); setPruebaResp(null);
+    setPruebaStatus(null); setPruebaRemitente(null);
+    const r=await probarEnvio({ambito:pruebaAmbito, destino, pais:pruebaPais,
+      adminKey, api:API, fetchImpl:fetch});
+    if(r.noAutorizado){ onNoAutorizado(); return; }
+    setEnviandoPrueba(false);
+    setPruebaMsg({text:r.mensaje, ok:r.ok});
+    setPruebaResp(r.respuestaProveedor);
+    setPruebaStatus(r.statusProveedor);
+    setPruebaRemitente(r.remitenteUsado);
+  };
+
+  const inp={width:"100%",background:"rgba(255,255,255,0.05)",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 12px",
+    color:Q.text,fontSize:14,fontFamily:F_BODY};
+
+  const proveedores=d?.proveedores||[];
+  const claveMaestra=!!d?.claveMaestra;
+
+  return(
+    <div>
+      <div style={{color:Q.text,fontWeight:800,fontSize:17,marginBottom:4,
+        fontFamily:F_BODY}}><Mail size={14}/> Mensajería</div>
+      <div style={{color:Q.muted,fontSize:12,marginBottom:14,lineHeight:1.55,
+        fontFamily:F_BODY}}>
+        Las credenciales de SMS y correo que usa el sistema para mandar
+        códigos de verificación. El valor completo nunca vuelve acá: solo
+        una vista tapada, de dónde sale hoy y quién lo cambió.</div>
+
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center"}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
+
+      {!cargando&&!claveMaestra&&(
+        <GCard glow={Q.red} style={{padding:SPACING[16],marginBottom:16}}>
+          <div style={{color:Q.red,fontWeight:700,fontSize:13,marginBottom:4,
+            fontFamily:F_BODY}}>
+            <Icon name="triangle-alert" size={13}/> Guardar está desactivado</div>
+          <div style={{color:Q.muted,fontSize:12,lineHeight:1.55,
+            fontFamily:F_BODY}}>
+            El servidor no tiene configurada la clave maestra
+            (<span style={{fontFamily:F_MONO}}>SECRETOS_CLAVE</span>). Sin
+            ella no hay con qué cifrar lo que se guarde acá, así que la
+            pantalla no escribe nada hasta que se cargue esa variable en el
+            entorno. Probar un envío sigue funcionando: usa la credencial
+            que el sistema ya tiene, de la base o del entorno.</div>
+        </GCard>
+      )}
+
+      {cargando&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
+        padding:SPACING[16],fontFamily:F_BODY}}>Cargando…</div>}
+
+      {!cargando&&proveedores.map(prov=>(
+        <GCard key={prov.ambito} style={{padding:SPACING[16],marginBottom:16}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:12,
+            display:"flex",alignItems:"center",gap:SPACING[8],
+            fontFamily:F_BODY}}>
+            {prov.ambito===AMBITO_CORREO?<Mail size={14}/>:<Smartphone size={14}/>}
+            {prov.nombre||NOMBRE_PROVEEDOR[prov.ambito]||prov.ambito}</div>
+
+          {(prov.campos||[]).map(campo=>{
+            const etiqueta=campo.etiqueta;
+            const k=claveCampo(prov.ambito,campo.clave);
+            const enBase=campo.origen==="base";
+            // Tres estados, no dos: una fila en la base, la variable de
+            // entorno como respaldo, o nada en ninguno de los dos lados.
+            // Confundir "sin configurar" con "entorno" haría pensar que
+            // hay un respaldo activo cuando no hay con qué mandar nada.
+            const colorOrigen=enBase?Q.cyan:campo.origen==="entorno"?Q.dim:Q.amber;
+            return(
+              <div key={campo.clave} style={{marginBottom:16,
+                paddingBottom:16,borderBottom:`1px solid ${Q.border}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",
+                  alignItems:"center",gap:SPACING[8],marginBottom:6}}>
+                  <span style={{color:Q.text,fontWeight:700,fontSize:13,
+                    fontFamily:F_BODY}}>{etiqueta}</span>
+                  <HBadge label={etiquetaOrigen(campo.origen)} color={colorOrigen}/>
+                </div>
+
+                <div style={{color:campo.mascara?Q.muted:Q.dim,
+                  fontSize:13,marginBottom:4,fontFamily:F_MONO}}>
+                  {campo.mascara||"Sin configurar"}</div>
+                {enBase&&(campo.actualizadoPor||campo.actualizadoAt)&&(
+                  <div style={{color:Q.dim,fontSize:12,marginBottom:10,
+                    fontFamily:F_BODY}}>
+                    Cambiado por {campo.actualizadoPor||"—"}
+                    {campo.actualizadoAt?` · ${campo.actualizadoAt}`:""}</div>
+                )}
+                {!enBase&&<div style={{marginBottom:10}}/>}
+
+                <input type={campo.secreto?"password":"text"} autoComplete="off"
+                  value={nuevos[k]||""}
+                  onChange={e=>setNuevos(n=>({...n,[k]:e.target.value}))}
+                  placeholder={campo.secreto
+                    ?`Pegar un valor nuevo para ${etiqueta.toLowerCase()}`
+                    :`Escribir ${etiqueta.toLowerCase()}`}
+                  style={{...inp,marginBottom:8}}/>
+
+                <div style={{display:"flex",gap:SPACING[8]}}>
+                  <Btn label={procesando[k]?"Guardando…":"Guardar"}
+                    onClick={()=>guardarCampo(prov.ambito,campo.clave,etiqueta)}
+                    color={Q.violet} size="sm"
+                    disabled={!claveMaestra||!(nuevos[k]||"").trim()||!!procesando[k]}/>
+                  {enBase&&(
+                    <button onClick={()=>borrarCampo(prov.ambito,campo.clave,etiqueta)}
+                      style={{background:"transparent",border:`1px solid ${Q.red}55`,
+                        borderRadius:RADII.md,padding:"0 16px",color:Q.red,
+                        fontSize:12,cursor:"pointer",fontFamily:F_BODY}}>
+                      Quitar</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </GCard>
+      ))}
+
+      {!cargando&&<SeccionRemitentes adminKey={adminKey} onNoAutorizado={onNoAutorizado}
+        paises={paises} proveedores={proveedores}/>}
+
+      <GCard style={{padding:SPACING[16]}}>
+        <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,
+          display:"flex",alignItems:"center",gap:SPACING[8],
+          fontFamily:F_BODY}}>
+          <Icon name="scan-search" size={14}/> Probar el envío</div>
+        <div style={{color:Q.muted,fontSize:12,marginBottom:12,lineHeight:1.55,
+          fontFamily:F_BODY}}>
+          Manda un mensaje real, ahora mismo, con la credencial que el
+          sistema está usando. Tiene costo: no se dispara solo, hay que
+          apretar el botón.</div>
+
+        <div style={{display:"flex",gap:SPACING[8],marginBottom:10}}>
+          {[[AMBITO_SMS,<><Smartphone size={13}/> SMS</>],
+            [AMBITO_CORREO,<><Mail size={13}/> Correo</>]].map(([k,l])=>(
+            <button key={k} onClick={()=>{setPruebaAmbito(k); setDestino(""); setPruebaPais("");}}
+              style={{flex:1,
+              background:pruebaAmbito===k?`${Q.violet}33`:"rgba(255,255,255,0.04)",
+              border:`1px solid ${pruebaAmbito===k?Q.violet:Q.border}`,
+              borderRadius:RADII.md,padding:"8px 4px",cursor:"pointer",
+              color:pruebaAmbito===k?Q.violet2||Q.violet:Q.muted,
+              fontSize:12,fontWeight:700,fontFamily:F_BODY}}>{l}</button>
+          ))}
+        </div>
+
+        <input value={destino} onChange={e=>setDestino(e.target.value)}
+          placeholder={pruebaAmbito===AMBITO_CORREO
+            ? "correo@dominio.com" : "+54 9 11 2233-4455"}
+          style={{...inp,marginBottom:10}}/>
+
+        {pruebaAmbito===AMBITO_SMS&&(
+          <>
+            <select value={pruebaPais} onChange={e=>setPruebaPais(e.target.value)}
+              style={{...inp,marginBottom:4}}>
+              <option value="">Remitente por defecto (sin elegir país)</option>
+              {paises.map(p=>(
+                <option key={p.codigo} value={p.codigo}>{p.nombre}</option>
+              ))}
+            </select>
+            <div style={{color:Q.dim,fontSize:12,marginBottom:10,lineHeight:1.5,
+              fontFamily:F_BODY}}>
+              Con un país, la prueba elige el remitente igual que un envío
+              real: es la única forma de ver si ese país está cubierto.</div>
+          </>
+        )}
+
+        <Btn label={enviandoPrueba?"Enviando…":"Enviar prueba"}
+          onClick={enviarPrueba} color={Q.amber} full
+          disabled={enviandoPrueba||!destino.trim()}/>
+
+        {pruebaMsg&&<div style={{color:pruebaMsg.ok?Q.green:Q.red,fontSize:12.5,
+          marginTop:10,textAlign:"center",fontFamily:F_BODY}}>
+          <Icon name={pruebaMsg.ok?"circle-check":"triangle-alert"} size={13}/> {pruebaMsg.text}</div>}
+
+        {pruebaRemitente&&<div style={{color:Q.text,fontSize:12.5,marginTop:6,
+          textAlign:"center",fontFamily:F_BODY}}>
+          Remitente usado: <strong>{pruebaRemitente}</strong></div>}
+
+        {pruebaResp&&(
+          <>
+            {pruebaStatus!=null&&<div style={{color:Q.dim,fontSize:12,
+              marginTop:10,fontFamily:F_BODY}}>
+              Estado del proveedor: {pruebaStatus}</div>}
+            <pre style={{marginTop:6,background:"rgba(0,0,0,0.3)",
+              border:`1px solid ${Q.border}`,borderRadius:RADII.md,
+              padding:"8px 12px",color:Q.muted,fontSize:12,fontFamily:F_MONO,
+              whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:200,
+              overflow:"auto"}}>
+              {JSON.stringify(pruebaResp,null,2)}</pre>
+          </>
+        )}
+      </GCard>
+    </div>
+  );
+}
+
+// ── Remitentes por país: agregar, editar y quitar ─────────────────
+// Debajo de las credenciales, dentro de la misma pestaña Mensajería. Ver
+// odd/tasks/remitentes-por-pais-y-whatsapp.md: un remitente no es un
+// secreto (el jugador lo ve en su teléfono), así que esta sección no
+// enmascara nada. La de arriba tampoco lo enmascara ya: solo esconde los
+// campos que el servidor marca con `secreto`, que son las dos claves de
+// API y nada más.
+function SeccionRemitentes({ adminKey, onNoAutorizado, paises, proveedores }){
+  const [remitentes,setRemitentes]=useState({[AMBITO_SMS]:[],[CANAL_WHATSAPP]:[]});
+  const [cargando,setCargando]=useState(true);
+  const [msg,setMsg]=useState(null);
+  // El formulario sirve para alta y edición: `modo` decide si el nombre
+  // del remitente se puede tocar. En edición no puede, porque el POST es
+  // un upsert por (canal, remitente) — cambiar el nombre ahí crearía una
+  // fila nueva y dejaría la vieja huérfana en vez de editarla.
+  const [form,setForm]=useState(null);
+  const [guardando,setGuardando]=useState(false);
+
+  const cargar=async()=>{
+    setCargando(true);
+    const r=await listarRemitentes({adminKey, api:API, fetchImpl:fetch});
+    if(r.noAutorizado){ onNoAutorizado(); return; }
+    if(r.ok) setRemitentes(r.remitentes);
+    else setMsg({text:r.mensaje||"No se pudo cargar", ok:false});
+    setCargando(false);
+  };
+  useEffect(()=>{ cargar(); /* eslint-disable-next-line */ },[]);
+
+  const nombrePais=codigo=>paises.find(p=>p.codigo===codigo)?.nombre||codigo;
+
+  const abrirNuevo=canal=>{ setMsg(null); setForm({
+    modo:"nuevo", canal, id:null, remitenteOriginal:"", remitente:"",
+    paisesElegidos:new Set(), activo:true,
+  }); };
+  const abrirEditar=(canal,r)=>{ setMsg(null); setForm({
+    modo:"editar", canal, id:r.id, remitenteOriginal:r.remitente, remitente:r.remitente,
+    paisesElegidos:new Set(r.paises), activo:r.activo,
+  }); };
+  const cerrarForm=()=>setForm(null);
+
+  const alternarPais=codigo=>setForm(f=>{
+    const s=new Set(f.paisesElegidos);
+    s.has(codigo)?s.delete(codigo):s.add(codigo);
+    return {...f, paisesElegidos:s};
+  });
+
+  const guardarForm=async()=>{
+    setGuardando(true); setMsg(null);
+    const r=await guardarRemitente({
+      canal:form.canal, remitente:form.remitente, paises:[...form.paisesElegidos],
+      activo:form.activo, adminKey, api:API, fetchImpl:fetch,
+    });
+    if(r.noAutorizado){ onNoAutorizado(); return; }
+    setGuardando(false);
+    if(r.ok){ setMsg({text:"Remitente guardado", ok:true}); cerrarForm(); cargar(); }
+    else setMsg({text:r.mensaje||"Error", ok:false});
+  };
+
+  const quitar=async(r)=>{
+    if(!window.confirm(
+      `¿Quitar "${r.remitente}"? Los países que cubría pasan al remitente `+
+      `por defecto de este canal (o al respaldo del entorno) desde el `+
+      `próximo mensaje. No se puede deshacer.`
+    )) return;
+    setMsg(null);
+    const res=await borrarRemitente({id:r.id, adminKey, api:API, fetchImpl:fetch});
+    if(res.noAutorizado){ onNoAutorizado(); return; }
+    if(res.ok){ setMsg({text:"Remitente quitado", ok:true}); cargar(); }
+    else setMsg({text:res.mensaje||"Error", ok:false});
+  };
+
+  const wa=whatsappListo(proveedores);
+  const inpForm={width:"100%",background:"rgba(255,255,255,0.05)",
+    border:`1px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 12px",
+    color:Q.text,fontSize:14,fontFamily:F_BODY};
+
+  const CANALES=[
+    {canal:AMBITO_SMS, titulo:"SMS", icono:<Smartphone size={13}/>},
+    {canal:CANAL_WHATSAPP, titulo:"WhatsApp", icono:<MessageSquare size={13}/>},
+  ];
+
+  return(
+    <GCard style={{padding:SPACING[16],marginBottom:16}}>
+      <div style={{color:Q.text,fontWeight:700,fontSize:14,marginBottom:4,
+        display:"flex",alignItems:"center",gap:SPACING[8],
+        fontFamily:F_BODY}}>
+        <Icon name="network" size={14}/> Remitentes por país</div>
+      <div style={{color:Q.muted,fontSize:12,marginBottom:14,lineHeight:1.55,
+        fontFamily:F_BODY}}>
+        Con qué remitente se manda el código según el país del jugador. Un
+        remitente sin países marcados es el remitente por defecto del
+        canal, no un error de carga: se usa cuando ningún otro cubre ese
+        país.</div>
+
+      {msg&&<div style={{color:msg.ok?Q.green:Q.red,fontSize:12.5,marginBottom:10,
+        textAlign:"center",fontFamily:F_BODY}}>
+        <Icon name={msg.ok?"circle-check":"triangle-alert"} size={13}/> {msg.text}</div>}
+
+      {cargando&&<div style={{color:Q.muted,fontSize:12,textAlign:"center",
+        padding:SPACING[16],fontFamily:F_BODY}}>Cargando…</div>}
+
+      {!cargando&&CANALES.map(({canal,titulo,icono})=>{
+        const lista=remitentes[canal]||[];
+        const sinCobertura=paisesSinCobertura(lista, paises);
+        return(
+          <div key={canal} style={{marginBottom:18}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+              marginBottom:8}}>
+              <div style={{color:Q.text,fontWeight:700,fontSize:13,
+                display:"flex",alignItems:"center",gap:SPACING[8],
+                fontFamily:F_BODY}}>{icono} {titulo}</div>
+              <button onClick={()=>abrirNuevo(canal)}
+                style={{background:"rgba(255,255,255,0.06)",border:`1px solid ${Q.border}`,
+                  borderRadius:RADII.md,padding:"4px 8px",color:Q.violet2||Q.violet,
+                  fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:F_BODY,
+                  display:"flex",alignItems:"center",gap:4}}>
+                <Icon name="plus" size={12}/> Agregar</button>
+            </div>
+
+            {canal===CANAL_WHATSAPP&&!wa.listo&&(
+              <GCard level={2} style={{padding:SPACING[12],marginBottom:10}}>
+                <div style={{color:Q.amber,fontWeight:700,fontSize:12,marginBottom:4,
+                  display:"flex",alignItems:"center",gap:SPACING[8],
+                  fontFamily:F_BODY}}>
+                  <Icon name="triangle-alert" size={13}/> WhatsApp todavía no se ofrece</div>
+                <div style={{color:Q.muted,fontSize:12,lineHeight:1.55,
+                  fontFamily:F_BODY}}>
+                  Hace falta remitente <strong>y</strong> plantilla aprobada
+                  a la vez, no alcanza con uno solo: {!wa.remitenteOk&&"falta el remitente"}
+                  {!wa.remitenteOk&&!wa.plantillaOk&&" y "}
+                  {!wa.plantillaOk&&"falta la plantilla aprobada"}. Se
+                  cargan en la sección de credenciales, arriba. Los
+                  remitentes de acá abajo no alcanzan solos: el registro de
+                  jugadores sigue sin ofrecer WhatsApp hasta que estén los
+                  dos.</div>
+              </GCard>
+            )}
+
+            {lista.length===0&&<div style={{color:Q.dim,fontSize:12,
+              fontFamily:F_BODY,marginBottom:8}}>
+              Sin remitentes de {titulo} todavía.</div>}
+
+            {lista.map(r=>(
+              <div key={r.id} style={{marginBottom:SPACING[8],paddingBottom:SPACING[8],
+                borderBottom:`1px solid ${Q.border}`}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                  gap:SPACING[8],marginBottom:6}}>
+                  <span style={{color:Q.text,fontWeight:700,fontSize:13,
+                    fontFamily:F_BODY}}>{r.remitente}</span>
+                  <HBadge label={r.activo?"Activo":"Inactivo"} color={r.activo?Q.green:Q.dim}/>
+                </div>
+
+                <div style={{display:"flex",flexWrap:"wrap",gap:SPACING[8],marginBottom:6}}>
+                  {r.paises.length===0
+                    ? <HBadge label="Por defecto para este canal" color={Q.cyan}/>
+                    : r.paises.map(c=><HBadge key={c} label={nombrePais(c)} color={Q.violet}/>)}
+                </div>
+
+                {(r.actualizadoPor||r.actualizadoAt)&&(
+                  <div style={{color:Q.dim,fontSize:12,marginBottom:8,
+                    fontFamily:F_BODY}}>
+                    Cambiado por {r.actualizadoPor||"—"}
+                    {r.actualizadoAt?` · ${r.actualizadoAt}`:""}</div>
+                )}
+
+                <div style={{display:"flex",gap:SPACING[8]}}>
+                  <button onClick={()=>abrirEditar(canal,r)}
+                    style={{background:"rgba(255,255,255,0.06)",border:`1px solid ${Q.border}`,
+                      borderRadius:RADII.md,padding:"4px 12px",color:Q.muted,
+                      fontSize:12,cursor:"pointer",fontFamily:F_BODY}}>
+                    Editar</button>
+                  <button onClick={()=>quitar(r)}
+                    style={{background:"transparent",border:`1px solid ${Q.red}55`,
+                      borderRadius:RADII.md,padding:"4px 12px",color:Q.red,
+                      fontSize:12,cursor:"pointer",fontFamily:F_BODY}}>
+                    Quitar</button>
+                </div>
+              </div>
+            ))}
+
+            {canal===AMBITO_SMS&&sinCobertura.length>0&&(
+              <GCard glow={Q.red} level={2} style={{padding:SPACING[12],marginTop:4}}>
+                <div style={{color:Q.red,fontWeight:700,fontSize:12,marginBottom:4,
+                  display:"flex",alignItems:"center",gap:SPACING[8],
+                  fontFamily:F_BODY}}>
+                  <Icon name="triangle-alert" size={13}/> Sin remitente para
+                  {sinCobertura.length===1?" 1 país":` ${sinCobertura.length} países`}</div>
+                <div style={{color:Q.muted,fontSize:12,lineHeight:1.55,
+                  fontFamily:F_BODY}}>
+                  {sinCobertura.map(p=>p.nombre).join(", ")}. Un jugador de
+                  esos países se registra bien pero no puede verificar su
+                  teléfono, y como el teléfono destraba los retiros, puede
+                  depositar y jugar pero no cobrar.</div>
+              </GCard>
+            )}
+          </div>
+        );
+      })}
+
+      {form&&(
+        <GCard level={2} style={{padding:SPACING[16]}}>
+          <div style={{color:Q.text,fontWeight:700,fontSize:13,marginBottom:10,
+            fontFamily:F_BODY}}>
+            {form.modo==="nuevo"
+              ? `Nuevo remitente de ${form.canal===CANAL_WHATSAPP?"WhatsApp":"SMS"}`
+              : `Editar "${form.remitenteOriginal}"`}</div>
+
+          {form.modo==="nuevo"
+            ? <input value={form.remitente} autoFocus
+                onChange={e=>setForm(f=>({...f,remitente:e.target.value}))}
+                placeholder="Nombre del remitente, ej: IAQP Col"
+                style={{...inpForm,marginBottom:12}}/>
+            : <div style={{color:Q.dim,fontSize:12,marginBottom:12,
+                fontFamily:F_BODY}}>
+                El nombre no se puede editar acá: cambiarlo crearía un
+                remitente nuevo en vez de modificar este. Para renombrar,
+                agregá uno nuevo y quitá este.</div>}
+
+          <div style={{color:Q.muted,fontSize:12,marginBottom:2,
+            fontFamily:F_BODY}}>Países que cubre</div>
+          <div style={{color:Q.dim,fontSize:12,marginBottom:8,lineHeight:1.5,
+            fontFamily:F_BODY}}>
+            Sin ninguno marcado, este remitente queda como el remitente
+            por defecto del canal: no es un estado vacío ni un error.</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",
+            gap:SPACING[8],marginBottom:12,maxHeight:220,overflow:"auto"}}>
+            {paises.map(p=>(
+              <label key={p.codigo} style={{display:"flex",alignItems:"center",gap:SPACING[8],
+                cursor:"pointer"}}>
+                <input type="checkbox" checked={form.paisesElegidos.has(p.codigo)}
+                  onChange={()=>alternarPais(p.codigo)}/>
+                <span style={{color:Q.text,fontSize:12.5,fontFamily:F_BODY}}>{p.nombre}</span>
+              </label>
+            ))}
+          </div>
+
+          <label style={{display:"flex",alignItems:"center",gap:SPACING[8],cursor:"pointer",
+            marginBottom:14}}>
+            <input type="checkbox" checked={form.activo}
+              onChange={e=>setForm(f=>({...f,activo:e.target.checked}))}/>
+            <span style={{color:Q.text,fontSize:12.5,fontFamily:F_BODY}}>Activo</span>
+          </label>
+
+          <div style={{display:"flex",gap:SPACING[8]}}>
+            <Btn label={guardando?"Guardando…":"Guardar"} onClick={guardarForm}
+              color={Q.violet} size="sm"
+              disabled={guardando||!form.remitente.trim()}/>
+            <button onClick={cerrarForm}
+              style={{background:"transparent",border:`1px solid ${Q.border}`,
+                borderRadius:RADII.md,padding:"0 16px",color:Q.muted,
+                fontSize:12,cursor:"pointer",fontFamily:F_BODY}}>
+              Cancelar</button>
+          </div>
+        </GCard>
+      )}
+    </GCard>
   );
 }
 
