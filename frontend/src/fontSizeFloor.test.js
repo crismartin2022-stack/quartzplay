@@ -17,6 +17,10 @@ import path from "path";
 const SRC = path.resolve(__dirname);
 const SCREENS = [
   "App.jsx", "Web.jsx", "Box.jsx", "Casino.jsx", "Agencia.jsx", "Admin.jsx",
+  // Pantallas nuevas de septiembre. Se suman acá porque una pantalla
+  // fuera de esta lista no la guarda nadie: la regla se cumple por
+  // memoria del que la escribió, hasta que alguien la olvida.
+  "InicioWeb.jsx", "PantallaTelegram.jsx",
 ];
 
 // Captures the numeric value only when it is the whole property value —

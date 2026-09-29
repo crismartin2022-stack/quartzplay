@@ -86,7 +86,7 @@ se reporta y se decide, no se copia por obediencia.
 
 - [x] **T1 — La puerta de la raíz.** Detectar ausencia de Telegram, mostrar
       la pantalla con el enlace al bot y el enlace a `/sitio`. Con prueba.
-- [ ] **T2 — El hero y la composición de `/sitio`**, según el mapeo.
+- [x] **T2 — El hero y la composición de `/sitio`**, según el mapeo.
 
 ## Evidencia de T1 (2026-09-29)
 
@@ -110,6 +110,33 @@ el módulo de lógica. En Linux —donde compila Railway— habría resuelto
 distinto y el error aparecía recién en el despliegue.
 
 Pruebas: 1127 en verde, build sin avisos.
+
+## Evidencia de T2 (2026-09-29)
+
+Ruta: **writer delegado**, en serie con el mapeo previo.
+
+- `frontend/src/InicioWeb.jsx` — el hero, las tres tarjetas, el combo del
+  día y los partidos en vivo.
+- `frontend/src/inicioDelSitio.js` + pruebas — la lógica pura.
+- `Web.jsx` — la vista inicial pasa a `"inicio"`, entra en la barra
+  lateral, y el logo del encabezado vuelve a la home.
+
+**Bug real encontrado de paso**: `Web.jsx` leía `sports[].events` de
+`/api/live/combined`, pero el servidor devuelve `{matches}`
+(`casino_api.py:18568`). La pestaña "En vivo" mostraba siempre "No hay
+partidos en vivo", incluso con partidos jugándose. La mini-app ya tenía
+ese arreglo; el sitio no.
+
+**El hero se adapta en tres anchos**, porque copiar los números de la
+mini-app tal cual dejaba un campo violeta vacío en una columna de 1300px.
+
+**Los guardias no cubrían las pantallas nuevas.** `InicioWeb.jsx` y
+`PantallaTelegram.jsx` no estaban en las listas de `fontSizeFloor`,
+`spacingScale` ni `radiusScale`. Al agregarlas aparecieron tres
+violaciones de espaciado, ya corregidas. Una pantalla fuera de esa lista
+no la guarda nadie.
+
+Pruebas: 1162 en verde, build sin avisos.
 
 ## Checks
 
