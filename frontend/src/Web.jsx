@@ -29,9 +29,11 @@ import {
 import { oscuro as Q, F_NUM, F_BODY, inkOn, RADII, SPACING } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot from "./Mascot";
+import InicioWeb from "./InicioWeb";
+import { normalizarVivos } from "./inicioDelSitio";
 import Icon from "./Icon";
 import { useDesktopShellWidth } from "./desktopShellLayout";
-import { Handshake, Video, Repeat, Dices, Shield, Scale, Rocket, Bell, Image as ImageIcon, Pencil, Smartphone, Flame, Coins, Eye, Banknote, Heart, Headphones, Zap } from "lucide-react";
+import { Handshake, Video, Repeat, Dices, Shield, Scale, Rocket, Bell, Image as ImageIcon, Pencil, Smartphone, Flame, Coins, Eye, Banknote, Heart, Headphones, Zap, House } from "lucide-react";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 
@@ -2901,6 +2903,7 @@ function BarraWeb({ vista, onNav, hayBoleto }){
 // the ordinary 12px floor, not the tab bar's 11px exception.
 function SidebarWeb({ vista, onNav }){
   const NAV = [
+    {k:"inicio",     l:"Inicio",         i:<House size={18}/>},
     {k:"prematch",   l:"Deportes",       i:<Icon name="trophy" size={18}/>},
     {k:"vivo",       l:"En vivo",        i:<Icon name="circle-dot" size={18}/>},
     {k:"casino",     l:"Casino",         i:<Icon name="spade" size={18}/>},
@@ -5159,6 +5162,8 @@ const _phead=()=>({padding:"12px 16px",fontFamily:F_NUM,fontSize:15,fontWeight:6
 const _btnPrim=()=>({width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
   border:"none",borderRadius:RADII.md,padding:"12px",color:inkOn(Q.violet, Q.violet2),fontSize:14,
   fontWeight:700,cursor:"pointer",fontFamily:F_BODY});
+const _btnLogo={background:"transparent",border:"none",cursor:"pointer",
+  padding:0,display:"flex",alignItems:"center"};
 const _btnGhost=()=>({width:"100%",background:"transparent",border:"none",
   color:Q.muted,fontSize:12.5,padding:"8px",cursor:"pointer",fontFamily:F_BODY});
 
@@ -5267,7 +5272,9 @@ export default function Web(){
   const [avisoVerCerrado,setAvisoVerCerrado]=useState(()=>avisoCerrado(
     typeof sessionStorage!=="undefined"?sessionStorage:null));
   const [vivos,setVivos]=useState([]);
-  const [vista,setVista]=useState("prematch");
+  // Se abre en la home, no en la lista de partidos: /sitio tenía cuotas
+  // pero ninguna portada, y era lo que la separaba de la mini-app.
+  const [vista,setVista]=useState("inicio");
   // Las pantallas que no son deportes esconden el filtro y las
   // ligas. Va DESPUÉS de declarar vista: antes reventaba al abrir.
   const esDeportes = vista==="prematch" || vista==="vivo";   // prematch | vivo
@@ -5308,12 +5315,8 @@ export default function Web(){
     const traer=()=>{
       fetch(`${API}/api/live/combined`).then(r=>r.ok?r.json():null)
         .then(d=>{
-          const evs=[];
-          (d?.sports||[]).forEach(sp=>(sp.events||[]).forEach(e=>
-            evs.push({...e, h:e.home, a:e.away, liga:e.liga||sp.name})));
-          if(Array.isArray(d?.events)) d.events.forEach(e=>
-            evs.push({...e, h:e.home, a:e.away}));
-          setVivos(evs);
+          // El servidor manda {matches}: ver inicioDelSitio.js.
+          setVivos(normalizarVivos(d));
         }).catch(()=>{});
     };
     traer();
@@ -5412,12 +5415,15 @@ export default function Web(){
       {isDesktopShell&&<SidebarWeb vista={vista} onNav={setVista}/>}
       <div style={isDesktopShell?{minWidth:0}:undefined}>
 
-      {/* Barra superior */}
+      {/* Barra superior. El logo vuelve a la home: en el teléfono es la
+          única forma de volver, porque la barra de abajo no tiene lugar
+          para una séptima solapa. */}
       <header style={{background:Q.deep,borderBottom:`1px solid ${Q.border}`,
         display:"flex",alignItems:"center",gap:ancho?22:12,
         padding:ancho?"0 18px":"0 10px",height:56,
         position:"sticky",top:0,zIndex:100}}>
-        <BrandMark size={ancho?23:19}/>
+        <button onClick={()=>setVista("inicio")} aria-label="Ir al inicio"
+          style={_btnLogo}><BrandMark size={ancho?23:19}/></button>
 
         {/* El saldo, a la izquierda junto al logo. La navegación
             vive toda en la barra de abajo. */}
@@ -5538,6 +5544,20 @@ export default function Web(){
 
       {/* Los desafíos ocupan la pantalla entera: no comparten el
           diseño de tres columnas con el boleto y las ligas. */}
+      {vista==="inicio"&&(
+        <CazaError>
+          <InicioWeb vivos={vivos} onNav={setVista}
+            arriba={<CazaError><AvisosBanner destino="web"/></CazaError>}
+            ofreceRegistro={!sesion&&!enTerminal}
+            onRegistro={()=>setRegistro(true)}
+            onUsarCombo={p=>{
+              setPicks(p);
+              setVista("prematch");
+              if(!ancho) setBoletoAbierto(true);
+            }}/>
+        </CazaError>
+      )}
+
       {vista==="desafios"&&(
         <CazaError>
           <DesafiosWeb sesion={sesion} ancho={ancho}/>
