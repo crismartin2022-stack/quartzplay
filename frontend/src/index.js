@@ -7,10 +7,12 @@ import Agencia from "./Agencia";
 import Admin from "./Admin";
 import Box from "./Box";
 import Web from "./Web";
+import PantallaTelegram from "./PantallaTelegram";
 import Casino from "./Casino";
 import RouletteOff from "./RouletteOff";
 import { ROULETTE_ENABLED } from "./features";
 import { getFrontendConfig } from "./config";
+import { estaEnTelegram } from "./puertaTelegram";
 import { oscuro } from "./theme";
 
 const path = window.location.pathname;
@@ -29,7 +31,13 @@ const Component = path.startsWith('/admin')   ? Admin
                 : path.startsWith('/sitio')   ? Web
                 : path.startsWith('/casino')  ? Roulette
                 : esCasino                    ? Roulette
-                : App;
+                // La raíz es la mini-app de Telegram. Fuera de Telegram no
+                // hay identidad posible, así que en vez de dejar la pantalla
+                // sin autenticar y sin explicación, se muestra la puerta con
+                // las dos salidas. La decisión vive acá y no dentro de
+                // App.jsx porque ahí habría que saltear hooks.
+                : estaEnTelegram(window)      ? App
+                :                               PantallaTelegram;
 
 // The document's own colours, declared once for every screen.
 //

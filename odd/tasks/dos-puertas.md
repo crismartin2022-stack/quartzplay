@@ -84,9 +84,32 @@ se reporta y se decide, no se copia por obediencia.
 
 ## Tasks
 
-- [ ] **T1 — La puerta de la raíz.** Detectar ausencia de Telegram, mostrar
+- [x] **T1 — La puerta de la raíz.** Detectar ausencia de Telegram, mostrar
       la pantalla con el enlace al bot y el enlace a `/sitio`. Con prueba.
 - [ ] **T2 — El hero y la composición de `/sitio`**, según el mapeo.
+
+## Evidencia de T1 (2026-09-29)
+
+Ruta: **directa en línea** — el mapeo ya estaba hecho y no quedaba
+investigación ni decisión abierta.
+
+- `frontend/src/puertaTelegram.js` — la lógica pura: detectar Telegram,
+  extraer el referido, y armar las dos salidas. 11 pruebas.
+- `frontend/src/PantallaTelegram.jsx` — la pantalla, con el mismo lenguaje
+  visual que el hero de la mini-app.
+- `frontend/src/index.js` — la decisión vive en el router. Adentro de
+  `App.jsx` habría obligado a saltear hooks, y el build lo rechaza.
+
+**El código de referido sobrevive la puerta**, y viaja tanto al bot como a
+`/sitio`. Si se perdiera ahí, el influencer no cobraría por un jugador que
+sí trajo.
+
+**Trampa encontrada**: el componente se llamaba `PuertaTelegram.jsx` y en
+macOS eso es el MISMO archivo que `puertaTelegram.js`. El import agarraba
+el módulo de lógica. En Linux —donde compila Railway— habría resuelto
+distinto y el error aparecía recién en el despliegue.
+
+Pruebas: 1127 en verde, build sin avisos.
 
 ## Checks
 
