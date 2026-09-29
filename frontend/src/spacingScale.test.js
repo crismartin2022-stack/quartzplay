@@ -61,6 +61,10 @@ import { SPACING } from "./theme";
 const SRC = path.resolve(__dirname);
 const SCREENS = [
   "App.jsx", "Web.jsx", "Box.jsx", "Casino.jsx", "Agencia.jsx", "Admin.jsx",
+  // Pantallas nuevas de septiembre. Se suman acá porque una pantalla
+  // fuera de esta lista no la guarda nadie: la regla se cumple por
+  // memoria del que la escribió, hasta que alguien la olvida.
+  "InicioWeb.jsx", "PantallaTelegram.jsx",
 ];
 const PROPS = ["padding", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight", "gap"];
 const PROP_ALT = PROPS.join("|");
@@ -73,7 +77,14 @@ const STRING_VALUE = new RegExp(`\\b(?:${PROP_ALT})\\s*:\\s*"([^"]*)"`, "g");
 
 // The documented plain-number exception, by exact screen+prop+value —
 // see the comment above.
-const ALLOWED_EXCEPTIONS = new Set(["App.jsx|paddingRight|166"]);
+const ALLOWED_EXCEPTIONS = new Set([
+  "App.jsx|paddingRight|166",
+  // Mismo caso que el de arriba: no es espaciado, es el despeje que deja
+  // la mascota para que el texto no le quede encima. Sale del ancho del
+  // dibujo, no de la escala. La mascota de la puerta mide 230 contra las
+  // 275 del hero, y el despeje baja en proporción.
+  "PantallaTelegram.jsx|paddingRight|150",
+]);
 
 // The documented string exception, by exact inner text — see the comment
 // above.

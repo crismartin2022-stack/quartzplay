@@ -63,7 +63,7 @@ export default function PantallaTelegram() {
           {bot&&(
             <a href={bot} style={{display:"block",textAlign:"center",
               background:Q.goldBg,color:inkOn(Q.goldBg),borderRadius:RADII.sm,
-              padding:"14px 16px",fontWeight:700,fontSize:13.5,
+              padding:"16px",fontWeight:700,fontSize:13.5,
               fontFamily:F_BODY,textDecoration:"none"}}>
               Abrir en Telegram</a>
           )}
@@ -71,7 +71,7 @@ export default function PantallaTelegram() {
           <a href={enlaceAlSitio(codigo)} style={{display:"block",
             textAlign:"center",background:"transparent",color:Q.text,
             border:`1px solid ${Q.border}`,borderRadius:RADII.sm,
-            padding:"14px 16px",fontWeight:700,fontSize:13.5,
+            padding:"16px",fontWeight:700,fontSize:13.5,
             fontFamily:F_BODY,textDecoration:"none"}}>
             Jugar desde el navegador</a>
         </div>

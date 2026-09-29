@@ -125,7 +125,7 @@ export default function InicioWeb({ arriba, ofreceRegistro, onNav, onRegistro,
   const enVivo=(vivos||[]).slice(0,3);
 
   return(
-    <div style={{maxWidth:1440,margin:"0 auto",padding:"14px 12px 60px"}}>
+    <div style={{maxWidth:1440,margin:"0 auto",padding:"12px 12px 40px"}}>
       <style>{ESTILO}</style>
       {arriba}
 
