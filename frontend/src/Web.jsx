@@ -503,12 +503,12 @@ function BotonCuota({ ev, op, deporte, picks, onToggle, market }){
     <button onClick={()=>onToggle(ev,op.label,op.val,deporte,market||"h2h")} style={{
       background:sel?Q.violet:Q.inset,
       border:`1px solid ${sel?Q.violet:Q.border}`,
-      borderRadius:RADII.sm,padding:"8px 4px",cursor:"pointer",textAlign:"center",
+      borderRadius:RADII.md,padding:"8px 4px",cursor:"pointer",textAlign:"center",
       fontFamily:F_BODY,transition:"all .13s",minWidth:0}}>
       <div style={{fontSize:12,fontWeight:600,letterSpacing:.8,
         color:sel?inkOn(Q.violet):Q.dim,whiteSpace:"nowrap",overflow:"hidden",
         textOverflow:"ellipsis"}}>{op.k}</div>
-      <div style={{fontFamily:F_NUM,fontSize:18,fontWeight:700,lineHeight:1.05,
+      <div style={{fontFamily:F_NUM,fontSize:17,fontWeight:700,lineHeight:1.05,
         color:sel?inkOn(Q.violet):Q.gold}}>{fmt(op.val)}</div>
     </button>
   );
@@ -2931,8 +2931,8 @@ function SidebarWeb({ vista, onNav }){
           <button key={it.k} onClick={()=>onNav(it.k)} style={{
             display:"flex",alignItems:"center",gap:SPACING[12],
             minHeight:44,padding:"0 12px",width:"100%",textAlign:"left",
-            background:on?`${Q.gold}1f`:"transparent",
-            border:`1px solid ${on?Q.gold:"transparent"}`,
+            background:on?`linear-gradient(135deg,${Q.violet}44,${Q.violet2}22)`:"transparent",
+            border:`1px solid ${on?Q.violet:"transparent"}`,
             borderRadius:RADII.md,cursor:"pointer"}}>
             <span style={{color:on?Q.gold:Q.muted,display:"flex"}}>{it.i}</span>
             <span style={{color:on?Q.gold:Q.muted,fontSize:13,
@@ -5155,10 +5155,9 @@ function ConsultarBoleto({ onCerrar }){
 
 // ── Estilos compartidos ───────────────────────────────────────
 const _panel=()=>({background:Q.surface,border:`1px solid ${Q.border}`,
-  borderRadius:RADII.md,overflow:"hidden"});
-const _phead=()=>({padding:"12px 16px",fontFamily:F_NUM,fontSize:15,fontWeight:600,
-  letterSpacing:".08em",textTransform:"uppercase",color:Q.muted,
-  borderBottom:`1px solid ${Q.border}`});
+  borderRadius:RADII.lg,overflow:"hidden"});
+const _phead=()=>({padding:"12px 16px",fontFamily:F_BODY,fontSize:15,fontWeight:800,
+  color:Q.text,borderBottom:`1px solid ${Q.border}`});
 const _btnPrim=()=>({width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.violet2})`,
   border:"none",borderRadius:RADII.md,padding:"12px",color:inkOn(Q.violet, Q.violet2),fontSize:14,
   fontWeight:700,cursor:"pointer",fontFamily:F_BODY});
@@ -5279,12 +5278,14 @@ export default function Web(){
   // ligas. Va DESPUÉS de declarar vista: antes reventaba al abrir.
   const esDeportes = vista==="prematch" || vista==="vivo";   // prematch | vivo
   const [boletoAbierto,setBoletoAbierto]=useState(false);
-  const [ancho,setAncho]=useState(typeof window!=="undefined"?window.innerWidth>=1000:true);
   // Desktop shell (sidebar + header + content), the admin/agency panels'
   // own shape, at the shared 1024px breakpoint — see desktopShellLayout.js.
-  // Independent of `ancho` above (1000px), which only widens the events
-  // list into its own three-column layout and is unrelated to the shell.
   const isDesktopShell=useDesktopShellWidth();
+  // `ancho` (lista de partidos en tres columnas, boleto fijo) tenía su
+  // propio corte en 1000px, aparte del de la barra lateral en 1024. Entre
+  // 1000 y 1023 se dibujaba la grilla de tres columnas sin barra lateral:
+  // un estado que no debería existir. Ahora es el mismo interruptor.
+  const ancho=isDesktopShell;
 
   // Código de referido del enlace (?ref=CODIGO o ?scan=CODIGO). Sin esto,
   // abrir Bet Best rompía la pantalla entera: la variable no existía.
@@ -5293,12 +5294,6 @@ export default function Web(){
     const params=new URLSearchParams(window.location.search);
     const code=params.get("ref")||params.get("scan")||"";
     if(code) setRefCode(code);
-  },[]);
-
-  useEffect(()=>{
-    const r=()=>setAncho(window.innerWidth>=1000);
-    window.addEventListener("resize",r);
-    return()=>window.removeEventListener("resize",r);
   },[]);
 
   useEffect(()=>{
@@ -5423,7 +5418,7 @@ export default function Web(){
         padding:ancho?"0 18px":"0 10px",height:56,
         position:"sticky",top:0,zIndex:100}}>
         <button onClick={()=>setVista("inicio")} aria-label="Ir al inicio"
-          style={_btnLogo}><BrandMark size={ancho?23:19}/></button>
+          style={_btnLogo}><BrandMark size={40}/></button>
 
         {/* El saldo, a la izquierda junto al logo. La navegación
             vive toda en la barra de abajo. */}
@@ -5490,6 +5485,12 @@ export default function Web(){
         )}
 
         {/* Bet Best vive en la barra de abajo */}
+
+        {/* El filo de violeta que la mini-app pone bajo su encabezado: es lo
+            que hace que las dos barras se lean como la misma. */}
+        <div aria-hidden="true" style={{position:"absolute",bottom:-1,left:0,
+          right:0,height:1,
+          background:`linear-gradient(90deg,${Q.violet},${Q.violet2},transparent)`}}/>
       </header>
 
       {/* Lo primero que ve el que se acaba de registrar: en una línea,
@@ -5694,16 +5695,15 @@ export default function Web(){
                   <div style={{display:"flex",alignItems:"center",gap:SPACING[12],
                     padding:"12px 16px",background:Q.deep,
                     border:`1px solid ${Q.border}`,borderBottom:"none",
-                    borderRadius:"10px 10px 0 0"}}>
+                    borderRadius:`${RADII.lg}px ${RADII.lg}px 0 0`}}>
                     <span style={{width:8,height:8,borderRadius:"50%",
                       background:Q.pink,animation:"qLive 1.6s infinite"}}/>
-                    <h2 style={{fontFamily:F_NUM,fontSize:16,fontWeight:600,
-                      letterSpacing:".05em",textTransform:"uppercase"}}>
+                    <h2 style={{fontFamily:F_BODY,fontSize:15,fontWeight:800}}>
                       Jugando ahora</h2>
                     <span style={{marginLeft:"auto",fontSize:12,color:Q.dim}}>
                       se actualiza solo</span>
                   </div>
-                  <div style={{..._panel(),borderRadius:"0 0 10px 10px"}}>
+                  <div style={{..._panel(),borderRadius:`0 0 ${RADII.lg}px ${RADII.lg}px`}}>
                     {vivosFiltrados.map((ev,i)=>(
                       <FilaPartido key={ev.id||i} ev={ev} deporte={ev.liga||""}
                         picks={picks} onToggle={toggle} ancho={ancho} vivo/>
@@ -5733,15 +5733,14 @@ export default function Web(){
                 <div style={{display:"flex",alignItems:"center",gap:SPACING[12],
                   padding:"12px 16px",background:Q.deep,
                   border:`1px solid ${Q.border}`,borderBottom:"none",
-                  borderRadius:"10px 10px 0 0"}}>
+                  borderRadius:`${RADII.lg}px ${RADII.lg}px 0 0`}}>
                   <Bandera sportKey={grupo.key} size={22}/>
-                  <h2 style={{fontFamily:F_NUM,fontSize:16,fontWeight:600,
-                    letterSpacing:".05em",textTransform:"uppercase"}}>
+                  <h2 style={{fontFamily:F_BODY,fontSize:15,fontWeight:800}}>
                     {grupo.nombre}</h2>
                   <span style={{marginLeft:"auto",fontSize:12,color:Q.dim}}>
                     {grupo.eventos.length} partidos</span>
                 </div>
-                <div style={{..._panel(),borderRadius:"0 0 10px 10px"}}>
+                <div style={{..._panel(),borderRadius:`0 0 ${RADII.lg}px ${RADII.lg}px`}}>
                   {grupo.eventos.slice(0,25).map((ev,i)=>(
                     <FilaPartido key={ev.id||ev.event_id||i} ev={ev}
                       deporte={grupo.nombre} picks={picks} onToggle={toggle}
