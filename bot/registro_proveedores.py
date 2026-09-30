@@ -1,7 +1,8 @@
 """El registro de proveedores de casino: cómo se arma la configuración de
 uno a partir de su fila y del entorno.
 
-No toca la base ni la red. La lectura del registro y el caché viven en
+No toca la base ni la red (salvo `aplicar_una_vez`, que usa la conexión de
+quien lo llama). La lectura del registro y el caché viven en
 `casino_api.py`, que ya es dueño del pool: es la misma partición que ya
 rige entre `mensajeria.py` y `casino_api.py`, y por la misma razón, que
 esto se pueda probar sin base.
@@ -9,6 +10,8 @@ esto se pueda probar sin base.
 `armar_proveedor`: la fila del registro gana, el entorno respalda.
 `ip_permitida`: lista blanca con rangos CIDR, IPv4 e IPv6, para los
 callbacks que el proveedor nos hace.
+`aplicar_una_vez`: idempotencia por clave con prefijo de proveedor, más un
+segundo control por ronda, para que un callback nunca mueva plata dos veces.
 """
 
 from __future__ import annotations
@@ -16,7 +19,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 from dataclasses import dataclass
-from typing import Optional
+from typing import Awaitable, Callable, Optional
 
 log = logging.getLogger("proveedores")
 
@@ -189,3 +192,117 @@ def ip_permitida(ips: list, permitidas) -> tuple:
             if ip.version == red.version and ip in red:
                 return True, "ok"
     return False, "ip_fuera_de_la_lista"
+
+
+# ── 3. Idempotencia compartida ──────────────────────────────────
+
+class TransaccionFaltante(ValueError):
+    """El proveedor no mandó identificador de transacción."""
+
+
+# Longitud máxima de la clave completa. `wallet_debito` corta a 80 en
+# silencio; acá un identificador largo se rechaza, porque cortarlo puede
+# hacer que dos transacciones distintas terminen con la misma clave.
+_LARGO_MAXIMO_CLAVE = 120
+
+# Cuánto tiempo hacia atrás mira el segundo control. Un reintento llega en
+# segundos; ampliar la ventana no atrapa más reintentos, solo más apuestas
+# legítimas idénticas dentro de una misma ronda (ver `buscar_previo`).
+VENTANA_RONDA_SEGUNDOS = 120
+
+
+def clave_idempotencia(proveedor: str, transaccion) -> str:
+    """`atomic:<transaccion>`. El prefijo evita que dos proveedores que
+    reparten ids del mismo estilo choquen entre sí.
+
+    Si falta la transacción se RECHAZA. No se inventa una clave de
+    reemplazo: panel-multiskin tenía un `uniqid()` de respaldo, entendió que
+    una clave que cambia en cada intento no deduplica nada, y lo sacó. Una
+    clave inventada protege justo cuando no hace falta y falla cuando sí.
+    """
+    texto = str(transaccion if transaccion is not None else "").strip()
+    if not texto:
+        raise TransaccionFaltante(
+            f"{proveedor}: el pedido no trae identificador de transacción")
+    clave = f"{proveedor}:{texto}"
+    if len(clave) > _LARGO_MAXIMO_CLAVE:
+        raise TransaccionFaltante(
+            f"{proveedor}: el identificador de transacción es demasiado largo")
+    return clave
+
+
+@dataclass(frozen=True)
+class Resultado:
+    saldo_post: int
+    repetido: bool
+    por: str  # "ref" (mismo id), "ronda" (id nuevo, mismo movimiento) o "nuevo"
+
+
+async def buscar_previo(conn, proveedor: str, ref: str, ronda: Optional[str],
+                        tipo: str, monto: int,
+                        ventana: int = VENTANA_RONDA_SEGUNDOS) -> Optional[Resultado]:
+    """Si este movimiento ya se procesó, devuelve su resultado.
+
+    Primero por la clave exacta (`casino_movimientos.ref`, con su índice
+    único). Después, si hay ronda, por (proveedor, ronda, tipo, monto)
+    dentro de una ventana corta: cubre el reintento que llega con un id
+    nuevo, que no sabemos si ocurre (128 llamadas reales de Atomic no
+    mostraron ninguno) pero que, si ocurre, duplica plata.
+
+    El costo de ese segundo control es un falso positivo posible: dos
+    apuestas legítimas del mismo monto dentro de la misma ronda (dos
+    manos, dos fichas iguales) se leerían como un reintento y la segunda
+    no se cobraría. Por eso la ventana es corta y por eso se deja un
+    aviso en el log cada vez que dispara: si aparece en producción hay que
+    mirar si fue un reintento o una jugada real antes de endurecerlo.
+    """
+    # Serializa dos pedidos idénticos concurrentes: sin el candado, ambos
+    # leen "no existe" y ambos mueven plata; el índice único frenaría al
+    # segundo, pero recién al insertar, con el saldo ya tocado.
+    await conn.execute("SELECT pg_advisory_xact_lock(hashtext($1))", ref)
+
+    previo = await conn.fetchrow(
+        "SELECT saldo_post FROM casino_movimientos WHERE ref=$1", ref)
+    if previo:
+        return Resultado(int(previo["saldo_post"]), True, "ref")
+
+    if ronda:
+        # Segundo candado, siempre después del primero: el orden fijo
+        # evita que dos pedidos se esperen mutuamente.
+        await conn.execute("SELECT pg_advisory_xact_lock(hashtext($1))",
+                           f"{proveedor}|{ronda}|{tipo}|{monto}")
+        previo = await conn.fetchrow("""
+            SELECT saldo_post FROM casino_movimientos
+            WHERE proveedor=$1 AND ronda=$2 AND tipo=$3 AND monto=$4
+              AND creado_en > NOW() - make_interval(secs => ::int)
+            ORDER BY id LIMIT 1
+        """, proveedor, ronda, tipo, monto, ventana)
+        if previo:
+            log.warning("[PROVEEDOR] %s: mismo movimiento con id nuevo "
+                        "(ronda=%s tipo=%s monto=%s): se trata como reintento",
+                        proveedor, ronda, tipo, monto)
+            return Resultado(int(previo["saldo_post"]), True, "ronda")
+    return None
+
+
+async def aplicar_una_vez(
+        conn, proveedor: str, transaccion, tipo: str, monto: int,
+        aplicar: Callable[[str], Awaitable[int]],
+        ronda: Optional[str] = None) -> Resultado:
+    """La primitiva que van a usar todos los callbacks que mueven plata.
+
+    Tiene que llamarse DENTRO de `conn.transaction()`: el candado que
+    serializa los reintentos es de transacción y se suelta al terminar.
+
+    `aplicar(ref)` mueve el saldo, inserta el movimiento en
+    `casino_movimientos` con esa `ref` (y con `proveedor` y `ronda`, para
+    que el segundo control lo encuentre) y devuelve el saldo resultante.
+    Si el movimiento ya existía NO se llama y se devuelve lo mismo que la
+    primera vez, sin mover nada.
+    """
+    ref = clave_idempotencia(proveedor, transaccion)
+    previo = await buscar_previo(conn, proveedor, ref, ronda, tipo, monto)
+    if previo:
+        return previo
+    saldo = await aplicar(ref)
+    return Resultado(int(saldo), False, "nuevo")
