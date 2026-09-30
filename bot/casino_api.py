@@ -27850,6 +27850,101 @@ async def atomic_callback_de(codigo: str, request: Request):
     return await _atomic_manejar(request, codigo)
 
 
+# ── ATOMIC: giros gratis ──────────────────────────────────────
+#
+# `gameActions.do` con freespins_get / freespins_set / freespins_delete.
+# `freespins_set` REEMPLAZA lo que el jugador tenga para ese juego, no suma:
+# quien quiera "agregar" tiene que leer antes y calcular el total. Este
+# endpoint no lo hace por él a propósito: la forma de la respuesta de
+# `freespins_get` no está confirmada por Atomic, y sumar sobre un dato que se
+# lee mal pisa giros vivos. Setear menos giros de los ya jugados es seguro
+# según su documentación.
+
+async def _atomic_accion(prov, metodo, **extra):
+    """Una llamada a `gameActions.do`, clasificada en éxito, rechazo
+    definitivo o resultado desconocido (timeout, 5xx, cuerpo ilegible: el
+    proveedor pudo haberla aplicado igual)."""
+    payload = atomic.payload_accion(metodo, partner=prov.api_code,
+                                    api_key=prov.api_secret, **extra)
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(f"{prov.url}/gameActions.do", json=payload)
+    except httpx.HTTPError as e:
+        log.error("[ATOMIC] %s: no se pudo contactar (%s)", metodo,
+                  type(e).__name__)
+        return atomic.clasificar_accion(None, "")
+    resultado = atomic.clasificar_accion(r.status_code, r.text)
+    if not resultado.ok:
+        # Jamás el pedido: lleva el api_key.
+        log.error("[ATOMIC] %s falló (%s, desconocido=%s): %s", metodo,
+                  r.status_code, resultado.desconocido, r.text[:200])
+    return resultado
+
+
+@app.post("/api/admin/casino/atomic/giros-gratis")
+async def atomic_giros_gratis(request: Request, _=Depends(auth.require_admin)):
+    """body: {accion: get|set|delete, user_id, symbol, integracion?,
+              cantidad?, monto_centavos?}
+
+    `set` REEMPLAZA (ver arriba). Devuelve `ok`, y `desconocido` cuando el
+    resultado no se puede saber: en ese caso hay que volver a leer con `get`
+    antes de reintentar."""
+    body = await request.json()
+    accion = str(body.get("accion") or "").strip().lower()
+    if accion not in atomic.ACCIONES_FREESPINS:
+        raise HTTPException(400, "accion tiene que ser get, set o delete")
+    metodo = atomic.ACCIONES_FREESPINS[accion]
+    codigo = str(body.get("integracion") or atomic.CODIGO_POR_DEFECTO).strip().lower()
+    simbolo = str(body.get("symbol") or "").strip()
+    if not simbolo or not body.get("user_id"):
+        raise HTTPException(400, "Faltan user_id y symbol")
+
+    cantidad = monto = None
+    if accion == "set":
+        try:
+            cantidad = int(body.get("cantidad"))
+            monto = int(body.get("monto_centavos"))
+        except (TypeError, ValueError):
+            raise HTTPException(400, "set necesita cantidad y monto_centavos")
+        if cantidad < 1 or monto < 1:
+            # Quitar giros es `delete`: un `set` en cero es ambiguo.
+            raise HTTPException(400, "cantidad y monto_centavos tienen que "
+                                     "ser positivos; para quitar usá delete")
+
+    prov = await _proveedor(codigo)
+    if not (prov and prov.activa and prov.completo()
+            and prov.adaptador == atomic.ADAPTADOR):
+        raise HTTPException(503, f"{codigo} no es una integración Atomic "
+                                 f"activa y completa")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        u = await conn.fetchrow(
+            "SELECT id, moneda FROM users WHERE id=$1", int(body["user_id"]))
+        j = await conn.fetchrow(
+            "SELECT marca FROM casino_juegos "
+            "WHERE integracion=$1 AND game_id=$2", codigo, simbolo)
+    if not u:
+        raise HTTPException(404, "Cliente inexistente")
+    if not (j and j["marca"]):
+        # El estudio es obligatorio y no se adivina: mandar 'pragmatic' a un
+        # juego de otro estudio da un error que nadie sabe leer.
+        raise HTTPException(404, "Ese juego no está en el catálogo de "
+                                 "Atomic; sincronizá primero")
+
+    extra = {"provider": j["marca"], "symbol": simbolo,
+             "currency": (u["moneda"] or "ARS").upper(),
+             "player_id": str(u["id"])}
+    if accion == "set":
+        extra.update(count=cantidad, amount=atomic.a_texto_decimal(monto))
+
+    r = await _atomic_accion(prov, metodo, **extra)
+    log.warning("[ATOMIC] %s jugador=%s juego=%s -> ok=%s desconocido=%s",
+                metodo, u["id"], simbolo, r.ok, r.desconocido)
+    return {"ok": r.ok, "desconocido": r.desconocido, "mensaje": r.mensaje,
+            "datos": r.datos}
+
+
 # ── WALLET API (44neoluck) ────────────────────────────────────
 @app.post("/api/wallet/")
 @app.post("/api/wallet/getBalance")
