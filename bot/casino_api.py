@@ -26938,6 +26938,90 @@ async def _lanzar_atomic(pool, u, j, simbolo, body):
             "juego": simbolo}
 
 
+async def _lanzar_content360(pool, u, j, game_id, body):
+    """Abre un juego de Content360 (`GET /game`) y devuelve el enlace del iframe.
+
+    Diferencias con Atomic, todas a propósito:
+    - el lanzamiento VA FIRMADO, y como consulta armada con `http_build_query`
+      (lo confirmó su soporte; firmar un JSON da "Client authentication
+      failed"). Se firma el mismo texto que se envía;
+    - `user` es el id interno, nunca el username;
+    - el `session_token` lo ponemos nosotros, así que la sesión se guarda
+      ANTES de llamar: un callback puede llegar mientras el lanzamiento
+      todavía responde, y sin sesión no se ata a un juego ni a una agencia.
+    """
+    prov = await _proveedor(j["integracion"])
+    if not (prov and prov.activa and prov.completo()):
+        raise HTTPException(503, f"A la integración {j['integracion']} le "
+                                 f"faltan datos de conexión")
+    sesion = "s" + secrets.token_urlsafe(12)
+    moneda = (u["moneda"] or "ARS").upper()
+    try:
+        parametros = content360.consulta_lanzamiento(
+            juego=game_id, client_id=prov.api_code, sesion=sesion,
+            usuario_id=u["id"], username=u["username"], moneda=moneda,
+            idioma=body.get("language") or body.get("lang"),
+            demo=bool(body.get("demo")),
+            return_url=content360.url_de_retorno(body.get("return_url")))
+    except ValueError:
+        # `game` y `client_id` son enteros en su API; un id que no lo es
+        # quedaría como un 422 del otro lado sin explicación.
+        log.error("[C360] %s: game_id=%r o client_id=%r no son enteros",
+                  j["integracion"], game_id, prov.api_code)
+        raise HTTPException(503, "Ese juego no está disponible ahora")
+
+    guardada = True
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO casino_sesiones
+                    (sesion, sesion_ext, user_id, agencia_code,
+                     game_id, game_titulo, moneda, integracion, ultimo_uso)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
+            """, sesion, sesion, u["id"], u["creado_por"], game_id,
+                 j["titulo"], moneda, j["integracion"])
+    except Exception as e:
+        # Perder la sesión pierde el desglose por juego y el control de que
+        # sea de este jugador; no pierde plata. No se le niega el juego.
+        guardada = False
+        log.error("[C360] no se pudo guardar la sesión %s: %s", sesion, e)
+
+    async def abandonar():
+        # Un lanzamiento que falló no deja una sesión colgando.
+        if not guardada:
+            return
+        try:
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    "DELETE FROM casino_sesiones WHERE sesion=$1", sesion)
+        except Exception:
+            pass
+
+    consulta, firma = content360.consulta_firmada(parametros, prov.api_secret)
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(f"{prov.url}/game?{consulta}",
+                                 headers={"X-CONTENT-KEY": firma,
+                                          "Accept": "application/json"})
+    except httpx.HTTPError as e:
+        log.error("[C360] GET /game: %s", type(e).__name__)
+        await abandonar()
+        raise HTTPException(502, "No se pudo abrir el juego. Probá de nuevo.")
+    try:
+        datos = r.json()
+    except ValueError:
+        datos = None
+    enlace, motivo = content360.enlace_de_juego(datos)
+    if r.status_code != 200 or not enlace:
+        log.error("[C360] GET /game devolvió %s sin enlace: %s", r.status_code,
+                  motivo if r.status_code == 200 else r.text[:300])
+        await abandonar()
+        raise HTTPException(502, "No se pudo abrir el juego. Probá de nuevo.")
+
+    log.warning("[C360] jugador %s abrió %s", u["id"], game_id)
+    return {"url": enlace, "sesion": sesion, "juego": game_id}
+
+
 @app.post("/api/casino/sesion")
 async def casino_sesion(request: Request):
     """
@@ -27015,6 +27099,8 @@ async def casino_sesion(request: Request):
 
     if j["adaptador"] == atomic.ADAPTADOR:
         return await _lanzar_atomic(pool, u, j, game_id, body)
+    if j["adaptador"] == content360.ADAPTADOR:
+        return await _lanzar_content360(pool, u, j, game_id, body)
 
     # El identificador que le pasamos al proveedor es el mismo que
     # usa la billetera para buscar al jugador. Si no coinciden, el

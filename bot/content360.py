@@ -556,6 +556,26 @@ def consulta_firmada(parametros: dict, secreto: str) -> tuple:
     return consulta, hmac_sha256(consulta, secreto)
 
 
+def enlace_de_juego(datos) -> tuple:
+    """(enlace, motivo) a partir de la respuesta de `GET /game`:
+    `{status:"OK", data:{url}}`. El enlace termina en un `src` de iframe: un
+    `javascript:` o un `data:` ahí ejecutaría código en nuestro dominio, así
+    que solo se acepta http(s). El motivo es el mensaje de ellos si lo hay
+    (puede ser una lista) y NUNCA el pedido, que lleva la sesión."""
+    if not isinstance(datos, dict):
+        return None, "respuesta que no es un objeto"
+    cuerpo = datos.get("data") if isinstance(datos.get("data"), dict) else {}
+    enlace = _texto(cuerpo.get("url"))
+    if str(datos.get("status") or "").upper() == "OK" and enlace:
+        if re.match(r"https?://", enlace, re.I):
+            return enlace, None
+        return None, "el enlace no es http(s)"
+    mensaje = cuerpo.get("message") or datos.get("message")
+    if isinstance(mensaje, (list, tuple)):
+        mensaje = " ".join(str(m) for m in mensaje)
+    return None, str(mensaje or "sin enlace")[:200]
+
+
 # ── Catálogo ───────────────────────────────────────────────────
 
 # Lo que cuenta como "en vivo", comparado por igualdad sobre la categoría ya
