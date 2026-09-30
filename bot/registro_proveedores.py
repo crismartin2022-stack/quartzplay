@@ -138,8 +138,18 @@ def ips_del_pedido(x_forwarded_for: str, host: str,
     puede escribir ahí una IP permitida y pasar. Con `saltos_confiables=N`
     solo cuenta la entrada que agregó el N-ésimo proxy de confianza contando
     desde la derecha, que es la única que el cliente no puede falsificar.
-    Se activa con `IP_PROXIES_CONFIABLES` cuando se confirme cuántos
-    saltos pone la plataforma.
+    Medido contra staging el 2026-09-30: **detrás de Railway ese riesgo no
+    existe**. Su proxy descarta la `X-Forwarded-For` y la `X-Real-IP` que
+    manda el cliente y las reescribe. Se probó una IP falsa al principio de
+    la cadena, al final, y en `X-Real-IP`: ninguna sobrevivió. Lo que llega
+    es siempre la IP real del cliente más el salto interno de Railway.
+
+    Por eso `IP_PROXIES_CONFIABLES` queda apagado: hoy no hace falta.
+
+    Pero la garantía es de la plataforma, no de este código. **Hay que
+    volver a medir esto después de la migración a AWS**: un balanceador que
+    agregue a la cadena en vez de reescribirla devuelve el agujero, y en
+    silencio.
     """
     cadena = [p.strip() for p in (x_forwarded_for or "").split(",") if p.strip()]
     if saltos_confiables:
