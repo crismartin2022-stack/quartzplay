@@ -173,11 +173,53 @@ Su sportsbook viene **como un juego más**: no necesita camino propio.
 
 ### Etapa 3 — La salida de 44neoluck
 
-- [ ] **S1 — Decidir qué pasa con los 2.140 juegos.** Desactivarlos,
-      borrarlos, o dejarlos convivir mientras migra el catálogo. Es
-      decisión del dueño, no técnica.
+- [x] **S1 — Decidido (2026-09-30).** Esos 2.140 juegos los cargó el
+      jefe **para pruebas**. Los proveedores finales son Content360 y
+      Atomic. Se **desactivan**, no se borran: un `activo=false` deja el
+      histórico de rondas legible, y un borrado dejaría movimientos
+      apuntando a juegos que ya no existen.
 - [ ] **S2 — Retirar el código y las variables** una vez que no queden
       jugadores con rondas abiertas.
+
+## Lo que Atomic contestó por chat (septiembre 2026)
+
+- **Timeout ~1000ms y un solo reintento.** Textual de ellos: "la latencia
+  sobre 200ms se considera perfecta, de momento un reintento", y sobre el
+  timeout, "si no me equivoco es más de 1000ms". Ese "si no me equivoco"
+  es de ellos: sirve para diseñar, no para prometer.
+- **No hay rollback y es deliberado**: *"para evitar diferentes tipos de
+  abusos"*. Una ronda caída **se ajusta a mano por el operador**. Eso hay
+  que decírselo a soporte antes de abrir, no después del primer reclamo.
+- **`round_info` no se puede desactivar.** Duplica los callbacks y hay que
+  aguantarlo dentro del presupuesto de 1000ms.
+- **Los servidores están en Latinoamérica** y balancean según de dónde
+  entra el jugador. La preocupación por el parámetro `region` queda
+  descartada.
+- Las monedas se agregan a pedido.
+- El sandbox son los proyectos `_test`. Para pasar a producción se copia
+  la URL de callback y la clave al proyecto de producción.
+
+### Sin responder, y hay que insistir
+
+**Si `meta.transaction` es único garantizado.** Se preguntó el 6 de
+septiembre y quedó sin contestar. Es justo el campo del que depende no
+cobrar dos veces.
+
+**Y el host.** El chat dice `https://atomic.vin/api/`; panel-multiskin
+tiene configurado `api-slots.network/api`. Son distintos.
+
+### Las IPs cambian, y hay que tratarlas como algo vivo
+
+Atomic dio IPs distintas tres veces: `146.103.110.92` el 6/09,
+`87.199.208.116` el 7/09, y **`57.128.14.47` más el rango
+`2001:41d0:363:2f00::/56` el 18/09**.
+
+El panel de staging tiene cargadas solo las dos primeras. Si Atomic llama
+desde la nueva, cada callback recibe un 403: el jugador apuesta, el juego
+descuenta de su lado, y nuestro saldo no se mueve.
+
+Para IAQP: la lista tiene que ser configurable sin desplegar, y el
+control tiene que entender rangos IPv6, no comparar texto.
 
 ## Riesgos
 
