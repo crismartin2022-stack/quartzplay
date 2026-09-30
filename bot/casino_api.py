@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 from typing import NamedTuple
 import asyncpg
 import httpx
-from fastapi import FastAPI, Request, HTTPException, Depends, Header
+from fastapi import FastAPI, Request, Response, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
@@ -27519,6 +27519,335 @@ async def casino_diagnostico(_=Depends(auth.require_admin)):
         d["prueba"] = f"{type(e).__name__}: {str(e)[:200]}"
         d["diagnostico"] = "No se pudo llegar al proveedor."
     return d
+
+
+# ── WALLET API (Atomic) ───────────────────────────────────────
+#
+# Un solo endpoint recibe los cinco callbacks; la acción viene en `method`.
+# Atomic NO firma: la defensa es la lista blanca de IP (`_exigir_ip_de_proveedor`)
+# más el `api_key` del cuerpo. Toda respuesta es HTTP 200 con
+# `{status, balance, currency}`, también los errores de negocio.
+#
+# Lo que este código NO hace, a propósito:
+# - no hay rollback: Atomic no lo tiene y dijo por escrito que es deliberado.
+#   Una ronda que queda a medias la corrige a mano el operador, y por eso se
+#   deja un aviso `RONDA A MEDIAS` en el log con todo lo necesario para
+#   encontrarla.
+# - `round_info` y `game_switch` no mueven plata. Ver `atomic.MUEVEN_PLATA`.
+# - no se inventa una clave de idempotencia si falta `meta.transaction`.
+
+_ATOMIC_MAX_CUERPO = 64 * 1024
+
+# El jugador y, en el mismo viaje a la base, la sesión que Atomic nombró: son
+# la mitad de las consultas de un bet, y Atomic corta cerca de 1000 ms.
+_ATOMIC_CONTEXTO = """
+    SELECT u.id, u.balance, u.moneda, u.bloqueado, u.creado_por,
+           s.user_id AS ses_user, s.moneda AS ses_moneda,
+           s.game_id AS ses_juego, s.game_titulo AS ses_titulo,
+           s.agencia_code AS ses_agencia
+    FROM users u
+    LEFT JOIN LATERAL (
+        SELECT user_id, moneda, game_id, game_titulo, agencia_code
+        FROM casino_sesiones WHERE sesion_ext = $2
+        ORDER BY id DESC LIMIT 1) s ON true
+    WHERE u.id = $1
+"""
+# Al cerrar una ronda, lo mismo más lo que movimos en ella (para avisar si
+# no cuadra con lo que Atomic dice). Sigue siendo una sola consulta.
+_ATOMIC_CONTEXTO_RONDA = _ATOMIC_CONTEXTO.replace(
+    "s.agencia_code AS ses_agencia",
+    """s.agencia_code AS ses_agencia,
+           (SELECT COALESCE(SUM(monto),0) FROM casino_movimientos
+             WHERE proveedor=$3 AND ronda=$4 AND tipo='debito') AS debitos,
+           (SELECT COALESCE(SUM(monto),0) FROM casino_movimientos
+             WHERE proveedor=$3 AND ronda=$4 AND tipo='credito') AS creditos""")
+
+
+class _AtomicSaldoInsuficiente(Exception):
+    """Aborta la transacción del bet sin dejar rastro."""
+
+
+def _atomic_respuesta(centavos, moneda, error=None):
+    # HTTP 200 siempre, también con error: es lo que documenta Atomic.
+    return Response(content=atomic.cuerpo_respuesta(centavos, moneda, error),
+                    media_type="application/json", status_code=200)
+
+
+async def _atomic_manejar(request: Request, codigo: str):
+    codigo = (codigo or "").strip().lower()
+    # Primero la IP, antes de leer una sola línea del cuerpo.
+    await _exigir_ip_de_proveedor(request, codigo)
+    prov = await _proveedor(codigo)
+    if prov.adaptador != atomic.ADAPTADOR:
+        log.warning("[ATOMIC] la fila %s no usa el adaptador atomic", codigo)
+        raise HTTPException(403, "Origen no autorizado")
+    moneda_ref = prov.monedas[0] if prov.monedas else "ARS"
+
+    crudo = await request.body()
+    if len(crudo) > _ATOMIC_MAX_CUERPO:
+        return _atomic_respuesta(0, moneda_ref, atomic.PEDIDO_INVALIDO)
+    try:
+        # parse_float=Decimal: el importe se lee exacto desde el primer paso.
+        cuerpo = json.loads(crudo, parse_float=Decimal)
+    except ValueError:
+        cuerpo = None
+    if not isinstance(cuerpo, dict):
+        return _atomic_respuesta(0, moneda_ref, atomic.PEDIDO_INVALIDO)
+
+    pedido = atomic.interpretar(cuerpo)
+    if not (prov.api_secret and hmac.compare_digest(
+            pedido.api_key.encode(), prov.api_secret.encode())):
+        log.warning("[ATOMIC] %s: api_key inválida (método %s)", codigo,
+                    pedido.metodo[:20])
+        return _atomic_respuesta(0, moneda_ref, atomic.CLAVE_INVALIDA)
+
+    uid = atomic.jugador_id_de(pedido.player_id)
+    try:
+        return await _atomic_despachar(prov, pedido, uid, moneda_ref)
+    except Exception:
+        log.exception("[ATOMIC] %s: falló %s (tx=%s ronda=%s)", codigo,
+                      pedido.metodo[:20], pedido.transaccion, pedido.ronda)
+        if pedido.tipo == "credito":
+            _atomic_ronda_a_medias(prov, pedido, "error interno")
+        return await _atomic_error(uid, moneda_ref, atomic.ERROR_INTERNO)
+
+
+async def _atomic_error(uid, moneda_ref, codigo, fila=None):
+    """Una respuesta de error lleva igual el saldo y la moneda del jugador.
+    Si no se pueden leer (la base falló) se devuelve 0 en la moneda del
+    proveedor: es un error, no un dato."""
+    if fila is None and uid is not None:
+        try:
+            pool = await get_db()
+            async with pool.acquire() as conn:
+                fila = await conn.fetchrow(
+                    "SELECT balance, moneda FROM users WHERE id=$1", uid)
+        except Exception:
+            fila = None
+    if fila is None:
+        return _atomic_respuesta(0, moneda_ref, codigo)
+    return _atomic_respuesta(int(fila["balance"] or 0),
+                             fila["moneda"] or moneda_ref, codigo)
+
+
+def _atomic_ronda_a_medias(prov, p, motivo):
+    """Un `win` que no se acreditó. No hay rollback ni reintento de nuestra
+    parte: alguien tiene que encontrar esta ronda y ajustarla a mano.
+    Está en `error` a propósito, para que salte en cualquier alerta."""
+    log.error("[ATOMIC] RONDA A MEDIAS: ajustar a mano | proveedor=%s "
+              "jugador=%s ronda=%s transaccion=%s sesion=%s juego=%s "
+              "monto=%s freespin=%s | motivo=%s",
+              prov.codigo, p.player_id, p.ronda, p.transaccion, p.session_id,
+              p.simbolo, p.monto, p.es_freespin, motivo)
+
+
+async def _atomic_despachar(prov, p, uid, moneda_ref):
+    if p.metodo not in atomic.METODOS:
+        return await _atomic_error(uid, moneda_ref, atomic.METODO_DESCONOCIDO)
+    if uid is None:
+        if p.tipo == "credito":
+            _atomic_ronda_a_medias(prov, p, "jugador inexistente")
+        return _atomic_respuesta(0, moneda_ref, atomic.JUGADOR_INEXISTENTE)
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        ronda_cierre = (p.metodo == "round_info" and p.ronda
+                        and atomic.leer_ronda(p.cuerpo).estado == "finish")
+        if ronda_cierre:
+            fila = await conn.fetchrow(_ATOMIC_CONTEXTO_RONDA, uid,
+                                       p.session_id, prov.codigo, p.ronda)
+        else:
+            fila = await conn.fetchrow(_ATOMIC_CONTEXTO, uid, p.session_id)
+
+        rechazo = atomic.validar_contexto(p, fila, prov.monedas)
+        if rechazo:
+            log.warning("[ATOMIC] %s rechazado (%s): jugador=%s sesion=%s",
+                        p.metodo, rechazo, uid, p.session_id)
+            if p.tipo == "credito":
+                _atomic_ronda_a_medias(prov, p, rechazo)
+            return await _atomic_error(uid, moneda_ref, rechazo, fila)
+
+        moneda = (fila["moneda"] or "ARS").upper()
+        saldo = int(fila["balance"] or 0)
+
+        if p.session_id and fila["ses_user"] is None:
+            # Se acepta: rechazar un `win` por no conocer la sesión le
+            # quitaría al jugador un premio que ya ganó. Pero se avisa,
+            # porque la ronda no queda atada a un juego ni a una agencia.
+            log.warning("[ATOMIC] %s con sesión desconocida %s (jugador %s)",
+                        p.metodo, p.session_id, uid)
+
+        if p.tipo:
+            return await _atomic_movimiento(conn, prov, p, fila, moneda)
+
+        if p.metodo == "session_info":
+            if fila["ses_user"] is not None:
+                await conn.execute(
+                    "UPDATE casino_sesiones SET ultimo_uso=NOW() "
+                    "WHERE sesion_ext=$1", p.session_id)
+        elif p.metodo == "round_info":
+            if ronda_cierre:
+                motivo = atomic.ronda_que_no_cuadra(
+                    atomic.leer_ronda(p.cuerpo),
+                    int(fila["debitos"]), int(fila["creditos"]))
+                if motivo:
+                    # Aviso y no error: el cierre puede llegar antes que el
+                    # `win`. Si persiste, es una ronda a medias.
+                    log.warning("[ATOMIC] ronda %s no cuadra al cerrar: %s "
+                                "(puede ser orden de llegada) | proveedor=%s "
+                                "jugador=%s", p.ronda, motivo, prov.codigo, uid)
+        elif p.metodo == "game_switch":
+            await _atomic_cambiar_de_juego(conn, prov, p, fila, moneda)
+        return _atomic_respuesta(saldo, moneda)
+
+
+async def _atomic_cambiar_de_juego(conn, prov, p, fila, moneda):
+    """`game_switch` (solo Pragmatic): el jugador cambia de juego en el
+    mini-lobby y los callbacks siguientes llegan con la sesión NUEVA. Se
+    registra bajo el mismo jugador; sin eso el `win` de la ronda siguiente
+    se vería como de una sesión desconocida. No mueve plata."""
+    d = p.cuerpo
+    vieja = atomic._texto(d.get("old_session_id")) or p.session_id
+    nueva = atomic._texto(d.get("new_session_id"))
+    juego = atomic._texto(d.get("new_game"))
+    if not nueva or nueva == vieja:
+        return
+    estado = await conn.execute("""
+        INSERT INTO casino_sesiones
+            (sesion, sesion_ext, user_id, agencia_code, game_id, game_titulo,
+             moneda, integracion, ultimo_uso)
+        SELECT $1, $2, s.user_id, s.agencia_code, COALESCE($3::text, s.game_id),
+               COALESCE((SELECT titulo FROM casino_juegos
+                          WHERE integracion=s.integracion
+                            AND game_id=COALESCE($3::text, s.game_id)),
+                        s.game_titulo),
+               s.moneda, s.integracion, NOW()
+        FROM casino_sesiones s
+        WHERE s.sesion_ext=$4 AND s.user_id=$5
+          AND NOT EXISTS (SELECT 1 FROM casino_sesiones n WHERE n.sesion_ext=$2)
+        ORDER BY s.id DESC LIMIT 1
+    """, "s" + secrets.token_urlsafe(12), nueva, juego, vieja, fila["id"])
+    if str(estado).endswith(" 1") or not juego:
+        return
+    # La sesión vieja no estaba guardada: se registra igual con lo que
+    # sabemos del jugador, así el próximo callback la reconoce.
+    await conn.execute("""
+        INSERT INTO casino_sesiones
+            (sesion, sesion_ext, user_id, agencia_code, game_id, game_titulo,
+             moneda, integracion, ultimo_uso)
+        SELECT $1::text, $2::text, $3::bigint, $4::text, $5::text, $6::text,
+               $7::text, $8::text, NOW()
+        WHERE NOT EXISTS (SELECT 1 FROM casino_sesiones n WHERE n.sesion_ext=$2)
+    """, "s" + secrets.token_urlsafe(12), nueva, fila["id"], fila["creado_por"],
+         juego, juego, moneda, prov.codigo)
+
+
+async def _atomic_movimiento(conn, prov, p, fila, moneda):
+    """`bet` (débito) y `win` (crédito): lo único que mueve plata."""
+    tipo = p.tipo
+    a_medias = tipo == "credito"
+
+    def rechazar(codigo, motivo):
+        if a_medias:
+            _atomic_ronda_a_medias(prov, p, motivo)
+        return _atomic_respuesta(int(fila["balance"] or 0), moneda, codigo)
+
+    if not p.transaccion:
+        # Sin `meta.transaction` no hay con qué deduplicar. No se inventa
+        # una clave: una que cambia en cada intento no protege de nada.
+        log.warning("[ATOMIC] %s sin meta.transaction (jugador=%s ronda=%s)",
+                    p.metodo, fila["id"], p.ronda)
+        return rechazar(atomic.TRANSACCION_INVALIDA, "sin meta.transaction")
+    try:
+        monto = atomic.a_centavos(p.monto)
+    except atomic.MontoInvalido as e:
+        log.warning("[ATOMIC] %s con importe inválido (tx=%s): %s",
+                    p.metodo, p.transaccion, e)
+        return rechazar(atomic.PEDIDO_INVALIDO, f"importe inválido: {e}")
+    if tipo == "debito" and fila["bloqueado"]:
+        # Solo la apuesta: un premio de una ronda ya empezada se paga aunque
+        # la cuenta se haya bloqueado en el medio.
+        return rechazar(atomic.JUGADOR_BLOQUEADO, "")
+    if monto == 0:
+        # Nada que mover ni que registrar.
+        return _atomic_respuesta(int(fila["balance"] or 0), moneda)
+
+    uid = fila["id"]
+    agencia = fila["ses_agencia"] or fila["creado_por"]
+    juego = p.simbolo or fila["ses_juego"]
+
+    async def aplicar(ref):
+        if tipo == "debito":
+            # La condición va dentro del UPDATE: decidir y escribir en el
+            # mismo instante es lo que impide que dos apuestas simultáneas
+            # se pisen sin leer antes.
+            nuevo = await conn.fetchrow(
+                "UPDATE users SET balance = balance - $2 "
+                "WHERE id=$1 AND balance >= $2 RETURNING balance", uid, monto)
+            if nuevo is None:
+                raise _AtomicSaldoInsuficiente()
+            post = int(nuevo["balance"])
+            previo = post + monto
+        else:
+            nuevo = await conn.fetchrow(
+                "UPDATE users SET balance = balance + $2 "
+                "WHERE id=$1 RETURNING balance", uid, monto)
+            post = int(nuevo["balance"])
+            previo = post - monto
+        stake = monto if tipo == "debito" else 0
+        premio = monto if tipo == "credito" else 0
+        # El movimiento (que da la idempotencia) y la jugada (que da los
+        # reportes) en UNA sentencia: o quedan las dos o ninguna, y es un
+        # solo viaje a la base. La jugada de un giro gratis nace sin apuesta:
+        # su GGR es negativo y es lo esperado, no un error de cálculo.
+        await conn.execute("""
+            WITH mov AS (
+                INSERT INTO casino_movimientos
+                    (ref, jugador_id, tipo, monto, saldo_previo, saldo_post,
+                     juego, proveedor, ronda, creado_en)
+                VALUES ($1,$2::bigint,$3,$4,$5,$6,$7,$8,$9,NOW()))
+            INSERT INTO casino_rounds
+                (user_id, game, provider, stake, win, ggr, external_tx,
+                 created_at, game_id, game_titulo, agencia_code, sesion,
+                 integracion)
+            VALUES ($2::bigint,$10,$8,$11,$12,$13,$1,NOW(),$14,$15,$16,$17,$8)
+            ON CONFLICT DO NOTHING
+        """, ref, uid, tipo, monto, previo, post, (juego or "")[:40],
+             prov.codigo, p.ronda,
+             "freespin" if p.es_freespin else ("bet" if tipo == "debito" else "win"),
+             stake, premio, stake - premio, juego,
+             fila["ses_titulo"] or juego, agencia, p.session_id)
+        return post
+
+    try:
+        async with conn.transaction():
+            r = await registro_proveedores.aplicar_una_vez(
+                conn, prov.codigo, p.transaccion, tipo, monto, aplicar, p.ronda)
+    except _AtomicSaldoInsuficiente:
+        actual = await conn.fetchval(
+            "SELECT balance FROM users WHERE id=$1", uid)
+        return _atomic_respuesta(int(actual or 0), moneda,
+                                 atomic.SALDO_INSUFICIENTE)
+    except registro_proveedores.TransaccionFaltante as e:
+        return rechazar(atomic.TRANSACCION_INVALIDA, str(e))
+
+    if r.repetido:
+        log.info("[ATOMIC] %s repetido (%s): sin mover plata", p.metodo, r.por)
+    return _atomic_respuesta(r.saldo_post, moneda)
+
+
+@app.post("/api/slots/atomic/callback")
+async def atomic_callback(request: Request):
+    """La URL que se registra en Atomic para el proyecto de producción."""
+    return await _atomic_manejar(request, atomic.CODIGO_POR_DEFECTO)
+
+
+@app.post("/api/slots/atomic/callback/{codigo}")
+async def atomic_callback_de(codigo: str, request: Request):
+    """Una fila del registro por proyecto (`atomic_test` para el sandbox):
+    cada una con su lista de IP y su clave, para que un pedido del sandbox
+    nunca se lea con las credenciales de producción."""
+    return await _atomic_manejar(request, codigo)
 
 
 # ── WALLET API (44neoluck) ────────────────────────────────────

@@ -414,3 +414,36 @@ def clasificar_accion(status_http: Optional[int], cuerpo_texto: str) -> Respuest
         return RespuestaAccion(False, False,
                                str(datos.get("message") or "rechazado"), datos)
     return RespuestaAccion(True, False, "ok", datos)
+
+
+# ── Validar el pedido contra lo que sabemos del jugador ────────
+
+def validar_contexto(pedido: Pedido, fila: Optional[dict],
+                     monedas_proveedor: tuple) -> Optional[str]:
+    """El código de error si el pedido no corresponde al jugador, o None.
+
+    `fila` trae al jugador y, si la hay, la sesión que Atomic nombró
+    (`ses_user`, `ses_moneda`). Devuelve un código y no lanza: la respuesta
+    de error de Atomic lleva el saldo, así que quien llama tiene que poder
+    armarla.
+
+    La moneda se compara en tres lugares porque `bet` y `win` NO mandan
+    `currency` (verificado contra su documentación): la del jugador, la de
+    la sesión con que se lanzó el juego y las que el proveedor tiene
+    habilitadas. Devolver un saldo en pesos que el otro lado lee como euros
+    multiplicaría la plata del cliente por mil.
+    """
+    if fila is None:
+        return JUGADOR_INEXISTENTE
+    moneda = str(fila.get("moneda") or "ARS").upper()
+    if pedido.moneda and pedido.moneda != moneda:
+        return MONEDA_DISTINTA
+    if monedas_proveedor and moneda not in monedas_proveedor:
+        return MONEDA_DISTINTA
+    if fila.get("ses_user") is not None:
+        if fila["ses_user"] != fila["id"]:
+            return SESION_AJENA
+        moneda_sesion = fila.get("ses_moneda")
+        if moneda_sesion and str(moneda_sesion).upper() != moneda:
+            return MONEDA_DISTINTA
+    return None
