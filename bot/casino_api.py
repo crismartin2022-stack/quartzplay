@@ -15,6 +15,7 @@ import registro_publico
 import secretos
 import registro_proveedores
 import atomic
+import content360
 from config import cors_headers, get_runtime_settings
 from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
 from log_hygiene import silence_request_urls
@@ -19422,8 +19423,11 @@ async def casino_conciliacion(_=Depends(auth.require_admin), dias: int = 7):
     datos = {f["tipo"]: {"movimientos": int(f["n"]),
                          "centavos": int(f["total"])} for f in filas}
     apostado = datos.get("debito", {}).get("centavos", 0)
+    # Un premio anulado (rollback de Content360) es plata que vuelve: sin
+    # restarlo, el margen de esta pantalla quedaría por debajo de la realidad.
     pagado = (datos.get("credito", {}).get("centavos", 0)
-              + datos.get("devolucion", {}).get("centavos", 0))
+              + datos.get("devolucion", {}).get("centavos", 0)
+              - datos.get("anulacion_premio", {}).get("centavos", 0))
     return {
         "dias": dias, "detalle": datos,
         "apostado_centavos": apostado,
@@ -26144,6 +26148,8 @@ async def _sincronizar_integracion(conn, integ):
     # proveedor nuevo recibiría el pedido firmado de 44neoluck.
     if integ.get("adaptador") == atomic.ADAPTADOR:
         return await _sincronizar_atomic(conn, integ, url, code, secret)
+    if integ.get("adaptador") == content360.ADAPTADOR:
+        return await _sincronizar_content360(conn, integ, url, code, secret)
 
     headers = _firmar(secret, code)
     async with httpx.AsyncClient(timeout=30) as client:
@@ -26279,6 +26285,119 @@ async def _sincronizar_atomic(conn, integ, url, partner, api_key):
     _cat_cache["ts"] = 0.0
     _cat_aux["ts"] = 0.0
     log.warning("[ATOMIC] %s: %s juegos", integ["codigo"], len(vistos))
+    return len(vistos)
+
+
+# ── CONTENT360: catálogo ──────────────────────────────────────
+# Las categorías que Content360 usa para sus mesas en vivo. Lista configurable
+# porque no está verificado qué palabras manda (ver `content360.CATEGORIAS_VIVO`):
+# si el primer catálogo real deja la pestaña en vivo vacía, se corrige con una
+# variable de entorno y una sincronización, sin desplegar código.
+_C360_VIVAS = (
+    frozenset(content360.normalizar_categoria(c) for c in
+              os.environ["C360_CATEGORIAS_VIVO"].split(",") if c.strip())
+    if os.environ.get("C360_CATEGORIAS_VIVO", "").strip()
+    else content360.CATEGORIAS_VIVO)
+
+# $9 = "esta fuente sabe si el juego es en vivo". Un catálogo completo sí
+# (trae las categorías y el tipo de la marca); una notificación sin
+# categorías no, y entonces no pisa lo que el juego ya tenía puesto. Con la
+# marca y la imagen pasa lo mismo: una notificación trae `brand_id` (un
+# número) y no el nombre, así que no borra el que el catálogo ya guardó.
+_C360_GUARDAR_JUEGO = """
+    INSERT INTO casino_juegos
+        (integracion, game_id, titulo, marca, imagen, es_vivo,
+         movil, escritorio, clave_juego, activo, actualizado)
+    VALUES ($1,$2,$3,$4,$5,$6,true,true,$7,$8,NOW())
+    ON CONFLICT (integracion, game_id) DO UPDATE SET
+        titulo=EXCLUDED.titulo,
+        marca=COALESCE(EXCLUDED.marca, casino_juegos.marca),
+        imagen=COALESCE(EXCLUDED.imagen, casino_juegos.imagen),
+        es_vivo=CASE WHEN $9 THEN EXCLUDED.es_vivo
+                     ELSE casino_juegos.es_vivo END,
+        clave_juego=EXCLUDED.clave_juego,
+        activo=EXCLUDED.activo, actualizado=NOW()
+"""
+
+
+async def _c360_guardar_juego(conn, integracion, j, sabe_si_es_vivo):
+    await conn.execute(_C360_GUARDAR_JUEGO, integracion, j.id, j.titulo,
+                       j.marca, j.imagen, j.es_vivo, _clave_juego(j.titulo),
+                       j.activo, sabe_si_es_vivo)
+
+
+def _c360_invalidar_catalogo():
+    _cat_cache["data"] = None
+    _cat_cache["ts"] = 0.0
+    _cat_aux["ts"] = 0.0
+
+
+async def _sincronizar_content360(conn, integ, url, client_id, api_key):
+    """Catálogo de Content360 (`GET /games/get?client_id=`) dentro de
+    `casino_juegos`, con el mismo criterio que Atomic: lo que "ya no viene" se
+    apaga SOLO dentro de esta integración.
+
+    Este es el proveedor que va a traer el casino en vivo, así que la
+    sincronización deja registrado qué categorías vio y cuántos juegos
+    clasificó como en vivo. Si no coincide ninguno, avisa en rojo: es la señal
+    de que la lista de categorías en vivo no es la que usan ellos.
+    """
+    if not str(client_id).strip().isdigit():
+        raise HTTPException(400, f"{integ['codigo']}: el id de operador "
+                                 f"(client_id) tiene que ser numérico")
+    consulta, firma = content360.consulta_firmada(
+        {"client_id": int(client_id)}, api_key)
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.get(f"{url}/games/get?{consulta}",
+                                 headers={"X-CONTENT-KEY": firma,
+                                          "Accept": "application/json"})
+    except httpx.HTTPError as e:
+        log.error("[C360] catálogo: no se pudo contactar a %s: %s",
+                  integ["codigo"], type(e).__name__)
+        raise HTTPException(502, f"No se pudo contactar a {integ['codigo']}")
+    if r.status_code != 200:
+        log.error("[C360] catálogo de %s devolvió %s: %s",
+                  integ["codigo"], r.status_code, r.text[:200])
+        raise HTTPException(502, f"{integ['codigo']} respondió {r.status_code}")
+    try:
+        datos = r.json()
+    except ValueError:
+        raise HTTPException(502, f"{integ['codigo']} no devolvió JSON")
+
+    catalogo = content360.extraer_juegos(datos, _C360_VIVAS)
+    if not catalogo.juegos:
+        # Una respuesta que no se reconoce NO se toma por "no hay juegos":
+        # apagaría el catálogo entero por un cambio de formato.
+        log.error("[C360] catálogo de %s sin juegos reconocibles: %s",
+                  integ["codigo"], r.text[:300])
+        raise HTTPException(502, f"No se reconoció ningún juego en la "
+                                 f"respuesta de {integ['codigo']}")
+
+    vistos = [j.id for j in catalogo.juegos]
+    async with conn.transaction():
+        for j in catalogo.juegos:
+            await _c360_guardar_juego(conn, integ["codigo"], j, True)
+        await conn.execute("""
+            UPDATE casino_juegos SET activo=false
+            WHERE integracion=$1 AND game_id <> ALL($2)
+        """, integ["codigo"], vistos)
+        await conn.execute("""
+            UPDATE casino_integraciones
+            SET ultimo_sync=NOW(), juegos_count=$2 WHERE codigo=$1
+        """, integ["codigo"], len(vistos))
+    _c360_invalidar_catalogo()
+
+    en_vivo = sum(1 for j in catalogo.juegos if j.es_vivo)
+    log.warning("[C360] %s: %s juegos, %s en vivo | categorías vistas: %s | "
+                "tipos de marca: %s", integ["codigo"], len(vistos), en_vivo,
+                dict(catalogo.categorias.most_common(20)) or "ninguna",
+                dict(catalogo.tipos_marca.most_common(10)) or "ninguno")
+    if not en_vivo:
+        log.error("[C360] %s: NINGÚN juego quedó como en vivo. Si tienen "
+                  "mesas, su palabra no está en la lista %s: definir "
+                  "C360_CATEGORIAS_VIVO con lo que figura arriba y "
+                  "sincronizar de nuevo", integ["codigo"], sorted(_C360_VIVAS))
     return len(vistos)
 
 
@@ -26833,6 +26952,90 @@ async def _lanzar_atomic(pool, u, j, simbolo, body):
             "juego": simbolo}
 
 
+async def _lanzar_content360(pool, u, j, game_id, body):
+    """Abre un juego de Content360 (`GET /game`) y devuelve el enlace del iframe.
+
+    Diferencias con Atomic, todas a propósito:
+    - el lanzamiento VA FIRMADO, y como consulta armada con `http_build_query`
+      (lo confirmó su soporte; firmar un JSON da "Client authentication
+      failed"). Se firma el mismo texto que se envía;
+    - `user` es el id interno, nunca el username;
+    - el `session_token` lo ponemos nosotros, así que la sesión se guarda
+      ANTES de llamar: un callback puede llegar mientras el lanzamiento
+      todavía responde, y sin sesión no se ata a un juego ni a una agencia.
+    """
+    prov = await _proveedor(j["integracion"])
+    if not (prov and prov.activa and prov.completo()):
+        raise HTTPException(503, f"A la integración {j['integracion']} le "
+                                 f"faltan datos de conexión")
+    sesion = "s" + secrets.token_urlsafe(12)
+    moneda = (u["moneda"] or "ARS").upper()
+    try:
+        parametros = content360.consulta_lanzamiento(
+            juego=game_id, client_id=prov.api_code, sesion=sesion,
+            usuario_id=u["id"], username=u["username"], moneda=moneda,
+            idioma=body.get("language") or body.get("lang"),
+            demo=bool(body.get("demo")),
+            return_url=content360.url_de_retorno(body.get("return_url")))
+    except ValueError:
+        # `game` y `client_id` son enteros en su API; un id que no lo es
+        # quedaría como un 422 del otro lado sin explicación.
+        log.error("[C360] %s: game_id=%r o client_id=%r no son enteros",
+                  j["integracion"], game_id, prov.api_code)
+        raise HTTPException(503, "Ese juego no está disponible ahora")
+
+    guardada = True
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO casino_sesiones
+                    (sesion, sesion_ext, user_id, agencia_code,
+                     game_id, game_titulo, moneda, integracion, ultimo_uso)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
+            """, sesion, sesion, u["id"], u["creado_por"], game_id,
+                 j["titulo"], moneda, j["integracion"])
+    except Exception as e:
+        # Perder la sesión pierde el desglose por juego y el control de que
+        # sea de este jugador; no pierde plata. No se le niega el juego.
+        guardada = False
+        log.error("[C360] no se pudo guardar la sesión %s: %s", sesion, e)
+
+    async def abandonar():
+        # Un lanzamiento que falló no deja una sesión colgando.
+        if not guardada:
+            return
+        try:
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    "DELETE FROM casino_sesiones WHERE sesion=$1", sesion)
+        except Exception:
+            pass
+
+    consulta, firma = content360.consulta_firmada(parametros, prov.api_secret)
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(f"{prov.url}/game?{consulta}",
+                                 headers={"X-CONTENT-KEY": firma,
+                                          "Accept": "application/json"})
+    except httpx.HTTPError as e:
+        log.error("[C360] GET /game: %s", type(e).__name__)
+        await abandonar()
+        raise HTTPException(502, "No se pudo abrir el juego. Probá de nuevo.")
+    try:
+        datos = r.json()
+    except ValueError:
+        datos = None
+    enlace, motivo = content360.enlace_de_juego(datos)
+    if r.status_code != 200 or not enlace:
+        log.error("[C360] GET /game devolvió %s sin enlace: %s", r.status_code,
+                  motivo if r.status_code == 200 else r.text[:300])
+        await abandonar()
+        raise HTTPException(502, "No se pudo abrir el juego. Probá de nuevo.")
+
+    log.warning("[C360] jugador %s abrió %s", u["id"], game_id)
+    return {"url": enlace, "sesion": sesion, "juego": game_id}
+
+
 @app.post("/api/casino/sesion")
 async def casino_sesion(request: Request):
     """
@@ -26910,6 +27113,8 @@ async def casino_sesion(request: Request):
 
     if j["adaptador"] == atomic.ADAPTADOR:
         return await _lanzar_atomic(pool, u, j, game_id, body)
+    if j["adaptador"] == content360.ADAPTADOR:
+        return await _lanzar_content360(pool, u, j, game_id, body)
 
     # El identificador que le pasamos al proveedor es el mismo que
     # usa la billetera para buscar al jugador. Si no coinciden, el
@@ -27862,6 +28067,335 @@ async def atomic_callback_de(codigo: str, request: Request):
     cada una con su lista de IP y su clave, para que un pedido del sandbox
     nunca se lea con las credenciales de producción."""
     return await _atomic_manejar(request, codigo)
+
+
+# ── WALLET API (Content360) ───────────────────────────────────
+#
+# Cuatro endpoints (`balance` GET; `debit`, `credit` y `notification` POST),
+# y la dirección del dinero sale del endpoint. A diferencia de Atomic, acá SÍ
+# se firma (HMAC-SHA256 en `X-CONTENT-KEY`), y la firma real no coincide con
+# la documentada: ver `content360.CANONICALIZACIONES`.
+#
+# Reglas que este código respeta, todas de su documentación:
+# - HTTP 200 SIEMPRE, también con error: un 4xx o 5xx lo leen como falla de
+#   red y reintentan. El resultado va en `code`.
+# - `notification` no mueve plata: es el catálogo.
+# - el tiempo son 3 s, con dos reintentos de la misma `transaction`; en el
+#   tercero mandan `conciliation`, que se aplica sin condiciones.
+# - rollback: solo de una ronda que movió algo antes (si no, código 3).
+#
+# Sobre la IP: a diferencia de Atomic, Content360 aceptó trabajar SIN filtro
+# de IP. Entonces la lista blanca es OPCIONAL acá: si la fila tiene IP
+# cargadas se exige; si está vacía, la firma es la única defensa. Es lo
+# contrario del "lista vacía = se rechaza todo" de Atomic y es a propósito:
+# con la lista vacía cerrada, una integración que no tiene IP que darnos
+# quedaría inutilizable.
+
+_C360_MAX_CUERPO = 256 * 1024
+
+# Las variantes de firma que ya se vieron acertar en este proceso. Sirve para
+# que la PRIMERA vez que aparece cada una quede en el log en aviso: es el
+# dato que permite fijar la canonicalización real después de las primeras
+# llamadas de verdad.
+_c360_variantes_vistas: set = set()
+
+# Lo ya movido en una ronda por ese jugador, por tipo (para el tope de un
+# rollback). El índice parcial `casino_mov_proveedor_ronda` lo cubre.
+_C360_PREVIOS = """
+    SELECT tipo, COALESCE(SUM(monto),0) AS total FROM casino_movimientos
+    WHERE proveedor=$1 AND ronda=$2 AND jugador_id=$3 GROUP BY tipo
+"""
+
+# El movimiento (que da la idempotencia) y la jugada (que da los reportes) en
+# UNA sentencia: o quedan las dos o ninguna. Mismo contrato que el de Atomic.
+_C360_MOVIMIENTO = """
+    WITH mov AS (
+        INSERT INTO casino_movimientos
+            (ref, jugador_id, tipo, monto, saldo_previo, saldo_post,
+             juego, proveedor, ronda, creado_en)
+        VALUES ($1,$2::bigint,$3,$4,$5,$6,$7,$8,$9,NOW()))
+    INSERT INTO casino_rounds
+        (user_id, game, provider, stake, win, ggr, external_tx,
+         created_at, game_id, game_titulo, agencia_code, sesion,
+         integracion)
+    VALUES ($2::bigint,$10,$8,$11,$12,$13,$1,NOW(),$14,$15,$16,$17,$8)
+    ON CONFLICT DO NOTHING
+"""
+
+
+class _C360Rechazo(Exception):
+    """Aborta la transacción del movimiento sin dejar rastro."""
+
+    def __init__(self, codigo, motivo):
+        super().__init__(motivo)
+        self.codigo = codigo
+        self.motivo = motivo
+
+
+def _c360_respuesta(codigo, centavos=None, transaccion=None, descripcion=None):
+    # HTTP 200 siempre, también con error: es lo que documenta Content360.
+    return Response(
+        content=content360.cuerpo_respuesta(
+            codigo, descripcion=descripcion, centavos=centavos,
+            transaccion=transaccion),
+        media_type="application/json", status_code=200)
+
+
+async def _c360_manejar(request: Request, codigo: str, endpoint: str):
+    codigo = (codigo or "").strip().lower()
+    try:
+        prov = await _proveedor(codigo)
+    except Exception:
+        log.exception("[C360] no se pudo leer el proveedor %s", codigo)
+        return _c360_respuesta(content360.ERROR_INTERNO)
+    if not (prov and prov.activa and prov.adaptador == content360.ADAPTADOR
+            and prov.api_secret):
+        log.warning("[C360] %s: proveedor inexistente, apagado, sin clave o "
+                    "con otro adaptador", codigo)
+        return _c360_respuesta(content360.ERROR_INTERNO,
+                               descripcion="Integration not configured")
+    if prov.ips_permitidas:
+        await _exigir_ip_de_proveedor(request, codigo)
+
+    crudo = await request.body()
+    if len(crudo) > _C360_MAX_CUERPO:
+        return _c360_respuesta(content360.NO_PROCESABLE)
+    firmable, error_cuerpo = content360.firmable_de(
+        request.method, crudo, request.scope.get("query_string", b"").decode(
+            "latin-1"))
+    recibida = request.headers.get("x-content-key", "")
+    verificada = content360.validar_firma(firmable, recibida, prov.api_secret)
+    if not verificada.ok:
+        log.warning("[C360] %s: firma inválida en %s | %s", codigo, endpoint,
+                    content360.diagnostico_firma(firmable, recibida, verificada))
+        if endpoint == "notification":
+            return _c360_respuesta(content360.NOTIFICACION_RECHAZADA)
+        return _c360_respuesta(content360.FIRMA_INVALIDA)
+    if verificada.variante not in _c360_variantes_vistas:
+        _c360_variantes_vistas.add(verificada.variante)
+        log.warning("[C360] %s: primera firma válida con la forma %r (%s)",
+                    codigo, verificada.variante, endpoint)
+    if error_cuerpo:
+        log.warning("[C360] %s: %s no se puede interpretar: %s", codigo,
+                    endpoint, error_cuerpo)
+        return _c360_respuesta(content360.NO_PROCESABLE)
+
+    datos = firmable.datos
+    try:
+        if endpoint == "notification":
+            return await _c360_notificacion(prov, datos)
+        if endpoint == "balance":
+            return await _c360_saldo(prov, datos)
+        return await _c360_movimiento(prov, endpoint, datos)
+    except Exception:
+        log.exception("[C360] %s: falló %s (tx=%s ronda=%s)", codigo, endpoint,
+                      datos.get("transaction"), datos.get("round"))
+        if endpoint == "credit":
+            # Un premio que no se acreditó: lo encuentra una persona, y
+            # `conciliation` no es una garantía de que lo reintenten.
+            log.error("[C360] PREMIO SIN ACREDITAR: revisar a mano | "
+                      "proveedor=%s jugador=%s ronda=%s transaccion=%s "
+                      "tipo=%s monto=%s", codigo, datos.get("user"),
+                      datos.get("round"), datos.get("transaction"),
+                      datos.get("type"), datos.get("amount"))
+        return _c360_respuesta(content360.ERROR_INTERNO)
+
+
+async def _c360_contexto(conn, prov, uid, sesion, moneda_pedida):
+    """(fila, código de error o None). La fila trae al jugador y, si la hay,
+    la sesión que nombró el pedido."""
+    fila = await conn.fetchrow(_ATOMIC_CONTEXTO, uid, sesion)
+    motivo = content360.validar_contexto(moneda_pedida, fila, prov.monedas)
+    if motivo == "jugador":
+        return None, content360.JUGADOR_INEXISTENTE
+    if motivo:
+        log.warning("[C360] %s rechazado (%s): jugador=%s sesion=%s",
+                    prov.codigo, motivo, uid, sesion)
+        return fila, content360.NO_PROCESABLE
+    if sesion and fila["ses_user"] is None:
+        # Se acepta: rechazar un premio por no conocer la sesión le quitaría
+        # al jugador plata que ya ganó. Pero se avisa.
+        log.warning("[C360] sesión desconocida %s (jugador %s)", sesion, uid)
+    return fila, None
+
+
+async def _c360_saldo(prov, datos):
+    """`balance` (GET): el saldo, sin mover nada."""
+    uid = content360.jugador_id_de(content360._texto(datos.get("user")))
+    if uid is None:
+        return _c360_respuesta(content360.JUGADOR_INEXISTENTE)
+    moneda = content360._texto(datos.get("currency"))
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        fila, error = await _c360_contexto(
+            conn, prov, uid, content360._texto(datos.get("session_token")),
+            moneda.upper() if moneda else None)
+    if error:
+        return _c360_respuesta(
+            error, int(fila["balance"] or 0) if fila else None)
+    return _c360_respuesta(content360.OK, int(fila["balance"] or 0))
+
+
+async def _c360_notificacion(prov, datos):
+    """`notification` (POST): un juego del catálogo, upsert por `id`. NO mueve
+    plata, y por eso no toca `users` ni `casino_movimientos`."""
+    juego = content360.juego_de_notificacion(datos, _C360_VIVAS)
+    if juego is None:
+        log.warning("[C360] %s: notification sin id", prov.codigo)
+        return _c360_respuesta(content360.NOTIFICACION_RECHAZADA)
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        await _c360_guardar_juego(conn, prov.codigo, juego,
+                                  bool(juego.categorias))
+    _c360_invalidar_catalogo()
+    return _c360_respuesta(content360.OK)
+
+
+async def _c360_movimiento(prov, endpoint, datos):
+    """`debit` y `credit`: lo único que mueve plata."""
+    p, contradiccion = content360.interpretar(endpoint, datos)
+    if p is None:
+        log.warning("[C360] %s: %s", prov.codigo, contradiccion)
+        return _c360_respuesta(content360.NO_PROCESABLE)
+    if p.efecto is None:
+        log.warning("[C360] %s: tipo %r no se aplica en %s (tx=%s)",
+                    prov.codigo, p.tipo, endpoint, p.transaccion)
+        return _c360_respuesta(content360.NO_PROCESABLE)
+    efecto = p.efecto
+    uid = content360.jugador_id_de(p.usuario)
+    if uid is None:
+        return _c360_respuesta(content360.JUGADOR_INEXISTENTE)
+    if not p.transaccion:
+        # Sin `transaction` no hay con qué deduplicar. No se inventa una
+        # clave: una que cambia en cada intento no protege de nada.
+        log.warning("[C360] %s sin transaction (jugador=%s ronda=%s)",
+                    endpoint, uid, p.ronda)
+        return _c360_respuesta(content360.NO_PROCESABLE)
+    if efecto.revierte and not p.ronda:
+        return _c360_respuesta(content360.NO_PROCESABLE)
+    try:
+        monto = content360.a_centavos(p.monto)
+    except content360.MontoInvalido as e:
+        log.warning("[C360] %s con importe inválido (tx=%s): %s",
+                    endpoint, p.transaccion, e)
+        return _c360_respuesta(content360.NO_PROCESABLE)
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        fila, error = await _c360_contexto(conn, prov, uid, p.sesion, p.moneda)
+        if error:
+            return _c360_respuesta(
+                error, int(fila["balance"] or 0) if fila else None)
+        saldo_actual = int(fila["balance"] or 0)
+        if efecto.bloqueable and fila["bloqueado"]:
+            # Solo lo que empieza valor: un premio o una devolución de una
+            # ronda ya empezada se paga aunque la cuenta se haya bloqueado.
+            return _c360_respuesta(content360.JUGADOR_INEXISTENTE,
+                                   saldo_actual, descripcion="Player inactive")
+        if monto == 0:
+            return _c360_respuesta(content360.OK, saldo_actual)
+
+        agencia = fila["ses_agencia"] or fila["creado_por"]
+        juego = p.juego or fila["ses_juego"]
+
+        async def aplicar(ref):
+            if efecto.revierte:
+                # Dos rollbacks distintos de la misma ronda, a la vez, leerían
+                # los dos el mismo total y pasarían los dos.
+                await conn.execute("SELECT pg_advisory_xact_lock(hashtext($1))",
+                                   f"{prov.codigo}|{p.ronda}|rollback")
+                previos = {f["tipo"]: int(f["total"]) for f in
+                           await conn.fetch(_C360_PREVIOS, prov.codigo,
+                                            p.ronda, uid)}
+                motivo = content360.rollback_permitido(efecto, monto, previos)
+                if motivo:
+                    raise _C360Rechazo(content360.NO_PROCESABLE, motivo)
+            if efecto.signo < 0:
+                # La condición va dentro del UPDATE: decidir y escribir en el
+                # mismo instante es lo que impide que dos apuestas
+                # simultáneas se pisen. La conciliación no la tiene: se
+                # aplica aunque el saldo quede en negativo.
+                condicion = " AND balance >= $2" if efecto.exige_saldo else ""
+                nuevo = await conn.fetchrow(
+                    "UPDATE users SET balance = balance - $2 "
+                    f"WHERE id=$1{condicion} RETURNING balance", uid, monto)
+                if nuevo is None:
+                    raise _C360Rechazo(content360.SALDO_INSUFICIENTE,
+                                       "saldo insuficiente")
+                post = int(nuevo["balance"])
+                previo = post + monto
+                if post < 0:
+                    log.warning("[C360] conciliación dejó el saldo en %s "
+                                "(jugador=%s ronda=%s tx=%s)", post, uid,
+                                p.ronda, p.transaccion)
+            else:
+                nuevo = await conn.fetchrow(
+                    "UPDATE users SET balance = balance + $2 "
+                    "WHERE id=$1 RETURNING balance", uid, monto)
+                post = int(nuevo["balance"])
+                previo = post - monto
+            apuesta, premio = content360.asiento(efecto, monto)
+            await conn.execute(
+                _C360_MOVIMIENTO, ref, uid, efecto.tipo, monto, previo, post,
+                (juego or "")[:40], prov.codigo, p.ronda,
+                efecto.etiqueta, apuesta, premio, apuesta - premio, juego,
+                fila["ses_titulo"] or juego, agencia, p.sesion)
+            return post
+
+        try:
+            async with conn.transaction():
+                # `ronda=None` desactiva el segundo control de
+                # `aplicar_una_vez` (mismo monto y tipo en la misma ronda
+                # con un id nuevo). Content360 reintenta con la MISMA
+                # `transaction` y dice que lo hace, así que ese control no
+                # atrapa nada real y sí puede comerse una jugada legítima: dos
+                # fichas iguales en una ronda, dos apuestas de un deporte, o
+                # dos rollbacks del mismo monto.
+                r = await registro_proveedores.aplicar_una_vez(
+                    conn, prov.codigo, p.transaccion, efecto.tipo, monto,
+                    aplicar, None)
+        except _C360Rechazo as e:
+            if e.codigo != content360.SALDO_INSUFICIENTE:
+                log.warning("[C360] %s %s rechazado: %s (jugador=%s ronda=%s "
+                            "tx=%s)", endpoint, p.tipo, e.motivo, uid, p.ronda,
+                            p.transaccion)
+            actual = await conn.fetchval(
+                "SELECT balance FROM users WHERE id=$1", uid)
+            return _c360_respuesta(e.codigo, int(actual or 0))
+        except registro_proveedores.TransaccionFaltante as e:
+            log.warning("[C360] %s: %s", prov.codigo, e)
+            return _c360_respuesta(content360.NO_PROCESABLE)
+
+    if r.repetido:
+        log.info("[C360] %s repetido (%s): sin mover plata", endpoint, r.por)
+    # La `transaction` de la respuesta es la clave con que quedó guardada
+    # (`<proveedor>:<transaction>`): el id del movimiento de nuestro lado.
+    return _c360_respuesta(
+        content360.OK, r.saldo_post,
+        registro_proveedores.clave_idempotencia(prov.codigo, p.transaccion))
+
+
+def _manejador_c360(endpoint):
+    async def manejador(request: Request):
+        return await _c360_manejar(
+            request, request.path_params.get("codigo")
+            or content360.CODIGO_POR_DEFECTO, endpoint)
+    return manejador
+
+
+def _registrar_rutas_content360():
+    """Las URLs que se registran en Content360: una por endpoint, y otra con
+    el código de la fila del registro (`content360_test` para el sandbox) para
+    que cada proyecto tenga su clave y nunca se mezclen."""
+    for endpoint, metodo in (("balance", "GET"), ("debit", "POST"),
+                             ("credit", "POST"), ("notification", "POST")):
+        for ruta in (f"/api/slots/content360/{endpoint}",
+                     f"/api/slots/content360/{{codigo}}/{endpoint}"):
+            app.add_api_route(ruta, _manejador_c360(endpoint),
+                              methods=[metodo])
+
+
+_registrar_rutas_content360()
 
 
 # ── ATOMIC: giros gratis ──────────────────────────────────────
