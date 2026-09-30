@@ -26376,9 +26376,23 @@ async def guardar_integracion(request: Request,
     pool = await get_db()
     async with pool.acquire() as conn:
         existe = await conn.fetchrow(
-            "SELECT api_code, api_secret, api_secret_cifrado, adaptador, "
+            "SELECT nombre, activa, url, monedas, prioridad, notas, "
+            "api_code, api_secret, api_secret_cifrado, adaptador, "
             "ips_permitidas FROM casino_integraciones WHERE codigo=$1",
             codigo)
+
+        # Lo que no viene en el cuerpo se conserva. Antes solo se
+        # conservaban las credenciales, el adaptador y las IPs: el resto se
+        # reescribía con valores por defecto, así que un pedido parcial
+        # —por ejemplo un interruptor que solo manda `activa`— le borraba
+        # la URL al proveedor y dejaba el casino mudo sin que nadie
+        # entendiera por qué. Guardar no puede destruir lo que no se tocó.
+        def _mantener(campo, por_defecto=None):
+            if campo in body:
+                return body[campo]
+            if existe is not None:
+                return existe[campo]
+            return por_defecto
 
         # Si no mandan credenciales nuevas se conservan las anteriores:
         # así se puede cambiar la prioridad sin volver a escribirlas.
@@ -26419,13 +26433,13 @@ async def guardar_integracion(request: Request,
                 monedas=EXCLUDED.monedas, prioridad=EXCLUDED.prioridad,
                 notas=EXCLUDED.notas, adaptador=EXCLUDED.adaptador,
                 ips_permitidas=EXCLUDED.ips_permitidas
-        """, codigo, (body.get("nombre") or codigo)[:80],
-             bool(body.get("activa")),
-             (body.get("url") or "").rstrip("/") or None,
+        """, codigo, str(_mantener("nombre") or codigo)[:80],
+             bool(_mantener("activa", False)),
+             (str(_mantener("url") or "").rstrip("/") or None),
              api_code, api_secret, api_secret_cifrado,
-             (body.get("monedas") or "ARS").upper(),
-             int(body.get("prioridad") or 100),
-             (body.get("notas") or "")[:300] or None,
+             str(_mantener("monedas") or "ARS").upper(),
+             int(_mantener("prioridad") or 100),
+             (str(_mantener("notas") or "")[:300] or None),
              adaptador, ips)
     # Un cambio en el panel rige de inmediato, sin reiniciar.
     _invalidar_cache_credenciales()
