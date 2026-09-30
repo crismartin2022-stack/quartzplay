@@ -50,6 +50,7 @@ const SCREENS = [
   // fuera de esta lista no la guarda nadie: la regla se cumple por
   // memoria del que la escribió, hasta que alguien la olvida.
   "InicioWeb.jsx", "PantallaTelegram.jsx", "JuegoEnMarco.jsx",
+  "FilaProveedor.jsx",
 ];
 
 const BORDER_RADIUS_LITERAL = /borderRadius\s*:\s*(\d+(?:\.\d+)?)\s*[,}]/g;

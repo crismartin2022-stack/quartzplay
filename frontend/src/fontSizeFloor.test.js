@@ -21,6 +21,7 @@ const SCREENS = [
   // fuera de esta lista no la guarda nadie: la regla se cumple por
   // memoria del que la escribió, hasta que alguien la olvida.
   "InicioWeb.jsx", "PantallaTelegram.jsx", "JuegoEnMarco.jsx",
+  "FilaProveedor.jsx",
 ];
 
 // Captures the numeric value only when it is the whole property value —
