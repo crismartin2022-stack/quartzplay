@@ -95,20 +95,48 @@ El panel lo convierte así, y el comentario de su código vale citarlo:
 que validarse contra la del jugador en cada pedido: devolver pesos que el
 proveedor lee como euros multiplica la plata por mil.
 
-## Huecos, nombrados en vez de rellenados
+## Lo que confirma su documentación (leída el 2026-09-30)
 
-La documentación de Atomic (`atomic.vin/docs`) está detrás de login y no
-se pudo leer. Falta confirmar con ellos:
+El dueño exportó el PDF. Cierra tres cosas:
 
-- Los códigos de error exactos. Solo `INSUFFICIENT_FUNDS` está
-  documentado; el resto son suposiciones del equipo del panel.
-- Si toleran respuestas que no sean HTTP 200.
-- Su política de reintentos, y si `meta.transaction` es estable entre
-  reintentos.
-- Qué hacer con una ronda cancelada, si no hay rollback.
+- **Los cinco callbacks y sus nombres**: `session_info`, `bet`, `win`,
+  `game_switch` y `round_info`. Coinciden con lo que hizo el panel.
+- **La respuesta es siempre la misma**: `{status:"ok", balance, currency}`,
+  y **todos sus ejemplos son HTTP 200**, incluido el de error.
+- **`round_info` y `game_switch` esperan la respuesta estándar pero son
+  informativos.** La documentación los llama "notificaciones" y dice que
+  dan "análisis detallados": no mueven plata. El panel tenía razón.
 
-**Nada de esto se adivina.** Un código de error mal supuesto se descubre
-cuando un jugador no puede apostar.
+Y confirma que **`INSUFFICIENT_FUNDS` es el único error documentado**:
+`{status:"error", message:"INSUFFICIENT_FUNDS", balance, currency}`.
+
+### Dos cosas que su documentación trae y nadie había mirado
+
+**`lang` viene por defecto en `ru`.** Si no lo mandamos, el juego abre en
+ruso. El panel manda `lang`, pero conviene que quede escrito acá porque es
+el tipo de cosa que se descubre con un jugador adentro.
+
+**`region` existe y el panel no lo manda**: `RU` para Rusia, `NONE` para
+cualquier región excepto Rusia. La documentación **no dice cuál es el
+valor por defecto**. Si es `RU`, nuestros jugadores latinoamericanos
+estarían pegándole a servidores rusos, con la latencia que eso implica.
+Hay que preguntarlo y, casi seguro, mandar `NONE`.
+
+### Los tres huecos que su documentación NO cubre
+
+Buscado explícitamente: cero menciones.
+
+- **Reintentos.** No dicen qué hacen si no respondemos. Sin eso no se sabe
+  si un `bet` puede llegar dos veces.
+- **Idempotencia.** Nunca dicen que `meta.transaction` sirva para
+  deduplicar. El panel lo asumió, y es una suposición razonable, pero es
+  una suposición.
+- **Rondas canceladas.** No hay rollback, refund ni cancel en ninguna
+  parte. Una ronda que se cae del lado de ellos no tiene vuelta.
+
+**Estos tres se preguntan, no se adivinan.** Los dos primeros deciden si
+hace falta la tabla de idempotencia y qué tan estricta va; el tercero
+decide qué le contamos a un jugador cuyo giro quedó a medias.
 
 ## Etapas
 
