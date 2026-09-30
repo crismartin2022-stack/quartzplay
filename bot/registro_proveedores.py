@@ -7,10 +7,13 @@ rige entre `mensajeria.py` y `casino_api.py`, y por la misma razón, que
 esto se pueda probar sin base.
 
 `armar_proveedor`: la fila del registro gana, el entorno respalda.
+`ip_permitida`: lista blanca con rangos CIDR, IPv4 e IPv6, para los
+callbacks que el proveedor nos hace.
 """
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 from dataclasses import dataclass
 from typing import Optional
@@ -88,3 +91,101 @@ def armar_proveedor(codigo: str, fila: Optional[dict], secreto: Optional[str],
         ips_permitidas=tuple(fila.get("ips_permitidas") or ()),
         origen=origen,
     )
+
+
+# ── 2. Lista blanca de IP para los callbacks entrantes ──────────
+
+def normalizar_redes(entradas) -> list[str]:
+    """Valida lo que el admin escribió y lo deja en su forma canónica.
+
+    Se valida al GUARDAR, no al usar: una entrada mal escrita que se
+    descubre recién cuando un callback real falla es exactamente el falso
+    aplomo que tenía la comparación de texto del panel. Un rango con bits
+    de host encendidos (`10.0.0.5/24`) se rechaza en vez de corregirse
+    solo, porque corregirlo ensancha el permiso sin que nadie lo decida.
+    Una dirección suelta vale como su /32 (o /128).
+    """
+    if not isinstance(entradas, (list, tuple)):
+        raise ValueError("ips_permitidas debe ser una lista")
+    canonicas = []
+    for crudo in entradas:
+        texto = str(crudo).strip()
+        if not texto:
+            continue
+        try:
+            red = ipaddress.ip_network(texto, strict=True)
+        except ValueError:
+            raise ValueError(f"No es una IP ni un rango válido: {texto!r}")
+        canonicas.append(str(red))
+    # Sin repetidos y en orden estable, para que guardar dos veces lo
+    # mismo no parezca un cambio.
+    return sorted(set(canonicas))
+
+
+def ips_del_pedido(x_forwarded_for: str, host: str,
+                   saltos_confiables: Optional[int] = None) -> list:
+    """Las direcciones que pueden ser el origen real del pedido.
+
+    Detrás del proxy de la plataforma `request.client.host` es el proxy,
+    así que se lee la cadena entera de `X-Forwarded-For`.
+
+    `saltos_confiables=None` acepta cualquier entrada de la cadena. Es lo
+    que pidió el diseño, pero tiene un costo que hay que decir: el
+    cliente controla el principio de `X-Forwarded-For`, así que cualquiera
+    puede escribir ahí una IP permitida y pasar. Con `saltos_confiables=N`
+    solo cuenta la entrada que agregó el N-ésimo proxy de confianza contando
+    desde la derecha, que es la única que el cliente no puede falsificar.
+    Se activa con `IP_PROXIES_CONFIABLES` cuando se confirme cuántos
+    saltos pone la plataforma.
+    """
+    cadena = [p.strip() for p in (x_forwarded_for or "").split(",") if p.strip()]
+    if saltos_confiables:
+        candidatas = cadena[-saltos_confiables:][:1]
+    else:
+        candidatas = cadena + ([host] if host else [])
+    resultado = []
+    for texto in candidatas:
+        try:
+            ip = ipaddress.ip_address(texto)
+        except ValueError:
+            continue  # basura en la cabecera: no coincide con nada
+        # ::ffff:1.2.3.4 es la misma máquina que 1.2.3.4; sin este paso
+        # un proxy que habla IPv6 dejaría afuera a un rango IPv4 permitido.
+        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+            ip = ip.ipv4_mapped
+        resultado.append(ip)
+    return resultado
+
+
+def ip_permitida(ips: list, permitidas) -> tuple:
+    """(acepta, motivo). El motivo va al log: sin él, un rechazo por lista
+    vacía y uno por IP ajena se ven idénticos y se diagnostican mal.
+
+    LISTA VACÍA = SE RECHAZA TODO. panel-multiskin hace lo contrario (deja
+    pasar y avisa en el log) razonando que una variable olvidada no debería
+    tumbar la integración. Acá se decide al revés por dos razones:
+
+    - Estos endpoints se autentican solo con una clave en el cuerpo; la IP
+      es la única otra defensa. Que borrar el valor la apague sin que nada
+      falle a la vista es peor que un rechazo, que sí se ve enseguida.
+    - El motivo del panel era la variable olvidada en un deploy. Acá la
+      lista vive en la base y se edita sin desplegar: arreglar el olvido
+      lleva segundos, y una fila nueva nace cerrada en vez de abierta.
+    """
+    if not permitidas:
+        return False, "lista_vacia"
+    redes = []
+    for texto in permitidas:
+        try:
+            redes.append(ipaddress.ip_network(str(texto).strip(), strict=False))
+        except ValueError:
+            # Una entrada dañada (alguien tocó la base a mano) nunca
+            # coincide; el resto de la lista sigue valiendo.
+            log.error("[PROVEEDOR] entrada de lista blanca inválida: %r", texto)
+    for ip in ips:
+        for red in redes:
+            # Comparar versiones distintas devuelve False, no error, pero
+            # se filtra igual para que la intención quede escrita.
+            if ip.version == red.version and ip in red:
+                return True, "ok"
+    return False, "ip_fuera_de_la_lista"

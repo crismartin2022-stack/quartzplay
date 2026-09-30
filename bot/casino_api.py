@@ -26428,6 +26428,39 @@ async def _proveedor(codigo: str):
     return _cache_credenciales[clave]
 
 
+# Cuántos proxies de confianza hay delante del bot. Vacío = se acepta
+# cualquier entrada de X-Forwarded-For (ver `ips_del_pedido`: es lo que
+# pidió el diseño, pero el cliente puede escribir ahí una IP permitida).
+# Cuando se confirme cuántos saltos pone la plataforma, se fija acá y solo
+# cuenta la entrada que ellos agregaron.
+_IP_PROXIES_CONFIABLES = int(os.environ.get("IP_PROXIES_CONFIABLES") or 0) or None
+
+
+async def _exigir_ip_de_proveedor(request: Request, codigo: str):
+    """Corta con 403 si el callback no viene de una IP de la lista blanca
+    del proveedor. Es lo primero que tiene que correr en cada endpoint que
+    reciba llamadas de un proveedor: no firman, y la clave viaja en el
+    cuerpo, así que la IP es la defensa.
+
+    Lee la lista de la base (con caché) y no de una variable de entorno,
+    para que un cambio de IP del proveedor no cueste un deploy."""
+    prov = await _proveedor(codigo)
+    ips = registro_proveedores.ips_del_pedido(
+        request.headers.get("x-forwarded-for", ""),
+        request.client.host if request.client else "",
+        _IP_PROXIES_CONFIABLES)
+    if not prov or not prov.activa:
+        log.warning("[PROVEEDOR] callback de %s: proveedor inexistente o "
+                    "apagado", codigo)
+        raise HTTPException(403, "Origen no autorizado")
+    acepta, motivo = registro_proveedores.ip_permitida(ips, prov.ips_permitidas)
+    if not acepta:
+        # Sin el motivo, "lista vacía" y "IP ajena" se ven idénticos.
+        log.warning("[PROVEEDOR] callback de %s rechazado (%s): %s", codigo,
+                    motivo, ", ".join(str(i) for i in ips) or "sin IP")
+        raise HTTPException(403, "Origen no autorizado")
+
+
 _juegos_cache = {"data": None, "ts": 0.0}
 _JUEGOS_TTL = int(os.environ.get("JUEGOS_TTL", "1800"))
 
