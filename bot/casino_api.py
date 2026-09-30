@@ -13,6 +13,7 @@ import correo
 import mensajeria
 import registro_publico
 import secretos
+import registro_proveedores
 from config import cors_headers, get_runtime_settings
 from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
 from log_hygiene import silence_request_urls
@@ -22861,7 +22862,8 @@ async def _test_lectura(conn):
         integ = await conn.fetchval("""
             SELECT COUNT(*) FROM casino_integraciones
             WHERE activa=true AND api_code IS NOT NULL
-              AND api_secret IS NOT NULL
+              AND (api_secret IS NOT NULL
+                   OR api_secret_cifrado IS NOT NULL)
         """) or 0
         check(f"integraciones con credenciales: {integ}", integ > 0,
               "ninguna configurada")
@@ -26083,7 +26085,31 @@ async def _integraciones(conn, solo_activas=True):
         {"WHERE activa = true" if solo_activas else ""}
         ORDER BY prioridad, codigo
     """)
-    return [dict(f) for f in filas]
+    integs = [dict(f) for f in filas]
+    for i in integs:
+        # Quien sincroniza sigue leyendo `api_secret` y no se entera de si
+        # la clave está cifrada o en claro.
+        i["api_secret"] = _secreto_de_integracion(i)
+    return integs
+
+
+def _secreto_de_integracion(fila):
+    """La clave del proveedor lista para firmar, o None si no hay.
+
+    Prefiere la columna cifrada; la de texto plano queda solo como lectura
+    de transición (la fila actual de 44neoluck nació ahí). Si el cifrado no
+    se puede abrir (llave rotada, dato tocado a mano) NO se cae al texto
+    plano: sería usar una clave posiblemente vieja sin que nadie se entere.
+    Se registra y se trata como faltante, igual que la mensajería."""
+    cifrado = fila.get("api_secret_cifrado")
+    if cifrado:
+        try:
+            return secretos.descifrar(cifrado)
+        except Exception:
+            log.error("[CASINO] no se pudo descifrar la clave de %s",
+                      fila.get("codigo") or fila.get("integracion"))
+            return None
+    return fila.get("api_secret") or None
 
 
 def _firmar(secret, code, cuerpo_json=None):
@@ -26240,6 +26266,8 @@ async def listar_integraciones(_=Depends(auth.require_admin)):
             # La clave no se devuelve nunca: si alguien abre el panel
             # en una pantalla compartida, no queda expuesta.
             "tiene_credenciales": bool(f["api_code"] and f["api_secret"]),
+            "adaptador": f.get("adaptador") or registro_proveedores.ADAPTADOR_LEGADO,
+            "ips_permitidas": list(f.get("ips_permitidas") or []),
             "ultimo_sync": (_fecha_local(f["ultimo_sync"])
                             if f["ultimo_sync"] else None),
             "notas": f["notas"],
@@ -26256,35 +26284,78 @@ async def guardar_integracion(request: Request,
     if not codigo:
         raise HTTPException(400, "Falta el código de la integración")
 
+    # La lista blanca se valida acá: una entrada mal escrita que se
+    # descubre cuando un callback real falla es justo el falso aplomo que
+    # se quiere evitar.
+    ips = None
+    if "ips_permitidas" in body:
+        try:
+            ips = registro_proveedores.normalizar_redes(body["ips_permitidas"])
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+
+    adaptador = None
+    if body.get("adaptador"):
+        adaptador = str(body["adaptador"]).strip().lower()
+        if not _re.fullmatch(r"[a-z0-9_]{1,30}", adaptador):
+            raise HTTPException(400, "Adaptador inválido")
+
     pool = await get_db()
     async with pool.acquire() as conn:
         existe = await conn.fetchrow(
-            "SELECT api_code, api_secret FROM casino_integraciones "
-            "WHERE codigo=$1", codigo)
+            "SELECT api_code, api_secret, api_secret_cifrado, adaptador, "
+            "ips_permitidas FROM casino_integraciones WHERE codigo=$1",
+            codigo)
 
         # Si no mandan credenciales nuevas se conservan las anteriores:
         # así se puede cambiar la prioridad sin volver a escribirlas.
         api_code = body.get("api_code") or (existe["api_code"] if existe else None)
-        api_secret = body.get("api_secret") or (existe["api_secret"] if existe else None)
+        api_secret = existe["api_secret"] if existe else None
+        api_secret_cifrado = existe["api_secret_cifrado"] if existe else None
+        if body.get("api_secret"):
+            if secretos.hay_llave():
+                # Cifrada y sin copia en claro: nunca las dos columnas.
+                api_secret_cifrado = secretos.cifrar(body["api_secret"])
+                api_secret = None
+            else:
+                # Sin llave maestra este endpoint siempre guardó en claro
+                # y cortarlo ahora dejaría sin poder cargar 44neoluck. Se
+                # deja pasar pero a los gritos; el resto de las
+                # credenciales (mensajería) sí fallan cerrado.
+                log.error("[CASINO] falta SECRETOS_CLAVE: la clave de %s "
+                          "se guardó SIN cifrar", codigo)
+                api_secret = body["api_secret"]
+                api_secret_cifrado = None
+        if adaptador is None:
+            adaptador = ((existe["adaptador"] if existe else None)
+                         or registro_proveedores.ADAPTADOR_LEGADO)
+        if ips is None:
+            ips = list(existe["ips_permitidas"] or []) if existe else []
 
         await conn.execute("""
             INSERT INTO casino_integraciones
                 (codigo, nombre, activa, url, api_code, api_secret,
-                 monedas, prioridad, notas)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                 api_secret_cifrado, monedas, prioridad, notas,
+                 adaptador, ips_permitidas)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
             ON CONFLICT (codigo) DO UPDATE SET
                 nombre=EXCLUDED.nombre, activa=EXCLUDED.activa,
                 url=EXCLUDED.url, api_code=EXCLUDED.api_code,
                 api_secret=EXCLUDED.api_secret,
+                api_secret_cifrado=EXCLUDED.api_secret_cifrado,
                 monedas=EXCLUDED.monedas, prioridad=EXCLUDED.prioridad,
-                notas=EXCLUDED.notas
+                notas=EXCLUDED.notas, adaptador=EXCLUDED.adaptador,
+                ips_permitidas=EXCLUDED.ips_permitidas
         """, codigo, (body.get("nombre") or codigo)[:80],
              bool(body.get("activa")),
              (body.get("url") or "").rstrip("/") or None,
-             api_code, api_secret,
+             api_code, api_secret, api_secret_cifrado,
              (body.get("monedas") or "ARS").upper(),
              int(body.get("prioridad") or 100),
-             (body.get("notas") or "")[:300] or None)
+             (body.get("notas") or "")[:300] or None,
+             adaptador, ips)
+    # Un cambio en el panel rige de inmediato, sin reiniciar.
+    _invalidar_cache_credenciales()
     log.warning(f"[CASINO] integración {codigo} guardada")
     return {"ok": True}
 
@@ -26303,6 +26374,7 @@ async def borrar_integracion(codigo: str, _=Depends(auth.require_admin)):
         await conn.execute(
             "UPDATE casino_juegos SET activo=false WHERE integracion=$1",
             codigo.lower())
+    _invalidar_cache_credenciales()
     return {"ok": True}
 
 
@@ -26316,6 +26388,10 @@ async def borrar_integracion(codigo: str, _=Depends(auth.require_admin)):
 # navegador —Referer, User-Agent— porque el proveedor rechaza esos
 # pedidos.
 
+# Estas variables son ahora el RESPALDO del registro (`casino_integraciones`):
+# rigen solo si no hay fila de 44neoluck, campo por campo. Se conservan
+# porque es lo que hoy tiene puesto producción, y quitarlas antes de que
+# la fila exista dejaría al catálogo sin proveedor.
 PROVEEDOR_URL = os.environ.get("PROVEEDOR_URL", "").rstrip("/")
 PROVEEDOR_CODE = os.environ.get("PROVEEDOR_CODE", "")
 PROVEEDOR_SECRET = os.environ.get("PROVEEDOR_SECRET", "")
@@ -26327,20 +26403,33 @@ PROVEEDOR_MONEDAS = [m.strip().upper() for m in
                      if m.strip()]
 
 
+def _proveedor_del_entorno() -> dict:
+    return {"url": PROVEEDOR_URL, "code": PROVEEDOR_CODE,
+            "secret": PROVEEDOR_SECRET,
+            "monedas": ",".join(PROVEEDOR_MONEDAS)}
+
+
+async def _proveedor(codigo: str):
+    """La configuración de un proveedor: la fila del registro gana y el
+    entorno respalda (solo para 44neoluck). Se cachea en memoria porque el
+    callback de un giro no puede pagar un viaje a la base más un descifrado
+    en cada pedido; el caché se limpia al guardar o borrar una integración,
+    así que un cambio en el panel rige de inmediato."""
+    clave = f"proveedor:{codigo}"
+    if clave not in _cache_credenciales:
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            fila = await conn.fetchrow(
+                "SELECT * FROM casino_integraciones WHERE codigo=$1", codigo)
+        fila = dict(fila) if fila else None
+        secreto = _secreto_de_integracion(fila) if fila else None
+        _cache_credenciales[clave] = registro_proveedores.armar_proveedor(
+            codigo, fila, secreto, _proveedor_del_entorno())
+    return _cache_credenciales[clave]
+
+
 _juegos_cache = {"data": None, "ts": 0.0}
 _JUEGOS_TTL = int(os.environ.get("JUEGOS_TTL", "1800"))
-
-
-def _firmar_proveedor(cuerpo_json=None):
-    """Los encabezados firmados que espera el proveedor."""
-    ahora = str(int(time.time()))
-    if cuerpo_json:
-        payload = f"{cuerpo_json}X-Code={PROVEEDOR_CODE}&X-Time={ahora}"
-    else:
-        payload = f"X-Code={PROVEEDOR_CODE}&X-Time={ahora}"
-    firma = hmac.new(PROVEEDOR_SECRET.encode(), payload.encode(),
-                     hashlib.sha1).hexdigest()
-    return {"X-Code": PROVEEDOR_CODE, "X-Time": ahora, "X-Sign": firma}
 
 
 async def _traer_juegos(forzar=False):
@@ -26355,14 +26444,15 @@ async def _traer_juegos(forzar=False):
             and ahora - _juegos_cache["ts"] < _JUEGOS_TTL):
         return _juegos_cache["data"]
 
-    if not (PROVEEDOR_URL and PROVEEDOR_CODE and PROVEEDOR_SECRET):
+    prov = await _proveedor(registro_proveedores.PROVEEDOR_LEGADO)
+    if not (prov and prov.completo()):
         raise HTTPException(503,
             "Falta configurar el proveedor de casino "
             "(PROVEEDOR_URL, PROVEEDOR_CODE, PROVEEDOR_SECRET)")
 
-    headers = _firmar_proveedor()
+    headers = _firmar(prov.api_secret, prov.api_code)
     async with httpx.AsyncClient(timeout=20) as client:
-        r = await client.get(f"{PROVEEDOR_URL}/api/v1/games",
+        r = await client.get(f"{prov.url}/api/v1/games",
                              headers=headers)
         if r.status_code != 200:
             log.error(f"[PROVEEDOR] games devolvió {r.status_code}: "
@@ -26573,7 +26663,8 @@ async def casino_sesion(request: Request):
         # De qué integración es este juego. Puede estar en varias:
         # se toma la de menor prioridad, igual que en el catálogo.
         j = await conn.fetchrow("""
-            SELECT j.*, i.url, i.api_code, i.api_secret, i.monedas
+            SELECT j.*, i.url, i.api_code, i.api_secret,
+                   i.api_secret_cifrado, i.monedas
             FROM casino_juegos j
             JOIN casino_integraciones i ON i.codigo = j.integracion
             WHERE j.game_id=$1 AND j.activo=true AND i.activa=true
@@ -26599,7 +26690,9 @@ async def casino_sesion(request: Request):
             raise HTTPException(403,
                 "Este proveedor no está disponible por ahora")
 
-        if not (j["url"] and j["api_code"] and j["api_secret"]):
+        secreto_integ = _secreto_de_integracion(
+            {**dict(j), "codigo": j["integracion"]})
+        if not (j["url"] and j["api_code"] and secreto_integ):
             raise HTTPException(503,
                 f"A la integración {j['integracion']} le faltan "
                 f"datos de conexión")
@@ -26629,7 +26722,7 @@ async def casino_sesion(request: Request):
 
     # El cuerpo se firma EXACTAMENTE como se envía: por eso se serializa
     # una sola vez y se manda ese mismo texto, sin volver a convertirlo.
-    headers = {**_firmar(j["api_secret"], j["api_code"], cuerpo),
+    headers = {**_firmar(secreto_integ, j["api_code"], cuerpo),
                "Content-Type": "application/json"}
 
     async with httpx.AsyncClient(timeout=20) as client:
@@ -27206,13 +27299,14 @@ async def casino_diagnostico(_=Depends(auth.require_admin)):
     Si la conexión con el proveedor funciona y por qué no.
     Sin esto hay que adivinar entre credenciales, firma y red.
     """
+    prov = await _proveedor(registro_proveedores.PROVEEDOR_LEGADO)
     d = {
-        "url_configurada": bool(PROVEEDOR_URL),
-        "code_configurado": bool(PROVEEDOR_CODE),
-        "secret_configurado": bool(PROVEEDOR_SECRET),
+        "url_configurada": bool(prov and prov.url),
+        "code_configurado": bool(prov and prov.api_code),
+        "secret_configurado": bool(prov and prov.api_secret),
         "juegos_en_cache": len((_juegos_cache["data"] or {}).get("games") or []),
     }
-    if not all([PROVEEDOR_URL, PROVEEDOR_CODE, PROVEEDOR_SECRET]):
+    if not (prov and prov.completo()):
         d["diagnostico"] = ("Faltan variables en el servidor: "
                             "PROVEEDOR_URL, PROVEEDOR_CODE y "
                             "PROVEEDOR_SECRET.")
