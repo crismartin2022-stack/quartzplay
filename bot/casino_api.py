@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 from typing import NamedTuple
 import asyncpg
 import httpx
-from fastapi import FastAPI, Request, HTTPException, Depends, Header
+from fastapi import FastAPI, Request, Response, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import auth
@@ -13,6 +13,8 @@ import correo
 import mensajeria
 import registro_publico
 import secretos
+import registro_proveedores
+import atomic
 from config import cors_headers, get_runtime_settings
 from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
 from log_hygiene import silence_request_urls
@@ -22861,7 +22863,8 @@ async def _test_lectura(conn):
         integ = await conn.fetchval("""
             SELECT COUNT(*) FROM casino_integraciones
             WHERE activa=true AND api_code IS NOT NULL
-              AND api_secret IS NOT NULL
+              AND (api_secret IS NOT NULL
+                   OR api_secret_cifrado IS NOT NULL)
         """) or 0
         check(f"integraciones con credenciales: {integ}", integ > 0,
               "ninguna configurada")
@@ -26083,7 +26086,31 @@ async def _integraciones(conn, solo_activas=True):
         {"WHERE activa = true" if solo_activas else ""}
         ORDER BY prioridad, codigo
     """)
-    return [dict(f) for f in filas]
+    integs = [dict(f) for f in filas]
+    for i in integs:
+        # Quien sincroniza sigue leyendo `api_secret` y no se entera de si
+        # la clave está cifrada o en claro.
+        i["api_secret"] = _secreto_de_integracion(i)
+    return integs
+
+
+def _secreto_de_integracion(fila):
+    """La clave del proveedor lista para firmar, o None si no hay.
+
+    Prefiere la columna cifrada; la de texto plano queda solo como lectura
+    de transición (la fila actual de 44neoluck nació ahí). Si el cifrado no
+    se puede abrir (llave rotada, dato tocado a mano) NO se cae al texto
+    plano: sería usar una clave posiblemente vieja sin que nadie se entere.
+    Se registra y se trata como faltante, igual que la mensajería."""
+    cifrado = fila.get("api_secret_cifrado")
+    if cifrado:
+        try:
+            return secretos.descifrar(cifrado)
+        except Exception:
+            log.error("[CASINO] no se pudo descifrar la clave de %s",
+                      fila.get("codigo") or fila.get("integracion"))
+            return None
+    return fila.get("api_secret") or None
 
 
 def _firmar(secret, code, cuerpo_json=None):
@@ -26112,6 +26139,11 @@ async def _sincronizar_integracion(conn, integ):
     if not (url and code and secret):
         raise HTTPException(400,
             f"A {integ['codigo']} le faltan datos de conexión")
+
+    # Cada adaptador habla su propio protocolo. Sin este desvío, un
+    # proveedor nuevo recibiría el pedido firmado de 44neoluck.
+    if integ.get("adaptador") == atomic.ADAPTADOR:
+        return await _sincronizar_atomic(conn, integ, url, code, secret)
 
     headers = _firmar(secret, code)
     async with httpx.AsyncClient(timeout=30) as client:
@@ -26183,6 +26215,73 @@ async def _sincronizar_integracion(conn, integ):
     return len(vistos)
 
 
+async def _sincronizar_atomic(conn, integ, url, partner, api_key):
+    """Catálogo de Atomic (`allgamelist`) dentro de `casino_juegos`.
+
+    Comparte tabla con el resto de los proveedores: la clave
+    `(integracion, game_id)` los separa, así que los juegos de Atomic
+    conviven con los de 44neoluck sin pisarlos. Lo que "ya no viene" se
+    apaga SOLO dentro de esta integración: nunca se toca una fila de otro
+    proveedor.
+    """
+    payload = atomic.payload_catalogo(partner, api_key)
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(f"{url}/allgamelist", json=payload)
+    except httpx.HTTPError as e:
+        log.error("[ATOMIC] catálogo: no se pudo contactar a %s: %s",
+                  integ["codigo"], type(e).__name__)
+        raise HTTPException(502, f"No se pudo contactar a {integ['codigo']}")
+    if r.status_code != 200:
+        log.error("[ATOMIC] catálogo de %s devolvió %s: %s",
+                  integ["codigo"], r.status_code, r.text[:200])
+        raise HTTPException(502, f"{integ['codigo']} respondió {r.status_code}")
+    try:
+        datos = r.json()
+    except ValueError:
+        raise HTTPException(502, f"{integ['codigo']} no devolvió JSON")
+
+    juegos = atomic.extraer_juegos(datos)
+    if not juegos:
+        # Una respuesta que no se reconoce NO se toma por "no hay juegos":
+        # apagaría el catálogo entero por un cambio de formato del lado de
+        # ellos.
+        log.error("[ATOMIC] catálogo de %s sin juegos reconocibles: %s",
+                  integ["codigo"], r.text[:300])
+        raise HTTPException(502, f"No se reconoció ningún juego en la "
+                                 f"respuesta de {integ['codigo']}")
+
+    for j in juegos:
+        await conn.execute("""
+            INSERT INTO casino_juegos
+                (integracion, game_id, titulo, marca, imagen, es_vivo,
+                 movil, escritorio, clave_juego, activo, actualizado)
+            VALUES ($1,$2,$3,$4,$5,$6,true,true,$7,true,NOW())
+            ON CONFLICT (integracion, game_id) DO UPDATE SET
+                titulo=EXCLUDED.titulo, marca=EXCLUDED.marca,
+                imagen=EXCLUDED.imagen, es_vivo=EXCLUDED.es_vivo,
+                clave_juego=EXCLUDED.clave_juego,
+                activo=true, actualizado=NOW()
+        """, integ["codigo"], j.simbolo, j.titulo, j.estudio, j.imagen,
+             j.es_vivo, _clave_juego(j.titulo))
+
+    vistos = [j.simbolo for j in juegos]
+    await conn.execute("""
+        UPDATE casino_juegos SET activo=false
+        WHERE integracion=$1 AND game_id <> ALL($2)
+    """, integ["codigo"], vistos)
+    await conn.execute("""
+        UPDATE casino_integraciones
+        SET ultimo_sync=NOW(), juegos_count=$2 WHERE codigo=$1
+    """, integ["codigo"], len(vistos))
+
+    _cat_cache["data"] = None
+    _cat_cache["ts"] = 0.0
+    _cat_aux["ts"] = 0.0
+    log.warning("[ATOMIC] %s: %s juegos", integ["codigo"], len(vistos))
+    return len(vistos)
+
+
 @app.post("/api/admin/casino/sincronizar")
 async def casino_sincronizar(request: Request,
                              _=Depends(auth.require_admin)):
@@ -26240,6 +26339,8 @@ async def listar_integraciones(_=Depends(auth.require_admin)):
             # La clave no se devuelve nunca: si alguien abre el panel
             # en una pantalla compartida, no queda expuesta.
             "tiene_credenciales": bool(f["api_code"] and f["api_secret"]),
+            "adaptador": f.get("adaptador") or registro_proveedores.ADAPTADOR_LEGADO,
+            "ips_permitidas": list(f.get("ips_permitidas") or []),
             "ultimo_sync": (_fecha_local(f["ultimo_sync"])
                             if f["ultimo_sync"] else None),
             "notas": f["notas"],
@@ -26256,35 +26357,78 @@ async def guardar_integracion(request: Request,
     if not codigo:
         raise HTTPException(400, "Falta el código de la integración")
 
+    # La lista blanca se valida acá: una entrada mal escrita que se
+    # descubre cuando un callback real falla es justo el falso aplomo que
+    # se quiere evitar.
+    ips = None
+    if "ips_permitidas" in body:
+        try:
+            ips = registro_proveedores.normalizar_redes(body["ips_permitidas"])
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+
+    adaptador = None
+    if body.get("adaptador"):
+        adaptador = str(body["adaptador"]).strip().lower()
+        if not _re.fullmatch(r"[a-z0-9_]{1,30}", adaptador):
+            raise HTTPException(400, "Adaptador inválido")
+
     pool = await get_db()
     async with pool.acquire() as conn:
         existe = await conn.fetchrow(
-            "SELECT api_code, api_secret FROM casino_integraciones "
-            "WHERE codigo=$1", codigo)
+            "SELECT api_code, api_secret, api_secret_cifrado, adaptador, "
+            "ips_permitidas FROM casino_integraciones WHERE codigo=$1",
+            codigo)
 
         # Si no mandan credenciales nuevas se conservan las anteriores:
         # así se puede cambiar la prioridad sin volver a escribirlas.
         api_code = body.get("api_code") or (existe["api_code"] if existe else None)
-        api_secret = body.get("api_secret") or (existe["api_secret"] if existe else None)
+        api_secret = existe["api_secret"] if existe else None
+        api_secret_cifrado = existe["api_secret_cifrado"] if existe else None
+        if body.get("api_secret"):
+            if secretos.hay_llave():
+                # Cifrada y sin copia en claro: nunca las dos columnas.
+                api_secret_cifrado = secretos.cifrar(body["api_secret"])
+                api_secret = None
+            else:
+                # Sin llave maestra este endpoint siempre guardó en claro
+                # y cortarlo ahora dejaría sin poder cargar 44neoluck. Se
+                # deja pasar pero a los gritos; el resto de las
+                # credenciales (mensajería) sí fallan cerrado.
+                log.error("[CASINO] falta SECRETOS_CLAVE: la clave de %s "
+                          "se guardó SIN cifrar", codigo)
+                api_secret = body["api_secret"]
+                api_secret_cifrado = None
+        if adaptador is None:
+            adaptador = ((existe["adaptador"] if existe else None)
+                         or registro_proveedores.ADAPTADOR_LEGADO)
+        if ips is None:
+            ips = list(existe["ips_permitidas"] or []) if existe else []
 
         await conn.execute("""
             INSERT INTO casino_integraciones
                 (codigo, nombre, activa, url, api_code, api_secret,
-                 monedas, prioridad, notas)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                 api_secret_cifrado, monedas, prioridad, notas,
+                 adaptador, ips_permitidas)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
             ON CONFLICT (codigo) DO UPDATE SET
                 nombre=EXCLUDED.nombre, activa=EXCLUDED.activa,
                 url=EXCLUDED.url, api_code=EXCLUDED.api_code,
                 api_secret=EXCLUDED.api_secret,
+                api_secret_cifrado=EXCLUDED.api_secret_cifrado,
                 monedas=EXCLUDED.monedas, prioridad=EXCLUDED.prioridad,
-                notas=EXCLUDED.notas
+                notas=EXCLUDED.notas, adaptador=EXCLUDED.adaptador,
+                ips_permitidas=EXCLUDED.ips_permitidas
         """, codigo, (body.get("nombre") or codigo)[:80],
              bool(body.get("activa")),
              (body.get("url") or "").rstrip("/") or None,
-             api_code, api_secret,
+             api_code, api_secret, api_secret_cifrado,
              (body.get("monedas") or "ARS").upper(),
              int(body.get("prioridad") or 100),
-             (body.get("notas") or "")[:300] or None)
+             (body.get("notas") or "")[:300] or None,
+             adaptador, ips)
+    # Un cambio en el panel rige de inmediato, sin reiniciar.
+    _invalidar_cache_credenciales()
     log.warning(f"[CASINO] integración {codigo} guardada")
     return {"ok": True}
 
@@ -26303,6 +26447,7 @@ async def borrar_integracion(codigo: str, _=Depends(auth.require_admin)):
         await conn.execute(
             "UPDATE casino_juegos SET activo=false WHERE integracion=$1",
             codigo.lower())
+    _invalidar_cache_credenciales()
     return {"ok": True}
 
 
@@ -26316,6 +26461,10 @@ async def borrar_integracion(codigo: str, _=Depends(auth.require_admin)):
 # navegador —Referer, User-Agent— porque el proveedor rechaza esos
 # pedidos.
 
+# Estas variables son ahora el RESPALDO del registro (`casino_integraciones`):
+# rigen solo si no hay fila de 44neoluck, campo por campo. Se conservan
+# porque es lo que hoy tiene puesto producción, y quitarlas antes de que
+# la fila exista dejaría al catálogo sin proveedor.
 PROVEEDOR_URL = os.environ.get("PROVEEDOR_URL", "").rstrip("/")
 PROVEEDOR_CODE = os.environ.get("PROVEEDOR_CODE", "")
 PROVEEDOR_SECRET = os.environ.get("PROVEEDOR_SECRET", "")
@@ -26327,20 +26476,66 @@ PROVEEDOR_MONEDAS = [m.strip().upper() for m in
                      if m.strip()]
 
 
+def _proveedor_del_entorno() -> dict:
+    return {"url": PROVEEDOR_URL, "code": PROVEEDOR_CODE,
+            "secret": PROVEEDOR_SECRET,
+            "monedas": ",".join(PROVEEDOR_MONEDAS)}
+
+
+async def _proveedor(codigo: str):
+    """La configuración de un proveedor: la fila del registro gana y el
+    entorno respalda (solo para 44neoluck). Se cachea en memoria porque el
+    callback de un giro no puede pagar un viaje a la base más un descifrado
+    en cada pedido; el caché se limpia al guardar o borrar una integración,
+    así que un cambio en el panel rige de inmediato."""
+    clave = f"proveedor:{codigo}"
+    if clave not in _cache_credenciales:
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            fila = await conn.fetchrow(
+                "SELECT * FROM casino_integraciones WHERE codigo=$1", codigo)
+        fila = dict(fila) if fila else None
+        secreto = _secreto_de_integracion(fila) if fila else None
+        _cache_credenciales[clave] = registro_proveedores.armar_proveedor(
+            codigo, fila, secreto, _proveedor_del_entorno())
+    return _cache_credenciales[clave]
+
+
+# Cuántos proxies de confianza hay delante del bot. Vacío = se acepta
+# cualquier entrada de X-Forwarded-For (ver `ips_del_pedido`: es lo que
+# pidió el diseño, pero el cliente puede escribir ahí una IP permitida).
+# Cuando se confirme cuántos saltos pone la plataforma, se fija acá y solo
+# cuenta la entrada que ellos agregaron.
+_IP_PROXIES_CONFIABLES = int(os.environ.get("IP_PROXIES_CONFIABLES") or 0) or None
+
+
+async def _exigir_ip_de_proveedor(request: Request, codigo: str):
+    """Corta con 403 si el callback no viene de una IP de la lista blanca
+    del proveedor. Es lo primero que tiene que correr en cada endpoint que
+    reciba llamadas de un proveedor: no firman, y la clave viaja en el
+    cuerpo, así que la IP es la defensa.
+
+    Lee la lista de la base (con caché) y no de una variable de entorno,
+    para que un cambio de IP del proveedor no cueste un deploy."""
+    prov = await _proveedor(codigo)
+    ips = registro_proveedores.ips_del_pedido(
+        request.headers.get("x-forwarded-for", ""),
+        request.client.host if request.client else "",
+        _IP_PROXIES_CONFIABLES)
+    if not prov or not prov.activa:
+        log.warning("[PROVEEDOR] callback de %s: proveedor inexistente o "
+                    "apagado", codigo)
+        raise HTTPException(403, "Origen no autorizado")
+    acepta, motivo = registro_proveedores.ip_permitida(ips, prov.ips_permitidas)
+    if not acepta:
+        # Sin el motivo, "lista vacía" y "IP ajena" se ven idénticos.
+        log.warning("[PROVEEDOR] callback de %s rechazado (%s): %s", codigo,
+                    motivo, ", ".join(str(i) for i in ips) or "sin IP")
+        raise HTTPException(403, "Origen no autorizado")
+
+
 _juegos_cache = {"data": None, "ts": 0.0}
 _JUEGOS_TTL = int(os.environ.get("JUEGOS_TTL", "1800"))
-
-
-def _firmar_proveedor(cuerpo_json=None):
-    """Los encabezados firmados que espera el proveedor."""
-    ahora = str(int(time.time()))
-    if cuerpo_json:
-        payload = f"{cuerpo_json}X-Code={PROVEEDOR_CODE}&X-Time={ahora}"
-    else:
-        payload = f"X-Code={PROVEEDOR_CODE}&X-Time={ahora}"
-    firma = hmac.new(PROVEEDOR_SECRET.encode(), payload.encode(),
-                     hashlib.sha1).hexdigest()
-    return {"X-Code": PROVEEDOR_CODE, "X-Time": ahora, "X-Sign": firma}
 
 
 async def _traer_juegos(forzar=False):
@@ -26355,14 +26550,15 @@ async def _traer_juegos(forzar=False):
             and ahora - _juegos_cache["ts"] < _JUEGOS_TTL):
         return _juegos_cache["data"]
 
-    if not (PROVEEDOR_URL and PROVEEDOR_CODE and PROVEEDOR_SECRET):
+    prov = await _proveedor(registro_proveedores.PROVEEDOR_LEGADO)
+    if not (prov and prov.completo()):
         raise HTTPException(503,
             "Falta configurar el proveedor de casino "
             "(PROVEEDOR_URL, PROVEEDOR_CODE, PROVEEDOR_SECRET)")
 
-    headers = _firmar_proveedor()
+    headers = _firmar(prov.api_secret, prov.api_code)
     async with httpx.AsyncClient(timeout=20) as client:
-        r = await client.get(f"{PROVEEDOR_URL}/api/v1/games",
+        r = await client.get(f"{prov.url}/api/v1/games",
                              headers=headers)
         if r.status_code != 200:
             log.error(f"[PROVEEDOR] games devolvió {r.status_code}: "
@@ -26545,6 +26741,84 @@ async def casino_juegos(user_id: int = 0, vivo: int = 0,
     }
 
 
+async def _lanzar_atomic(pool, u, j, simbolo, body):
+    """Abre un juego de Atomic (`playGame.do`) y devuelve el enlace del iframe.
+
+    Diferencias con el otro proveedor, todas a propósito:
+    - no se firma: el `api_key` viaja en el cuerpo (su protocolo);
+    - `player_id` es el id interno, nunca el username;
+    - se manda `lang`, porque sin él Atomic abre el juego en ruso;
+    - la sesión se guarda ANTES de devolver el enlace, porque los callbacks
+      pueden llegar antes de que el jugador vea la pantalla.
+    """
+    prov = await _proveedor(j["integracion"])
+    if not (prov and prov.activa and prov.completo()):
+        raise HTTPException(503, f"A la integración {j['integracion']} le "
+                                 f"faltan datos de conexión")
+    if not j["marca"]:
+        # `provider` es obligatorio en playGame.do y no se adivina.
+        log.error("[ATOMIC] el juego %s no tiene estudio: falta sincronizar",
+                  simbolo)
+        raise HTTPException(503, "Ese juego no está disponible ahora")
+
+    moneda = (u["moneda"] or "ARS").upper()
+    payload = atomic.payload_lanzamiento(
+        partner=prov.api_code, api_key=prov.api_secret, simbolo=simbolo,
+        estudio=j["marca"], moneda=moneda, jugador_id=u["id"],
+        idioma=body.get("language") or body.get("lang"),
+        demo=bool(body.get("demo")))
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(f"{prov.url}/playGame.do", json=payload)
+    except httpx.HTTPError as e:
+        log.error("[ATOMIC] playGame.do: %s", type(e).__name__)
+        raise HTTPException(502, "No se pudo abrir el juego. Probá de nuevo.")
+    if r.status_code != 200:
+        log.error("[ATOMIC] playGame.do devolvió %s: %s",
+                  r.status_code, r.text[:300])
+        raise HTTPException(502, "No se pudo abrir el juego. Probá de nuevo.")
+    try:
+        datos = r.json()
+    except ValueError:
+        datos = {}
+    enlace = datos.get("link") if isinstance(datos, dict) else None
+    if not (isinstance(datos, dict) and datos.get("status") == "ok" and enlace):
+        # Se registra el mensaje de ellos, jamás el pedido: lleva el api_key.
+        log.error("[ATOMIC] playGame.do sin enlace: %s",
+                  (datos.get("message") if isinstance(datos, dict) else None)
+                  or r.text[:200])
+        raise HTTPException(502, "No se pudo abrir el juego. Probá de nuevo.")
+
+    meta = datos.get("meta") if isinstance(datos.get("meta"), dict) else {}
+    sesion_ext = str(meta.get("session_id") or "").strip() or None
+    sesion_local = "s" + secrets.token_urlsafe(12)
+    if not sesion_ext:
+        # Sin el id de sesión de ellos los callbacks no se pueden atar a
+        # este lanzamiento. El juego igual funciona: se acepta y se avisa.
+        log.warning("[ATOMIC] playGame.do sin meta.session_id (juego %s)",
+                    simbolo)
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO casino_sesiones
+                    (sesion, sesion_ext, user_id, agencia_code,
+                     game_id, game_titulo, moneda, integracion, ultimo_uso)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
+            """, sesion_local, sesion_ext, u["id"], u["creado_por"],
+                 simbolo, j["titulo"], moneda, j["integracion"])
+    except Exception as e:
+        # Perder la sesión pierde el desglose por juego y el control de
+        # que la sesión sea de este jugador; no pierde plata. Por eso no
+        # se le niega el juego al jugador, pero queda en rojo en el log.
+        log.error("[ATOMIC] no se pudo guardar la sesión %s: %s",
+                  sesion_ext, e)
+
+    log.warning("[ATOMIC] jugador %s abrió %s", u["id"], simbolo)
+    return {"url": enlace, "sesion": sesion_ext or sesion_local,
+            "juego": simbolo}
+
+
 @app.post("/api/casino/sesion")
 async def casino_sesion(request: Request):
     """
@@ -26558,6 +26832,9 @@ async def casino_sesion(request: Request):
     game_id = str(body.get("game_id") or "").strip()
     if not user_id or not game_id:
         raise HTTPException(400, "Faltan datos")
+    # Opcional: el mismo game_id puede existir en dos proveedores. Sin
+    # esto se toma el de menor prioridad, como hasta ahora.
+    integracion_pedida = str(body.get("integracion") or "").strip().lower() or None
 
     pool = await get_db()
     async with pool.acquire() as conn:
@@ -26573,12 +26850,14 @@ async def casino_sesion(request: Request):
         # De qué integración es este juego. Puede estar en varias:
         # se toma la de menor prioridad, igual que en el catálogo.
         j = await conn.fetchrow("""
-            SELECT j.*, i.url, i.api_code, i.api_secret, i.monedas
+            SELECT j.*, i.url, i.api_code, i.api_secret,
+                   i.api_secret_cifrado, i.monedas, i.adaptador
             FROM casino_juegos j
             JOIN casino_integraciones i ON i.codigo = j.integracion
             WHERE j.game_id=$1 AND j.activo=true AND i.activa=true
+              AND ($2::text IS NULL OR j.integracion = $2)
             ORDER BY i.prioridad LIMIT 1
-        """, game_id)
+        """, game_id, integracion_pedida)
         if not j:
             raise HTTPException(404,
                 "Ese juego no está disponible ahora")
@@ -26599,7 +26878,9 @@ async def casino_sesion(request: Request):
             raise HTTPException(403,
                 "Este proveedor no está disponible por ahora")
 
-        if not (j["url"] and j["api_code"] and j["api_secret"]):
+        secreto_integ = _secreto_de_integracion(
+            {**dict(j), "codigo": j["integracion"]})
+        if not (j["url"] and j["api_code"] and secreto_integ):
             raise HTTPException(503,
                 f"A la integración {j['integracion']} le faltan "
                 f"datos de conexión")
@@ -26612,6 +26893,9 @@ async def casino_sesion(request: Request):
         raise HTTPException(400,
             f"Este juego todavía no acepta {moneda_jugador}. "
             f"Por ahora funciona en {', '.join(aceptadas)}.")
+
+    if j["adaptador"] == atomic.ADAPTADOR:
+        return await _lanzar_atomic(pool, u, j, game_id, body)
 
     # El identificador que le pasamos al proveedor es el mismo que
     # usa la billetera para buscar al jugador. Si no coinciden, el
@@ -26629,7 +26913,7 @@ async def casino_sesion(request: Request):
 
     # El cuerpo se firma EXACTAMENTE como se envía: por eso se serializa
     # una sola vez y se manda ese mismo texto, sin volver a convertirlo.
-    headers = {**_firmar(j["api_secret"], j["api_code"], cuerpo),
+    headers = {**_firmar(secreto_integ, j["api_code"], cuerpo),
                "Content-Type": "application/json"}
 
     async with httpx.AsyncClient(timeout=20) as client:
@@ -27206,13 +27490,14 @@ async def casino_diagnostico(_=Depends(auth.require_admin)):
     Si la conexión con el proveedor funciona y por qué no.
     Sin esto hay que adivinar entre credenciales, firma y red.
     """
+    prov = await _proveedor(registro_proveedores.PROVEEDOR_LEGADO)
     d = {
-        "url_configurada": bool(PROVEEDOR_URL),
-        "code_configurado": bool(PROVEEDOR_CODE),
-        "secret_configurado": bool(PROVEEDOR_SECRET),
+        "url_configurada": bool(prov and prov.url),
+        "code_configurado": bool(prov and prov.api_code),
+        "secret_configurado": bool(prov and prov.api_secret),
         "juegos_en_cache": len((_juegos_cache["data"] or {}).get("games") or []),
     }
-    if not all([PROVEEDOR_URL, PROVEEDOR_CODE, PROVEEDOR_SECRET]):
+    if not (prov and prov.completo()):
         d["diagnostico"] = ("Faltan variables en el servidor: "
                             "PROVEEDOR_URL, PROVEEDOR_CODE y "
                             "PROVEEDOR_SECRET.")
@@ -27234,6 +27519,430 @@ async def casino_diagnostico(_=Depends(auth.require_admin)):
         d["prueba"] = f"{type(e).__name__}: {str(e)[:200]}"
         d["diagnostico"] = "No se pudo llegar al proveedor."
     return d
+
+
+# ── WALLET API (Atomic) ───────────────────────────────────────
+#
+# Un solo endpoint recibe los cinco callbacks; la acción viene en `method`.
+# Atomic NO firma: la defensa es la lista blanca de IP (`_exigir_ip_de_proveedor`)
+# más el `api_key` del cuerpo. Toda respuesta es HTTP 200 con
+# `{status, balance, currency}`, también los errores de negocio.
+#
+# Lo que este código NO hace, a propósito:
+# - no hay rollback: Atomic no lo tiene y dijo por escrito que es deliberado.
+#   Una ronda que queda a medias la corrige a mano el operador, y por eso se
+#   deja un aviso `RONDA A MEDIAS` en el log con todo lo necesario para
+#   encontrarla.
+# - `round_info` y `game_switch` no mueven plata. Ver `atomic.MUEVEN_PLATA`.
+# - no se inventa una clave de idempotencia si falta `meta.transaction`.
+
+_ATOMIC_MAX_CUERPO = 64 * 1024
+
+# El jugador y, en el mismo viaje a la base, la sesión que Atomic nombró: son
+# la mitad de las consultas de un bet, y Atomic corta cerca de 1000 ms.
+_ATOMIC_CONTEXTO = """
+    SELECT u.id, u.balance, u.moneda, u.bloqueado, u.creado_por,
+           s.user_id AS ses_user, s.moneda AS ses_moneda,
+           s.game_id AS ses_juego, s.game_titulo AS ses_titulo,
+           s.agencia_code AS ses_agencia
+    FROM users u
+    LEFT JOIN LATERAL (
+        SELECT user_id, moneda, game_id, game_titulo, agencia_code
+        FROM casino_sesiones WHERE sesion_ext = $2
+        ORDER BY id DESC LIMIT 1) s ON true
+    WHERE u.id = $1
+"""
+# Al cerrar una ronda, lo mismo más lo que movimos en ella (para avisar si
+# no cuadra con lo que Atomic dice). Sigue siendo una sola consulta.
+_ATOMIC_CONTEXTO_RONDA = _ATOMIC_CONTEXTO.replace(
+    "s.agencia_code AS ses_agencia",
+    """s.agencia_code AS ses_agencia,
+           (SELECT COALESCE(SUM(monto),0) FROM casino_movimientos
+             WHERE proveedor=$3 AND ronda=$4 AND tipo='debito') AS debitos,
+           (SELECT COALESCE(SUM(monto),0) FROM casino_movimientos
+             WHERE proveedor=$3 AND ronda=$4 AND tipo='credito') AS creditos""")
+
+
+class _AtomicSaldoInsuficiente(Exception):
+    """Aborta la transacción del bet sin dejar rastro."""
+
+
+def _atomic_respuesta(centavos, moneda, error=None):
+    # HTTP 200 siempre, también con error: es lo que documenta Atomic.
+    return Response(content=atomic.cuerpo_respuesta(centavos, moneda, error),
+                    media_type="application/json", status_code=200)
+
+
+async def _atomic_manejar(request: Request, codigo: str):
+    codigo = (codigo or "").strip().lower()
+    # Primero la IP, antes de leer una sola línea del cuerpo.
+    await _exigir_ip_de_proveedor(request, codigo)
+    prov = await _proveedor(codigo)
+    if prov.adaptador != atomic.ADAPTADOR:
+        log.warning("[ATOMIC] la fila %s no usa el adaptador atomic", codigo)
+        raise HTTPException(403, "Origen no autorizado")
+    moneda_ref = prov.monedas[0] if prov.monedas else "ARS"
+
+    crudo = await request.body()
+    if len(crudo) > _ATOMIC_MAX_CUERPO:
+        return _atomic_respuesta(0, moneda_ref, atomic.PEDIDO_INVALIDO)
+    try:
+        # parse_float=Decimal: el importe se lee exacto desde el primer paso.
+        cuerpo = json.loads(crudo, parse_float=Decimal)
+    except ValueError:
+        cuerpo = None
+    if not isinstance(cuerpo, dict):
+        return _atomic_respuesta(0, moneda_ref, atomic.PEDIDO_INVALIDO)
+
+    pedido = atomic.interpretar(cuerpo)
+    if not (prov.api_secret and hmac.compare_digest(
+            pedido.api_key.encode(), prov.api_secret.encode())):
+        log.warning("[ATOMIC] %s: api_key inválida (método %s)", codigo,
+                    pedido.metodo[:20])
+        return _atomic_respuesta(0, moneda_ref, atomic.CLAVE_INVALIDA)
+
+    uid = atomic.jugador_id_de(pedido.player_id)
+    try:
+        return await _atomic_despachar(prov, pedido, uid, moneda_ref)
+    except Exception:
+        log.exception("[ATOMIC] %s: falló %s (tx=%s ronda=%s)", codigo,
+                      pedido.metodo[:20], pedido.transaccion, pedido.ronda)
+        if pedido.tipo == "credito":
+            _atomic_ronda_a_medias(prov, pedido, "error interno")
+        return await _atomic_error(uid, moneda_ref, atomic.ERROR_INTERNO)
+
+
+async def _atomic_error(uid, moneda_ref, codigo, fila=None):
+    """Una respuesta de error lleva igual el saldo y la moneda del jugador.
+    Si no se pueden leer (la base falló) se devuelve 0 en la moneda del
+    proveedor: es un error, no un dato."""
+    if fila is None and uid is not None:
+        try:
+            pool = await get_db()
+            async with pool.acquire() as conn:
+                fila = await conn.fetchrow(
+                    "SELECT balance, moneda FROM users WHERE id=$1", uid)
+        except Exception:
+            fila = None
+    if fila is None:
+        return _atomic_respuesta(0, moneda_ref, codigo)
+    return _atomic_respuesta(int(fila["balance"] or 0),
+                             fila["moneda"] or moneda_ref, codigo)
+
+
+def _atomic_ronda_a_medias(prov, p, motivo):
+    """Un `win` que no se acreditó. No hay rollback ni reintento de nuestra
+    parte: alguien tiene que encontrar esta ronda y ajustarla a mano.
+    Está en `error` a propósito, para que salte en cualquier alerta."""
+    log.error("[ATOMIC] RONDA A MEDIAS: ajustar a mano | proveedor=%s "
+              "jugador=%s ronda=%s transaccion=%s sesion=%s juego=%s "
+              "monto=%s freespin=%s | motivo=%s",
+              prov.codigo, p.player_id, p.ronda, p.transaccion, p.session_id,
+              p.simbolo, p.monto, p.es_freespin, motivo)
+
+
+async def _atomic_despachar(prov, p, uid, moneda_ref):
+    if p.metodo not in atomic.METODOS:
+        return await _atomic_error(uid, moneda_ref, atomic.METODO_DESCONOCIDO)
+    if uid is None:
+        if p.tipo == "credito":
+            _atomic_ronda_a_medias(prov, p, "jugador inexistente")
+        return _atomic_respuesta(0, moneda_ref, atomic.JUGADOR_INEXISTENTE)
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        ronda_cierre = (p.metodo == "round_info" and p.ronda
+                        and atomic.leer_ronda(p.cuerpo).estado == "finish")
+        if ronda_cierre:
+            fila = await conn.fetchrow(_ATOMIC_CONTEXTO_RONDA, uid,
+                                       p.session_id, prov.codigo, p.ronda)
+        else:
+            fila = await conn.fetchrow(_ATOMIC_CONTEXTO, uid, p.session_id)
+
+        rechazo = atomic.validar_contexto(p, fila, prov.monedas)
+        if rechazo:
+            log.warning("[ATOMIC] %s rechazado (%s): jugador=%s sesion=%s",
+                        p.metodo, rechazo, uid, p.session_id)
+            if p.tipo == "credito":
+                _atomic_ronda_a_medias(prov, p, rechazo)
+            return await _atomic_error(uid, moneda_ref, rechazo, fila)
+
+        moneda = (fila["moneda"] or "ARS").upper()
+        saldo = int(fila["balance"] or 0)
+
+        if p.session_id and fila["ses_user"] is None:
+            # Se acepta: rechazar un `win` por no conocer la sesión le
+            # quitaría al jugador un premio que ya ganó. Pero se avisa,
+            # porque la ronda no queda atada a un juego ni a una agencia.
+            log.warning("[ATOMIC] %s con sesión desconocida %s (jugador %s)",
+                        p.metodo, p.session_id, uid)
+
+        if p.tipo:
+            return await _atomic_movimiento(conn, prov, p, fila, moneda)
+
+        if p.metodo == "session_info":
+            if fila["ses_user"] is not None:
+                await conn.execute(
+                    "UPDATE casino_sesiones SET ultimo_uso=NOW() "
+                    "WHERE sesion_ext=$1", p.session_id)
+        elif p.metodo == "round_info":
+            if ronda_cierre:
+                motivo = atomic.ronda_que_no_cuadra(
+                    atomic.leer_ronda(p.cuerpo),
+                    int(fila["debitos"]), int(fila["creditos"]))
+                if motivo:
+                    # Aviso y no error: el cierre puede llegar antes que el
+                    # `win`. Si persiste, es una ronda a medias.
+                    log.warning("[ATOMIC] ronda %s no cuadra al cerrar: %s "
+                                "(puede ser orden de llegada) | proveedor=%s "
+                                "jugador=%s", p.ronda, motivo, prov.codigo, uid)
+        elif p.metodo == "game_switch":
+            await _atomic_cambiar_de_juego(conn, prov, p, fila, moneda)
+        return _atomic_respuesta(saldo, moneda)
+
+
+async def _atomic_cambiar_de_juego(conn, prov, p, fila, moneda):
+    """`game_switch` (solo Pragmatic): el jugador cambia de juego en el
+    mini-lobby y los callbacks siguientes llegan con la sesión NUEVA. Se
+    registra bajo el mismo jugador; sin eso el `win` de la ronda siguiente
+    se vería como de una sesión desconocida. No mueve plata."""
+    d = p.cuerpo
+    vieja = atomic._texto(d.get("old_session_id")) or p.session_id
+    nueva = atomic._texto(d.get("new_session_id"))
+    juego = atomic._texto(d.get("new_game"))
+    if not nueva or nueva == vieja:
+        return
+    estado = await conn.execute("""
+        INSERT INTO casino_sesiones
+            (sesion, sesion_ext, user_id, agencia_code, game_id, game_titulo,
+             moneda, integracion, ultimo_uso)
+        SELECT $1, $2, s.user_id, s.agencia_code, COALESCE($3::text, s.game_id),
+               COALESCE((SELECT titulo FROM casino_juegos
+                          WHERE integracion=s.integracion
+                            AND game_id=COALESCE($3::text, s.game_id)),
+                        s.game_titulo),
+               s.moneda, s.integracion, NOW()
+        FROM casino_sesiones s
+        WHERE s.sesion_ext=$4 AND s.user_id=$5
+          AND NOT EXISTS (SELECT 1 FROM casino_sesiones n WHERE n.sesion_ext=$2)
+        ORDER BY s.id DESC LIMIT 1
+    """, "s" + secrets.token_urlsafe(12), nueva, juego, vieja, fila["id"])
+    if str(estado).endswith(" 1") or not juego:
+        return
+    # La sesión vieja no estaba guardada: se registra igual con lo que
+    # sabemos del jugador, así el próximo callback la reconoce.
+    await conn.execute("""
+        INSERT INTO casino_sesiones
+            (sesion, sesion_ext, user_id, agencia_code, game_id, game_titulo,
+             moneda, integracion, ultimo_uso)
+        SELECT $1::text, $2::text, $3::bigint, $4::text, $5::text, $6::text,
+               $7::text, $8::text, NOW()
+        WHERE NOT EXISTS (SELECT 1 FROM casino_sesiones n WHERE n.sesion_ext=$2)
+    """, "s" + secrets.token_urlsafe(12), nueva, fila["id"], fila["creado_por"],
+         juego, juego, moneda, prov.codigo)
+
+
+async def _atomic_movimiento(conn, prov, p, fila, moneda):
+    """`bet` (débito) y `win` (crédito): lo único que mueve plata."""
+    tipo = p.tipo
+    a_medias = tipo == "credito"
+
+    def rechazar(codigo, motivo):
+        if a_medias:
+            _atomic_ronda_a_medias(prov, p, motivo)
+        return _atomic_respuesta(int(fila["balance"] or 0), moneda, codigo)
+
+    if not p.transaccion:
+        # Sin `meta.transaction` no hay con qué deduplicar. No se inventa
+        # una clave: una que cambia en cada intento no protege de nada.
+        log.warning("[ATOMIC] %s sin meta.transaction (jugador=%s ronda=%s)",
+                    p.metodo, fila["id"], p.ronda)
+        return rechazar(atomic.TRANSACCION_INVALIDA, "sin meta.transaction")
+    try:
+        monto = atomic.a_centavos(p.monto)
+    except atomic.MontoInvalido as e:
+        log.warning("[ATOMIC] %s con importe inválido (tx=%s): %s",
+                    p.metodo, p.transaccion, e)
+        return rechazar(atomic.PEDIDO_INVALIDO, f"importe inválido: {e}")
+    if tipo == "debito" and fila["bloqueado"]:
+        # Solo la apuesta: un premio de una ronda ya empezada se paga aunque
+        # la cuenta se haya bloqueado en el medio.
+        return rechazar(atomic.JUGADOR_BLOQUEADO, "")
+    if monto == 0:
+        # Nada que mover ni que registrar.
+        return _atomic_respuesta(int(fila["balance"] or 0), moneda)
+
+    uid = fila["id"]
+    agencia = fila["ses_agencia"] or fila["creado_por"]
+    juego = p.simbolo or fila["ses_juego"]
+
+    async def aplicar(ref):
+        if tipo == "debito":
+            # La condición va dentro del UPDATE: decidir y escribir en el
+            # mismo instante es lo que impide que dos apuestas simultáneas
+            # se pisen sin leer antes.
+            nuevo = await conn.fetchrow(
+                "UPDATE users SET balance = balance - $2 "
+                "WHERE id=$1 AND balance >= $2 RETURNING balance", uid, monto)
+            if nuevo is None:
+                raise _AtomicSaldoInsuficiente()
+            post = int(nuevo["balance"])
+            previo = post + monto
+        else:
+            nuevo = await conn.fetchrow(
+                "UPDATE users SET balance = balance + $2 "
+                "WHERE id=$1 RETURNING balance", uid, monto)
+            post = int(nuevo["balance"])
+            previo = post - monto
+        stake = monto if tipo == "debito" else 0
+        premio = monto if tipo == "credito" else 0
+        # El movimiento (que da la idempotencia) y la jugada (que da los
+        # reportes) en UNA sentencia: o quedan las dos o ninguna, y es un
+        # solo viaje a la base. La jugada de un giro gratis nace sin apuesta:
+        # su GGR es negativo y es lo esperado, no un error de cálculo.
+        await conn.execute("""
+            WITH mov AS (
+                INSERT INTO casino_movimientos
+                    (ref, jugador_id, tipo, monto, saldo_previo, saldo_post,
+                     juego, proveedor, ronda, creado_en)
+                VALUES ($1,$2::bigint,$3,$4,$5,$6,$7,$8,$9,NOW()))
+            INSERT INTO casino_rounds
+                (user_id, game, provider, stake, win, ggr, external_tx,
+                 created_at, game_id, game_titulo, agencia_code, sesion,
+                 integracion)
+            VALUES ($2::bigint,$10,$8,$11,$12,$13,$1,NOW(),$14,$15,$16,$17,$8)
+            ON CONFLICT DO NOTHING
+        """, ref, uid, tipo, monto, previo, post, (juego or "")[:40],
+             prov.codigo, p.ronda,
+             "freespin" if p.es_freespin else ("bet" if tipo == "debito" else "win"),
+             stake, premio, stake - premio, juego,
+             fila["ses_titulo"] or juego, agencia, p.session_id)
+        return post
+
+    try:
+        async with conn.transaction():
+            r = await registro_proveedores.aplicar_una_vez(
+                conn, prov.codigo, p.transaccion, tipo, monto, aplicar, p.ronda)
+    except _AtomicSaldoInsuficiente:
+        actual = await conn.fetchval(
+            "SELECT balance FROM users WHERE id=$1", uid)
+        return _atomic_respuesta(int(actual or 0), moneda,
+                                 atomic.SALDO_INSUFICIENTE)
+    except registro_proveedores.TransaccionFaltante as e:
+        return rechazar(atomic.TRANSACCION_INVALIDA, str(e))
+
+    if r.repetido:
+        log.info("[ATOMIC] %s repetido (%s): sin mover plata", p.metodo, r.por)
+    return _atomic_respuesta(r.saldo_post, moneda)
+
+
+@app.post("/api/slots/atomic/callback")
+async def atomic_callback(request: Request):
+    """La URL que se registra en Atomic para el proyecto de producción."""
+    return await _atomic_manejar(request, atomic.CODIGO_POR_DEFECTO)
+
+
+@app.post("/api/slots/atomic/callback/{codigo}")
+async def atomic_callback_de(codigo: str, request: Request):
+    """Una fila del registro por proyecto (`atomic_test` para el sandbox):
+    cada una con su lista de IP y su clave, para que un pedido del sandbox
+    nunca se lea con las credenciales de producción."""
+    return await _atomic_manejar(request, codigo)
+
+
+# ── ATOMIC: giros gratis ──────────────────────────────────────
+#
+# `gameActions.do` con freespins_get / freespins_set / freespins_delete.
+# `freespins_set` REEMPLAZA lo que el jugador tenga para ese juego, no suma:
+# quien quiera "agregar" tiene que leer antes y calcular el total. Este
+# endpoint no lo hace por él a propósito: la forma de la respuesta de
+# `freespins_get` no está confirmada por Atomic, y sumar sobre un dato que se
+# lee mal pisa giros vivos. Setear menos giros de los ya jugados es seguro
+# según su documentación.
+
+async def _atomic_accion(prov, metodo, **extra):
+    """Una llamada a `gameActions.do`, clasificada en éxito, rechazo
+    definitivo o resultado desconocido (timeout, 5xx, cuerpo ilegible: el
+    proveedor pudo haberla aplicado igual)."""
+    payload = atomic.payload_accion(metodo, partner=prov.api_code,
+                                    api_key=prov.api_secret, **extra)
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(f"{prov.url}/gameActions.do", json=payload)
+    except httpx.HTTPError as e:
+        log.error("[ATOMIC] %s: no se pudo contactar (%s)", metodo,
+                  type(e).__name__)
+        return atomic.clasificar_accion(None, "")
+    resultado = atomic.clasificar_accion(r.status_code, r.text)
+    if not resultado.ok:
+        # Jamás el pedido: lleva el api_key.
+        log.error("[ATOMIC] %s falló (%s, desconocido=%s): %s", metodo,
+                  r.status_code, resultado.desconocido, r.text[:200])
+    return resultado
+
+
+@app.post("/api/admin/casino/atomic/giros-gratis")
+async def atomic_giros_gratis(request: Request, _=Depends(auth.require_admin)):
+    """body: {accion: get|set|delete, user_id, symbol, integracion?,
+              cantidad?, monto_centavos?}
+
+    `set` REEMPLAZA (ver arriba). Devuelve `ok`, y `desconocido` cuando el
+    resultado no se puede saber: en ese caso hay que volver a leer con `get`
+    antes de reintentar."""
+    body = await request.json()
+    accion = str(body.get("accion") or "").strip().lower()
+    if accion not in atomic.ACCIONES_FREESPINS:
+        raise HTTPException(400, "accion tiene que ser get, set o delete")
+    metodo = atomic.ACCIONES_FREESPINS[accion]
+    codigo = str(body.get("integracion") or atomic.CODIGO_POR_DEFECTO).strip().lower()
+    simbolo = str(body.get("symbol") or "").strip()
+    if not simbolo or not body.get("user_id"):
+        raise HTTPException(400, "Faltan user_id y symbol")
+
+    cantidad = monto = None
+    if accion == "set":
+        try:
+            cantidad = int(body.get("cantidad"))
+            monto = int(body.get("monto_centavos"))
+        except (TypeError, ValueError):
+            raise HTTPException(400, "set necesita cantidad y monto_centavos")
+        if cantidad < 1 or monto < 1:
+            # Quitar giros es `delete`: un `set` en cero es ambiguo.
+            raise HTTPException(400, "cantidad y monto_centavos tienen que "
+                                     "ser positivos; para quitar usá delete")
+
+    prov = await _proveedor(codigo)
+    if not (prov and prov.activa and prov.completo()
+            and prov.adaptador == atomic.ADAPTADOR):
+        raise HTTPException(503, f"{codigo} no es una integración Atomic "
+                                 f"activa y completa")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        u = await conn.fetchrow(
+            "SELECT id, moneda FROM users WHERE id=$1", int(body["user_id"]))
+        j = await conn.fetchrow(
+            "SELECT marca FROM casino_juegos "
+            "WHERE integracion=$1 AND game_id=$2", codigo, simbolo)
+    if not u:
+        raise HTTPException(404, "Cliente inexistente")
+    if not (j and j["marca"]):
+        # El estudio es obligatorio y no se adivina: mandar 'pragmatic' a un
+        # juego de otro estudio da un error que nadie sabe leer.
+        raise HTTPException(404, "Ese juego no está en el catálogo de "
+                                 "Atomic; sincronizá primero")
+
+    extra = {"provider": j["marca"], "symbol": simbolo,
+             "currency": (u["moneda"] or "ARS").upper(),
+             "player_id": str(u["id"])}
+    if accion == "set":
+        extra.update(count=cantidad, amount=atomic.a_texto_decimal(monto))
+
+    r = await _atomic_accion(prov, metodo, **extra)
+    log.warning("[ATOMIC] %s jugador=%s juego=%s -> ok=%s desconocido=%s",
+                metodo, u["id"], simbolo, r.ok, r.desconocido)
+    return {"ok": r.ok, "desconocido": r.desconocido, "mensaje": r.mensaje,
+            "datos": r.datos}
 
 
 # ── WALLET API (44neoluck) ────────────────────────────────────

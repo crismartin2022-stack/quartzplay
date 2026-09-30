@@ -32,6 +32,8 @@ import Mascot from "./Mascot";
 import InicioWeb from "./InicioWeb";
 import { normalizarVivos } from "./inicioDelSitio";
 import Icon from "./Icon";
+import JuegoEnMarco from "./JuegoEnMarco";
+import { urlDeJuego } from "./marcoDeJuego";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 import { Handshake, Video, Repeat, Dices, Shield, Scale, Rocket, Bell, Image as ImageIcon, Pencil, Smartphone, Flame, Coins, Eye, Banknote, Heart, Headphones, Zap, House } from "lucide-react";
 
@@ -2945,7 +2947,7 @@ function SidebarWeb({ vista, onNav }){
 }
 
 
-function CasinoWeb({ sesion, ancho, vivo }){
+function CasinoWeb({ sesion, ancho, vivo, onRefrescar }){
   const user=sesion?.user||{};
   const [juegos,setJuegos]=useState(null);
   const [marcas,setMarcas]=useState([]);
@@ -2955,6 +2957,9 @@ function CasinoWeb({ sesion, ancho, vivo }){
   const [err,setErr]=useState("");
   const [pagina,setPagina]=useState(1);
   const [disponible,setDisponible]=useState(true);
+  // El juego abierto. La lista queda montada debajo: al volver, la
+  // búsqueda, la marca y la página siguen como estaban.
+  const [juego,setJuego]=useState(null);
 
   const POR_PAGINA=36;
 
@@ -2983,9 +2988,11 @@ function CasinoWeb({ sesion, ancho, vivo }){
                              language:"es"})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo abrir");
-      // Dentro de Telegram conviene el navegador propio: el juego
-      // ocupa la pantalla y se vuelve con el botón de atrás.
-      window.open(d.url,"_blank");
+      // Enmarcado y no en otra pestaña: el estudio vive en un dominio
+      // ajeno, y mandar ahí a quien juega con plata parece un error.
+      const url=urlDeJuego(d.url);
+      if(!url) throw new Error("El casino devolvió un enlace que no se puede abrir");
+      setJuego({url, titulo:j.titulo});
     }catch(e){ setErr(e.message); }
     setAbriendo(null);
   };
@@ -3013,6 +3020,12 @@ function CasinoWeb({ sesion, ancho, vivo }){
 
   return(
     <div style={{padding:"12px 12px 20px"}}>
+      {juego&&(
+        <JuegoEnMarco url={juego.url} titulo={juego.titulo}
+          saldo={user.saldo!=null?ars(user.saldo):null}
+          onRefrescar={onRefrescar}
+          onCerrar={()=>setJuego(null)}/>
+      )}
       <input value={busq}
         onChange={e=>{ setBusq(e.target.value); setPagina(1); }}
         placeholder="Buscar juego…"
@@ -5568,7 +5581,7 @@ export default function Web(){
       {vista==="casino"&&(
         <CazaError>
           <div style={{maxWidth:1440,margin:"0 auto"}}>
-            <CasinoWeb sesion={sesion} ancho={ancho}/>
+            <CasinoWeb sesion={sesion} ancho={ancho} onRefrescar={refrescarSaldo}/>
           </div>
         </CazaError>
       )}
@@ -5626,7 +5639,7 @@ export default function Web(){
       {vista==="casinovivo"&&(
         <CazaError>
           <div style={{maxWidth:1440,margin:"0 auto"}}>
-            <CasinoWeb sesion={sesion} ancho={ancho} vivo/>
+            <CasinoWeb sesion={sesion} ancho={ancho} vivo onRefrescar={refrescarSaldo}/>
           </div>
         </CazaError>
       )}

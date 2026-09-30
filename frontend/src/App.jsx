@@ -7,6 +7,8 @@ import { oscuro as Q, F_NUM, F_BODY, inkOn, RADII, SPACING } from "./theme";
 import BrandMark from "./BrandMark";
 import Mascot, { MASCOT_FACE_ASSET } from "./Mascot";
 import Icon from "./Icon";
+import JuegoEnMarco from "./JuegoEnMarco";
+import { urlDeJuego } from "./marcoDeJuego";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 // lucide-react carries the icons this screen's emoji have no match for
 // among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
@@ -3656,6 +3658,9 @@ function ScreenCasino({ user, vivo }){
   const [err,setErr]=useState("");
   const [pagina,setPagina]=useState(1);
   const [disponible,setDisponible]=useState(true);
+  // El juego abierto. La lista queda montada debajo: al volver, la
+  // búsqueda, la marca y la página siguen como estaban.
+  const [juego,setJuego]=useState(null);
 
   const POR_PAGINA=24;
 
@@ -3684,11 +3689,11 @@ function ScreenCasino({ user, vivo }){
                              language:"es"})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo abrir");
-      // Dentro de Telegram conviene el navegador propio: el juego
-      // ocupa la pantalla y se vuelve con el botón de atrás.
-      const tg=window.Telegram?.WebApp;
-      if(tg?.openLink) tg.openLink(d.url);
-      else window.open(d.url,"_blank");
+      // Se abre enmarcado, no con openLink: el navegador de Telegram
+      // saca al jugador de la app y no le deja el saldo a la vista.
+      const url=urlDeJuego(d.url);
+      if(!url) throw new Error("El casino devolvió un enlace que no se puede abrir");
+      setJuego({url, titulo:j.titulo});
     }catch(e){ setErr(e.message); }
     setAbriendo(null);
   };
@@ -3720,6 +3725,12 @@ function ScreenCasino({ user, vivo }){
 
   return(
     <div style={{padding:"12px 12px 20px"}}>
+      {juego&&(
+        <JuegoEnMarco url={juego.url} titulo={juego.titulo}
+          saldo={user?.saldo!=null?money(user.saldo,user?.moneda||"ARS"):null}
+          onRefrescar={user?.refrescar}
+          onCerrar={()=>setJuego(null)}/>
+      )}
       <input value={busq}
         onChange={e=>{ setBusq(e.target.value); setPagina(1); }}
         placeholder="Buscar juego…"
