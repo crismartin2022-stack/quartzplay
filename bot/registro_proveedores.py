@@ -284,7 +284,7 @@ async def buscar_previo(conn, proveedor: str, ref: str, ronda: Optional[str],
         previo = await conn.fetchrow("""
             SELECT saldo_post FROM casino_movimientos
             WHERE proveedor=$1 AND ronda=$2 AND tipo=$3 AND monto=$4
-              AND creado_en > NOW() - make_interval(secs => ::int)
+              AND creado_en > NOW() - make_interval(secs => $5::int)
             ORDER BY id LIMIT 1
         """, proveedor, ronda, tipo, monto, ventana)
         if previo:

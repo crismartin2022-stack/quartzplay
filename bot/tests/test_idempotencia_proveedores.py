@@ -176,3 +176,25 @@ def test_serializa_los_reintentos_con_candado_de_transaccion():
     correr(conn, "atomic", "u1", "debito", 500, ronda="R1")
 
     assert conn.candados == ["atomic:u1", "atomic|R1|debito|500"]
+
+
+def test_la_ventana_de_la_ronda_llega_a_la_consulta_como_parametro():
+    """Riesgo: la consulta decía `make_interval(secs => ::int)`, sin el
+    número de parámetro. Postgres la rechaza con error de sintaxis, y como
+    el segundo control corre en cada bet/win con ronda, cada callback de
+    Atomic habría fallado. Los dobles de prueba solo miran el comienzo de la
+    consulta y no lo veían."""
+    consultas = []
+
+    class Espia(FakeMovimientos):
+        async def fetchrow(self, query, *args):
+            consultas.append(" ".join(query.split()))
+            return await super().fetchrow(query, *args)
+
+    conn = Espia()
+    correr(conn, "atomic", "tx-nueva", "debito", 500, ronda="R1")
+
+    por_ronda = [q for q in consultas if "WHERE proveedor=$1" in q]
+    assert por_ronda, "no se llegó al segundo control"
+    assert "make_interval(secs => $5::int)" in por_ronda[0]
+    assert "=> ::" not in por_ronda[0]
