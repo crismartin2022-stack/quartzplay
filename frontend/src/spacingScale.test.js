@@ -64,7 +64,7 @@ const SCREENS = [
   // Pantallas nuevas de septiembre. Se suman acá porque una pantalla
   // fuera de esta lista no la guarda nadie: la regla se cumple por
   // memoria del que la escribió, hasta que alguien la olvida.
-  "InicioWeb.jsx", "PantallaTelegram.jsx",
+  "InicioWeb.jsx", "PantallaTelegram.jsx", "JuegoEnMarco.jsx",
 ];
 const PROPS = ["padding", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight", "gap"];
 const PROP_ALT = PROPS.join("|");
