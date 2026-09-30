@@ -14,6 +14,7 @@ import mensajeria
 import registro_publico
 import secretos
 import registro_proveedores
+import atomic
 from config import cors_headers, get_runtime_settings
 from db import DatabaseUnavailable, SchemaUnavailable, probe_readiness
 from log_hygiene import silence_request_urls
@@ -26139,6 +26140,11 @@ async def _sincronizar_integracion(conn, integ):
         raise HTTPException(400,
             f"A {integ['codigo']} le faltan datos de conexión")
 
+    # Cada adaptador habla su propio protocolo. Sin este desvío, un
+    # proveedor nuevo recibiría el pedido firmado de 44neoluck.
+    if integ.get("adaptador") == atomic.ADAPTADOR:
+        return await _sincronizar_atomic(conn, integ, url, code, secret)
+
     headers = _firmar(secret, code)
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.get(f"{url}/api/v1/games", headers=headers)
@@ -26206,6 +26212,73 @@ async def _sincronizar_integracion(conn, integ):
     _cat_aux["ts"] = 0.0
 
     log.warning(f"[CASINO] {integ['codigo']}: {len(vistos)} juegos")
+    return len(vistos)
+
+
+async def _sincronizar_atomic(conn, integ, url, partner, api_key):
+    """Catálogo de Atomic (`allgamelist`) dentro de `casino_juegos`.
+
+    Comparte tabla con el resto de los proveedores: la clave
+    `(integracion, game_id)` los separa, así que los juegos de Atomic
+    conviven con los de 44neoluck sin pisarlos. Lo que "ya no viene" se
+    apaga SOLO dentro de esta integración: nunca se toca una fila de otro
+    proveedor.
+    """
+    payload = atomic.payload_catalogo(partner, api_key)
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(f"{url}/allgamelist", json=payload)
+    except httpx.HTTPError as e:
+        log.error("[ATOMIC] catálogo: no se pudo contactar a %s: %s",
+                  integ["codigo"], type(e).__name__)
+        raise HTTPException(502, f"No se pudo contactar a {integ['codigo']}")
+    if r.status_code != 200:
+        log.error("[ATOMIC] catálogo de %s devolvió %s: %s",
+                  integ["codigo"], r.status_code, r.text[:200])
+        raise HTTPException(502, f"{integ['codigo']} respondió {r.status_code}")
+    try:
+        datos = r.json()
+    except ValueError:
+        raise HTTPException(502, f"{integ['codigo']} no devolvió JSON")
+
+    juegos = atomic.extraer_juegos(datos)
+    if not juegos:
+        # Una respuesta que no se reconoce NO se toma por "no hay juegos":
+        # apagaría el catálogo entero por un cambio de formato del lado de
+        # ellos.
+        log.error("[ATOMIC] catálogo de %s sin juegos reconocibles: %s",
+                  integ["codigo"], r.text[:300])
+        raise HTTPException(502, f"No se reconoció ningún juego en la "
+                                 f"respuesta de {integ['codigo']}")
+
+    for j in juegos:
+        await conn.execute("""
+            INSERT INTO casino_juegos
+                (integracion, game_id, titulo, marca, imagen, es_vivo,
+                 movil, escritorio, clave_juego, activo, actualizado)
+            VALUES ($1,$2,$3,$4,$5,$6,true,true,$7,true,NOW())
+            ON CONFLICT (integracion, game_id) DO UPDATE SET
+                titulo=EXCLUDED.titulo, marca=EXCLUDED.marca,
+                imagen=EXCLUDED.imagen, es_vivo=EXCLUDED.es_vivo,
+                clave_juego=EXCLUDED.clave_juego,
+                activo=true, actualizado=NOW()
+        """, integ["codigo"], j.simbolo, j.titulo, j.estudio, j.imagen,
+             j.es_vivo, _clave_juego(j.titulo))
+
+    vistos = [j.simbolo for j in juegos]
+    await conn.execute("""
+        UPDATE casino_juegos SET activo=false
+        WHERE integracion=$1 AND game_id <> ALL($2)
+    """, integ["codigo"], vistos)
+    await conn.execute("""
+        UPDATE casino_integraciones
+        SET ultimo_sync=NOW(), juegos_count=$2 WHERE codigo=$1
+    """, integ["codigo"], len(vistos))
+
+    _cat_cache["data"] = None
+    _cat_cache["ts"] = 0.0
+    _cat_aux["ts"] = 0.0
+    log.warning("[ATOMIC] %s: %s juegos", integ["codigo"], len(vistos))
     return len(vistos)
 
 
@@ -26668,6 +26741,84 @@ async def casino_juegos(user_id: int = 0, vivo: int = 0,
     }
 
 
+async def _lanzar_atomic(pool, u, j, simbolo, body):
+    """Abre un juego de Atomic (`playGame.do`) y devuelve el enlace del iframe.
+
+    Diferencias con el otro proveedor, todas a propósito:
+    - no se firma: el `api_key` viaja en el cuerpo (su protocolo);
+    - `player_id` es el id interno, nunca el username;
+    - se manda `lang`, porque sin él Atomic abre el juego en ruso;
+    - la sesión se guarda ANTES de devolver el enlace, porque los callbacks
+      pueden llegar antes de que el jugador vea la pantalla.
+    """
+    prov = await _proveedor(j["integracion"])
+    if not (prov and prov.activa and prov.completo()):
+        raise HTTPException(503, f"A la integración {j['integracion']} le "
+                                 f"faltan datos de conexión")
+    if not j["marca"]:
+        # `provider` es obligatorio en playGame.do y no se adivina.
+        log.error("[ATOMIC] el juego %s no tiene estudio: falta sincronizar",
+                  simbolo)
+        raise HTTPException(503, "Ese juego no está disponible ahora")
+
+    moneda = (u["moneda"] or "ARS").upper()
+    payload = atomic.payload_lanzamiento(
+        partner=prov.api_code, api_key=prov.api_secret, simbolo=simbolo,
+        estudio=j["marca"], moneda=moneda, jugador_id=u["id"],
+        idioma=body.get("language") or body.get("lang"),
+        demo=bool(body.get("demo")))
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(f"{prov.url}/playGame.do", json=payload)
+    except httpx.HTTPError as e:
+        log.error("[ATOMIC] playGame.do: %s", type(e).__name__)
+        raise HTTPException(502, "No se pudo abrir el juego. Probá de nuevo.")
+    if r.status_code != 200:
+        log.error("[ATOMIC] playGame.do devolvió %s: %s",
+                  r.status_code, r.text[:300])
+        raise HTTPException(502, "No se pudo abrir el juego. Probá de nuevo.")
+    try:
+        datos = r.json()
+    except ValueError:
+        datos = {}
+    enlace = datos.get("link") if isinstance(datos, dict) else None
+    if not (isinstance(datos, dict) and datos.get("status") == "ok" and enlace):
+        # Se registra el mensaje de ellos, jamás el pedido: lleva el api_key.
+        log.error("[ATOMIC] playGame.do sin enlace: %s",
+                  (datos.get("message") if isinstance(datos, dict) else None)
+                  or r.text[:200])
+        raise HTTPException(502, "No se pudo abrir el juego. Probá de nuevo.")
+
+    meta = datos.get("meta") if isinstance(datos.get("meta"), dict) else {}
+    sesion_ext = str(meta.get("session_id") or "").strip() or None
+    sesion_local = "s" + secrets.token_urlsafe(12)
+    if not sesion_ext:
+        # Sin el id de sesión de ellos los callbacks no se pueden atar a
+        # este lanzamiento. El juego igual funciona: se acepta y se avisa.
+        log.warning("[ATOMIC] playGame.do sin meta.session_id (juego %s)",
+                    simbolo)
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO casino_sesiones
+                    (sesion, sesion_ext, user_id, agencia_code,
+                     game_id, game_titulo, moneda, integracion, ultimo_uso)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
+            """, sesion_local, sesion_ext, u["id"], u["creado_por"],
+                 simbolo, j["titulo"], moneda, j["integracion"])
+    except Exception as e:
+        # Perder la sesión pierde el desglose por juego y el control de
+        # que la sesión sea de este jugador; no pierde plata. Por eso no
+        # se le niega el juego al jugador, pero queda en rojo en el log.
+        log.error("[ATOMIC] no se pudo guardar la sesión %s: %s",
+                  sesion_ext, e)
+
+    log.warning("[ATOMIC] jugador %s abrió %s", u["id"], simbolo)
+    return {"url": enlace, "sesion": sesion_ext or sesion_local,
+            "juego": simbolo}
+
+
 @app.post("/api/casino/sesion")
 async def casino_sesion(request: Request):
     """
@@ -26681,6 +26832,9 @@ async def casino_sesion(request: Request):
     game_id = str(body.get("game_id") or "").strip()
     if not user_id or not game_id:
         raise HTTPException(400, "Faltan datos")
+    # Opcional: el mismo game_id puede existir en dos proveedores. Sin
+    # esto se toma el de menor prioridad, como hasta ahora.
+    integracion_pedida = str(body.get("integracion") or "").strip().lower() or None
 
     pool = await get_db()
     async with pool.acquire() as conn:
@@ -26697,12 +26851,13 @@ async def casino_sesion(request: Request):
         # se toma la de menor prioridad, igual que en el catálogo.
         j = await conn.fetchrow("""
             SELECT j.*, i.url, i.api_code, i.api_secret,
-                   i.api_secret_cifrado, i.monedas
+                   i.api_secret_cifrado, i.monedas, i.adaptador
             FROM casino_juegos j
             JOIN casino_integraciones i ON i.codigo = j.integracion
             WHERE j.game_id=$1 AND j.activo=true AND i.activa=true
+              AND ($2::text IS NULL OR j.integracion = $2)
             ORDER BY i.prioridad LIMIT 1
-        """, game_id)
+        """, game_id, integracion_pedida)
         if not j:
             raise HTTPException(404,
                 "Ese juego no está disponible ahora")
@@ -26738,6 +26893,9 @@ async def casino_sesion(request: Request):
         raise HTTPException(400,
             f"Este juego todavía no acepta {moneda_jugador}. "
             f"Por ahora funciona en {', '.join(aceptadas)}.")
+
+    if j["adaptador"] == atomic.ADAPTADOR:
+        return await _lanzar_atomic(pool, u, j, game_id, body)
 
     # El identificador que le pasamos al proveedor es el mismo que
     # usa la billetera para buscar al jugador. Si no coinciden, el
