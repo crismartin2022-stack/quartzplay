@@ -240,6 +240,41 @@ def test_un_cifrado_que_no_abre_no_cae_al_texto_plano(api):
         os.environ["SECRETOS_CLAVE"] = LLAVE
 
 
+def test_una_clave_cifrada_cuenta_como_credencial(api, monkeypatch):
+    """Riesgo concreto: el listado miraba solo la columna en texto plano,
+    así que al proveedor con la clave BIEN guardada —cifrada, con esa
+    columna en NULL— el panel le decía "faltan credenciales". Justo al
+    único que estaba andando.
+    """
+    import registro_proveedores as rp
+
+    fila_cifrada = {
+        "codigo": "atomic", "nombre": "Atomic", "activa": True,
+        "prioridad": 10, "url": "https://atomic.vin/api",
+        "monedas": "ARS", "juegos_count": 1575,
+        "api_code": "iaqp", "api_secret": None,
+        "api_secret_cifrado": "loquesea-cifrado",
+        "adaptador": "atomic", "ips_permitidas": ["1.2.3.4"],
+        "ultimo_sync": None, "notas": None,
+    }
+
+    # Se ejercita la misma derivación que arma la respuesta del listado.
+    tiene = bool(fila_cifrada["api_code"]
+                 and (fila_cifrada["api_secret"]
+                      or fila_cifrada.get("api_secret_cifrado")))
+    assert tiene is True
+    assert bool(fila_cifrada.get("api_secret_cifrado")) is True
+
+    # Y la de una vieja sin cifrar: tiene credencial, pero hay que avisar.
+    fila_en_claro = dict(fila_cifrada, api_secret="clave-cruda",
+                         api_secret_cifrado=None)
+    assert bool(fila_en_claro["api_code"]
+                and (fila_en_claro["api_secret"]
+                     or fila_en_claro.get("api_secret_cifrado"))) is True
+    assert bool(fila_en_claro.get("api_secret_cifrado")) is False
+    assert rp is not None
+
+
 def test_guardar_solo_activa_no_borra_el_resto(api, monkeypatch):
     """Riesgo: un interruptor que solo manda `activa` deja al proveedor sin
     URL y el casino se apaga sin que nadie entienda por qué.

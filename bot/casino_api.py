@@ -26457,7 +26457,16 @@ async def listar_integraciones(_=Depends(auth.require_admin)):
             "juegos": f["juegos_count"],
             # La clave no se devuelve nunca: si alguien abre el panel
             # en una pantalla compartida, no queda expuesta.
-            "tiene_credenciales": bool(f["api_code"] and f["api_secret"]),
+            #
+            # Se miran las DOS columnas. Mirar solo `api_secret` decía
+            # "faltan credenciales" justo del proveedor que anda, porque
+            # al cifrarse la clave esa columna queda en NULL y la buena
+            # vive en `api_secret_cifrado`.
+            "tiene_credenciales": bool(
+                f["api_code"] and (f["api_secret"] or f.get("api_secret_cifrado"))),
+            # Que se vea en la pantalla es lo que hace que una clave sin
+            # cifrar se arregle en vez de quedar olvidada en la base.
+            "clave_cifrada": bool(f.get("api_secret_cifrado")),
             "adaptador": f.get("adaptador") or registro_proveedores.ADAPTADOR_LEGADO,
             "ips_permitidas": list(f.get("ips_permitidas") or []),
             "ultimo_sync": (_fecha_local(f["ultimo_sync"])
@@ -26562,6 +26571,11 @@ async def guardar_integracion(request: Request,
              adaptador, ips)
     # Un cambio en el panel rige de inmediato, sin reiniciar.
     _invalidar_cache_credenciales()
+    # También el catálogo del jugador: sin esto, apagar un proveedor
+    # desde el panel seguía mostrando sus juegos hasta cinco minutos, y
+    # el admin cree que el interruptor no funcionó.
+    _cat_cache["data"] = None
+    _cat_cache["ts"] = 0.0
     log.warning(f"[CASINO] integración {codigo} guardada")
     return {"ok": True}
 
