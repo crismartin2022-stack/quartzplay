@@ -27082,7 +27082,13 @@ async def casino_sesion(request: Request):
         # se toma la de menor prioridad, igual que en el catálogo.
         j = await conn.fetchrow("""
             SELECT j.*, i.url, i.api_code, i.api_secret,
-                   i.api_secret_cifrado, i.monedas, i.adaptador
+                   i.api_secret_cifrado, i.monedas, i.adaptador,
+                   (SELECT count(DISTINCT j2.integracion)
+                      FROM casino_juegos j2
+                      JOIN casino_integraciones i2
+                        ON i2.codigo = j2.integracion
+                     WHERE j2.game_id=j.game_id AND j2.activo=true
+                       AND i2.activa=true) AS proveedores_con_el_juego
             FROM casino_juegos j
             JOIN casino_integraciones i ON i.codigo = j.integracion
             WHERE j.game_id=$1 AND j.activo=true AND i.activa=true
@@ -27092,6 +27098,19 @@ async def casino_sesion(request: Request):
         if not j:
             raise HTTPException(404,
                 "Ese juego no está disponible ahora")
+
+        # Sin integración y con el id repetido entre proveedores, la
+        # prioridad decide en silencio y el jugador puede terminar
+        # apostando plata real en un juego que no tocó: ve el título
+        # que eligió y se abre otro. El comportamiento se mantiene
+        # porque hay clientes viejos que no mandan la integración;
+        # acá solo queda el rastro para poder verlo en el log.
+        repetidos = j.get("proveedores_con_el_juego") or 1
+        if integracion_pedida is None and repetidos > 1:
+            log.warning(
+                "[casino] game_id %s ambiguo: lo tienen %s proveedores y el "
+                "pedido no indicó integración; ganó %s por prioridad",
+                game_id, repetidos, j["integracion"])
 
         # El casino en vivo es un producto aparte del casino común
         permitidos = await _productos_de(conn, u["creado_por"])

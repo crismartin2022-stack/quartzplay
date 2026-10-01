@@ -2984,7 +2984,11 @@ function CasinoWeb({ sesion, ancho, vivo, onRefrescar }){
     try{
       const r=await fetch(`${API}/api/casino/sesion`,{
         method:"POST",headers:{"Content-Type":"application/json"},
+        // El id solo no alcanza: dos proveedores pueden compartirlo y
+        // sin la integración el servidor abre el de menor prioridad,
+        // o sea otro juego distinto del que el jugador tocó.
         body:JSON.stringify({user_id:user.id, game_id:j.id,
+                             integracion:j.integracion,
                              language:"es"})});
       const d=await r.json();
       if(!r.ok) throw new Error(d.detail||"No se pudo abrir");
