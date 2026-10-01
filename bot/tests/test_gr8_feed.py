@@ -103,6 +103,18 @@ def test_el_prefetch_siempre_esta_acotado():
     assert config_del_entorno(entorno(GR8_FEED_PREFETCH="20")).prefetch == 20
 
 
+def test_el_consumidor_nunca_usa_auto_ack():
+    # Riesgo: auto-ack carga todo lo pendiente en la RAM del broker de GR8.
+    # Se mira el código fuente porque es la única forma de fijar un
+    # argumento sin broker contra el cual probarlo.
+    from pathlib import Path
+
+    fuente = Path(gr8_feed.__file__).with_name("gr8_consumidor.py").read_text()
+    assert "no_ack=False" in fuente
+    assert "no_ack=True" not in fuente
+    assert "prefetch_count=cfg.prefetch" in fuente
+
+
 def test_la_url_no_llega_al_registro():
     # Riesgo: la clave de GR8 escrita en los logs de Railway.
     assert "s3cr3ta" not in url_para_log(URL)
