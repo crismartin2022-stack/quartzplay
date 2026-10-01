@@ -10,6 +10,11 @@ import Icon from "./Icon";
 import PageHeader from "./PageHeader";
 import LineaTiempo from "./LineaTiempo";
 import { Zap, Gift, Handshake, Video, ArrowLeftRight, Ban, Banknote, Bell, Bot, Building2, Calendar, CalendarDays, CircleOff, Coins, Dices, Disc, Eye, Flame, FlaskConical, Gamepad2, GitBranch, Globe, Hand, Headphones, Image as ImageIcon, Inbox, Key, Link, Lock, Mail, Megaphone, MessageSquare, Monitor, PartyPopper, PenLine, Pencil, Plug, Printer, RefreshCw, Rocket, RotateCcw, Save, Scale, Shield, Smartphone, Star, Stethoscope, Store, Target, Trash2, TrendingDown, Volume2, VolumeX, Wrench } from "lucide-react";
+import FilaProveedor from "./FilaProveedor";
+import {
+  estadoInicial, recargar, iniciarCambio, cambioConfirmado, cambioFallido,
+  cambiarActiva, requiereConfirmacion, textoConfirmacionApagado,
+} from "./proveedoresApi";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 import MobileTabMenu from "./MobileTabMenu";
 import {
@@ -9108,15 +9113,43 @@ function Integraciones({ adminKey, onNoAutorizado }){
   const [form,setForm]=useState({});
   const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
+  const [est,setEst]=useState(()=>estadoInicial());
 
   const cargar=()=>{
     fetch(`${API}/api/admin/casino/integraciones`,
       {headers:adminHeaders(adminKey)})
       .then(r=>{ if(r.status===401){onNoAutorizado();return null;}
         return r.ok?r.json():null; })
-      .then(x=>x&&setD(x)).catch(()=>{});
+      .then(x=>{ if(x){ setD(x); setEst(s=>recargar(s,x.integraciones)); } })
+      .catch(()=>{});
   };
   useEffect(cargar,[]);
+
+  // El interruptor. Apagar pide confirmación porque quita los juegos a los
+  // jugadores; encender no. Si el servidor no confirma, la máquina de
+  // `proveedoresApi` devuelve el interruptor a donde estaba y deja el motivo
+  // en la fila: un interruptor que muestra lo que el servidor no hizo es
+  // peor que no tenerlo.
+  const cambiar=async(codigo,activa)=>{
+    const actual=est.lista.find(p=>p.codigo===codigo);
+    if(!actual) return;
+    if(requiereConfirmacion(actual.activa,activa)
+      && !window.confirm(textoConfirmacionApagado(actual))) return;
+    const paso=iniciarCambio(est,codigo,activa);
+    if(!paso.enviar) return;
+    setEst(paso.estado); setMsg(null);
+    const r=await cambiarActiva({api:API,adminKey,codigo,activa});
+    if(r.noAutorizado){
+      setEst(s=>cambioFallido(s,codigo,paso.anterior,""));
+      onNoAutorizado(); return;
+    }
+    if(!r.ok){
+      setEst(s=>cambioFallido(s,codigo,paso.anterior,r.mensaje)); return;
+    }
+    setEst(s=>cambioConfirmado(s,codigo));
+    // Se relee: lo que queda en pantalla es lo que dice la base.
+    cargar();
+  };
 
   const guardar=async()=>{
     setProc(true); setMsg(null);
@@ -9200,55 +9233,18 @@ function Integraciones({ adminKey, onNoAutorizado }){
 
       <div style={{height:14}}/>
 
-      {(d.integraciones||[]).map(i=>(
-        <GCard key={i.codigo} style={{padding:SPACING[16],marginBottom:9}}
-          glow={i.activa?null:Q.dim}>
-          <div style={{display:"flex",justifyContent:"space-between",
-            alignItems:"flex-start",gap:SPACING[8]}}>
-            <div style={{minWidth:0,flex:1}}>
-              <div style={{color:i.activa?Q.text:Q.dim,fontWeight:700,
-                fontSize:13.5,fontFamily:F_BODY}}>
-                {i.nombre}
-                {!i.activa&&<span style={{color:Q.dim,fontSize:12,
-                  marginLeft:6}}>apagada</span>}</div>
-              <div style={{color:Q.muted,fontSize:12,marginTop:3}}>
-                prioridad {i.prioridad} · {i.juegos} juegos ·{" "}
-                {i.monedas}</div>
-              {i.ultimo_sync&&(
-                <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
-                  última carga: {i.ultimo_sync}</div>
-              )}
-              {!i.tiene_credenciales&&(
-                <div style={{color:Q.red,fontSize:12,marginTop:3}}>
-                  faltan credenciales · tocá Editar y cargalas</div>
-              )}
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:SPACING[4],
-              flexShrink:0}}>
-              <button onClick={()=>{ setEditando(i.codigo);
-                  setForm({codigo:i.codigo,nombre:i.nombre,
-                    activa:i.activa,url:i.url||"",monedas:i.monedas,
-                    prioridad:i.prioridad,notas:i.notas||""}); }}
-                style={{background:`${Q.violet}22`,
-                  border:`1px solid ${Q.violet}66`,borderRadius:RADII.sm,
-                  padding:"8px 12px",color:Q.cyan,fontSize:12,
-                  cursor:"pointer"}}>Editar</button>
-              <button onClick={()=>sincronizar(i.codigo)} disabled={proc}
-                style={{background:"transparent",
-                  border:`1px solid ${Q.border}`,borderRadius:RADII.sm,
-                  padding:"8px 12px",color:Q.muted,fontSize:12,
-                  cursor:"pointer"}}>Traer</button>
-              {i.activa&&(
-                <button onClick={()=>quitar(i.codigo,i.nombre)}
-                  disabled={proc}
-                  style={{background:"transparent",
-                    border:`1px solid ${Q.red}44`,borderRadius:RADII.sm,
-                    padding:"8px 12px",color:Q.red,fontSize:12,
-                    cursor:"pointer"}}>Quitar</button>
-              )}
-            </div>
-          </div>
-        </GCard>
+      {est.lista.map(p=>(
+        <FilaProveedor key={p.codigo} proveedor={p}
+          ocupado={p.codigo in est.pendientes}
+          error={est.errores[p.codigo]}
+          deshabilitado={proc}
+          onCambiar={(activa)=>cambiar(p.codigo,activa)}
+          onEditar={()=>{ setEditando(p.codigo);
+            setForm({codigo:p.codigo,nombre:p.nombre,
+              activa:p.activa,url:p.url,monedas:p.monedas,
+              prioridad:p.prioridad,notas:p.notas}); }}
+          onTraer={()=>sincronizar(p.codigo)}
+          onQuitar={()=>quitar(p.codigo,p.nombre)}/>
       ))}
 
       <div style={{height:8}}/>

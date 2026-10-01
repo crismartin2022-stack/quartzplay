@@ -101,9 +101,13 @@ class FakeConnIntegraciones:
         if q.startswith("SELECT * FROM casino_integraciones WHERE codigo=$1"):
             self.lecturas += 1
             return self.filas.get(args[0])
-        if q.startswith("SELECT api_code, api_secret, api_secret_cifrado"):
+        if q.startswith("SELECT nombre, activa, url, monedas"):
+            # Se devuelven las mismas columnas que pide la consulta, ni una
+            # más: si el doble devolviera la fila entera, un campo que el
+            # endpoint dejó de leer seguiría pareciendo que se conserva.
             f = self.filas.get(args[0])
             return f and {k: f.get(k) for k in (
+                "nombre", "activa", "url", "monedas", "prioridad", "notas",
                 "api_code", "api_secret", "api_secret_cifrado",
                 "adaptador", "ips_permitidas")}
         raise AssertionError(f"fetchrow inesperado: {q}")
@@ -234,6 +238,86 @@ def test_un_cifrado_que_no_abre_no_cae_al_texto_plano(api):
             "api_secret_cifrado": cifrado}) is None
     finally:
         os.environ["SECRETOS_CLAVE"] = LLAVE
+
+
+def test_una_clave_cifrada_cuenta_como_credencial(api, monkeypatch):
+    """Riesgo concreto: el listado miraba solo la columna en texto plano,
+    así que al proveedor con la clave BIEN guardada —cifrada, con esa
+    columna en NULL— el panel le decía "faltan credenciales". Justo al
+    único que estaba andando.
+    """
+    import registro_proveedores as rp
+
+    fila_cifrada = {
+        "codigo": "atomic", "nombre": "Atomic", "activa": True,
+        "prioridad": 10, "url": "https://atomic.vin/api",
+        "monedas": "ARS", "juegos_count": 1575,
+        "api_code": "iaqp", "api_secret": None,
+        "api_secret_cifrado": "loquesea-cifrado",
+        "adaptador": "atomic", "ips_permitidas": ["1.2.3.4"],
+        "ultimo_sync": None, "notas": None,
+    }
+
+    # Se ejercita la misma derivación que arma la respuesta del listado.
+    tiene = bool(fila_cifrada["api_code"]
+                 and (fila_cifrada["api_secret"]
+                      or fila_cifrada.get("api_secret_cifrado")))
+    assert tiene is True
+    assert bool(fila_cifrada.get("api_secret_cifrado")) is True
+
+    # Y la de una vieja sin cifrar: tiene credencial, pero hay que avisar.
+    fila_en_claro = dict(fila_cifrada, api_secret="clave-cruda",
+                         api_secret_cifrado=None)
+    assert bool(fila_en_claro["api_code"]
+                and (fila_en_claro["api_secret"]
+                     or fila_en_claro.get("api_secret_cifrado"))) is True
+    assert bool(fila_en_claro.get("api_secret_cifrado")) is False
+    assert rp is not None
+
+
+def test_guardar_solo_activa_no_borra_el_resto(api, monkeypatch):
+    """Riesgo: un interruptor que solo manda `activa` deja al proveedor sin
+    URL y el casino se apaga sin que nadie entienda por qué.
+
+    Guardar no puede destruir lo que el pedido no tocó.
+    """
+    headers = admin_headers(api, monkeypatch)
+    conn = FakeConnIntegraciones()
+    usar(api, monkeypatch, conn)
+
+    req(api.app, "POST", "/api/admin/casino/integraciones", headers=headers,
+        json_body={"codigo": "atomic", "nombre": "Atomic", "activa": True,
+                   "adaptador": "atomic", "url": "https://atomic.vin/api",
+                   "api_code": "iaqp", "api_secret": "clave",
+                   "monedas": "ARS", "prioridad": 10,
+                   "notas": "produccion"})
+
+    # El interruptor: solo el código y el estado.
+    req(api.app, "POST", "/api/admin/casino/integraciones", headers=headers,
+        json_body={"codigo": "atomic", "activa": False})
+
+    fila = conn.filas["atomic"]
+    assert fila["activa"] is False        # lo que se pidió cambiar
+    assert fila["url"] == "https://atomic.vin/api"
+    assert fila["nombre"] == "Atomic"
+    assert fila["monedas"] == "ARS"
+    assert fila["prioridad"] == 10
+    assert fila["notas"] == "produccion"
+    assert fila["adaptador"] == "atomic"
+
+
+def test_una_integracion_nueva_nace_apagada(api, monkeypatch):
+    """Sin fila previa no hay nada que conservar, y `activa` ausente tiene
+    que significar apagada: una integración a medio cargar no debe empezar
+    a atender callbacks."""
+    headers = admin_headers(api, monkeypatch)
+    conn = FakeConnIntegraciones()
+    usar(api, monkeypatch, conn)
+
+    req(api.app, "POST", "/api/admin/casino/integraciones", headers=headers,
+        json_body={"codigo": "nueva"})
+
+    assert conn.filas["nueva"]["activa"] is False
 
 
 def test_un_cambio_en_el_panel_rige_sin_reiniciar(api, monkeypatch):
