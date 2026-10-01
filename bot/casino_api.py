@@ -16526,6 +16526,71 @@ def validar_init_data(init_data: str):
         return None
 
 
+# ── SESIÓN DE CLIENTE PARA LA MINI-APP DE TELEGRAM ────────────
+# El sitio web manda `Authorization: Bearer` en cada pedido porque entró con
+# usuario y clave (`/api/cliente/login`). La mini-app no tenía con qué: lo
+# único que trae es el `initData` que firma Telegram, y solo lo mandaba en
+# los POST. Por eso los pedidos que consultan la cuenta del jugador nacieron
+# pasando el `user_id` suelto en la URL, que era el único dato disponible.
+# Los ids son correlativos, así que con eso cualquiera los recorre y lee el
+# historial, el chat de soporte o la autoexclusión de otro jugador.
+#
+# Este endpoint cambia la identidad firmada —que la mini-app ya tiene al
+# arrancar— por una sesión de cliente idéntica a la del sitio, para que
+# haya un solo modo de identificar a un jugador en los dos canales. Es
+# nada más que la llave: todavía no hay ningún endpoint que la exija, así
+# que si el canje falla la app sigue andando como siempre. La cerradura va
+# en un cambio aparte, para poder revisarla y revertirla sola.
+#
+# La antigüedad la controla `validar_init_data`, que rechaza un `initData`
+# de más de 24 horas. Sin ese corte uno filtrado sería una sesión eterna
+# regalada: alcanzaría para pedir una nueva cada vez que la anterior vence.
+#
+# No da de alta a nadie. Si el usuario de Telegram todavía no tiene cuenta
+# contesta lo mismo que el resto de los flujos firmados (`registrado:
+# False`) y deja que la app muestre su propio registro, que es donde la
+# persona elige sus datos. Un alta implícita desde un endpoint de sesión
+# crearía cuentas que nadie pidió, con el nombre que vino en la firma.
+
+@app.post("/api/cliente/sesion/telegram")
+async def cliente_sesion_telegram(request: Request):
+    """Cambia el initData firmado por un token de sesión de cliente."""
+    body = await request.json()
+    user = validar_init_data(body.get("init_data", ""))
+    if not user or not user.get("id"):
+        # Mismo rechazo para la firma que no cierra y para la vencida: la
+        # app no puede hacer nada distinto con esa diferencia, y contarla
+        # solo le sirve a quien está probando firmas.
+        raise HTTPException(401, "Identidad de Telegram inválida o vencida")
+
+    tg_id = str(user["id"])
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT id, bloqueado FROM users
+            WHERE id::text = $1 OR telegram_id::text = $1
+        """, tg_id)
+
+    if not row:
+        return {"registrado": False, "token": None}
+    if row["bloqueado"]:
+        # A una cuenta frenada no se le entrega una llave nueva: sería una
+        # sesión viva de alguien que no debería estar operando, y quedaría
+        # andando hasta que venza sola.
+        raise HTTPException(403, "Tu cuenta está bloqueada. Consultá en tu agencia.")
+
+    token = auth.create_session(f"cliente:{row['id']}")
+    # El prefijo `cliente:` no es decorativo: es lo que mira
+    # `requiere_cliente` para no aceptar una sesión de agencia como si
+    # fuera de un jugador. Y la sesión va también a la base porque las que
+    # viven solo en memoria se pierden en cada deploy.
+    await sesion_guardar(token, f"cliente:{row['id']}")
+    # Nada más que la llave. El saldo, el nombre y el estado del registro
+    # los sigue contestando `/api/me`; repetirlos acá sería un segundo
+    # lugar donde pueden quedar viejos.
+    return {"registrado": True, "token": token}
+
+
 @app.post("/api/me")
 async def quien_soy(request: Request):
     """
