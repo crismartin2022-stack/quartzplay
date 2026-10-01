@@ -184,6 +184,7 @@ def db(api, monkeypatch):
 
     monkeypatch.setattr(api, "_proveedor", prov)
     api._c360_variantes_vistas.clear()
+    api._c360_acciones_vistas.clear()
     return base
 
 
@@ -760,3 +761,160 @@ def test_con_ip_cargadas_una_ip_ajena_se_corta_aunque_la_firma_sea_buena(api, db
 
     assert fuera.status_code == 403 and db.movimientos[0]["ref"] == "content360:t2"
     assert leer(dentro)["code"] == 0
+
+
+# ── Las URLs que Content360 ya tiene registradas ─────────────────
+
+def test_responden_las_rutas_viejas_de_wallet(api):
+    """Riesgo real, no hipotético: esas URLs se le pasaron a Content360 como
+    propuesta antes de que existiera este código, ellos las dieron de alta, y
+    el código terminó escuchando en otras. Un callback a una ruta que no
+    existe es un 404 y una apuesta que nunca se cobra.
+
+    Y ojo con el último: ellos lo llaman `notify`, nosotros `notification`.
+    """
+    rutas = {r.path for r in api.app.routes if hasattr(r, "path")}
+    for ruta in ("/api/wallet/c360/balance", "/api/wallet/c360/debit",
+                 "/api/wallet/c360/credit", "/api/wallet/c360/notify"):
+        assert ruta in rutas, f"falta {ruta}"
+
+
+def test_las_rutas_nuevas_siguen_estando(api):
+    """El alias no reemplaza: las dos formas tienen que convivir mientras
+    Content360 no migre."""
+    rutas = {r.path for r in api.app.routes if hasattr(r, "path")}
+    assert "/api/slots/content360/balance" in rutas
+    assert "/api/slots/content360/{codigo}/debit" in rutas
+
+
+# ── Content360 despacha por `action`, no por URL ─────────────────
+
+def post_a(api, url, cuerpo):
+    """Un POST firmado a una URL cualquiera, para mandar una operación por la
+    dirección de otra: es lo que hace Content360."""
+    contenido = json.dumps(cuerpo)
+    cab = {"x-content-key": firmar(canonico_json(contenido)),
+           "content-type": "application/json"}
+
+    async def _enviar():
+        transport = httpx.ASGITransport(app=api.app, raise_app_exceptions=False)
+        async with CLIENTE_REAL(transport=transport,
+                                base_url="http://testserver") as cli:
+            return await cli.post(url, content=contenido, headers=cab)
+    return asyncio.run(_enviar())
+
+
+def test_un_debito_por_post_a_la_url_de_balance_mueve_plata(api, db):
+    """Riesgo real, visto en staging: el débito llegó por POST a /balance, dio
+    405 y la apuesta nunca se cobró. Y una vez que entra, tiene que cobrarse
+    como débito, no contestar un saldo."""
+    for url in ("/api/slots/content360/balance",
+                "/api/wallet/c360/balance"):
+        db.users[7]["balance"] = 100_000
+        db.movimientos.clear()
+
+        r = post_a(api, url, {**debit(10.0, tx="x-" + url[-12:]),
+                              "action": "DEBIT"})
+
+        assert r.status_code == 200 and leer(r)["code"] == 0, url
+        assert db.users[7]["balance"] == 99_000 and len(db.movimientos) == 1
+
+
+def test_un_get_con_action_balance_sigue_consultando_el_saldo(api, db):
+    r = pedir(api, "balance", consulta={"action": "BALANCE", "user": "7",
+                                        "currency": "ARS"})
+
+    assert leer(r) == {"code": 0, "description": "Success",
+                       "data": {"balance": 1000.0}}
+    assert db.movimientos == [] and db.tocaron_el_saldo() == []
+
+
+def test_el_action_firmado_manda_sobre_la_url_pero_no_se_acepta_sin_firma(api, db):
+    """Riesgo: elegir la operación con un dato sin firmar dejaría pedir un
+    crédito. Con la firma mala no se mueve nada, diga lo que diga la URL."""
+    r = post_a(api, "/api/slots/content360/balance",
+               {**credit(10.0), "action": "CREDIT"})
+    assert leer(r)["code"] == 0 and db.users[7]["balance"] == 101_000
+
+    contenido = json.dumps({**credit(10.0, tx="mala"), "action": "CREDIT"})
+    antes = db.users[7]["balance"]
+
+    async def _enviar():
+        transport = httpx.ASGITransport(app=api.app, raise_app_exceptions=False)
+        async with CLIENTE_REAL(transport=transport,
+                                base_url="http://testserver") as cli:
+            return await cli.post("/api/slots/content360/balance",
+                                  content=contenido,
+                                  headers={"x-content-key": "mala"})
+    r = asyncio.run(_enviar())
+    assert leer(r)["code"] == 4 and db.users[7]["balance"] == antes
+
+
+def test_notify_y_notification_son_la_misma_operacion(api, db):
+    for accion in ("NOTIFY", "notification"):
+        r = post_a(api, "/api/slots/content360/debit",
+                   {**notificacion(), "action": accion})
+        assert leer(r)["code"] == 0
+    assert db.movimientos == [] and db.tocaron_el_saldo() == []
+
+
+def test_un_action_desconocido_sigue_con_la_url_y_queda_en_el_log(api, db, caplog):
+    with caplog.at_level(logging.WARNING):
+        r = pedir(api, "balance", consulta={"action": "RESERVE", "user": "7",
+                                            "currency": "ARS"})
+        pedir(api, "balance", consulta={"action": "RESERVE", "user": "7",
+                                        "currency": "ARS"})
+
+    assert leer(r)["data"] == {"balance": 1000.0}
+    avisos = [m for m in caplog.messages if "primer action visto" in m]
+    assert len(avisos) == 1 and "'RESERVE'" in avisos[0]
+    assert "desconocido" in avisos[0]
+
+
+def test_un_action_desconocido_en_una_url_de_dinero_no_mueve_plata(api, db):
+    """Si no se sabe qué operación es, no se adivina: queda la URL, y el
+    guardia de `interpretar` rechaza el choque entre `action` y endpoint."""
+    r = post_a(api, "/api/slots/content360/debit",
+               {**debit(10.0, tx="raro"), "action": "RESERVE"})
+
+    assert leer(r)["code"] == 3
+    assert db.movimientos == [] and db.users[7]["balance"] == 100_000
+
+
+def test_sin_action_manda_la_url(api, db):
+    cuerpo = debit(10.0, tx="sin-action")
+    del cuerpo["action"]
+
+    r = post_a(api, "/api/slots/content360/debit", cuerpo)
+
+    assert leer(r)["code"] == 0 and db.users[7]["balance"] == 99_000
+
+
+def test_la_primera_vez_de_cada_action_queda_en_el_log(api, db, caplog):
+    with caplog.at_level(logging.WARNING):
+        post_a(api, "/api/slots/content360/debit", debit(1.0, tx="a1"))
+        post_a(api, "/api/slots/content360/debit", debit(1.0, tx="a2"))
+
+    avisos = [m for m in caplog.messages if "primer action visto" in m]
+    assert len(avisos) == 1 and "'debit'" in avisos[0]
+
+
+def test_ninguna_ruta_registrada_responde_405(api, db):
+    """Un 405 es una apuesta perdida: cada URL tiene que aceptar los dos
+    métodos, aunque después rechace por firma."""
+    rutas = [r for r in api.app.routes if hasattr(r, "path")
+             and (r.path.startswith("/api/slots/content360/")
+                  or r.path.startswith("/api/wallet/c360/"))]
+    assert len(rutas) >= 12
+
+    async def _enviar(metodo, url):
+        transport = httpx.ASGITransport(app=api.app, raise_app_exceptions=False)
+        async with CLIENTE_REAL(transport=transport,
+                                base_url="http://testserver") as cli:
+            return await cli.request(metodo, url, content=b"{}")
+
+    for ruta in rutas:
+        url = ruta.path.replace("{codigo}", "content360")
+        for metodo in ("GET", "POST"):
+            r = asyncio.run(_enviar(metodo, url))
+            assert r.status_code != 405, f"{metodo} {url}"

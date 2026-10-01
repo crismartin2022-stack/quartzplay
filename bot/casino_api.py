@@ -27082,7 +27082,13 @@ async def casino_sesion(request: Request):
         # se toma la de menor prioridad, igual que en el catálogo.
         j = await conn.fetchrow("""
             SELECT j.*, i.url, i.api_code, i.api_secret,
-                   i.api_secret_cifrado, i.monedas, i.adaptador
+                   i.api_secret_cifrado, i.monedas, i.adaptador,
+                   (SELECT count(DISTINCT j2.integracion)
+                      FROM casino_juegos j2
+                      JOIN casino_integraciones i2
+                        ON i2.codigo = j2.integracion
+                     WHERE j2.game_id=j.game_id AND j2.activo=true
+                       AND i2.activa=true) AS proveedores_con_el_juego
             FROM casino_juegos j
             JOIN casino_integraciones i ON i.codigo = j.integracion
             WHERE j.game_id=$1 AND j.activo=true AND i.activa=true
@@ -27092,6 +27098,19 @@ async def casino_sesion(request: Request):
         if not j:
             raise HTTPException(404,
                 "Ese juego no está disponible ahora")
+
+        # Sin integración y con el id repetido entre proveedores, la
+        # prioridad decide en silencio y el jugador puede terminar
+        # apostando plata real en un juego que no tocó: ve el título
+        # que eligió y se abre otro. El comportamiento se mantiene
+        # porque hay clientes viejos que no mandan la integración;
+        # acá solo queda el rastro para poder verlo en el log.
+        repetidos = j.get("proveedores_con_el_juego") or 1
+        if integracion_pedida is None and repetidos > 1:
+            log.warning(
+                "[casino] game_id %s ambiguo: lo tienen %s proveedores y el "
+                "pedido no indicó integración; ganó %s por prioridad",
+                game_id, repetidos, j["integracion"])
 
         # El casino en vivo es un producto aparte del casino común
         permitidos = await _productos_de(conn, u["creado_por"])
@@ -28113,6 +28132,28 @@ _C360_MAX_CUERPO = 256 * 1024
 # llamadas de verdad.
 _c360_variantes_vistas: set = set()
 
+# Content360 NO usa una URL por operación: manda todo a la misma dirección y
+# distingue con el campo `action`. Lo vimos en staging: el saldo (GET) entró
+# bien y el débito salió por POST a la URL de `balance`, que solo aceptaba
+# GET, y la respuesta fue un 405. Para el jugador es una apuesta que el juego
+# muestra como "no permitida" y que nunca se cobra.
+#
+# Solo se conoce `BALANCE` por tráfico real; el resto sale de la simetría con
+# su API. Un valor que no esté acá NO se adivina: se registra y se sigue con
+# la URL (ver `_c360_endpoint_real`).
+_C360_ACCIONES = {
+    "balance": "balance",
+    "debit": "debit",
+    "credit": "credit",
+    "notification": "notification",
+    "notify": "notification",
+}
+
+# Los `action` ya vistos, para dejar en el log la PRIMERA vez que aparece cada
+# uno (los conocidos también: es lo que permite leer qué mandan de verdad
+# cuando llegue el primer débito) y no inundarlo después.
+_c360_acciones_vistas: set = set()
+
 # Lo ya movido en una ronda por ese jugador, por tipo (para el tope de un
 # rollback). El índice parcial `casino_mov_proveedor_ronda` lo cubre.
 _C360_PREVIOS = """
@@ -28155,6 +28196,24 @@ def _c360_respuesta(codigo, centavos=None, transaccion=None, descripcion=None):
         media_type="application/json", status_code=200)
 
 
+def _c360_endpoint_real(codigo, endpoint_url, datos):
+    """El endpoint que se despacha. `datos` TIENE que ser el cuerpo ya firmado:
+    elegir la operación con un dato sin firmar dejaría que cualquiera pidiera
+    un crédito. Sin `action`, o con uno desconocido, manda la URL (que es lo
+    que se hacía antes)."""
+    accion = content360._texto(datos.get("action"))
+    if not accion:
+        return endpoint_url
+    clave = accion.strip().lower()
+    if clave not in _c360_acciones_vistas:
+        _c360_acciones_vistas.add(clave)
+        log.warning("[C360] %s: primer action visto %r en la URL %s%s", codigo,
+                    accion, endpoint_url,
+                    "" if clave in _C360_ACCIONES
+                    else " (desconocido: se sigue con la URL)")
+    return _C360_ACCIONES.get(clave, endpoint_url)
+
+
 async def _c360_manejar(request: Request, codigo: str, endpoint: str):
     codigo = (codigo or "").strip().lower()
     try:
@@ -28182,6 +28241,9 @@ async def _c360_manejar(request: Request, codigo: str, endpoint: str):
     if not verificada.ok:
         log.warning("[C360] %s: firma inválida en %s | %s", codigo, endpoint,
                     content360.diagnostico_firma(firmable, recibida, verificada))
+        # Acá `endpoint` es el de la URL, que NO está verificado: se usa solo
+        # para elegir el código de error. Equivocarse ahí cambia un número en
+        # una respuesta de rechazo, no mueve plata.
         if endpoint == "notification":
             return _c360_respuesta(content360.NOTIFICACION_RECHAZADA)
         return _c360_respuesta(content360.FIRMA_INVALIDA)
@@ -28195,6 +28257,8 @@ async def _c360_manejar(request: Request, codigo: str, endpoint: str):
         return _c360_respuesta(content360.NO_PROCESABLE)
 
     datos = firmable.datos
+    # Desde acá la operación sale del `action` firmado, no de la URL.
+    endpoint = _c360_endpoint_real(codigo, endpoint, datos)
     try:
         if endpoint == "notification":
             return await _c360_notificacion(prov, datos)
@@ -28400,13 +28464,30 @@ def _manejador_c360(endpoint):
 def _registrar_rutas_content360():
     """Las URLs que se registran en Content360: una por endpoint, y otra con
     el código de la fila del registro (`content360_test` para el sandbox) para
-    que cada proyecto tenga su clave y nunca se mezclen."""
-    for endpoint, metodo in (("balance", "GET"), ("debit", "POST"),
-                             ("credit", "POST"), ("notification", "POST")):
+    que cada proyecto tenga su clave y nunca se mezclen.
+
+    Todas aceptan GET y POST: la operación la dice el `action` firmado, no el
+    método ni la URL, y un 405 es una apuesta perdida."""
+    for endpoint in ("balance", "debit", "credit", "notification"):
         for ruta in (f"/api/slots/content360/{endpoint}",
                      f"/api/slots/content360/{{codigo}}/{endpoint}"):
             app.add_api_route(ruta, _manejador_c360(endpoint),
-                              methods=[metodo])
+                              methods=["GET", "POST"])
+
+    # Las URLs que Content360 ya tiene registradas de su lado.
+    #
+    # Se las pasamos antes de que existiera este código, como propuesta, y
+    # las dieron de alta tal cual. Cambiarlas allá cuesta otra vuelta con
+    # ellos; responder acá cuesta cuatro líneas. El día que dejen de
+    # usarlas, estas rutas se borran y no se pierde nada.
+    #
+    # Ojo con el último: ellos lo llaman `notify` y nosotros `notification`.
+    for ruta_vieja, endpoint in (("balance", "balance"), ("debit", "debit"),
+                                 ("credit", "credit"),
+                                 ("notify", "notification")):
+        app.add_api_route(f"/api/wallet/c360/{ruta_vieja}",
+                          _manejador_c360(endpoint),
+                          methods=["GET", "POST"])
 
 
 _registrar_rutas_content360()
