@@ -10,6 +10,8 @@ import Icon from "./Icon";
 import JuegoEnMarco from "./JuegoEnMarco";
 import { urlDeJuego } from "./marcoDeJuego";
 import { useDesktopShellWidth } from "./desktopShellLayout";
+import SportsbookC360 from "./SportsbookC360";
+import { useSportsbookC360 } from "./configSportsbook";
 // lucide-react carries the icons this screen's emoji have no match for
 // among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
 // no live-feed mark, no handshake, no bolt, no gift.
@@ -5451,6 +5453,9 @@ function ScreenHome({ user, onNav, onBet, refCode }){
   const isDesktopShell = useDesktopShellWidth();
   const [combo,setCombo]=useState(null);
   const [live,setLive]=useState(null);
+  // La entrada del sportsbook solo existe mientras el admin lo tenga
+  // prendido: la decide el servidor, no esta pantalla.
+  const sportsbook=useSportsbookC360(user?.id);
 
   useEffect(()=>{
     Promise.all([
@@ -5491,7 +5496,9 @@ function ScreenHome({ user, onNav, onBet, refCode }){
           cards sit three across underneath, which is the same grid with
           different columns rather than a second layout. */}
       <div style={{display:"grid",
-        gridTemplateColumns:isDesktopShell?"2fr 1fr 1fr 1fr":"repeat(3,minmax(0,1fr))",
+        gridTemplateColumns:isDesktopShell
+          ?(sportsbook.visible?"2fr 1fr 1fr 1fr 1fr":"2fr 1fr 1fr 1fr")
+          :"repeat(3,minmax(0,1fr))",
         gap:isDesktopShell?SPACING[16]:SPACING[8],
         alignItems:"stretch",marginBottom:14}}>
       <div onClick={()=>onNav("mejorar")} style={{
@@ -5614,6 +5621,39 @@ function ScreenHome({ user, onNav, onBet, refCode }){
             </div>
           </div>
         </div>
+        {/* El sportsbook no es un slot: tiene su pantalla y su entrada, y la
+            entrada aparece si el admin lo prendió o, apagada, si el jugador
+            ya apostó ahí. En el teléfono la fila de tres ya está llena, así
+            que ocupa su propia fila. */}
+        {sportsbook.visible&&(
+          <div onClick={()=>onNav("sportsbook")} role="button" tabIndex={0}
+            aria-disabled={!sportsbook.activo}
+            onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); onNav("sportsbook"); } }}
+            style={{position:"relative",overflow:"hidden",minWidth:0,
+              gridColumn:isDesktopShell?"auto":"1 / -1",
+              height:isDesktopShell?"100%":96,cursor:"pointer",
+              // Apagado pero visible: es para quien ya apostó, que entra a
+              // leer el aviso y no puede abrir el juego.
+              opacity:sportsbook.activo?1:0.55,
+              borderRadius:RADII.lg,
+              background:`linear-gradient(135deg,${Q.violet2},${Q.violet})`}}>
+            <div style={{position:"relative",height:"100%",display:"flex",
+              flexDirection:isDesktopShell?"column":"row",
+              alignItems:isDesktopShell?"flex-start":"center",
+              justifyContent:isDesktopShell?"space-between":"flex-start",
+              gap:SPACING[12],padding:"16px 12px"}}>
+              <Icon name="trophy" size={24} color={inkOn(Q.violet2,Q.violet)}/>
+              <div>
+                <div style={{color:inkOn(Q.violet2,Q.violet),fontWeight:800,
+                  fontSize:14,fontFamily:F_BODY}}>Sportsbook</div>
+                <div style={{color:inkOn(Q.violet2,Q.violet),opacity:.85,
+                  fontSize:12,marginTop:2,lineHeight:1.35,
+                  fontFamily:F_BODY}}>
+                  {sportsbook.activo?"Más deportes y mercados":"No disponible por ahora"}</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {!autenticado&&(
@@ -6892,6 +6932,9 @@ export default function QuartzSports(){
         {screen==="desafios"  &&<ScreenDesafios user={user} onAction={handle}/>}
         {screen==="casino"    &&<ScreenCasino user={user}/>}
         {screen==="casinovivo"&&<ScreenCasino user={user} vivo/>}
+        {screen==="sportsbook"&&<SportsbookC360 user={user}
+          saldo={user?.saldo!=null?money(user.saldo,user?.moneda||"ARS"):null}
+          onRefrescar={user?.refrescar}/>}
         {screen==="cuenta"    &&<ScreenCuenta       user={user} onNav={setScreen} onJR={()=>setVerJR(true)} onHist={()=>setVerHist(true)}/>}
         </CazaError>
       </div>

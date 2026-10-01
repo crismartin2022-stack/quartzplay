@@ -35,6 +35,8 @@ import Icon from "./Icon";
 import JuegoEnMarco from "./JuegoEnMarco";
 import { urlDeJuego } from "./marcoDeJuego";
 import { useDesktopShellWidth } from "./desktopShellLayout";
+import SportsbookC360 from "./SportsbookC360";
+import { useSportsbookC360 } from "./configSportsbook";
 import { Handshake, Video, Repeat, Dices, Shield, Scale, Rocket, Bell, Image as ImageIcon, Pencil, Smartphone, Flame, Coins, Eye, Banknote, Heart, Headphones, Zap, House } from "lucide-react";
 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
@@ -2903,7 +2905,7 @@ function BarraWeb({ vista, onNav, hayBoleto }){
 // BarraWeb: BarraWeb's own fontSize floor is pinned by fontSizeFloor.test.js
 // to the exact span of its function body, and this sidebar's labels sit at
 // the ordinary 12px floor, not the tab bar's 11px exception.
-function SidebarWeb({ vista, onNav }){
+function SidebarWeb({ vista, onNav, sportsbook, sportsbookApagado }){
   const NAV = [
     {k:"inicio",     l:"Inicio",         i:<House size={18}/>},
     {k:"prematch",   l:"Deportes",       i:<Icon name="trophy" size={18}/>},
@@ -2914,6 +2916,11 @@ function SidebarWeb({ vista, onNav }){
     {k:"desafios",   l:"Desafíos",       i:<Handshake size={18}/>},
     {k:"historial",  l:"Historial",      i:<Icon name="clipboard-list" size={18}/>},
   ];
+  // La entrada la decide el servidor: prendida, o apagada para quien ya
+  // apostó ahí (entra a leer el aviso y no puede abrir el juego).
+  if(sportsbook) NAV.splice(NAV.length-1,0,
+    {k:"sportsbook", i:<Icon name="trophy" size={18}/>,
+     l:sportsbookApagado?"Sportsbook (no disponible)":"Sportsbook"});
   return(
     <aside style={{position:"sticky",top:0,alignSelf:"start",
       width:264,height:"100dvh",overflowY:"auto",
@@ -5291,6 +5298,10 @@ export default function Web(){
   // Se abre en la home, no en la lista de partidos: /sitio tenía cuotas
   // pero ninguna portada, y era lo que la separaba de la mini-app.
   const [vista,setVista]=useState("inicio");
+  // Si hay que ofrecer la entrada del sportsbook. En el teléfono la barra
+  // de abajo ya tiene sus seis lugares, así que ahí la entrada es la
+  // tarjeta de la portada; en escritorio, también la barra lateral.
+  const sportsbook=useSportsbookC360(sesion?.user?.id);
   // Las pantallas que no son deportes esconden el filtro y las
   // ligas. Va DESPUÉS de declarar vista: antes reventaba al abrir.
   const esDeportes = vista==="prematch" || vista==="vivo";   // prematch | vivo
@@ -5424,7 +5435,8 @@ export default function Web(){
           navegación. */}
       <div style={isDesktopShell?{display:"grid",
         gridTemplateColumns:"264px minmax(0,1fr)"}:undefined}>
-      {isDesktopShell&&<SidebarWeb vista={vista} onNav={setVista}/>}
+      {isDesktopShell&&<SidebarWeb vista={vista} onNav={setVista} sportsbook={sportsbook.visible}
+        sportsbookApagado={!sportsbook.activo}/>}
       <div style={isDesktopShell?{minWidth:0}:undefined}>
 
       {/* Barra superior. El logo vuelve a la home: en el teléfono es la
@@ -5565,6 +5577,8 @@ export default function Web(){
       {vista==="inicio"&&(
         <CazaError>
           <InicioWeb vivos={vivos} onNav={setVista}
+            sportsbook={sportsbook.visible}
+            sportsbookApagado={!sportsbook.activo}
             arriba={<CazaError><AvisosBanner destino="web"/></CazaError>}
             ofreceRegistro={!sesion&&!enTerminal}
             onRegistro={()=>setRegistro(true)}
@@ -5637,6 +5651,14 @@ export default function Web(){
               onAbrirRegistro={()=>setRegistro(true)}
               onAction={()=>{}}/>
           </div>
+        </CazaError>
+      )}
+
+      {vista==="sportsbook"&&(
+        <CazaError>
+          <SportsbookC360 user={sesion?.user}
+            saldo={sesion?.user?.saldo!=null?ars(sesion.user.saldo):null}
+            onRefrescar={refrescarSaldo}/>
         </CazaError>
       )}
 

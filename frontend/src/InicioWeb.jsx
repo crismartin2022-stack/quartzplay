@@ -44,6 +44,8 @@ const ESTILO = `
   .iw-carta{position:relative;overflow:hidden;min-width:0;height:168px;
     cursor:pointer;border-radius:${RADII.lg}px;background-size:cover;
     background-position:center}
+  .iw-carta-sb{grid-column:1 / -1;height:96px}
+  .iw-carta-apagada{opacity:.55}
   .iw-secciones{display:grid;grid-template-columns:minmax(0,1fr);
     gap:${SPACING[16]}px}
   .iw-vivos{display:grid;grid-template-columns:minmax(0,1fr);gap:${SPACING[8]}px}
@@ -54,11 +56,14 @@ const ESTILO = `
     .iw-titulo{font-size:34px}
     .iw-sub{font-size:14px;max-width:440px}
     .iw-carta{height:220px}
+    .iw-carta-sb{height:96px}
     .iw-secciones{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
     .iw-vivos{grid-template-columns:repeat(3,minmax(0,1fr))}
   }
   @media (min-width:1400px){
     .iw-fila{grid-template-columns:2fr 1fr 1fr 1fr}
+    .iw-fila-sb{grid-template-columns:2fr 1fr 1fr 1fr 1fr}
+    .iw-carta-sb{grid-column:auto;height:auto}
     .iw-hero{grid-column:auto;min-height:340px;padding:20px 16px;
       padding-right:166px;--iw-mascota:275px}
     .iw-titulo{font-size:22px}
@@ -71,14 +76,16 @@ const ESTILO = `
 // El mismo tratamiento en las tres: foto de fondo, un tinte de marca y un
 // scrim oscuro abajo donde se apoya el texto (el arte llega a luminancia
 // 255 en los brillos, así que el texto no puede apoyarse sobre la foto).
-function Carta({ arte, tinte, icono, titulo, sub, onClick }){
+function Carta({ arte, tinte, icono, titulo, sub, onClick, extra }){
   return(
-    <div className="iw-carta" role="button" tabIndex={0}
+    <div className={extra?`iw-carta ${extra}`:"iw-carta"} role="button" tabIndex={0}
       onClick={onClick}
       onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); onClick(); } }}
-      style={{backgroundImage:`url(${arte})`}}>
-      <div aria-hidden="true" style={{position:"absolute",inset:0,
-        background:tinte,opacity:0.32}}/>
+      style={arte?{backgroundImage:`url(${arte})`}:{background:tinte}}>
+      {/* Sin foto (el sportsbook todavía no tiene arte propio) el tinte es
+          el fondo entero, no un velo: a 32% sobre nada quedaría casi negro. */}
+      {arte&&<div aria-hidden="true" style={{position:"absolute",inset:0,
+        background:tinte,opacity:0.32}}/>}
       <div aria-hidden="true" style={{position:"absolute",inset:0,
         background:"linear-gradient(180deg,transparent 0%,rgba(6,10,20,.5) 55%,rgba(6,10,20,.92) 100%)"}}/>
       <div style={{position:"relative",height:"100%",display:"flex",
@@ -108,7 +115,7 @@ function Encabezado({ icono, texto, aparte }){
 }
 
 export default function InicioWeb({ arriba, ofreceRegistro, onNav, onRegistro,
-  onUsarCombo, vivos }){
+  onUsarCombo, vivos, sportsbook, sportsbookApagado }){
   const [combo,setCombo]=useState(null);
   const [cargandoCombo,setCargandoCombo]=useState(true);
 
@@ -129,7 +136,7 @@ export default function InicioWeb({ arriba, ofreceRegistro, onNav, onRegistro,
       <style>{ESTILO}</style>
       {arriba}
 
-      <div className="iw-fila">
+      <div className={sportsbook?"iw-fila iw-fila-sb":"iw-fila"}>
         <div className="iw-hero" role="button" tabIndex={0}
           onClick={()=>onNav("mejorar")}
           onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); onNav("mejorar"); } }}>
@@ -196,6 +203,16 @@ export default function InicioWeb({ arriba, ofreceRegistro, onNav, onRegistro,
           icono={<Handshake size={22} color={inkOn(Q.void,Q.dark)} aria-hidden="true"/>}
           titulo="Desafíos" sub="Apostá contra otros jugadores"
           onClick={()=>onNav("desafios")}/>
+        {/* El sportsbook no es un slot: tiene su pantalla. La entrada existe
+            si el admin lo prendió o, apagada, si el jugador ya apostó ahí. */}
+        {sportsbook&&(
+          <Carta extra={sportsbookApagado?"iw-carta-sb iw-carta-apagada":"iw-carta-sb"}
+            tinte={`linear-gradient(135deg,${Q.violet2},${Q.violet})`}
+            icono={<Icon name="trophy" size={24} color={inkOn(Q.void,Q.dark)}/>}
+            titulo="Sportsbook"
+            sub={sportsbookApagado?"No disponible por ahora":"Más deportes y mercados"}
+            onClick={()=>onNav("sportsbook")}/>
+        )}
       </div>
 
       <div className="iw-secciones">
