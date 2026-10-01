@@ -26721,6 +26721,120 @@ async def _traer_juegos(forzar=False):
     return datos
 
 
+# ── SPORTSBOOK DE CONTENT360 ──────────────────────────────────
+#
+# Content360 trae un sportsbook que llega "como un juego más": una sola
+# fila del catálogo (integración content360, marca "sports"). Se abre
+# con el mismo lanzamiento firmado que cualquier slot; lo que se separa
+# acá es dónde se ve: pantalla propia, y un interruptor del admin.
+#
+# EL INTERRUPTOR SOLO ESCONDE. No rechaza callbacks. Una apuesta
+# deportiva se liquida días después, cuando la sesión del jugador no
+# existe hace rato, y `_c360_contexto` resuelve al jugador por el `user`
+# que manda el proveedor, sin exigir sesión ni mirar este interruptor.
+# Si alguien lo "mejora" para que un crédito con el sportsbook apagado
+# se rechace, un jugador que apostó ayer no cobra hoy porque el dueño
+# apagó la entrada. test_sportsbook_c360.py fija esto.
+SPORTSBOOK_C360_CLAVE = "sportsbook_c360_activo"
+SPORTSBOOK_C360_INTEGRACION = "content360"
+SPORTSBOOK_C360_MARCA = "sports"
+
+
+async def _sportsbook_c360_activo(conn):
+    """El interruptor. Arranca APAGADO: es nuevo y sin verificar con plata
+    real, así que se prende a mano. Cualquier valor que no sea 'true'
+    (ausente, vacío, basura) cuenta como apagado."""
+    valor = await conn.fetchval(
+        "SELECT valor FROM app_config WHERE clave=$1", SPORTSBOOK_C360_CLAVE)
+    return (valor or "").strip().lower() == "true"
+
+
+@app.get("/api/sportsbook/config")
+async def sportsbook_config_publica(user_id: int = 0):
+    """Lo que el jugador necesita para saber si muestra la entrada de
+    menú y qué juego abre. Nada de config de admin ni de credenciales.
+
+    No hay un endpoint público de ajustes generales: cada función publica
+    el suyo (como /api/p2p/config), y el menú se decide al arrancar, antes
+    de que el jugador entre al casino y pida el catálogo. Por eso es
+    propio y no una marca más dentro de /api/casino/juegos.
+
+    APAGADO NO ES "NO EXISTE" PARA QUIEN YA APOSTÓ. Una apuesta deportiva
+    se liquida días después: si el dueño apaga el interruptor el martes,
+    quien apostó el lunes se quedaría sin ninguna señal de qué pasó con su
+    plata. A ese jugador se le devuelve `con_historial` y el menú muestra la
+    entrada apagada, con el aviso de que el crédito entra igual. Quien nunca
+    apostó ahí no ve nada: no tiene sentido ofrecerle lo que no está.
+    """
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        activo = await _sportsbook_c360_activo(conn)
+        j = await conn.fetchrow("""
+            SELECT j.game_id, j.titulo, j.integracion,
+                   (j.activo AND i.activa) AS disponible
+            FROM casino_juegos j
+            JOIN casino_integraciones i ON i.codigo = j.integracion
+            WHERE j.integracion = $1 AND j.marca = $2
+            ORDER BY j.activo DESC, j.game_id LIMIT 1
+        """, SPORTSBOOK_C360_INTEGRACION, SPORTSBOOK_C360_MARCA)
+        if not j:
+            return {"activo": False}
+
+        if not activo:
+            # Una consulta con tope de una fila, por el índice de
+            # (user_id): se paga al armar el menú, no en cada pantalla.
+            # `casino_rounds` no tiene estado de ronda, así que "tuvo
+            # alguna" es lo único que se puede afirmar; el aviso lo dice
+            # en condicional y lo evalúa el jugador.
+            if user_id and await conn.fetchval(
+                    "SELECT 1 FROM casino_rounds "
+                    "WHERE user_id=$1 AND game_id=$2 AND integracion=$3 "
+                    "LIMIT 1", user_id, j["game_id"], j["integracion"]):
+                return {"activo": False, "con_historial": True}
+            return {"activo": False}
+
+        if not j["disponible"]:
+            return {"activo": False}
+        # Mismas puertas que el lanzamiento: no se ofrece una entrada que
+        # después responde 403 (producto casino de la agencia o proveedor
+        # apagado por riesgo).
+        agencia = None
+        if user_id:
+            agencia = await conn.fetchval(
+                "SELECT creado_por FROM users WHERE id=$1", user_id)
+            if agencia is not None:
+                if "casino" not in await _productos_de(conn, agencia):
+                    return {"activo": False}
+        if SPORTSBOOK_C360_MARCA in await _proveedores_apagados_para(
+                conn, agencia):
+            return {"activo": False}
+    return {"activo": True,
+            "juego": {"id": j["game_id"], "titulo": j["titulo"],
+                      "integracion": j["integracion"]}}
+
+
+@app.get("/api/admin/sportsbook-c360")
+async def admin_sportsbook_c360(_=Depends(auth.require_admin)):
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        return {"activo": await _sportsbook_c360_activo(conn)}
+
+
+@app.post("/api/admin/sportsbook-c360")
+async def admin_sportsbook_c360_set(request: Request,
+                                    _=Depends(auth.require_admin)):
+    """body: {activo: bool}"""
+    body = await request.json()
+    activo = "true" if body.get("activo") is True else "false"
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO app_config (clave, valor, updated_at) VALUES ($1,$2,NOW())
+            ON CONFLICT (clave) DO UPDATE SET valor=$2, updated_at=NOW()
+        """, SPORTSBOOK_C360_CLAVE, activo)
+    return {"ok": True, "activo": activo == "true"}
+
+
 @app.get("/api/casino/juegos")
 async def casino_juegos(user_id: int = 0, vivo: int = 0,
                         movil: int = 1, desde: int = 0,
@@ -26813,8 +26927,15 @@ async def casino_juegos(user_id: int = 0, vivo: int = 0,
                    OR j.marca = ANY($4)
                    OR j.es_vivo = true)
               AND ($3::text[] IS NULL OR j.marca <> ALL($3))
+              -- El sportsbook no es un slot: vive solo en su pantalla,
+              -- prendido o apagado. Por eso el filtro NO depende del
+              -- interruptor y no hace falta meterlo en la clave del
+              -- caché: si dependiera, apagarlo dejaría el juego a la
+              -- vista hasta cinco minutos.
+              AND NOT (j.integracion = $5 AND j.marca = $6)
             ORDER BY COALESCE(j.clave_juego, j.game_id), i.prioridad
-            """, bool(vivo), bool(movil), None, forzados or [])
+            """, bool(vivo), bool(movil), None, forzados or [],
+                SPORTSBOOK_C360_INTEGRACION, SPORTSBOOK_C360_MARCA)
             _cat_cache["data"] = filas
             _cat_cache["ts"] = ahora_c
             _cat_cache["clave"] = clave_cache
@@ -27127,6 +27248,16 @@ async def casino_sesion(request: Request):
         if apagado:
             raise HTTPException(403,
                 "Este proveedor no está disponible por ahora")
+
+        # El interruptor del sportsbook cierra el LANZAMIENTO, no los
+        # callbacks: abrir una apuesta nueva con la entrada apagada sería
+        # una puerta lateral (el id del juego es público). Lo que ya se
+        # apostó se sigue liquidando: `_c360_contexto` no mira esto.
+        if (j["integracion"] == SPORTSBOOK_C360_INTEGRACION
+                and j["marca"] == SPORTSBOOK_C360_MARCA
+                and not await _sportsbook_c360_activo(conn)):
+            raise HTTPException(403,
+                "El sportsbook no está disponible por ahora")
 
         secreto_integ = _secreto_de_integracion(
             {**dict(j), "codigo": j["integracion"]})

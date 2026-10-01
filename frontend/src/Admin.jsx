@@ -9539,6 +9539,97 @@ function RiesgoCasino({ adminKey, onNoAutorizado }){
 // Estado de la conexión con el proveedor de casino. Sin esto hay que
 // adivinar entre credenciales mal cargadas, firma incorrecta y reloj
 // desfasado, que dan errores parecidos.
+// El interruptor del sportsbook de Content360.
+//
+// Apagarlo esconde la entrada de menú y no deja abrir apuestas nuevas (quien
+// ya apostó ahí la ve apagada, con un aviso): las apuestas que ya hizo se
+// siguen liquidando y pagando. Una apuesta deportiva se
+// resuelve días después, y quitarle el premio a quien apostó ayer porque
+// hoy se apagó la entrada sería perder plata de un jugador. Por eso el
+// cartel lo dice acá, donde quien lo apaga lo lee antes de tocarlo.
+function InterruptorSportsbook({ adminKey, onNoAutorizado }){
+  const [activo,setActivo]=useState(null);
+  const [guardando,setGuardando]=useState(false);
+  const [msg,setMsg]=useState("");
+
+  useEffect(()=>{
+    let vigente=true;
+    fetch(`${API}/api/admin/sportsbook-c360`,{headers:adminHeaders(adminKey)})
+      .then(r=>{
+        if(r.status===401){ onNoAutorizado(); return null; }
+        return r.ok?r.json():null;
+      })
+      .then(d=>{
+        if(!vigente) return;
+        if(d) setActivo(!!d.activo);
+        else setMsg("No se pudo leer el estado del sportsbook.");
+      })
+      .catch(()=>{ if(vigente) setMsg("No se pudo leer el estado del sportsbook."); });
+    return()=>{ vigente=false; };
+    // eslint-disable-next-line
+  },[adminKey]);
+
+  const cambiar=async()=>{
+    if(activo===null||guardando) return;
+    const nuevo=!activo;
+    setGuardando(true); setMsg("");
+    try{
+      const r=await fetch(`${API}/api/admin/sportsbook-c360`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
+        body:JSON.stringify({activo:nuevo})});
+      if(r.status===401){ onNoAutorizado(); return; }
+      if(!r.ok) throw new Error();
+      // Se muestra lo que el servidor guardó, no lo que se pidió.
+      const d=await r.json();
+      setActivo(!!d.activo);
+    }catch(e){ setMsg("No se pudo guardar. El interruptor sigue como estaba."); }
+    setGuardando(false);
+  };
+
+  if(activo===null&&!msg) return <div style={{color:Q.muted,textAlign:"center",
+    padding:SPACING[20],fontFamily:F_BODY}}>Cargando...</div>;
+
+  return(
+    <div>
+      <GCard glow={activo?Q.green:Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"center",
+          justifyContent:"space-between",gap:SPACING[12]}}>
+          <div>
+            <div style={{color:Q.text,fontWeight:700,fontSize:14,
+              fontFamily:F_BODY}}>Sportsbook de Content360</div>
+            <div style={{color:Q.muted,fontSize:12,marginTop:2,lineHeight:1.5,
+              fontFamily:F_BODY}}>
+              {activo
+                ?"Prendido: los jugadores ven la entrada Sportsbook en el menú."
+                :"Apagado: solo ven la entrada, apagada, quienes ya apostaron. Arranca apagado hasta que lo verifiques."}
+            </div>
+          </div>
+          <button role="switch" aria-checked={!!activo}
+            aria-label="Sportsbook de Content360"
+            disabled={activo===null||guardando} onClick={cambiar}
+            style={{flexShrink:0,width:48,height:26,borderRadius:RADII.lg,
+              border:"none",padding:0,position:"relative",
+              background:activo?Q.green:Q.border,
+              cursor:guardando?"wait":"pointer",transition:"all .2s"}}>
+            <span style={{display:"block",width:20,height:20,
+              borderRadius:RADII.md,background:"#fff",position:"absolute",
+              top:3,left:activo?25:3,transition:"all .2s"}}/>
+          </button>
+        </div>
+        {msg&&<div style={{color:Q.red,fontSize:12,marginTop:8,
+          fontFamily:F_BODY}}>{msg}</div>}
+      </GCard>
+      <div style={{color:Q.muted,fontSize:12,lineHeight:1.6,
+        fontFamily:F_BODY}}>
+        Apagarlo esconde la entrada y no deja abrir apuestas nuevas; quien
+        ya apostó la sigue viendo, apagada, con un aviso. Las apuestas ya
+        hechas se siguen liquidando y pagando: un jugador que apostó ayer
+        cobra hoy aunque lo apagues.</div>
+    </div>
+  );
+}
+
 function TabCasinoProveedor({ adminKey, onNoAutorizado }){
   const [solapa,setSolapa]=useState("conexion");
   const [d,setD]=useState(null);
@@ -9579,7 +9670,8 @@ function TabCasinoProveedor({ adminKey, onNoAutorizado }){
         {[["conexion",<><Plug size={13}/> Diagnóstico</>],["integraciones",<><Link size={13}/> Integraciones</>],
           ["marcas",<><Dices size={13}/> Proveedores</>],["logos",<><ImageIcon size={13}/> Logos</>],
           ["riesgo",<><Icon name="shield-alert" size={13}/> Riesgo</>],
-          ["juegos",<><Icon name="chart-no-axes-combined" size={13}/> Por juego</>]].map(([k,l])=>(
+          ["juegos",<><Icon name="chart-no-axes-combined" size={13}/> Por juego</>],
+          ["sportsbook",<><Icon name="trophy" size={13}/> Sportsbook</>]].map(([k,l])=>(
           <button key={k} onClick={()=>setSolapa(k)}
             style={{background:solapa===k?`${Q.violet}33`:"transparent",
               border:`1px solid ${solapa===k?Q.violet:Q.border}`,
@@ -9647,6 +9739,10 @@ function TabCasinoProveedor({ adminKey, onNoAutorizado }){
       )}
       {solapa==="juegos"&&(
         <ReporteJuegos adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>
+      )}
+
+      {solapa==="sportsbook"&&(
+        <InterruptorSportsbook adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>
       )}
     </div>
   );
