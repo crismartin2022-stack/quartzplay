@@ -183,12 +183,45 @@ async def _ciclo(cfg: Config, pool: asyncpg.Pool, muestreo: Muestreo, parar: asy
             if len(recolector.actual) >= max(1, cfg.prefetch // 2):
                 hay_que_vaciar.set()
 
+        # Una cola que no existe o para la que no tenemos permiso cierra el
+        # canal. Si eso tumbara el ciclo entero, un solo nombre mal escrito
+        # —o un permiso que GR8 no nos dio— dejaría la etapa de observación
+        # sin un solo dato. Se toma cada cola en su propio canal: la que
+        # falla se reporta y las otras ocho siguen hablando.
+        enganchadas = []
+        fallidas = []
         for nombre in cfg.colas:
-            # No se declara la cola: es de GR8, con sus argumentos. Declarar
-            # distinto a como existe cierra el canal.
-            cola = await canal.get_queue(nombre, ensure=False)
-            await cola.consume(partial(al_recibir, nombre), no_ack=False)
-        log.info("consumiendo %d colas de %s", len(cfg.colas), gr8_feed.url_para_log(cfg.url))
+            try:
+                canal_cola = await conexion.channel()
+                # Si este canal se cierra solo —por ejemplo porque GR8 borró
+                # la cola— hay que enterarse: sin este aviso perderíamos esa
+                # cola durante toda la semana de observación y el resumen
+                # final diría "no llegó nada" en vez de "dejó de llegar".
+                canal_cola.close_callbacks.add(
+                    lambda *_, q=nombre: log.error(
+                        "[GR8] se cerró el canal de la cola %s", q))
+                await canal_cola.set_qos(prefetch_count=cfg.prefetch)
+                # No se declara la cola: es de GR8, con sus argumentos.
+                # Declarar distinto a como existe cierra el canal.
+                cola = await canal_cola.get_queue(nombre, ensure=False)
+                await cola.consume(partial(al_recibir, nombre), no_ack=False)
+                enganchadas.append(nombre)
+            except Exception as e:
+                fallidas.append(nombre)
+                log.error("[GR8] no se pudo consumir la cola %s: %s: %s",
+                          nombre, type(e).__name__, e)
+
+        if not enganchadas:
+            # Ninguna respondió: eso no es una cola mal escrita, es la
+            # conexión o las credenciales. Que reintente el ciclo de afuera.
+            raise RuntimeError(
+                f"ninguna de las {len(cfg.colas)} colas pudo consumirse")
+
+        if fallidas:
+            log.error("[GR8] %d colas quedaron afuera: %s. Revisar el nombre "
+                      "y el permiso con GR8.", len(fallidas), ", ".join(fallidas))
+        log.info("consumiendo %d de %d colas de %s", len(enganchadas),
+                 len(cfg.colas), gr8_feed.url_para_log(cfg.url))
 
         vaciador = asyncio.create_task(_vaciador(recolector, pool, hay_que_vaciar))
         esperas = [asyncio.create_task(caida.wait()), asyncio.create_task(parar.wait())]
