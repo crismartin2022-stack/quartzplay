@@ -760,3 +760,27 @@ def test_con_ip_cargadas_una_ip_ajena_se_corta_aunque_la_firma_sea_buena(api, db
 
     assert fuera.status_code == 403 and db.movimientos[0]["ref"] == "content360:t2"
     assert leer(dentro)["code"] == 0
+
+
+# ── Las URLs que Content360 ya tiene registradas ─────────────────
+
+def test_responden_las_rutas_viejas_de_wallet(api):
+    """Riesgo real, no hipotético: esas URLs se le pasaron a Content360 como
+    propuesta antes de que existiera este código, ellos las dieron de alta, y
+    el código terminó escuchando en otras. Un callback a una ruta que no
+    existe es un 404 y una apuesta que nunca se cobra.
+
+    Y ojo con el último: ellos lo llaman `notify`, nosotros `notification`.
+    """
+    rutas = {r.path for r in api.app.routes if hasattr(r, "path")}
+    for ruta in ("/api/wallet/c360/balance", "/api/wallet/c360/debit",
+                 "/api/wallet/c360/credit", "/api/wallet/c360/notify"):
+        assert ruta in rutas, f"falta {ruta}"
+
+
+def test_las_rutas_nuevas_siguen_estando(api):
+    """El alias no reemplaza: las dos formas tienen que convivir mientras
+    Content360 no migre."""
+    rutas = {r.path for r in api.app.routes if hasattr(r, "path")}
+    assert "/api/slots/content360/balance" in rutas
+    assert "/api/slots/content360/{codigo}/debit" in rutas
