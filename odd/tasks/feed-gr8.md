@@ -123,16 +123,37 @@ ya cerró.
 
 ## Lo que hay que decidir antes de escribir código
 
-### Una sola instancia, o sharding a propósito
+### Una sola instancia: por qué no choca con AWS
 
-Ellos lo confirmaron: *"you can connect multiple service instances to the
-same queue and distribute (shard) messages"*. Varias instancias **se
-reparten** los mensajes, y cada una ve media línea.
+Ellos confirmaron que varias instancias **se reparten** los mensajes, y
+cada una vería media línea. Eso suena a conflicto con el plan de AWS
+—rendimiento, autoescalado y failover— y no lo es, porque son ejes
+distintos.
 
-O corre una sola réplica, o se diseña el reparto explícitamente.
+**La carga del consumidor no depende de cuántos jugadores haya**, sino de
+cuántos mensajes manda GR8. Con 10 jugadores o con 10.000 llegan las
+mismas actualizaciones de cuotas. Lo que escala con el tráfico es la API
+y la base; el consumidor es solitario por naturaleza y no es un cuello de
+botella.
 
-**Esto choca con el plan de mover todo a AWS con varias réplicas**, y
-conviene resolverlo antes y no después.
+**El failover tampoco pide un par activo-pasivo.** GR8 ya lo resolvió:
+los mensajes quedan 24 horas y el republish reemite la línea activa. Si
+el proceso se cae y vuelve en treinta segundos, se pone al día solo. El
+failover acá es **reiniciar rápido**, que lo hace cualquier orquestador.
+
+**El sharding solo haría falta si uno no da abasto, y nadie midió eso.**
+Para eso está la etapa 0: conectarse, observar una semana, y decidir con
+datos. Arrancamos con uno.
+
+### Lo que sí hay que pedirle al consumidor pensando en AWS
+
+El consumidor va a estar **escribiendo en la base todo el tiempo**.
+Cuando la base haga failover —que es justamente uno de los objetivos de
+la migración— ese proceso tiene que reconectar solo y no perder los
+mensajes que tenía en vuelo.
+
+Con ack manual eso sale gratis: un mensaje sin confirmar vuelve a la
+cola. Pero hay que confirmar **después** de escribir, nunca antes.
 
 ### Dónde viven las cuotas
 
