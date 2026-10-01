@@ -268,7 +268,37 @@ def validate_sign(body_raw, x_code, x_time, x_sign):
 # ── SESIONES PERSISTENTES ─────────────────────────────────────
 # Las sesiones vivían en memoria: cada deploy o reinicio echaba a todas
 # las agencias. Ahora quedan en la base.
+
+
+class SesionNoGuardada(HTTPException):
+    """La sesión no quedó en la base, así que no hay sesión.
+
+    Es un HTTPException porque el único final honesto es cortar el pedido.
+    Quien valida —`requiere_cliente`, `requiere_agencia`— lee
+    `agencia_sesiones`: un token que no se guardó es una llave que no abre
+    nada. Devolverlo igual deja a la persona creyendo que entró, y el error
+    solo en un log que nadie mira.
+
+    503 y no 401: las credenciales ya se verificaron y están bien. Un 401 la
+    mandaría a revisar una clave correcta, o a pensar que le bloquearon la
+    cuenta. La culpa es de la base, y el mensaje lo dice.
+    """
+
+    def __init__(self, detail: str = "No pudimos iniciar tu sesión. "
+                                     "Probá de nuevo en un momento."):
+        super().__init__(status_code=503, detail=detail)
+
+
 async def sesion_guardar(token: str, agencia_code: str, horas: int = 12):
+    """Persiste la sesión, o lanza. Nunca vuelve en silencio de un fallo.
+
+    Antes se comía la excepción: el login seguía adelante y entregaba el
+    token igual. Propagar no agrega un modo de falla nuevo, porque los
+    cuatro que emiten sesiones ya leyeron la base para llegar hasta acá
+    (verificar la clave, buscar al jugador, crear la cuenta); si la base
+    está caída el pedido ya venía fallando antes. Lo único que cambia es
+    que deja de mentir sobre un fallo que ya existía.
+    """
     try:
         pool = await get_db()
         async with pool.acquire() as conn:
@@ -278,7 +308,10 @@ async def sesion_guardar(token: str, agencia_code: str, horas: int = 12):
                 ON CONFLICT (token) DO NOTHING
             """, token, agencia_code, str(horas))
     except Exception as e:
+        # La causa real queda en el log, con el detalle de la base. Lo que
+        # ve la persona no la manda a revisar sus datos, que están bien.
         log.error(f"No se pudo guardar la sesión: {e}")
+        raise SesionNoGuardada() from e
 
 
 async def sesion_buscar(token: str):
@@ -16354,13 +16387,23 @@ async def requiere_cliente(authorization: str = Header(default="")):
     if not token:
         raise HTTPException(401, "Falta token de sesión")
 
-    quien = None
-    try:
-        quien = auth.verify_session(token)      # memoria: instantáneo
-    except Exception:
-        quien = None
-    if not quien:
-        quien = await sesion_buscar(token)      # base: sobrevive al deploy
+    # Siempre contra la base, nunca contra una caché en memoria.
+    #
+    # Las sesiones se dan de baja: hay un `DELETE FROM agencia_sesiones` —el
+    # que corre con la purga de datos— y existe `auth.destroy_session`. Una
+    # caché positiva en memoria haría que un token dado de baja por
+    # cualquiera de los dos siguiera abriendo hasta vencer solo. Y con varias
+    # réplicas sería peor: la baja ocurre en una, y en las otras la sesión
+    # sigue viva.
+    #
+    # Acá había un `auth.verify_session(token)` antes de esta línea,
+    # envuelto en un try que caía a la base. Esa función no existe en
+    # `auth.py`: el try tiraba AttributeError en todos los pedidos y siempre
+    # terminaba leyendo la base. O sea que esto es exactamente lo que ya
+    # venía pasando. Se borró código muerto, no una optimización — y no se
+    # implementa `verify_session` justamente por lo de arriba: leer la base
+    # en cada pedido es más lento y es lo correcto.
+    quien = await sesion_buscar(token)
 
     if not quien or not str(quien).startswith("cliente:"):
         raise HTTPException(401, "Sesión vencida. Volvé a entrar.")
@@ -29544,7 +29587,19 @@ async def cliente_registro_confirmar(request: Request):
         await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
 
     token_sesion = auth.create_session(f"cliente:{nueva['id']}")
-    await sesion_guardar(token_sesion, f"cliente:{nueva['id']}")
+    try:
+        await sesion_guardar(token_sesion, f"cliente:{nueva['id']}")
+    except SesionNoGuardada as e:
+        # Los otros tres emisores pueden decir "probá de nuevo": reintentar
+        # el login no cuesta nada. Acá no. La cuenta ya quedó creada y el
+        # registro pendiente borrado, así que volver a registrarse choca con
+        # "ese usuario ya está tomado" y la persona cree que perdió el alta.
+        # Lo único que le sirve es entrar con lo que acaba de elegir.
+        log.error(f"[REG] alta web {nueva['id']} ({nueva['username']}) quedó "
+                  f"creada sin sesión: entra por login")
+        raise SesionNoGuardada(
+            "Tu cuenta quedó creada, pero no pudimos iniciar la sesión. "
+            "Entrá con tu usuario y clave.") from e
     log.info(f"[REG] alta web {nueva['id']} ({nueva['username']}) · dueño {dueno}")
 
     return {
