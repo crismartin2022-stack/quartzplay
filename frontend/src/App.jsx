@@ -12,6 +12,7 @@ import { urlDeJuego } from "./marcoDeJuego";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 import SportsbookC360 from "./SportsbookC360";
 import { useSportsbookC360 } from "./configSportsbook";
+import { abrirSesionTelegram, cabeceraDeSesion } from "./sesionTelegram";
 // lucide-react carries the icons this screen's emoji have no match for
 // among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
 // no live-feed mark, no handshake, no bolt, no gift.
@@ -506,6 +507,25 @@ function useUsuario(){
   },[refrescar]);
 
   return {...user, refrescar};
+}
+
+// ── LA SESIÓN DEL JUGADOR ─────────────────────────────────────
+// La firma de Telegram identifica a la persona en cada POST, pero un GET no
+// la lleva, y por eso los pedidos que consultan la cuenta terminaron pasando
+// el user_id en la URL. Al arrancar se cambia esa firma por un token de
+// sesión —el mismo que usa el sitio— y de ahí en adelante los pedidos lo
+// mandan en el encabezado.
+//
+// No devuelve nada y nadie espera el resultado: hoy ningún endpoint pide el
+// token, así que un canje que falla no puede dejar al jugador afuera ni
+// cambiar lo que ve. Por eso tampoco hay reintento, ni mensaje, ni estado:
+// el próximo arranque trae un initData nuevo y vuelve a intentar solo.
+function useSesionDeCliente(){
+  useEffect(()=>{
+    const initData = window.Telegram?.WebApp?.initData || "";
+    if(!initData) return;
+    abrirSesionTelegram({api:API, initData}).catch(()=>{});
+  },[]);
 }
 
 // Bloque para funciones que todavía no tienen respaldo en el servidor
@@ -2886,9 +2906,15 @@ function ChatSoporte({ userId, origen, onCerrar }){
   const [contacto,setContacto]=useState(null);
 
   // Los canales de la agencia, desde que se abre el chat
+  //
+  // Va con la sesión en el encabezado, como todos los pedidos de este estilo
+  // desde acá: el user_id de la URL dice de quién son los datos, pero no
+  // prueba quién los pide. Mientras el servidor no la exija el pedido sale
+  // igual que antes — `cabeceraDeSesion()` no agrega nada si no hay token.
   useEffect(()=>{
     if(!userId) return;
-    fetch(`${API}/api/soporte/contacto?user_id=${userId}`)
+    fetch(`${API}/api/soporte/contacto?user_id=${userId}`,
+      {headers:cabeceraDeSesion()})
       .then(r=>r.ok?r.json():null)
       .then(d=>{ if(d?.contacto) setContacto(d.contacto); })
       .catch(()=>{});
@@ -2926,7 +2952,8 @@ function ChatSoporte({ userId, origen, onCerrar }){
   const cargar=async()=>{
     if(!userId) return;
     try{
-      const r=await fetch(`${API}/api/soporte/hilo?user_id=${userId}`);
+      const r=await fetch(`${API}/api/soporte/hilo?user_id=${userId}`,
+        {headers:cabeceraDeSesion()});
       if(!r.ok) return;
       const d=await r.json();
       setTicket(d.ticket_id);
@@ -3170,9 +3197,9 @@ function HistorialJuegos({ user, onCerrar }){
 
   useEffect(()=>{
     if(!user?.id) return;
-    fetch(`${API}/api/historial/${user.id}`)
+    fetch(`${API}/api/historial/${user.id}`,{headers:cabeceraDeSesion()})
       .then(r=>r.ok?r.json():null).then(x=>x&&setD(x)).catch(()=>{});
-    fetch(`${API}/api/historial-juegos/${user.id}`)
+    fetch(`${API}/api/historial-juegos/${user.id}`,{headers:cabeceraDeSesion()})
       .then(r=>r.ok?r.json():null).then(x=>x&&setPorJuego(x))
       .catch(()=>{});
   },[user?.id]);
@@ -3368,7 +3395,8 @@ function JuegoResponsable({ user, onCerrar }){
   const [verExcluir,setVerExcluir]=useState(false);
 
   const cargar=()=>{
-    fetch(`${API}/api/jugador/${user.id}/responsable`)
+    fetch(`${API}/api/jugador/${user.id}/responsable`,
+      {headers:cabeceraDeSesion()})
       .then(r=>r.ok?r.json():null)
       .then(x=>x&&setD(x)).catch(()=>{});
   };
@@ -3884,7 +3912,8 @@ function ScreenDesafios({ user, onAction }){
   const cargarSaldo=async()=>{
     if(!uid) return;
     try{
-      const r=await fetch(`${API}/api/iacoin/saldo/${uid}`);
+      const r=await fetch(`${API}/api/iacoin/saldo/${uid}`,
+        {headers:cabeceraDeSesion()});
       if(r.ok) setSaldo(await r.json());
     }catch(e){}
   };
@@ -4682,7 +4711,7 @@ function MisDesafios({ user, onCambio }){
   const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
 
   const cargar=()=>{
-    fetch(`${API}/api/p2p/mis-apuestas/${user.id}`)
+    fetch(`${API}/api/p2p/mis-apuestas/${user.id}`,{headers:cabeceraDeSesion()})
       .then(r=>r.ok?r.json():null)
       .then(d=>setLista(d?.apuestas||[]))
       .catch(()=>setLista([]));
@@ -6685,6 +6714,10 @@ export default function QuartzSports(){
   const [verPasos]=useState(()=>
     new URLSearchParams(window.location.search).get("dev")==="1");
   const user = useUsuario();
+  // Se canjea la firma de Telegram por una sesión al arrancar, antes de que
+  // la persona abra cualquier pantalla de su cuenta. Nada depende de que
+  // salga bien.
+  useSesionDeCliente();
 
   // Súper Bono: la app avisa que está adentro y consulta si le tocó.
   // Va DESPUÉS de declarar user: antes reventaba al abrir porque el
@@ -6699,7 +6732,7 @@ export default function QuartzSports(){
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({user_id:user.id, origen:"app"})})
         .catch(()=>{});
-      fetch(`${API}/api/superbono/mio/${user.id}`)
+      fetch(`${API}/api/superbono/mio/${user.id}`,{headers:cabeceraDeSesion()})
         .then(r=>r.ok?r.json():null)
         .then(d=>{ if(d?.gano) setSuperBono(d); })
         .catch(()=>{});
