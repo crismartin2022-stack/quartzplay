@@ -28408,6 +28408,22 @@ def _registrar_rutas_content360():
             app.add_api_route(ruta, _manejador_c360(endpoint),
                               methods=[metodo])
 
+    # Las URLs que Content360 ya tiene registradas de su lado.
+    #
+    # Se las pasamos antes de que existiera este código, como propuesta, y
+    # las dieron de alta tal cual. Cambiarlas allá cuesta otra vuelta con
+    # ellos; responder acá cuesta cuatro líneas. El día que dejen de
+    # usarlas, estas rutas se borran y no se pierde nada.
+    #
+    # Ojo con el último: ellos lo llaman `notify` y nosotros `notification`.
+    for ruta_vieja, endpoint, metodo in (
+            ("balance", "balance", "GET"),
+            ("debit", "debit", "POST"),
+            ("credit", "credit", "POST"),
+            ("notify", "notification", "POST")):
+        app.add_api_route(f"/api/wallet/c360/{ruta_vieja}",
+                          _manejador_c360(endpoint), methods=[metodo])
+
 
 _registrar_rutas_content360()
 
