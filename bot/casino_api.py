@@ -494,6 +494,34 @@ async def requiere_agencia(authorization: str = Header(None)) -> str:
     code = await sesion_buscar(token)
     if not code:
         raise HTTPException(401, "Sesión expirada")
+
+    # El prefijo `cliente:` marca la sesión de un jugador. Las dos clases de
+    # sesión viven en la misma tabla `agencia_sesiones` y solo se distinguen
+    # por ese prefijo, así que sin este chequeo el token de un jugador pasaba
+    # la validación y volvía como `agencia_code = "cliente:701"`.
+    # `requiere_cliente` ya exige el prefijo en el sentido contrario; faltaba
+    # este lado, y por eso el cruce era de una sola dirección.
+    #
+    # Lo que el código cruzado rompía no es la lectura —ninguna agencia se
+    # llama así, y una consulta por ese code no devuelve nada— sino la
+    # escritura: hay endpoints que guardan el code sin verificar antes que la
+    # agencia exista, y dejaban filas a nombre de nadie (una terminal, un
+    # cliente, un combo). El agujero no se veía porque todo lo demás daba 403
+    # o 404 solo.
+    #
+    # 403 y no 401: el token es real y no venció. Un 401 significa "no te
+    # pudimos identificar, pedí sesión nueva y repetí" —así lo usa la
+    # mini-app, ver `requiere_cliente_propio`—, y el jugador volvería a
+    # entrar con su clave correcta para chocar contra el mismo 401, en un
+    # bucle donde nada está mal. Acá sí se sabe quién es: lo que no le
+    # corresponde es la puerta, y 403 es el código que el resto del archivo
+    # ya usa para eso ("esa cuenta no es tuya", "ese ticket no es de tu
+    # rama").
+    #
+    # Si alguien saca estas dos líneas, las pruebas de
+    # `test_token_de_jugador_no_es_token_de_agencia` se ponen rojas.
+    if str(code).startswith("cliente:"):
+        raise HTTPException(403, "Esta sesión no es de una agencia")
     return code
 
 
