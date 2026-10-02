@@ -81,12 +81,34 @@ del evento sigue la misma convención: `"local - visitante"`.
 
 Sin ese dato, las cuotas de local y visitante se cruzan en silencio.
 
-### Las traducciones son mucho menos trabajo del que creíamos
+### Las traducciones: lo que creíamos era falso
 
-Los nombres de **eventos, torneos, categorías, deportes y competidores
-vienen ya traducidos en el feed**, como mapas `{"en": …, "es": …}`.
+**Esto decía que los nombres venían ya traducidos y que solo los mercados
+necesitaban la API REST. Medido sobre las muestras, es falso.** Contando la
+clave `"es"`:
 
-Solo los **nombres de mercados** necesitan la API REST de traducciones.
+| campo | con `es` |
+|---|---|
+| `events.sportName` | 9 / 9 |
+| `events.tournamentName` | 9 / 9 |
+| `events.categoryName` | 9 / 9 |
+| `tournaments.name` | 6 / 10 |
+| `events.name` | **1 / 9** |
+| `events.competitors[].name` | **2 / 18** |
+| `categories.name` | **0 / 10** |
+
+**Los nombres de equipo —el texto más visible de la pantalla— vienen en
+español 2 de 18 veces.** Un evento listó quince idiomas (`ar`, `el`, `en`,
+`fa`, `ja`, `ka`, `ko`, `pt`, `ru`, `uk`, `zh`…) y ninguno era español.
+
+Hace falta una **regla de respaldo explícita** (`es` → `en` → la primera
+que haya) y **una columna que diga en qué idioma quedó cada nombre**, para
+poder medir la cobertura en vez de descubrirla cuando un jugador vea un
+equipo en coreano.
+
+Preguntado a GR8 el 2026-10-02: si en producción la cobertura es mejor, si
+se puede pedir por configuración de cuenta, o si el respaldo es el caso
+normal.
 
 ## Las tres reglas que, si se ignoran, pagan mal
 
@@ -180,10 +202,20 @@ consola del proveedor, la captura manda sobre el chat.**
 | events | 6,6 KB |
 | scores | 990 bytes |
 
-Cruzado con el ritmo de su consola (markets 20/s, events 12/s, scores
-12/s) da del orden de **1,5 MB/s, unos 125 GB por día**. Eso no es un feed
-de cuotas: **es el estado completo del mercado, repetido**. Define toda la
-arquitectura.
+**Ese cálculo era de la hora más tranquila.** Medido sobre 6,8 horas
+reales —3.700.196 mensajes, 136 GB—:
+
+| franja | mensajes/s | caudal |
+|---|---|---|
+| 20:00, tranquila | 20 | 0,95 MB/s |
+| 14:00, pico | **277** | **9,5 MB/s** |
+| 15:00 | 284 | 7,4 MB/s |
+
+**Del orden de 480 GB por día**, no 125. Y el mensaje más grande de
+`markets` es **1,3 MB**, no 190 KB; uno de `market-results` llegó a **7 MB**.
+
+Eso no es un feed de cuotas: **es el estado completo del mercado,
+repetido**. Define toda la arquitectura.
 
 **Y dos hallazgos que achican el problema:**
 
@@ -193,21 +225,221 @@ arquitectura.
 - **El peso es casi todo traducción.** El nombre de un torneo viene en
   unos 25 idiomas. Usamos uno.
 
+## Etapa 1 — Diseño
+
+> Escrito el 2026-10-02 leyendo las 90 muestras completas y 378 minutos de
+> observación. Lo que sale de una muestra sola está marcado: una muestra no
+> es una regla.
+
+### La cadena, de deporte a cuota
+
+```
+sports            id: "Football"            (string, no guid)
+  └─ categories   id: 32 hex · sport
+      └─ tournaments  id: 32 hex · categoryId · sport
+          └─ events   id: "18686596"  ← la clave de todo el feed
+             │        competitors[0] = LOCAL, [1] = VISITANTE
+             ├─ markets        .eventId     (foto completa del evento)
+             ├─ scores         .eventId
+             ├─ market-results .eventId
+             └─ event-free-form-templates .id
+```
+
+Verificado: `events.id` cruza con `markets`, `scores` y `market-results`
+(mismo `18696063`), y `competitors[].id` con `scores.pointInfos[]`.
+
+**El cruce de la taxonomía NO está verificado**: `events.tournamentId` contra
+`tournaments.id` dio 0 de 8, casi seguro por muestreo —las muestras de
+taxonomía son de las 14:05 y los eventos de las 20:11— pero **"casi seguro"
+no es un modelo**. La puerta de G3 tiene que comprobarlo con datos vivos.
+
+### `selectionKey`: la pieza que resuelve todo
+
+```
+selectionKey = [ marketType, marketItem.values, [period, subPeriod?],
+                 tradingType, outcomeType, outcomeValues ]
+```
+
+Descifrado contra ocho combinaciones distintas. Y lo decisivo: **es único
+dentro de la foto del evento** — 1.321 outcomes de 10 mensajes, cero
+colisiones.
+
+**`(event_id, selection_key)` es a la vez la clave natural de la cuota y la
+que GR8 manda para liquidar.** Es la razón por la que la liquidación
+automática es posible.
+
+### Las tablas
+
+**`gr8_cuota`** — la única caliente. PK `(event_id, selection_key)`, con el
+`selectionKey` descompuesto en columnas para filtrar sin parsear. El precio
+va **en milésimas, como entero**: los multiplicadores por marca necesitan
+tres decimales, y la coma flotante no entra en el punto exacto donde se
+paga de más.
+
+**`gr8_evento`** — PK `event_id`. Los nombres de torneo, categoría y deporte
+van **denormalizados acá a propósito**: vienen dentro del mensaje de evento,
+así la pantalla se arma con un solo SELECT.
+
+**`gr8_marcador`** — PK `event_id`, con los períodos en `jsonb`. **El total
+es `period = 1`**, no la suma: verificado en fútbol y hockey, y en tenis de
+mesa las sumas no cuadran porque la periodización es distinta por deporte.
+
+**`gr8_resultado`** — misma PK, **y sin clave ajena hacia `gr8_cuota`, a
+propósito** (ver abajo).
+
+**`gr8_apuesta_seleccion`** — una fila por selección del boleto, con el
+precio tomado y el `selectionKey`. Índice parcial sobre las no liquidadas.
+
+**No se propone tabla de mercados.** El `selectionKey` ya codifica todo lo
+que el mercado aportaría, el mercado no tiene un solo campo propio que
+sobreviva la poda (`visibility` vacío en 204/204, `parlaySize` en 0 en
+204/204, `tradingInfo` duplicado), y una tabla más obliga a un segundo
+borrado en cascada por foto — que es donde esto se cae.
+
+### Cómo se aplica una foto
+
+Llega un mensaje con 83 mercados y 441 outcomes para un evento:
+
+1. **Puerta de versión.** Si lo guardado tiene versión mayor o igual, se
+   descarta **el mensaje entero**. Nunca se aplica media foto.
+2. **Upsert de las 441 filas** en un solo statement, con `IS DISTINCT FROM`:
+   sin eso se reescriben 441 filas para cambiar entre 0 y 5 precios.
+3. **Borrado por ausencia.** Lo que no vino, se fue.
+4. Actualizar el evento con `stage`, `isFrozen` y la versión.
+
+### El borrado por ausencia no es un caso borde: es el caso normal
+
+Medido entre fotos consecutivas del mismo evento:
+
+| evento | versión | outcomes | nuevos | borrados | precios distintos |
+|---|---|---|---|---|---|
+| 18735348 | 581 → 582 | 31 → 31 | **10** | **10** | **0** |
+| 18735348 | 582 → 584 | 31 → 31 | **12** | **12** | 5 |
+| 18810784 | 49 → 50 | 26 → 26 | 0 | 0 | 2 |
+
+No son mercados que cierran: **son líneas que caminan.** El hándicap pasa de
+−14.5 a −13.5 y, como la línea está **dentro** del `selectionKey`, mover la
+línea es borrar una clave y crear otra.
+
+**Entre el 32 y el 39% del conjunto de claves rota en cada mensaje.**
+
+### Y por eso el riesgo no es el tamaño: es la rotación
+
+La tabla de estado es chica: **33 MB con mil eventos vivos**. Pero con esa
+rotación son **~12,7 GB/día de escritura sobre esos 33 MB** — unas **385
+reescrituras completas por día**.
+
+Eso pasa o no pasa según el autovacuum, no según el disco. Si no sigue el
+ritmo, los 33 MB se vuelven 300 de índice hinchado en una tarde y las
+lecturas del catálogo se caen con él.
+
+**El `IS DISTINCT FROM` baja la rotación un 63%**: es parte del diseño, no
+una optimización.
+
+El dato que lo resume: **un mensaje de 65 KB trae entre 0 y 5 precios
+nuevos.** La densidad de información del feed es del orden del **0,005%**.
+Todo el diseño es un filtro para no pagar 65 KB de escritura por cinco
+números.
+
+### Los resultados no se cruzan con las cuotas vivas
+
+De los 230 `selectionKey` con resultado de un evento, **cero** estaban entre
+los 74 vivos de la foto del mismo evento. Los resultados son de períodos ya
+cerrados, que el borrado por ausencia ya sacó.
+
+Por eso `gr8_resultado` no puede tener clave ajena a `gr8_cuota`, y por eso
+**la liquidación se hace contra la copia que guardó la apuesta**, nunca
+contra la línea viva.
+
+### El orden: `sourceDataVersion` solo existe en dos de las nueve colas
+
+| cola | ordena con |
+|---|---|
+| `markets`, `events` | `sourceDataVersion` del mensaje |
+| las otras siete | `dataVersion` |
+
+**No son intercambiables**: en `markets` los dos campos van desfasados por
+una cantidad variable. Hay que escribir siete comparadores, no uno.
+
+Y dentro de `markets`, lo que parece versión no lo es:
+`markets[].sourceDataVersion` es **idéntico** al del mensaje en 204 de 204;
+`markets[].dataVersion` vale **1** en 204 de 204; y `outcomes[].dataVersion`
+**se movió en los 26 outcomes cuando solo 2 precios cambiaron**. Un campo
+que se mueve sin que el dato se mueva no sirve para decidir si el dato se
+movió.
+
+**No usar los timestamps para ordenar**: vienen con valores centinela
+(`"0001-01-01"`) y precisión variable. Sirven para medir atraso, no para
+ordenar.
+
+### Lo que la pantalla ya sabe dibujar
+
+El front entiende **cuatro mercados**: `h2h`, `totals`, `btts`, `spreads`.
+El mapeo a GR8 está escrito, con una advertencia: **no se puede afirmar que
+`outcomeType = 0` es el local.** Hay cuatro mercados con solo dos resultados
+que son `{1, 3}`, sin el 0. Mapear local y visitante sin el diccionario REST
+es exactamente el cruce silencioso que este documento advierte. **Lo cierra
+G6, no G4.**
+
+### La causa mecánica de que hoy se liquide por nombre y fecha
+
+`betslips.picks` es **texto con repr de Python**, no JSON, y `event_id`
+viene en `None`:
+
+```
+[{'home': 'Racing', 'away': 'Sarmiento', 'sel': 'Racing', 'odd': 2.1,
+  'event_id': None, 'sport_key': None, 'commence_time': None}]
+```
+
+Agregar el `selectionKey` a ese texto sería guardarlo donde no se lo puede
+consultar. **Normalizar los picks a filas es prerrequisito de la liquidación
+automática, no un paso de G8.**
+
+### Los siete huecos
+
+Ninguno se tapa razonando.
+
+1. **`oddsMultipliers` está vacío en 379 de 379.** Es la regla número uno de
+   este documento. Preguntado a GR8 el 2026-10-02: **bloquea G5**, porque
+   define si se guarda el precio crudo o el ajustado.
+2. **El español casi no está.** Preguntado a GR8 el mismo día.
+3. **Nunca vimos un mensaje grande.** Corregido en el PR #207: ahora se
+   guarda el mayor de cada ventana y el tope admite 16 MB.
+4. **El cruce de la taxonomía no está verificado.** Puerta de G3.
+5. **`line-items-dependency-pairs` no engancha con nada** de lo que
+   tenemos. Sugiere restricciones de parlay, y `parlaySize` vale 0 en
+   204/204: el feed de integración no tiene parlays configuradas. **No
+   modelarla todavía es correcto; inventarle una tabla, no.**
+6. **Hay mensajes de longitud cero** en `events` y `scores` (2 de 90). No se
+   sabe si son heartbeat o borrado. **Hay que contarlos aparte**, no
+   tragarlos en un `try/except`: si son borrados y los descartamos, quedan
+   eventos fantasma.
+7. **Campos documentados que nunca se vieron**: ningún precio bajo 1.01 en
+   941, ningún `DeadHeat` en 1.929, ningún `isRemoved` en true. Las pruebas
+   de esas reglas se escriben con casos sintéticos, **y hay que anotar en el
+   código que el caso nunca se observó**. Un test sintético que pasa no
+   demuestra que el feed mande lo que el test supone.
+
 ### Etapa 1 — Entender el feed
 
-- [ ] **G2b — Capturar mensajes COMPLETOS.** Las muestras se cortan a 4 KB
-      y un mensaje de mercados pesa 62 KB: estamos viendo el 6% de la
-      estructura. Subir el tope para unas pocas muestras de `markets`,
-      `market-results` y `events`.
-      **Puerta para pasar a G3**: diez mensajes enteros de cada una,
-      guardados y legibles.
+- [x] **G2b — Capturar mensajes COMPLETOS.** Hecho en dos pasos. El
+      primero subió el tope (PR #206) y **no alcanzó**: las diez muestras
+      resultaron ser diez mensajes consecutivos del mismo medio segundo, y
+      el mayor seguía sin capturarse. El segundo (PR #207) cambió el
+      muestreo para quedarse con **el mayor de cada ventana** y subió el
+      tope a 16 MB.
+      **Lección**: diez muestras no son diez observaciones si salen todas
+      del mismo instante.
 - [ ] **G3 — Taxonomía**: deportes, categorías y torneos a tablas,
       **quedándose solo con el español**. Son las tres colas chicas y
       quietas (39, 1.301 y 26.913 mensajes en total), así que es el lugar
       barato para equivocarse.
-      **Puerta**: el conteo de filas coincide con el de mensajes
-      distintos, y una consulta devuelve el nombre en español de un
-      torneo conocido.
+      **Puerta**, corregida con lo medido: que un `tournamentId` tomado
+      de un evento vivo **se encuentre en la tabla de torneos** — eso hoy
+      no está verificado y si no cruza, toda la taxonomía se cae. Y la
+      cobertura de español **medida por campo**, no asumida: el nombre de
+      un torneo viene en español 6 de 10 veces, así que una puerta que
+      pida "el nombre en español de un torneo conocido" pasa por azar.
 - [ ] **G4 — Eventos**, con `competitors[0]` como local.
       **Puerta**: un partido real de la pantalla de GR8 aparece en nuestra
       tabla con los dos equipos en el orden correcto.
@@ -215,8 +447,13 @@ arquitectura.
       reglas de cuota baja, y **borrando lo que desaparece del snapshot**.
       Es la cola de 62 KB y 20/s: acá se prueba si la arquitectura
       aguanta.
-      **Puerta**: el proceso corre una hora sin que la memoria crezca, y
-      la tabla de estado no crece sin límite.
+      **No empieza sin la respuesta de GR8 sobre `oddsMultipliers`**: ese
+      campo define si se guarda el precio crudo o el ajustado, y eso es
+      esquema, no cálculo.
+      **Puerta**, corregida: "la tabla no crece sin límite" **no alcanza**.
+      La tabla es chica; el riesgo medido es la **rotación del 35% de las
+      claves por mensaje**. Se mide con `n_dead_tup` y el hinchado del
+      índice de la clave primaria, no con el tamaño de la tabla.
 - [ ] **G6 — Nombres de mercados** por la API REST de traducciones.
 
 ### Etapa 2 — Mostrarlo y jugarlo
