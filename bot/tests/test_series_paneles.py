@@ -54,11 +54,12 @@ class FakeConn:
     non-influencer list), one grouped-by-day aggregate per metric."""
 
     def __init__(self, agencias_por_code=None, rama_por_code=None,
-                 codes_global=None, filas_por_metrica=None):
+                 codes_global=None, filas_por_metrica=None, sesiones=None):
         self.agencias_por_code = agencias_por_code or {}
         self.rama_por_code = rama_por_code or {}
         self.codes_global = codes_global if codes_global is not None else []
         self.filas_por_metrica = filas_por_metrica or {}
+        self.sesiones = dict(sesiones or {})
         self.fetch_calls = []
 
     async def fetchrow(self, query, *args):
@@ -66,6 +67,11 @@ class FakeConn:
         if q.startswith("SELECT * FROM agencias WHERE code=$1"):
             row = self.agencias_por_code.get(args[0])
             return dict(row) if row else None
+        # `requiere_agencia` resuelve el token contra la base en cada
+        # pedido, sin caché en memoria: un token sin fila no abre nada.
+        if q.startswith("SELECT agencia_code FROM agencia_sesiones"):
+            code = self.sesiones.get(args[0])
+            return {"agencia_code": code} if code else None
         raise AssertionError(f"fetchrow inesperado: {q}")
 
     async def fetch(self, query, *args):
@@ -97,9 +103,12 @@ def admin_headers(api, monkeypatch):
     return {"X-Admin-Key": "test-admin-key"}
 
 
-def agencia_headers(api, code="AG1"):
+def agencia_session(api, code="AG1"):
+    """Devuelve el token y las cabeceras. El token hace falta aparte para
+    cargarlo en la sesión del `FakeConn`: `requiere_agencia` lo busca en la
+    base en cada pedido, así que un token que solo se emitió no abre."""
     token = api.auth.create_session(code)
-    return {"Authorization": f"Bearer {token}"}
+    return token, {"Authorization": f"Bearer {token}"}
 
 
 # ── requirement 1: every day appears, zeros included ───────────────────
@@ -186,11 +195,12 @@ def test_agencia_serie_requires_a_session(api):
 # ── requirement 4: the agency endpoint is scoped to its own branch ─────
 
 def test_agencia_serie_scopes_by_the_caller_branch_only(api, monkeypatch):
-    headers = agencia_headers(api, code="AG1")
+    token, headers = agencia_session(api, code="AG1")
     conn = FakeConn(
         agencias_por_code={"AG1": {"code": "AG1", "ruta": "AG1"}},
         rama_por_code={"AG1": ["AG1", "AG1-SUB"]},
         filas_por_metrica={"neto_caja": [{"dia": date(2026, 9, 1), "valor": 100.0}]},
+        sesiones={token: "AG1"},
     )
     use_fake_pool(api, monkeypatch, conn)
 
@@ -211,8 +221,8 @@ def test_agencia_serie_scopes_by_the_caller_branch_only(api, monkeypatch):
 
 
 def test_agencia_serie_404s_when_the_authenticated_code_has_no_agencia_row(api, monkeypatch):
-    headers = agencia_headers(api, code="GHOST")
-    conn = FakeConn(agencias_por_code={})
+    token, headers = agencia_session(api, code="GHOST")
+    conn = FakeConn(agencias_por_code={}, sesiones={token: "GHOST"})
     use_fake_pool(api, monkeypatch, conn)
 
     r = get(api.app, "/api/agencias/me/serie?metrica=tickets&desde=2026-09-01&hasta=2026-09-01",

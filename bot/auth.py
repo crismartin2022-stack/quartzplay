@@ -3,17 +3,20 @@ QuartzPlay — autenticación para casino_api.py
 
 Variables de entorno necesarias (Railway → Variables):
   ADMIN_API_KEY   = <string largo aleatorio>   # panel /admin
-  SESSION_TTL_H   = 8                          # opcional
+  SESSION_TTL_H   = 8                          # opcional, horas de sesión
 
 Instalar: pip install "passlib[bcrypt]"
 """
-import os, time, hmac, secrets, hashlib, logging
+import os, hmac, secrets, hashlib, logging
 from fastapi import Header, HTTPException
 
 log = logging.getLogger(__name__)
 
 ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "")
-SESSION_TTL = int(os.environ.get("SESSION_TTL_H", "8")) * 3600
+
+# Horas que vive una sesión. Único reloj: lo lee `sesion_guardar` para
+# escribir `expira_at`, y la base es el único lugar donde una sesión existe.
+SESSION_TTL_H = int(os.environ.get("SESSION_TTL_H", "8"))
 
 # ── HASHING ───────────────────────────────────────────────────
 # Usamos la librería bcrypt directamente. passlib 1.7 con bcrypt 4.x
@@ -70,43 +73,38 @@ def needs_rehash(stored: str) -> bool:
     return _HAS_BCRYPT and not (stored or "").startswith("$2")
 
 
-# ── SESIONES DE AGENCIA ───────────────────────────────────────
-# En memoria: la API corre en un solo proceso (ver main.py).
-# Si algún día escalás a varias réplicas, mové esto a Postgres o Redis.
-_sessions: dict[str, dict] = {}
-
-
-def _purge():
-    now = time.time()
-    for t in [t for t, s in _sessions.items() if s["exp"] < now]:
-        _sessions.pop(t, None)
+# ── SESIONES ──────────────────────────────────────────────────
+# Acá solo se emite el token. Quién lo tiene por válido se decide en
+# `agencia_sesiones`, en la base, en cada pedido: ver `requiere_agencia` y
+# `requiere_cliente` en casino_api.py.
+#
+# Antes había además una tabla en memoria, `_sessions`, con su propio
+# vencimiento, y una dependencia `require_agencia` que la leía. Validar
+# contra ella dejaba el token vivo aunque la fila ya no estuviera en la
+# base: dar de baja una sesión no desalojaba a nadie. Se fue entera, junto
+# con `destroy_session` —que solo sacaba de esa tabla y por eso nunca
+# revocó nada— y con la purga que la acompañaba. Lo que no existe no puede
+# volver a contestar por la base.
+#
+# El único reloj de una sesión es `SESSION_TTL_H`, y vive acá: lo lee
+# `sesion_guardar` al escribir `expira_at`. Antes estaba en dos lados —ocho
+# horas en memoria, doce en la base— y la vida real de una sesión dependía
+# de qué camino contestaba primero.
 
 
 def create_session(agencia_code: str) -> str:
-    _purge()
-    token = secrets.token_urlsafe(32)
-    _sessions[token] = {"code": agencia_code, "exp": time.time() + SESSION_TTL}
-    return token
+    """Emite el token de sesión. No registra nada.
 
+    Persistirlo es trabajo de `sesion_guardar`: un token que no llegó a la
+    base no abre nada, y quien emite tiene que tratar ese fallo como un
+    login fallido (ver `SesionNoGuardada`).
 
-def destroy_session(token: str):
-    _sessions.pop(token, None)
-
-
-def _bearer(authorization: str | None) -> str:
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(401, "Falta token de sesión")
-    return authorization[7:].strip()
-
-
-def require_agencia(authorization: str = Header(None)) -> str:
-    """Dependencia FastAPI. Devuelve el código de agencia autenticada."""
-    token = _bearer(authorization)
-    sess = _sessions.get(token)
-    if not sess or sess["exp"] < time.time():
-        _sessions.pop(token, None)
-        raise HTTPException(401, "Sesión expirada")
-    return sess["code"]
+    `agencia_code` ya no se usa: queda en la firma porque los cuatro que
+    emiten sesiones lo pasan en la línea siguiente a `sesion_guardar`, y
+    separarlo haría ilegible el par. No implica que la llamada registre al
+    dueño del token en ningún lado.
+    """
+    return secrets.token_urlsafe(32)
 
 
 # ── ADMIN ─────────────────────────────────────────────────────

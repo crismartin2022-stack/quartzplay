@@ -128,7 +128,7 @@ def sessions(api, monkeypatch):
     `jugador_de_sesion` a través de `sesion_buscar`."""
     tabla = {}
 
-    async def fake_guardar(token, quien, horas=12):
+    async def fake_guardar(token, quien):
         tabla[token] = quien
 
     async def fake_buscar(token):

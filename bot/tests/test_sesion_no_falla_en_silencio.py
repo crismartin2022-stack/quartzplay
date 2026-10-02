@@ -72,10 +72,10 @@ def api(monkeypatch):
     import config
     config.get_runtime_settings.cache_clear()
     modulo = importlib.reload(importlib.import_module("casino_api"))
-    # La tabla en memoria de `auth` sobrevive al reload de `casino_api`
-    # (`auth` no se recarga). Si no se limpia, un token de otra prueba sigue
-    # ahí y ensucia justamente lo que se quiere medir.
-    modulo.auth._sessions.clear()
+    # Antes había que limpiar acá la tabla en memoria de `auth`, que
+    # sobrevivía al reload de `casino_api`: un token de otra prueba seguía
+    # ahí y ensuciaba lo que se quería medir. Esa tabla ya no existe, y por
+    # eso no queda nada entre pruebas: una sesión solo vive en la base.
     return modulo
 
 
@@ -380,7 +380,7 @@ def test_requiere_cliente_no_abre_con_un_token_que_solo_esta_en_memoria(api, mon
 
     # Token legítimo de `auth`, pero nunca persistido.
     token = api.auth.create_session(f"cliente:{CLIENTE['id']}")
-    assert token in api.auth._sessions
+    assert token
 
     with pytest.raises(api.HTTPException) as caso:
         asyncio.run(api.requiere_cliente(f"Bearer {token}"))
