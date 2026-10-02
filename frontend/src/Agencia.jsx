@@ -9538,6 +9538,34 @@ function CrearComboInfluencer({ agencia, onListo, onSesionExpirada }){
   );
 }
 
+// Salir del panel: limpia lo local Y avisa al servidor para que borre la fila.
+//
+// Antes salir solo borraba `qp_agencia` del navegador: el token seguía
+// abriendo en el servidor hasta que vencía solo, así que quien se lo hubiera
+// copiado, o un teléfono perdido, seguía operando con la plata de los
+// jugadores. El aviso es lo que de verdad cierra la sesión.
+//
+// LO LOCAL SE LIMPIA PRIMERO Y NO DEPENDE DEL SERVIDOR. Si el pedido falla
+// (sin señal, servidor caído, 401 porque ya había vencido) o ni siquiera
+// termina, la persona sale igual. Dejarla "adentro" de su panel porque no se
+// pudo avisar es peor que una sesión huérfana en el servidor, que vence sola
+// en `SESSION_TTL_H`: quien toca Salir en un equipo ajeno tiene que ver la
+// pantalla de login sí o sí. Por eso el token se captura antes y el pedido
+// va después, sin `await` en el camino de la limpieza.
+export function salirDeLaSesion(token, limpiarLocal, fetchFn){
+  limpiarLocal();
+  if(!token) return Promise.resolve(false);
+  const llamar = fetchFn || (typeof fetch==="function" ? fetch : null);
+  if(!llamar) return Promise.resolve(false);
+  // `keepalive` para que el aviso no se corte si la pestaña se cierra o
+  // recarga justo después de salir.
+  try{
+    return Promise.resolve(llamar(`${API_URL}/api/agencias/logout`,
+      {method:"POST", headers:authHeaders(token), keepalive:true}))
+      .then(r=>!!(r&&r.ok), ()=>false);
+  }catch(e){ return Promise.resolve(false); }
+}
+
 export default function QuartzAgencia(){
   // La sesión se guarda en localStorage para sobrevivir a un F5.
   // Antes vivía solo en memoria: al actualizar volvía a null y pedía login.
@@ -9574,6 +9602,10 @@ export default function QuartzAgencia(){
     setAvisoSesion(true);
   };
 
+  // Las tres salidas (cambio de clave obligado, panel de influencer y de
+  // agencia) pasan por acá: ninguna puede quedarse con el token vivo.
+  const salir=()=>salirDeLaSesion(agencia?.token, ()=>setAgencia(null));
+
   return(
     <div style={{background:Q.void,minHeight:"100vh"}}>
       <style>{`
@@ -9608,18 +9640,18 @@ export default function QuartzAgencia(){
           </div>
           <CambiarMiPassword agencia={agencia} obligado
             onListo={()=>setAgencia(a=>({...a,debe_cambiar_pass:false}))}/>
-          <button onClick={()=>setAgencia(null)} style={{width:"100%",
+          <button onClick={salir} style={{width:"100%",
             background:"transparent",border:`1px solid ${Q.border}`,borderRadius:RADII.md,
             padding:"12px",color:Q.muted,fontSize:12,cursor:"pointer",marginTop:8,
             fontFamily:F_BODY}}>Salir</button>
         </div>
       ) : agencia.tipo==="influencer" ? (
         <InfluencerPanel agencia={agencia}
-          onLogout={()=>setAgencia(null)}
+          onLogout={salir}
           onSesionExpirada={sesionExpirada}/>
       ) : (
         <AgenciaPanel agencia={agencia}
-          onLogout={()=>setAgencia(null)}
+          onLogout={salir}
           onSesionExpirada={sesionExpirada}/>
       )}
     </div>

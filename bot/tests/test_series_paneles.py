@@ -107,7 +107,7 @@ def agencia_session(api, code="AG1"):
     """Devuelve el token y las cabeceras. El token hace falta aparte para
     cargarlo en la sesión del `FakeConn`: `requiere_agencia` lo busca en la
     base en cada pedido, así que un token que solo se emitió no abre."""
-    token = api.auth.create_session(code)
+    token = api.auth.nuevo_token()
     return token, {"Authorization": f"Bearer {token}"}
 
 
