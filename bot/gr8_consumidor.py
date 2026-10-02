@@ -59,8 +59,8 @@ ON CONFLICT (cola, minuto) DO UPDATE SET
 """
 
 _INSERTAR_MUESTRA = """
-INSERT INTO public.gr8_obs_muestra (cola, bytes, truncado, cuerpo)
-VALUES ($1, $2, $3, $4)
+INSERT INTO public.gr8_obs_muestra (cola, bytes, truncado, cuerpo, mayor_de_ventana)
+VALUES ($1, $2, $3, $4, $5)
 """
 
 # Deja solo las últimas N de la cola. Es lo que mantiene acotada la tabla:
@@ -104,7 +104,8 @@ async def escribir_lote(pool: asyncpg.Pool, lote: Lote) -> None:
                     )
                 for m in lote.muestras:
                     await conn.execute(
-                        _INSERTAR_MUESTRA, m.cola, m.bytes, m.truncado, m.cuerpo
+                        _INSERTAR_MUESTRA, m.cola, m.bytes, m.truncado, m.cuerpo,
+                        m.mayor_de_ventana,
                     )
                 for cola in {m.cola for m in lote.muestras}:
                     await conn.execute(

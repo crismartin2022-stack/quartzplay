@@ -49,9 +49,12 @@ PREFETCH_MAXIMO = 500
 # escrituras a la base para contar lo mismo.
 VACIADO_SEGUNDOS = 2.0
 
-# Muestras: pocas por cola, cortadas, y espaciadas. La primera tanda llena
-# el cupo para ver la forma de cada cola enseguida; después una cada tanto,
-# para ver si cambia con el horario o con el partido.
+# Muestras: pocas por cola, cortadas, y espaciadas. Una por ventana, y la
+# ventana guarda el mensaje más grande que vio. Antes la primera tanda
+# llenaba el cupo de una: diez mensajes seguidos de medio segundo de stream,
+# que no dicen nada del horario ni del partido. Ahora diez ventanas son 2,5 h
+# de historia (se ve si cambia el partido) y cada una trae la estructura más
+# completa que pasó.
 MUESTRAS_POR_COLA = 10
 MUESTRA_CADA_SEGUNDOS = 900.0
 
@@ -63,7 +66,11 @@ MUESTRA_CADA_SEGUNDOS = 900.0
 # No se sube de forma permanente a propósito: son diez muestras por cola y
 # nueve colas, así que el tope manda directo sobre el tamaño de la tabla.
 MUESTRA_MAX_BYTES_POR_DEFECTO = 4096
-MUESTRA_MAX_BYTES_TOPE = 1_048_576
+#
+# El tope tiene que superar el mayor mensaje medido (7 MB en `market-results`)
+# para que uno grande entre completo cuando se lo pide; con 1 MiB ni subiendo
+# la variable al máximo entraba. 16 MiB deja margen sin llegar a ser absurdo.
+MUESTRA_MAX_BYTES_TOPE = 16_777_216
 
 
 def muestra_max_bytes(env=None) -> int:
@@ -227,22 +234,57 @@ def recortar_cuerpo(cuerpo: bytes, maximo: int = MUESTRA_MAX_BYTES) -> tuple[str
     return cuerpo[:maximo].decode("utf-8", errors="replace"), cortado
 
 
+@dataclass
+class Muestra:
+    cola: str
+    bytes: int
+    truncado: bool
+    cuerpo: str
+    # Siempre verdadero para lo que sale de `Muestreo`: es el mayor visto en
+    # su ventana. Existe en la tabla para distinguir estas filas de las
+    # viejas (consecutivas, de los primeros segundos), que no lo son.
+    mayor_de_ventana: bool = True
+
+
 class Muestreo:
-    """Decide cuándo vale la pena guardar un mensaje de muestra."""
+    """Se queda con el mensaje MÁS GRANDE de cada ventana de tiempo, por cola.
 
-    def __init__(self, cada: float = MUESTRA_CADA_SEGUNDOS, iniciales: int = MUESTRAS_POR_COLA):
+    Por qué el mayor y no el primero: el primero de la ventana es casi
+    siempre uno chico y fácil, y modelar sobre ellos esconde las estructuras
+    que solo traen los mensajes grandes (el máximo medido en `markets` es
+    1,3 MB y en `market-results` 7 MB, y lo guardado no pasaba de 256 KB).
+
+    Memoria: por cola se retiene UN solo candidato, ya cortado al tope de
+    bytes; cada mensaje que no supera al candidato se descarta al instante.
+    Peor caso: una cola por `MUESTRA_MAX_BYTES_TOPE`, o sea
+    colas x tope. Con el corte por defecto son unos KB por cola.
+    """
+
+    def __init__(self, cada: float = MUESTRA_CADA_SEGUNDOS):
         self._cada = cada
-        self._iniciales = iniciales
-        self._tomadas: dict[str, int] = {}
-        self._ultima: dict[str, float] = {}
+        self._inicio: dict[str, float] = {}
+        self._mayor: dict[str, Muestra] = {}
 
-    def debe_tomar(self, cola: str, ahora: float) -> bool:
-        tomadas = self._tomadas.get(cola, 0)
-        if tomadas < self._iniciales or ahora - self._ultima.get(cola, ahora) >= self._cada:
-            self._tomadas[cola] = tomadas + 1
-            self._ultima[cola] = ahora
-            return True
-        return False
+    def ofrecer(self, cola: str, ahora: float, tamano: int, cuerpo: bytes) -> Muestra | None:
+        """Considera un mensaje. Devuelve la muestra de la ventana que acaba
+        de cerrarse (si este mensaje ya cae en la siguiente), o None.
+
+        La ventana se cierra al llegar el primer mensaje posterior, no por
+        reloj: el feed es continuo y así no hace falta un temporizador que
+        compita con el vaciado del lote.
+        """
+        cerrada = None
+        if cola in self._inicio and ahora - self._inicio[cola] >= self._cada:
+            cerrada = self._mayor.pop(cola, None)
+            del self._inicio[cola]
+        self._inicio.setdefault(cola, ahora)
+        actual = self._mayor.get(cola)
+        # Estrictamente mayor: en un empate se queda el primero, y el corte
+        # y la decodificación (lo caro) solo se pagan si el mensaje gana.
+        if actual is None or tamano > actual.bytes:
+            texto, cortado = recortar_cuerpo(cuerpo)
+            self._mayor[cola] = Muestra(cola, tamano, cortado, texto)
+        return cerrada
 
 
 @dataclass
@@ -251,14 +293,6 @@ class Cubo:
     bytes: int = 0
     bytes_max: int = 0
     reentregados: int = 0
-
-
-@dataclass
-class Muestra:
-    cola: str
-    bytes: int
-    truncado: bool
-    cuerpo: str
 
 
 @dataclass
@@ -292,9 +326,10 @@ class Lote:
         cubo.bytes_max = max(cubo.bytes_max, tamano)
         if reentregado:
             cubo.reentregados += 1
-        if muestreo is not None and muestreo.debe_tomar(cola, ahora):
-            texto, cortado = recortar_cuerpo(cuerpo)
-            self.muestras.append(Muestra(cola, tamano, cortado, texto))
+        if muestreo is not None:
+            cerrada = muestreo.ofrecer(cola, ahora, tamano, cuerpo)
+            if cerrada is not None:
+                self.muestras.append(cerrada)
         self.pendientes.append(mensaje)
 
     def absorber(self, otro: "Lote") -> None:

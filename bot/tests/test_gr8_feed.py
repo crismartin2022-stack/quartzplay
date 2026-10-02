@@ -258,9 +258,12 @@ def test_la_muestra_se_corta_y_dice_el_tamano_original():
     grande = b"a" * (gr8_feed.MUESTRA_MAX_BYTES + 500)
     texto, cortado = recortar_cuerpo(grande)
     assert cortado and len(texto) == gr8_feed.MUESTRA_MAX_BYTES
+    muestreo = Muestreo(cada=10.0)
     lote = Lote()
-    lote.registrar("markets-queue", grande, "m", 1.0, muestreo=Muestreo())
+    lote.registrar("markets-queue", grande, "m", 1.0, muestreo=muestreo)
+    lote.registrar("markets-queue", b"x", "m", 20.0, muestreo=muestreo)
     assert lote.muestras[0].bytes == len(grande) and lote.muestras[0].truncado
+    assert len(lote.muestras[0].cuerpo) == gr8_feed.MUESTRA_MAX_BYTES
 
 
 def test_cortar_un_caracter_a_la_mitad_no_tumba_la_muestra():
@@ -268,21 +271,82 @@ def test_cortar_un_caracter_a_la_mitad_no_tumba_la_muestra():
     assert cortado and isinstance(texto, str)
 
 
-def test_el_muestreo_esta_acotado_por_cola():
-    # Riesgo: que la "muestra" crezca con el volumen.
-    m = Muestreo(cada=900.0, iniciales=3)
-    tomadas = [m.debe_tomar("markets-queue", 1000.0 + i) for i in range(1000)]
-    # 3 iniciales y una más pasados los 900 s: en 1000 mensajes, 4 muestras.
-    assert sum(tomadas) == 4
-    # otra cola tiene su propio cupo
-    assert m.debe_tomar("scores-queue", 1000.0)
+def _ventana(m, cola, tamanos, desde=0.0):
+    """Ofrece mensajes de esos tamaños dentro de una ventana y cierra con uno
+    chico de la siguiente. Devuelve la muestra de la ventana cerrada."""
+    for i, t in enumerate(tamanos):
+        assert m.ofrecer(cola, desde + i, t, b"a" * t) is None
+    return m.ofrecer(cola, desde + m._cada, 1, b"a")
 
 
-def test_el_muestreo_vuelve_a_tomar_pasado_el_intervalo():
-    m = Muestreo(cada=900.0, iniciales=1)
-    assert m.debe_tomar("q", 0.0)
-    assert not m.debe_tomar("q", 899.0)
-    assert m.debe_tomar("q", 901.0)
+def test_la_ventana_guarda_el_mensaje_mas_grande_no_el_primero():
+    m = Muestreo(cada=900.0)
+    muestra = _ventana(m, "markets-queue", [10, 50, 30])
+    assert muestra.bytes == 50 and muestra.mayor_de_ventana
+
+
+def test_en_un_empate_se_queda_el_primero():
+    m = Muestreo(cada=900.0)
+    m.ofrecer("q", 0.0, 5, b"aaaaa")
+    m.ofrecer("q", 1.0, 5, b"bbbbb")
+    assert m.ofrecer("q", 900.0, 1, b"c").cuerpo == "aaaaa"
+
+
+def test_no_hay_rafaga_inicial_una_muestra_por_ventana():
+    # Riesgo medido: diez muestras con el mismo instante de recepción.
+    m = Muestreo(cada=900.0)
+    salidas = [m.ofrecer("q", 1000.0 + i, 10, b"a" * 10) for i in range(800)]
+    assert all(x is None for x in salidas)
+    # y al cerrar la ventana sale una sola, no diez
+    assert m.ofrecer("q", 1900.0, 10, b"a" * 10) is not None
+    assert m.ofrecer("q", 1901.0, 10, b"a" * 10) is None
+
+
+def test_cada_cola_tiene_su_propia_ventana():
+    m = Muestreo(cada=900.0)
+    m.ofrecer("a", 0.0, 9, b"a" * 9)
+    m.ofrecer("b", 500.0, 3, b"b" * 3)
+    assert m.ofrecer("a", 900.0, 1, b"a").bytes == 9
+    assert m.ofrecer("b", 900.0, 1, b"b") is None  # la de `b` sigue abierta
+
+
+def test_la_ventana_siguiente_arranca_de_cero():
+    # Riesgo: que el mayor de la ventana vieja tape a los de la nueva.
+    m = Muestreo(cada=900.0)
+    _ventana(m, "q", [1000])
+    # el mensaje de 1 byte que cerró la ventana abrió la nueva; al cerrarla
+    # sale ese, no el de 1000 de la anterior
+    muestra = m.ofrecer("q", 1800.0, 7, b"a" * 7)
+    assert muestra.bytes == 1
+
+
+def test_el_mayor_se_guarda_cortado_y_marcado_por_cola_via_lote():
+    muestreo = Muestreo(cada=10.0)
+    lote = Lote()
+    for t, ahora in ((100, 0.0), (gr8_feed.MUESTRA_MAX_BYTES + 1, 1.0), (200, 2.0), (1, 11.0)):
+        lote.registrar("q", b"a" * t, "m", ahora, muestreo=muestreo)
+    (muestra,) = lote.muestras
+    assert muestra.truncado and muestra.mayor_de_ventana
+    assert muestra.bytes == gr8_feed.MUESTRA_MAX_BYTES + 1
+    assert len(muestra.cuerpo) == gr8_feed.MUESTRA_MAX_BYTES
+
+
+def test_se_retiene_un_solo_candidato_por_cola_en_memoria():
+    # Riesgo de RAM: acumular los grandes de la ventana. Solo vive el mayor.
+    m = Muestreo(cada=900.0)
+    for i in range(1, 50):
+        m.ofrecer("q", float(i), i * 1000, b"a" * (i * 1000))
+    assert len(m._mayor) == 1
+    assert m._mayor["q"].bytes == 49_000
+    # los mensajes chicos que llegan después no reemplazan ni suman
+    m.ofrecer("q", 60.0, 10, b"a" * 10)
+    assert len(m._mayor) == 1 and m._mayor["q"].bytes == 49_000
+
+
+def test_lo_retenido_nunca_pasa_del_tope_aunque_el_mensaje_si():
+    m = Muestreo(cada=900.0)
+    m.ofrecer("q", 0.0, 5_000_000, b"a" * 5_000_000)
+    assert len(m._mayor["q"].cuerpo) <= gr8_feed.MUESTRA_MAX_BYTES
 
 
 # ── El tope de la muestra ──────────────────────────────────────
@@ -295,6 +359,16 @@ def test_se_puede_subir_para_capturar_un_mensaje_entero():
     """Un mensaje de `markets` pesa 62 KB: con el tope de siempre se ve el 6%
     de la estructura que hay que modelar."""
     assert gr8_feed.muestra_max_bytes({"GR8_FEED_MUESTRA_BYTES": "131072"}) == 131072
+
+
+def test_el_tope_admite_un_mensaje_de_7_mb():
+    # Máximo medido en `market-results`: con el tope viejo (1 MiB) no entraba.
+    siete_mb = 7 * 1024 * 1024
+    assert gr8_feed.MUESTRA_MAX_BYTES_TOPE > siete_mb
+    valor = gr8_feed.muestra_max_bytes({"GR8_FEED_MUESTRA_BYTES": str(siete_mb)})
+    assert valor == siete_mb
+    texto, cortado = recortar_cuerpo(b"a" * siete_mb, maximo=valor)
+    assert not cortado and len(texto) == siete_mb
 
 
 def test_un_valor_absurdo_no_deja_sin_memoria_al_proceso():
