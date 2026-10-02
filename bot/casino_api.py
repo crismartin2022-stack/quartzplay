@@ -289,8 +289,14 @@ class SesionNoGuardada(HTTPException):
         super().__init__(status_code=503, detail=detail)
 
 
-async def sesion_guardar(token: str, agencia_code: str, horas: int = 12):
+async def sesion_guardar(token: str, agencia_code: str):
     """Persiste la sesión, o lanza. Nunca vuelve en silencio de un fallo.
+
+    Las horas salen de `auth.SESSION_TTL_H` y de ningún otro lado. Acá
+    había un `horas: int = 12` que no coincidía con las ocho de la tabla en
+    memoria de `auth`, así que la vida real de una sesión dependía de qué
+    camino la validaba. Ya no hay dos caminos, y tampoco hay parámetro: un
+    llamador no puede darle a una sesión un reloj propio.
 
     Antes se comía la excepción: el login seguía adelante y entregaba el
     token igual. Propagar no agrega un modo de falla nuevo, porque los
@@ -306,7 +312,7 @@ async def sesion_guardar(token: str, agencia_code: str, horas: int = 12):
                 INSERT INTO agencia_sesiones (token, agencia_code, expira_at)
                 VALUES ($1, $2, NOW() + ($3 || ' hours')::interval)
                 ON CONFLICT (token) DO NOTHING
-            """, token, agencia_code, str(horas))
+            """, token, agencia_code, str(auth.SESSION_TTL_H))
     except Exception as e:
         # La causa real queda en el log, con el detalle de la base. Lo que
         # ve la persona no la manda a revisar sus datos, que están bien.
@@ -326,6 +332,41 @@ async def sesion_buscar(token: str):
     except Exception as e:
         log.error(f"No se pudo leer la sesión: {e}")
         return None
+
+
+async def purgar_sesiones_vencidas() -> str:
+    """Borra de `agencia_sesiones` las filas que ya vencieron.
+
+    Nadie las borraba: en producción había 54 filas y las 54 estaban
+    vencidas, la más vieja de agosto. No abrían nada —`sesion_buscar`
+    filtra por `expira_at`— pero son tokens de sesión acumulados sin
+    ninguna fecha en la que desaparezcan, y la tabla solo crece.
+
+    El `DELETE` es idempotente: con varias réplicas corre de más y no
+    cambia nada.
+    """
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        return await conn.execute(
+            "DELETE FROM agencia_sesiones WHERE expira_at <= NOW()")
+
+
+async def _loop_purgar_sesiones():
+    """Tarea de fondo: purga las sesiones vencidas una vez al día.
+
+    Va por el mecanismo que ya usa el resto del archivo —una tarea
+    arrancada en el startup— y no en el camino de emisión. Borrar al
+    emitir ataría la limpieza a que alguien entre, y el caso que deja
+    filas acumuladas es justamente el contrario: meses sin logins.
+    """
+    await asyncio.sleep(120)        # dejar que termine el arranque
+    while True:
+        try:
+            log.info(f"[SESIONES] purga de vencidas: "
+                     f"{await purgar_sesiones_vencidas()}")
+        except Exception as e:
+            log.error(f"[SESIONES] no se pudo purgar: {e}")
+        await asyncio.sleep(24 * 3600)
 
 
 async def jugador_de_sesion(authorization: str | None) -> int | None:
@@ -360,12 +401,12 @@ async def requiere_cliente(authorization: str = Header(default="")):
 
     # Siempre contra la base, nunca contra una caché en memoria.
     #
-    # Las sesiones se dan de baja: hay un `DELETE FROM agencia_sesiones` —el
-    # que corre con la purga de datos— y existe `auth.destroy_session`. Una
-    # caché positiva en memoria haría que un token dado de baja por
-    # cualquiera de los dos siguiera abriendo hasta vencer solo. Y con varias
-    # réplicas sería peor: la baja ocurre en una, y en las otras la sesión
-    # sigue viva.
+    # Las sesiones se dan de baja con un `DELETE FROM agencia_sesiones`: el
+    # que corre con la purga de datos, el que borra las vencidas, y el que
+    # haga falta para echar a alguien. Una caché positiva en memoria haría
+    # que un token dado de baja por cualquiera de ellos siguiera abriendo
+    # hasta vencer solo. Y con varias réplicas sería peor: la baja ocurre en
+    # una, y en las otras la sesión sigue viva.
     #
     # Acá había un `auth.verify_session(token)` antes de esta línea,
     # envuelto en un try que caía a la base. Esa función no existe en
@@ -424,23 +465,35 @@ async def requiere_cliente_propio(request: Request,
 
 async def requiere_agencia(authorization: str = Header(None)) -> str:
     """
-    Igual que auth.require_agencia pero mirando también la base,
-    así una sesión sigue viva después de un reinicio.
+    Sesión de agencia. Devuelve el código de la agencia autenticada.
+
+    Siempre contra la base, nunca contra una caché en memoria — el mismo
+    razonamiento que en `requiere_cliente`, y acá pesa más: las agencias
+    mueven la plata de los jugadores. Cargan saldo, cobran, ven cuentas.
+    Una sesión que no se puede revocar ahí es peor que una del jugador.
+
+    Acá había una caché positiva: después de leer la base, la sesión se
+    volvía a escribir en `auth._sessions` con el reloj en cero. Dar de baja
+    la fila no desalojaba a nadie —el token seguía abriendo hasta ocho horas
+    más— y cada vez que volvía a caer a la base el reloj arrancaba de nuevo,
+    así que la sesión no vencía nunca mientras la usaran. Con varias
+    réplicas era peor todavía: la baja ocurría en una y en las otras la
+    sesión seguía viva.
+
+    Leer la base en cada pedido es más lento y es lo correcto. El costo
+    está medido y es nulo: `agencia_sesiones` tiene decenas de filas y
+    `token` es su clave primaria, o sea búsqueda por índice único sobre una
+    tabla mínima. Si alguien vuelve a poner la caché, `requiere_agencia`
+    acepta un token que solo existe en memoria y las pruebas de
+    `test_sesion_de_agencia_se_puede_revocar` se ponen rojas.
     """
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(401, "Falta token de sesión")
     token = authorization[7:].strip()
 
-    try:
-        return auth.require_agencia(authorization)   # memoria: instantáneo
-    except HTTPException:
-        pass
-
-    code = await sesion_buscar(token)                # base: sobrevive deploys
+    code = await sesion_buscar(token)
     if not code:
         raise HTTPException(401, "Sesión expirada")
-    auth._sessions[token] = {"code": code,
-                             "exp": time.time() + auth.SESSION_TTL}
     return code
 
 
@@ -18745,8 +18798,10 @@ async def diag_sesiones(_=Depends(auth.require_admin)):
             total = await conn.fetchval("SELECT COUNT(*) FROM agencia_sesiones")
             vigentes = await conn.fetchval(
                 "SELECT COUNT(*) FROM agencia_sesiones WHERE expira_at > NOW()")
-        return {"tabla_ok": True, "total": total, "vigentes": vigentes,
-                "en_memoria": len(auth._sessions)}
+        # Ya no hay un "en_memoria": la base es el único lugar donde una
+        # sesión existe. Mientras ese número estuvo acá, una sesión podía
+        # figurar vencida en la tabla y seguir abriendo igual.
+        return {"tabla_ok": True, "total": total, "vigentes": vigentes}
     except Exception as e:
         return {"tabla_ok": False, "error": str(e)}
 
@@ -20299,9 +20354,12 @@ async def _arrancar_combos_ia():
     asyncio.create_task(_refrescar_ganadores_sb())
     asyncio.create_task(_loop_riesgo())
     asyncio.create_task(_loop_psp_reintentos())
+    # Las sesiones vencidas no las borraba nadie y la tabla solo crecía.
+    asyncio.create_task(_loop_purgar_sesiones())
     log.info("[PSP] barrido de avisos sin procesar programado (cada minuto)")
     log.info("[IA] generador de combos programado (cada 3h)")
     log.info("[LIQ] liquidaciones automáticas programadas (diario)")
+    log.info("[SESIONES] purga de sesiones vencidas programada (diario)")
 
 
 @app.post("/api/admin/combos-ia/generar")
