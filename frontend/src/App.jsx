@@ -12,7 +12,8 @@ import { urlDeJuego } from "./marcoDeJuego";
 import { useDesktopShellWidth } from "./desktopShellLayout";
 import SportsbookC360 from "./SportsbookC360";
 import { useSportsbookC360 } from "./configSportsbook";
-import { abrirSesionTelegram, cabeceraDeSesion } from "./sesionTelegram";
+import { abrirSesionTelegram, fetchConSesion,
+  alPerderLaSesion } from "./sesionTelegram";
 // lucide-react carries the icons this screen's emoji have no match for
 // among Icon.jsx's 36 ported paths (docs/icon-inventory.md's gap list):
 // no live-feed mark, no handshake, no bolt, no gift.
@@ -516,10 +517,13 @@ function useUsuario(){
 // sesión —el mismo que usa el sitio— y de ahí en adelante los pedidos lo
 // mandan en el encabezado.
 //
-// No devuelve nada y nadie espera el resultado: hoy ningún endpoint pide el
-// token, así que un canje que falla no puede dejar al jugador afuera ni
-// cambiar lo que ve. Por eso tampoco hay reintento, ni mensaje, ni estado:
-// el próximo arranque trae un initData nuevo y vuelve a intentar solo.
+// Sigue sin devolver nada y nadie espera el resultado, pero por otro motivo
+// que antes: ahora los nueve endpoints exigen el token, así que un canje que
+// falla SÍ deja al jugador afuera. Lo que cambia es dónde se resuelve. No se
+// bloquea el arranque esperando el canje —eso le pondría una pantalla en
+// blanco a todo el mundo por una llave que casi siempre sale bien— sino que
+// cada pedido que vuelve 401 reintenta el canje una vez por su cuenta
+// (`fetchConSesion`), y si tampoco así, avisa.
 function useSesionDeCliente(){
   useEffect(()=>{
     const initData = window.Telegram?.WebApp?.initData || "";
@@ -2907,14 +2911,13 @@ function ChatSoporte({ userId, origen, onCerrar }){
 
   // Los canales de la agencia, desde que se abre el chat
   //
-  // Va con la sesión en el encabezado, como todos los pedidos de este estilo
-  // desde acá: el user_id de la URL dice de quién son los datos, pero no
-  // prueba quién los pide. Mientras el servidor no la exija el pedido sale
-  // igual que antes — `cabeceraDeSesion()` no agrega nada si no hay token.
+  // Va por `fetchConSesion`: la sesión en el encabezado es la que dice quién
+  // pide, y el servidor ya no acepta el user_id suelto. El id salió de la URL
+  // porque ahora no agrega nada —el servidor usa el de la sesión— y mandarlo
+  // solo daba una forma más de que no coincidieran.
   useEffect(()=>{
     if(!userId) return;
-    fetch(`${API}/api/soporte/contacto?user_id=${userId}`,
-      {headers:cabeceraDeSesion()})
+    fetchConSesion(`${API}/api/soporte/contacto`)
       .then(r=>r.ok?r.json():null)
       .then(d=>{ if(d?.contacto) setContacto(d.contacto); })
       .catch(()=>{});
@@ -2952,8 +2955,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
   const cargar=async()=>{
     if(!userId) return;
     try{
-      const r=await fetch(`${API}/api/soporte/hilo?user_id=${userId}`,
-        {headers:cabeceraDeSesion()});
+      const r=await fetchConSesion(`${API}/api/soporte/hilo`);
       if(!r.ok) return;
       const d=await r.json();
       setTicket(d.ticket_id);
@@ -3197,9 +3199,11 @@ function HistorialJuegos({ user, onCerrar }){
 
   useEffect(()=>{
     if(!user?.id) return;
-    fetch(`${API}/api/historial/${user.id}`,{headers:cabeceraDeSesion()})
+    // Los dos salen juntos: si la sesión venció, el reintento del 401 lo
+    // comparten y el servidor recibe un solo canje, no dos.
+    fetchConSesion(`${API}/api/historial/${user.id}`)
       .then(r=>r.ok?r.json():null).then(x=>x&&setD(x)).catch(()=>{});
-    fetch(`${API}/api/historial-juegos/${user.id}`,{headers:cabeceraDeSesion()})
+    fetchConSesion(`${API}/api/historial-juegos/${user.id}`)
       .then(r=>r.ok?r.json():null).then(x=>x&&setPorJuego(x))
       .catch(()=>{});
   },[user?.id]);
@@ -3395,8 +3399,7 @@ function JuegoResponsable({ user, onCerrar }){
   const [verExcluir,setVerExcluir]=useState(false);
 
   const cargar=()=>{
-    fetch(`${API}/api/jugador/${user.id}/responsable`,
-      {headers:cabeceraDeSesion()})
+    fetchConSesion(`${API}/api/jugador/${user.id}/responsable`)
       .then(r=>r.ok?r.json():null)
       .then(x=>x&&setD(x)).catch(()=>{});
   };
@@ -3912,8 +3915,7 @@ function ScreenDesafios({ user, onAction }){
   const cargarSaldo=async()=>{
     if(!uid) return;
     try{
-      const r=await fetch(`${API}/api/iacoin/saldo/${uid}`,
-        {headers:cabeceraDeSesion()});
+      const r=await fetchConSesion(`${API}/api/iacoin/saldo/${uid}`);
       if(r.ok) setSaldo(await r.json());
     }catch(e){}
   };
@@ -4711,7 +4713,7 @@ function MisDesafios({ user, onCambio }){
   const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
 
   const cargar=()=>{
-    fetch(`${API}/api/p2p/mis-apuestas/${user.id}`,{headers:cabeceraDeSesion()})
+    fetchConSesion(`${API}/api/p2p/mis-apuestas/${user.id}`)
       .then(r=>r.ok?r.json():null)
       .then(d=>setLista(d?.apuestas||[]))
       .catch(()=>setLista([]));
@@ -6719,6 +6721,14 @@ export default function QuartzSports(){
   // salga bien.
   useSesionDeCliente();
 
+  // Y si la sesión no se puede recuperar, se dice. Va al mismo cartel que el
+  // resto de los errores globales: el jugador no tiene por qué distinguir
+  // dónde se rompió, pero sí tiene que ver que algo se rompió y qué hacer.
+  // Sin esto el pedido vuelve 401, el `.catch(()=>{})` lo descarta, y queda
+  // una pantalla vacía que parece "no tenés nada" cuando en realidad es "no
+  // pudimos preguntar".
+  useEffect(()=>alPerderLaSesion(setErrorGlobal),[]);
+
   // Súper Bono: la app avisa que está adentro y consulta si le tocó.
   // Va DESPUÉS de declarar user: antes reventaba al abrir porque el
   // efecto lo leía cuando todavía no existía.
@@ -6732,7 +6742,13 @@ export default function QuartzSports(){
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({user_id:user.id, origen:"app"})})
         .catch(()=>{});
-      fetch(`${API}/api/superbono/mio/${user.id}`,{headers:cabeceraDeSesion()})
+      // `avisar:false`: este pedido lo hace la app sola cada dos minutos, no
+      // la persona. Reintenta el canje igual que los demás, pero no pone un
+      // cartel de sesión encima de la pantalla que esté mirando. Si la sesión
+      // está caída de verdad, lo que ella sí abrió —historial, soporte— ya se
+      // lo va a decir.
+      fetchConSesion(`${API}/api/superbono/mio/${user.id}`, {},
+        {avisar:false})
         .then(r=>r.ok?r.json():null)
         .then(d=>{ if(d?.gano) setSuperBono(d); })
         .catch(()=>{});

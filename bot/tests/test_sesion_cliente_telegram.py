@@ -6,7 +6,9 @@ en los POST, así que los pedidos que consultan la cuenta del jugador pasaban
 el `user_id` suelto. Estas pruebas fijan la llave que reemplaza a ese id: que
 una firma válida devuelve un token que `requiere_cliente` acepta, que una
 firma que no cierra —o que ya venció— no devuelve ninguno, y que un usuario
-de Telegram sin cuenta no provoca un alta implícita.
+de Telegram sin cuenta no provoca un alta implícita. Al final está la prueba
+que ata las dos mitades: que los nueve endpoints cerrados exigen exactamente
+esta llave y no otra.
 
 La firma se arma de verdad, con el mismo HMAC que usa Telegram, en vez de
 reemplazar `validar_init_data` por un doble: lo que se quiere probar es que
@@ -258,11 +260,11 @@ def test_una_cuenta_bloqueada_no_se_lleva_una_llave_nueva(api, monkeypatch):
     assert tabla == {}
 
 
-# ── Nada se cerró todavía ─────────────────────────────────────────
+# ── La cerradura ya está puesta ───────────────────────────────────
 
-# Los nueve que la auditoría marcó: reciben un `user_id` del cliente y hoy no
-# verifican quién lo manda. Cerrarlos es el cambio siguiente.
-ENDPOINTS_CON_USER_ID_SUELTO = (
+# Los nueve que la auditoría marcó. Recibían un `user_id` del cliente y no
+# verificaban quién lo mandaba; ahora los nueve exigen la sesión.
+ENDPOINTS_QUE_EXIGEN_SESION = (
     "/api/soporte/contacto",
     "/api/soporte/hilo",
     "/api/historial/{user_id}",
@@ -281,16 +283,20 @@ def _dependencias(dependant):
         yield from _dependencias(sub)
 
 
-def test_este_cambio_construye_la_llave_y_todavia_no_pone_la_cerradura(api):
-    """El jugador de Telegram cuyo canje falle tiene que seguir usando la app
-    igual que ayer, y para eso hace falta que ninguno de estos endpoints pida
-    sesión todavía. Si uno empieza a exigirla antes de que la mini-app mande
-    el token con seguridad, el cambio deja gente afuera. Cuando se cierren —en
-    el cambio siguiente— esta prueba se invierte: pasa a exigir la dependencia
-    en los nueve."""
+def test_la_llave_que_construye_este_canje_es_la_que_abre_los_nueve(api):
+    """Esta prueba estaba invertida: exigía que NINGUNO pidiera sesión, porque
+    mientras la mini-app no mandaba el token con seguridad, cerrar uno dejaba
+    gente afuera. Ya la manda, y los nueve están cerrados, así que ahora
+    verifica lo contrario: que los nueve pasen por `requiere_cliente`.
+
+    Vive acá y no con los nueve a propósito: lo que fija es que la llave que
+    emite el canje y la cerradura que pusieron los endpoints sean la misma
+    pieza. Si alguien cerrara los nueve con otra dependencia —una que el canje
+    de Telegram no sepa satisfacer— las pruebas de allá seguirían pasando y
+    la mini-app quedaría afuera igual."""
     rutas = {r.path: r for r in api.app.routes if hasattr(r, "dependant")}
 
-    for ruta in ENDPOINTS_CON_USER_ID_SUELTO:
+    for ruta in ENDPOINTS_QUE_EXIGEN_SESION:
         assert ruta in rutas, f"desapareció {ruta}: revisar la lista"
-        assert api.requiere_cliente not in _dependencias(rutas[ruta].dependant), \
-            f"{ruta} ya exige sesión: la cerradura va en otro cambio"
+        assert api.requiere_cliente in _dependencias(rutas[ruta].dependant), \
+            f"{ruta} quedó abierto: cualquiera lee la cuenta de otro"

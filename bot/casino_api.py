@@ -352,6 +352,76 @@ async def jugador_de_sesion(authorization: str | None) -> int | None:
         return None
 
 
+async def requiere_cliente(authorization: str = Header(default="")):
+    """Sesión de cliente web. Devuelve el user_id."""
+    token = (authorization or "").replace("Bearer ", "").strip()
+    if not token:
+        raise HTTPException(401, "Falta token de sesión")
+
+    # Siempre contra la base, nunca contra una caché en memoria.
+    #
+    # Las sesiones se dan de baja: hay un `DELETE FROM agencia_sesiones` —el
+    # que corre con la purga de datos— y existe `auth.destroy_session`. Una
+    # caché positiva en memoria haría que un token dado de baja por
+    # cualquiera de los dos siguiera abriendo hasta vencer solo. Y con varias
+    # réplicas sería peor: la baja ocurre en una, y en las otras la sesión
+    # sigue viva.
+    #
+    # Acá había un `auth.verify_session(token)` antes de esta línea,
+    # envuelto en un try que caía a la base. Esa función no existe en
+    # `auth.py`: el try tiraba AttributeError en todos los pedidos y siempre
+    # terminaba leyendo la base. O sea que esto es exactamente lo que ya
+    # venía pasando. Se borró código muerto, no una optimización — y no se
+    # implementa `verify_session` justamente por lo de arriba: leer la base
+    # en cada pedido es más lento y es lo correcto.
+    quien = await sesion_buscar(token)
+
+    if not quien or not str(quien).startswith("cliente:"):
+        raise HTTPException(401, "Sesión vencida. Volvé a entrar.")
+    return int(str(quien).split(":", 1)[1])
+
+
+async def requiere_cliente_propio(request: Request,
+                                  user_id: int = Depends(requiere_cliente)):
+    """
+    La sesión del jugador, para los GET que además traen un `user_id` suyo.
+
+    Nueve de esos GET nacieron recibiendo el id en la URL: era el único dato
+    que había a mano cuando la mini-app se identificaba con el `initData`
+    firmado y solo en los POST. Los ids son correlativos, así que con eso
+    alcanzaba para leer el historial, el chat de soporte o la autoexclusión
+    de cualquier otro jugador cambiando un número.
+
+    LA URL NO CAMBIA, A PROPÓSITO. Hay mini-apps viejas instaladas: si
+    `/api/historial/{user_id}` pasara a ser `/api/historial`, el cliente
+    viejo recibiría un 404 que no dice nada y que no se puede distinguir de
+    un endpoint que no existe. Manteniéndola recibe un 401, que sí se puede
+    reconocer: el frontend lo usa para pedir una sesión nueva y repetir.
+
+    El id que manda el cliente NO identifica a nadie: solo se compara. Si no
+    es el de la sesión, 403 y listo. Es explícito y no silencioso porque las
+    dos cosas son distintas: ignorarlo callado le devolvería al jugador sus
+    propios datos bajo el id de otro, y el pedido equivocado —o el intento de
+    curiosear— no dejaría ninguna marca.
+
+    Lo que devuelve es el id DE LA SESIÓN, y los endpoints lo reciben con el
+    mismo nombre `user_id` que ya usaban. Por eso el de la URL ni entra a la
+    función: no es que las consultas "deban" usar el de la sesión, es que el
+    otro no existe ahí adentro, y un cambio futuro no puede reabrir el
+    agujero sin volver a declararlo a mano.
+    """
+    pedido = request.path_params.get("user_id")
+    if pedido is None:
+        # `/api/soporte/hilo` y `/api/soporte/contacto` lo traen como
+        # parámetro de consulta en vez de en la ruta. Es el mismo dato que
+        # puso el cliente, así que corre la misma regla.
+        pedido = request.query_params.get("user_id")
+
+    if pedido is not None and str(pedido).strip() != str(user_id):
+        raise HTTPException(403, "Esa cuenta no es la tuya")
+    return user_id
+
+
 async def requiere_agencia(authorization: str = Header(None)) -> str:
     """
     Igual que auth.require_agencia pero mirando también la base,
@@ -7003,7 +7073,7 @@ async def iacoin_cotizacion(moneda: str = "ARS"):
 
 
 @app.get("/api/iacoin/saldo/{user_id}")
-async def iacoin_saldo(user_id: int):
+async def iacoin_saldo(user_id: int = Depends(requiere_cliente_propio)):
     pool = await get_db()
     async with pool.acquire() as conn:
         u = await conn.fetchrow("""
@@ -8304,7 +8374,7 @@ async def p2p_abiertas(user_id: int = 0, limite: int = 30):
 
 
 @app.get("/api/p2p/mis-apuestas/{user_id}")
-async def p2p_mias(user_id: int):
+async def p2p_mias(user_id: int = Depends(requiere_cliente_propio)):
     pool = await get_db()
     async with pool.acquire() as conn:
         filas = await conn.fetch("""
@@ -8974,8 +9044,13 @@ async def compartir_nueva(request: Request):
 
 
 @app.get("/api/compartir/mis-ganancias/{user_id}")
-async def mis_recompensas(user_id: int):
-    """Cuánto lleva ganado el cliente por compartir."""
+async def mis_recompensas(user_id: int = Depends(requiere_cliente_propio)):
+    """Cuánto lleva ganado el cliente por compartir.
+
+    No lo llama ninguna pantalla todavía, pero expone lo mismo que el resto
+    —cuánto ganó y cuánto le falta apostar— así que se cierra igual: un
+    endpoint abierto que nadie usa se usa igual desde afuera.
+    """
     pool = await get_db()
     async with pool.acquire() as conn:
         tot = await conn.fetchrow("""
@@ -10350,11 +10425,15 @@ Sin titulos ni vinetas."""
 
 
 @app.get("/api/soporte/contacto")
-async def soporte_contacto(user_id: int):
+async def soporte_contacto(user_id: int = Depends(requiere_cliente_propio)):
     """
     Los canales de la agencia del cliente. Se consulta al abrir el
     chat para que los botones estén desde el primer momento y no
     recién cuando la IA deriva.
+
+    Parece poca cosa, pero el `user_id` suelto convertía esto en un mapa:
+    recorriendo los ids se arma qué jugador pertenece a qué agencia, y de ahí
+    cuántos clientes tiene cada una.
     """
     pool = await get_db()
     async with pool.acquire() as conn:
@@ -10373,8 +10452,15 @@ async def soporte_contacto(user_id: int):
 
 
 @app.get("/api/soporte/hilo")
-async def soporte_hilo(user_id: int, ticket_id: int = 0):
-    """El historial de su conversación."""
+async def soporte_hilo(ticket_id: int = 0,
+                       user_id: int = Depends(requiere_cliente_propio)):
+    """El historial de su conversación.
+
+    El `AND user_id=$2` de abajo ya estaba escrito: impedía leer el ticket de
+    otro *pidiendo su ticket_id*, pero no servía de nada cuando el `user_id`
+    con el que se comparaba venía del mismo que preguntaba. Ahora viene de la
+    sesión y recién así ese filtro sostiene lo que parecía sostener.
+    """
     pool = await get_db()
     async with pool.acquire() as conn:
         if not ticket_id:
@@ -16379,35 +16465,6 @@ async def cliente_login(request: Request):
         "verificacion": registro_publico.estado_de_verificacion(
             row["origen_registro"], row["telefono_verificado_at"]),
     }
-
-
-async def requiere_cliente(authorization: str = Header(default="")):
-    """Sesión de cliente web. Devuelve el user_id."""
-    token = (authorization or "").replace("Bearer ", "").strip()
-    if not token:
-        raise HTTPException(401, "Falta token de sesión")
-
-    # Siempre contra la base, nunca contra una caché en memoria.
-    #
-    # Las sesiones se dan de baja: hay un `DELETE FROM agencia_sesiones` —el
-    # que corre con la purga de datos— y existe `auth.destroy_session`. Una
-    # caché positiva en memoria haría que un token dado de baja por
-    # cualquiera de los dos siguiera abriendo hasta vencer solo. Y con varias
-    # réplicas sería peor: la baja ocurre en una, y en las otras la sesión
-    # sigue viva.
-    #
-    # Acá había un `auth.verify_session(token)` antes de esta línea,
-    # envuelto en un try que caía a la base. Esa función no existe en
-    # `auth.py`: el try tiraba AttributeError en todos los pedidos y siempre
-    # terminaba leyendo la base. O sea que esto es exactamente lo que ya
-    # venía pasando. Se borró código muerto, no una optimización — y no se
-    # implementa `verify_session` justamente por lo de arriba: leer la base
-    # en cada pedido es más lento y es lo correcto.
-    quien = await sesion_buscar(token)
-
-    if not quien or not str(quien).startswith("cliente:"):
-        raise HTTPException(401, "Sesión vencida. Volvé a entrar.")
-    return int(str(quien).split(":", 1)[1])
 
 
 @app.post("/api/cliente/password")
@@ -23672,7 +23729,12 @@ async def _test_escritura(conn):
     # le robaron.
     if uids:
         try:
-            hist = await historial_jugador(uids[0])
+            # Por nombre y no por posición: el `user_id` de estos dos dejó de
+            # ser el primer parámetro —ahora sale de la sesión del jugador— y
+            # pasarlo suelto lo metería en `desde`. El diagnóstico corre del
+            # lado del servidor y elige a quién mira, así que acá el id es
+            # legítimo; lo que no puede es volver a depender del orden.
+            hist = await historial_jugador(user_id=uids[0])
             n = len(hist.get("movimientos") or [])
             tipos = {m["tipo"] for m in (hist.get("movimientos") or [])}
             check(f"el historial trae {n} movimientos", n >= 3,
@@ -23693,7 +23755,7 @@ async def _test_escritura(conn):
             check("todos los movimientos tienen fecha y hora",
                   not sin_fecha, f"{len(sin_fecha)} sin fecha")
 
-            porj = await historial_por_juego(uids[0])
+            porj = await historial_por_juego(user_id=uids[0])
             nj = len(porj.get("juegos") or [])
             check(f"el historial por juego agrupa {nj} juegos", nj >= 2,
                   "no está agrupando")
@@ -24368,8 +24430,13 @@ async def _auditar(conn, evento, actor=None, actor_tipo="sistema",
 
 
 @app.get("/api/jugador/{user_id}/responsable")
-async def jr_estado(user_id: int):
-    """Los límites y la autoexclusión del jugador."""
+async def jr_estado(user_id: int = Depends(requiere_cliente_propio)):
+    """Los límites y la autoexclusión del jugador.
+
+    De los nueve es el más sensible por lo que cuenta: que alguien se
+    autoexcluyó es un dato de salud, y "está jugando ahora" dice dónde está
+    la persona en este momento.
+    """
     pool = await get_db()
     async with pool.acquire() as conn:
         cfg = await _cfg_jr(conn)
@@ -25354,9 +25421,13 @@ async def marcar_presencia(request: Request):
 
 
 @app.get("/api/superbono/mio/{user_id}")
-async def superbono_mio(user_id: int):
+async def superbono_mio(user_id: int = Depends(requiere_cliente_propio)):
     """
     Si al jugador le tocó un premio sin ver.
+
+    Devuelve poco, pero es un GET que escribe: marca el premio como visto. Con
+    el id suelto, cualquiera podía recorrer los ids y dar por vistos los
+    premios de otros, que entonces nunca los veían aparecer.
 
     La app pregunta cada dos minutos y casi siempre la respuesta es
     que no. Con veinte mil jugadores eso son 167 consultas por
@@ -27467,8 +27538,9 @@ async def casino_sesion(request: Request):
 
 
 @app.get("/api/historial/{user_id}")
-async def historial_jugador(user_id: int, desde: str = "", hasta: str = "",
-                            tipo: str = "", limite: int = 100):
+async def historial_jugador(desde: str = "", hasta: str = "",
+                            tipo: str = "", limite: int = 100,
+                            user_id: int = Depends(requiere_cliente_propio)):
     """
     Todo lo que jugó el cliente, junto y ordenado por fecha.
 
@@ -27605,8 +27677,8 @@ async def historial_jugador(user_id: int, desde: str = "", hasta: str = "",
 
 
 @app.get("/api/historial-juegos/{user_id}")
-async def historial_por_juego(user_id: int, desde: str = "",
-                              hasta: str = ""):
+async def historial_por_juego(desde: str = "", hasta: str = "",
+                              user_id: int = Depends(requiere_cliente_propio)):
     """
     Lo mismo agrupado por juego: cuántas veces lo jugó y cómo le fue.
 
