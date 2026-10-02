@@ -946,7 +946,7 @@ async def agencia_login(request: Request):
                 row["code"], auth.hash_password(password))
         await conn.execute(
             "UPDATE agencias SET last_login=NOW() WHERE code=$1", row["code"])
-    token = auth.create_session(row["code"])
+    token = auth.nuevo_token()
     await sesion_guardar(token, row["code"])
     return {
         "token":   token,
@@ -964,6 +964,51 @@ async def agencia_login(request: Request):
         "debe_cambiar_pass": bool(row.get("debe_cambiar_pass")),
         "permiso": row.get("permiso") or "ambos",
     }
+
+# ── AGENCIAS — LOGOUT ─────────────────────────────────────────
+@app.post("/api/agencias/logout")
+async def agencia_logout(authorization: str = Header(None),
+                         agencia_code: str = Depends(requiere_agencia)):
+    """Cierra la sesión de quien lo pide: borra su fila de `agencia_sesiones`.
+
+    Es la única revocación que cuenta. Desde que `requiere_agencia` lee la
+    base en cada pedido, sin fila el token no abre nada en el pedido
+    siguiente, sin esperar ningún vencimiento. Hasta ahora nadie la
+    disparaba: salir del panel solo limpiaba el navegador y el token seguía
+    vivo hasta `SESSION_TTL_H`, así que quien se lo hubiera copiado (o un
+    teléfono perdido) seguía operando con la plata de los jugadores.
+
+    `requiere_agencia` y no `requiere_admin_o_agencia`: el admin entra con
+    una clave y no tiene sesión que cerrar, y esa puerta lo dejaría pasar sin
+    token. Y tampoco la de jugador ni la de terminal: sus tokens dan 403 acá,
+    cada uno cierra lo suyo por su lado.
+
+    El DELETE filtra por token Y por agencia: la fila que borra es la que la
+    dependencia acaba de validar, y por construcción no puede tocar la de
+    otra agencia. Solo cae esa fila; las demás sesiones de la misma agencia
+    (otro dispositivo) siguen abiertas.
+
+    Si la sesión ya venció o ya estaba borrada, la dependencia contesta 401
+    antes de llegar acá: no hay nada que cerrar, y el panel limpia lo local
+    igual (ver `salirDeLaSesion` en Agencia.jsx).
+    """
+    token = (authorization or "")[7:].strip()
+    try:
+        pool = await get_db()
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "DELETE FROM agencia_sesiones WHERE token=$1 AND agencia_code=$2",
+                token, agencia_code)
+    except Exception as e:
+        # No se traga: contestar ok con la fila todavía en la base le haría
+        # creer a la persona que cerró una sesión que sigue abierta. El
+        # panel limpia lo local de todos modos; lo que sirve es que el
+        # error quede a la vista en el log.
+        log.error(f"No se pudo cerrar la sesión de {agencia_code}: {e}")
+        raise HTTPException(503, "No pudimos cerrar tu sesión en el servidor. "
+                                 "Si usaste un equipo ajeno, cambiá tu contraseña.")
+    return {"ok": True}
+
 
 # ── CONTRASEÑAS — cambio propio y reset en cascada ────────────
 @app.post("/api/agencias/me/password")
@@ -9449,7 +9494,7 @@ async def canjear_alta_terminal(request: Request):
     # El token se guarda con el prefijo `terminal:` y el id de la fila, no con
     # el código del QR: el id no es público y no cambia si mañana se regenera
     # el QR.
-    token = auth.create_session(f"{PREFIJO_TERMINAL}{t['id']}")
+    token = auth.nuevo_token()
     # `sesion_guardar` propaga si no pudo escribir, y está bien que lo haga: un
     # token que no quedó en la base no abre nada, y el código de alta ya se
     # quemó. Es mejor que la pantalla diga "probá de nuevo" —y la agencia emita
@@ -17165,7 +17210,7 @@ async def cliente_login(request: Request):
             await conn.execute("UPDATE users SET password_hash=$2 WHERE id=$1",
                                row["id"], auth.hash_password(passwd))
 
-    token = auth.create_session(f"cliente:{row['id']}")
+    token = auth.nuevo_token()
     # Tambien en base: las sesiones que viven solo en memoria se pierden
     # en cada deploy y dejarian a todos los clientes afuera.
     await sesion_guardar(token, f"cliente:{row['id']}")
@@ -17404,7 +17449,7 @@ async def cliente_sesion_telegram(request: Request):
         # andando hasta que venza sola.
         raise HTTPException(403, "Tu cuenta está bloqueada. Consultá en tu agencia.")
 
-    token = auth.create_session(f"cliente:{row['id']}")
+    token = auth.nuevo_token()
     # El prefijo `cliente:` no es decorativo: es lo que mira
     # `requiere_cliente` para no aceptar una sesión de agencia como si
     # fuera de un jugador. Y la sesión va también a la base porque las que
@@ -30664,7 +30709,7 @@ async def cliente_registro_confirmar(request: Request):
 
         await conn.execute("DELETE FROM registro_pendiente WHERE id=$1", fila["id"])
 
-    token_sesion = auth.create_session(f"cliente:{nueva['id']}")
+    token_sesion = auth.nuevo_token()
     try:
         await sesion_guardar(token_sesion, f"cliente:{nueva['id']}")
     except SesionNoGuardada as e:

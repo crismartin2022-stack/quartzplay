@@ -92,17 +92,18 @@ def needs_rehash(stored: str) -> bool:
 # de qué camino contestaba primero.
 
 
-def create_session(agencia_code: str) -> str:
-    """Emite el token de sesión. No registra nada.
+def nuevo_token() -> str:
+    """Sortea un token de sesión. No registra nada y no sabe de quién es.
 
-    Persistirlo es trabajo de `sesion_guardar`: un token que no llegó a la
-    base no abre nada, y quien emite tiene que tratar ese fallo como un
-    login fallido (ver `SesionNoGuardada`).
+    Se llamaba `create_session(agencia_code)`, y las dos mitades del nombre
+    mentían: no creaba ninguna sesión, y el `agencia_code` que recibía no lo
+    usaba para nada desde que se fue la tabla en memoria. Un parámetro de
+    autenticación que se acepta y se ignora hace creer que el token queda
+    atado a alguien; no lo está. El dueño del token lo escribe
+    `sesion_guardar`, en la base, y ahí se decide quién es.
 
-    `agencia_code` ya no se usa: queda en la firma porque los cuatro que
-    emiten sesiones lo pasan en la línea siguiente a `sesion_guardar`, y
-    separarlo haría ilegible el par. No implica que la llamada registre al
-    dueño del token en ningún lado.
+    Un token que no llegó a la base no abre nada, y quien emite tiene que
+    tratar ese fallo como un login fallido (ver `SesionNoGuardada`).
     """
     return secrets.token_urlsafe(32)
 

@@ -164,12 +164,12 @@ def test_borrar_la_fila_cierra_la_sesion_en_el_pedido_siguiente(api, monkeypatch
 
 def test_un_token_que_solo_se_emitio_no_abre(api, monkeypatch):
     """El mismo razonamiento que en `requiere_cliente`: emitir no es
-    registrar. `auth.create_session` solo genera el token; si no quedó en
+    registrar. `auth.nuevo_token` solo genera el token; si no quedó en
     la base, no hay sesión. Esta es la prueba que se pone roja si alguien
     vuelve a guardar sesiones en memoria y a validarlas desde ahí."""
     use_fake_db(api, monkeypatch)
 
-    token = api.auth.create_session(AGENCIA)
+    token = api.auth.nuevo_token()
     assert token
 
     with pytest.raises(api.HTTPException) as caso:

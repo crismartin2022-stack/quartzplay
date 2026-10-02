@@ -379,7 +379,7 @@ def test_requiere_cliente_no_abre_con_un_token_que_solo_esta_en_memoria(api, mon
     use_fake_db(api, monkeypatch)
 
     # Token legítimo de `auth`, pero nunca persistido.
-    token = api.auth.create_session(f"cliente:{CLIENTE['id']}")
+    token = api.auth.nuevo_token()
     assert token
 
     with pytest.raises(api.HTTPException) as caso:
