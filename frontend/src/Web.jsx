@@ -42,6 +42,30 @@ import { Handshake, Video, Repeat, Dices, Shield, Scale, Rocket, Bell, Image as 
 const { apiUrl: API, botUsername: BOT_USERNAME } = getFrontendConfig();
 
 
+// ── LA SESIÓN EN LOS PEDIDOS DE LA CUENTA ─────────────────────
+//
+// Los nueve GET que devuelven datos del jugador —historial, hilo de soporte,
+// autoexclusión, saldo IACOIN, desafíos— pasaron a exigir la sesión. Antes
+// alcanzaba con el user_id en la URL, y por eso estas pantallas lo mandaban
+// sin encabezado: el sitio ya tenía el token desde el login, pero estos
+// pedidos no lo usaban porque no hacía falta. Ahora sí.
+//
+// Varias de esas pantallas reciben `user` o `userId` y no la sesión. Hacer
+// bajar el token por props cruzaría media docena de componentes que no tienen
+// nada que ver con la sesión, así que si no viene se lee de donde ya está
+// guardado: la raíz lo espeja en `qp_sesion` en cada cambio —y lo borra al
+// salir— así que no puede quedar una llave vieja que el estado ya descartó.
+function cabeceraWeb(sesion){
+  let token = sesion?.token || null;
+  if(!token){
+    const guardada = leerSesion(
+      typeof localStorage!=="undefined"?localStorage:null);
+    token = guardada?.token || null;
+  }
+  return token ? {Authorization:`Bearer ${token}`} : {};
+}
+
+
 // Superposiciones (hover, vidrio).
 function ov(a){
   return `rgba(255,255,255,${a})`;
@@ -856,7 +880,9 @@ function ChatSoporte({ userId, origen, onCerrar }){
   // Los canales de la agencia, desde que se abre el chat
   useEffect(()=>{
     if(!userId) return;
-    fetch(`${API}/api/soporte/contacto?user_id=${userId}`)
+    // Sin el user_id: el servidor usa el de la sesión, así que mandarlo solo
+    // daba una forma más de que los dos no coincidieran.
+    fetch(`${API}/api/soporte/contacto`,{headers:cabeceraWeb()})
       .then(r=>r.ok?r.json():null)
       .then(d=>{ if(d?.contacto) setContacto(d.contacto); })
       .catch(()=>{});
@@ -894,7 +920,7 @@ function ChatSoporte({ userId, origen, onCerrar }){
   const cargar=async()=>{
     if(!userId) return;
     try{
-      const r=await fetch(`${API}/api/soporte/hilo?user_id=${userId}`);
+      const r=await fetch(`${API}/api/soporte/hilo`,{headers:cabeceraWeb()});
       if(!r.ok) return;
       const d=await r.json();
       setTicket(d.ticket_id);
@@ -1460,7 +1486,8 @@ function JuegoResponsableWeb({ user, onCerrar }){
   const [verExcluir,setVerExcluir]=useState(false);
 
   const cargar=()=>{
-    fetch(`${API}/api/jugador/${user.id}/responsable`)
+    fetch(`${API}/api/jugador/${user.id}/responsable`,
+      {headers:cabeceraWeb()})
       .then(r=>r.ok?r.json():null)
       .then(x=>x&&setD(x)).catch(()=>{});
   };
@@ -2579,7 +2606,7 @@ function PerfilWeb({ sesion, setSesion, onCerrar, inicial, onAbrirVerificarTelef
 
   useEffect(()=>{
     if(vista!=="historial"||hist||!u.id) return;
-    fetch(`${API}/api/historial/${u.id}`)
+    fetch(`${API}/api/historial/${u.id}`,{headers:cabeceraWeb(sesion)})
       .then(r=>r.ok?r.json():null).then(x=>x&&setHist(x)).catch(()=>{});
   },[vista,u.id]);
 
@@ -3175,7 +3202,8 @@ function DesafiosWeb({ sesion, ancho }){
   const cargarSaldo=async()=>{
     if(!uid) return;
     try{
-      const r=await fetch(`${API}/api/iacoin/saldo/${uid}`);
+      const r=await fetch(`${API}/api/iacoin/saldo/${uid}`,
+        {headers:cabeceraWeb(sesion)});
       if(r.ok) setSaldo(await r.json());
     }catch(e){}
   };
@@ -3958,7 +3986,7 @@ function MisDesafiosWeb({ user, onCambio }){
   const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
 
   const cargar=()=>{
-    fetch(`${API}/api/p2p/mis-apuestas/${user.id}`)
+    fetch(`${API}/api/p2p/mis-apuestas/${user.id}`,{headers:cabeceraWeb()})
       .then(r=>r.ok?r.json():null)
       .then(d=>setLista(d?.apuestas||[])).catch(()=>setLista([]));
   };
