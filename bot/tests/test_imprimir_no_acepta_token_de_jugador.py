@@ -1,10 +1,21 @@
-"""`/api/imprimir` es la cuarta puerta: valida la sesión a mano.
+"""`/api/imprimir` es la cuarta puerta: acepta la clave de admin O una agencia.
 
 El arreglo de `requiere_agencia` —un token de jugador no sirve como token de
 agencia, ver `test_token_de_jugador_no_es_token_de_agencia`— no llegaba acá.
-`registrar_impresion` no usa esa dependencia: acepta la clave de admin O una
-sesión de agencia, así que un `Depends(requiere_agencia)` a secas le cerraría
-la puerta al admin, y por eso valida a mano.
+`registrar_impresion` no puede usar esa dependencia: acepta la clave de admin O
+una sesión de agencia, así que un `Depends(requiere_agencia)` a secas le
+cerraría la puerta al admin, y por eso validaba la sesión a mano.
+
+YA NO LA VALIDA A MANO. Después de estas pruebas se vio que esa misma línea
+estaba copiada en otros siete endpoints y que ninguna de las siete copias
+miraba el prefijo, así que el par "admin o agencia" pasó a ser una dependencia
+compartida, `requiere_admin_o_agencia`, y este endpoint entra por ahí como los
+demás (ver `test_una_sola_puerta_de_sesion`). Lo que decide sigue siendo
+`exigir_sesion_de_agencia`, la misma función de siempre; lo único que se movió
+es dónde se declara. Las pruebas de abajo no cambiaron: siguen siendo el
+contrato de este endpoint, y la que mira que la regla esté en un solo lugar
+—`test_las_dos_puertas_usan_el_mismo_chequeo`— es la que vale el doble ahora
+que son nueve los que dependen de ella.
 
 Autenticar sí autenticaba: sin token da 401. Lo que no miraba es la CLASE de
 sesión. `sesion_buscar` devuelve el code tal cual está guardado, incluido
@@ -138,9 +149,25 @@ def _pedido(headers, body):
 
 
 def imprimir(api, headers, body=None):
-    """Lo que corre cuando alguien pide `POST /api/imprimir`."""
+    """Lo que corre cuando alguien pide `POST /api/imprimir`.
+
+    LA CREDENCIAL SE RESUELVE CON LA DEPENDENCIA REAL, no se arma a mano. Este
+    endpoint ya no lee la cabecera en su cuerpo: la declara en la firma, con un
+    `Depends(requiere_admin_o_agencia)` (ver `test_una_sola_puerta_de_sesion`).
+    Llamar a la función con un `AdminOAgencia` inventado probaría el cuerpo y
+    no la puerta, que es lo único que estas pruebas miran, así que acá se corre
+    la misma cadena que corre FastAPI: primero la puerta, después el endpoint.
+    Ninguna de las afirmaciones de abajo cambió por eso.
+    """
     body = {"tipo": "ticket", "referencia": "T-1"} if body is None else body
-    return asyncio.run(api.registrar_impresion(_pedido(headers, body)))
+    pedido = _pedido(headers, body)
+
+    async def correr():
+        pide = await api.requiere_admin_o_agencia(
+            headers.get("X-Admin-Key"), headers.get("Authorization"))
+        return await api.registrar_impresion(pedido, pide)
+
+    return asyncio.run(correr())
 
 
 # ── El cruce que estaba abierto ───────────────────────────────────
@@ -293,10 +320,15 @@ def test_las_dos_puertas_usan_el_mismo_chequeo(api, monkeypatch):
     """Que la regla esté en un solo lugar es parte del arreglo, no estética.
 
     Este agujero existió porque el chequeo del prefijo estaba escrito dentro de
-    `requiere_agencia` y el endpoint que valida a mano no lo tenía. Con dos
+    `requiere_agencia` y el endpoint que validaba a mano no lo tenía. Con dos
     copias, la próxima vez que la regla cambie —otro prefijo, otra clase de
     sesión— una de las dos se queda vieja y nadie se entera hasta que aparece
-    otra fila sucia."""
+    otra fila sucia.
+
+    Ahora son nueve los endpoints que cuelgan de esa función, así que esta
+    prueba vale más que cuando eran dos: anular la regla compartida tiene que
+    abrir las dos puertas a la vez. Si alguna se queda cerrada, es porque
+    alguien le escribió su propia copia del chequeo."""
     conn = use_fake_db(api, monkeypatch)
     conn.poner_sesion("t-jugador", SESION_DE_JUGADOR)
 
