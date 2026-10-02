@@ -4920,6 +4920,14 @@ function Terminales({ agencia, onSesionExpirada }){
   const [msg,setMsg]=useState(null); // {text, ok} | null — status lives here, not in the text
   const [proc,setProc]=useState(false);
   const [verQR,setVerQR]=useState(null);
+  // El código de alta recién emitido, por terminal: {id, codigo, horas}.
+  // Vive en memoria del componente a propósito. No se guarda y no se puede
+  // volver a mirar: si se pierde, se emite otro. Un código de alta que se
+  // puede releer en el panel es un código que queda a la vista del próximo que
+  // abra la pantalla, y no hace falta — emitir otro cuesta un clic y el viejo
+  // sigue venciendo solo.
+  const [alta,setAlta]=useState(null);
+  const [altaProc,setAltaProc]=useState(false);
 
   const cargar=async()=>{
     try{
@@ -4952,8 +4960,39 @@ function Terminales({ agencia, onSesionExpirada }){
         method:"POST",headers:{"Content-Type":"application/json",
           ...authHeaders(agencia.token)},
         body:JSON.stringify({[campo]:valor})});
-      if(r.ok) cargar();
+      if(r.ok){
+        // Apagar una terminal le corta el acceso EN EL ACTO: el servidor mira
+        // `activa` en el mismo UPDATE con el que autoriza, así que no espera a
+        // que su token venza. Si estaba apagándose, el código de alta que
+        // estuviera a la vista deja de servir, y mostrarlo igual sería mentira.
+        if(campo==="activa"&&!valor&&alta&&alta.id===t.id) setAlta(null);
+        cargar();
+      }
     }catch(e){}
+  };
+
+  // El alta de la terminal: un código de un solo uso que vence en 24 h.
+  //
+  // Es lo que le da identidad a la pantalla del mostrador. Hasta que existió,
+  // el Box no era nadie —solo sabía el código de su dirección— y el cash out
+  // tenía que estar abierto para que funcionara. Ese era el agujero.
+  //
+  // NO ES EL CÓDIGO DEL QR. El del QR va impreso en la pared y lo lee
+  // cualquiera que escanee: si sirviera para darse de alta, cualquiera que
+  // mirara la pared se haría pasar por la terminal.
+  const generarAlta=async(t)=>{
+    if(altaProc) return;
+    setAltaProc(true); setMsg(null); setAlta(null);
+    try{
+      const r=await fetch(
+        `${API_URL}/api/agencias/me/terminales/${t.id}/credencial`,{
+        method:"POST",headers:authHeaders(agencia.token)});
+      if(r.status===401){ onSesionExpirada(); return; }
+      const d=await r.json();
+      if(!r.ok) throw new Error(d.detail||`Error ${r.status}`);
+      setAlta({id:t.id, codigo:d.codigo, horas:d.expira_en_horas});
+    }catch(e){ setMsg({text:e.message, ok:false}); }
+    setAltaProc(false);
   };
 
   const inp={width:"100%",background:"rgba(255,255,255,0.05)",
@@ -5013,6 +5052,11 @@ function Terminales({ agencia, onSesionExpirada }){
               <div style={{color:Q.muted,fontSize:12,marginTop:3}}>
                 {t.escaneos} escaneos · {t.boletos} boletos ·{" "}
                 {ars(t.vendido)}</div>
+              {/* Cuándo operó por última vez. Es lo que deja ver una terminal
+                  robada —opera con el local cerrado— o una que dejó de usarse
+                  con la credencial todavía viva. */}
+              <div style={{color:Q.dim,fontSize:12,marginTop:2}}>
+                {t.ultimo_uso?`Último uso: ${t.ultimo_uso}`:"Sin uso todavía"}</div>
             </div>
             <button onClick={()=>setVerQR(verQR===t.codigo?null:t.codigo)}
               style={{background:`${Q.cyan}18`,
@@ -5050,6 +5094,58 @@ function Terminales({ agencia, onSesionExpirada }){
                     color:t.activa?Q.red:Q.green,fontSize:12,
                     fontFamily:F_BODY}}>
                   {t.activa?"Apagar":"Encender"}</button>
+              </div>
+
+              {/* ── EL ALTA DE LA PANTALLA ──
+                  Separado del QR por una línea, porque son dos cosas opuestas y
+                  confundirlas es el riesgo: el de arriba se imprime y se pega en
+                  la pared, este se tipea una vez en la pantalla y no se vuelve a
+                  mostrar. Apagada no se da de alta: el botón no está. */}
+              <div style={{marginTop:14,paddingTop:SPACING[12],
+                borderTop:`1px solid ${Q.border}`,textAlign:"left"}}>
+                <div style={{color:Q.text,fontWeight:700,fontSize:12.5,
+                  fontFamily:F_BODY}}>Credencial de la pantalla</div>
+                <div style={{color:Q.muted,fontSize:12,marginTop:4,
+                  lineHeight:1.5}}>
+                  Para que esta terminal pueda cerrar un cash out en el
+                  mostrador. Generá el código, escribilo una vez en la pantalla
+                  y listo. No es el código del QR de arriba: este no se pega en
+                  ninguna parte.
+                </div>
+
+                {!t.activa&&(
+                  <div style={{color:Q.red,fontSize:12,marginTop:8,
+                    lineHeight:1.45}}>
+                    Está apagada. Encendela para darla de alta — apagada no
+                    tiene acceso, aunque ya se haya dado de alta antes.</div>
+                )}
+
+                {t.activa&&(
+                  <button onClick={()=>generarAlta(t)} disabled={altaProc}
+                    style={{width:"100%",marginTop:10,
+                      background:`${Q.violet}22`,
+                      border:`1px solid ${Q.violet}`,borderRadius:RADII.md,
+                      padding:SPACING[8],cursor:altaProc?"default":"pointer",
+                      color:Q.text,fontSize:12,fontWeight:700,
+                      opacity:altaProc?0.6:1,fontFamily:F_BODY}}>
+                    {altaProc?"Generando…":"Generar código de alta"}</button>
+                )}
+
+                {alta&&alta.id===t.id&&(
+                  <div style={{marginTop:11,background:`${Q.violet}14`,
+                    border:`1px solid ${Q.violet}`,borderRadius:RADII.md,
+                    padding:SPACING[12],textAlign:"center"}}>
+                    <div style={{color:Q.muted,fontSize:12}}>
+                      Escribilo en la pantalla</div>
+                    <div style={{color:Q.text,fontWeight:800,fontSize:14,
+                      marginTop:6,wordBreak:"break-all",letterSpacing:0.5,
+                      fontFamily:F_BODY}}>{alta.codigo}</div>
+                    <div style={{color:Q.muted,fontSize:12,marginTop:8,
+                      lineHeight:1.5}}>
+                      Vence en {alta.horas} horas y sirve una sola vez. No se
+                      vuelve a mostrar: si lo perdés, generá otro.</div>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -38,6 +38,7 @@ RUNTIME_CHAIN = [
     "20260925160000_remitentes_mensajeria.sql",
     "20260930120000_registro_proveedores.sql",
     "20261001140000_gr8_observacion.sql",
+    "20261002120000_credencial_de_terminal.sql",
 ]
 
 # Backward-compatible alias: this is the pinned Foundation-only chain the
