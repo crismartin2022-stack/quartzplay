@@ -463,6 +463,49 @@ async def requiere_cliente_propio(request: Request,
     return user_id
 
 
+def exigir_sesion_de_agencia(code: str) -> str:
+    """
+    La regla del prefijo, en un solo lugar. Devuelve el code si es de una
+    agencia; si es de un jugador, corta con 403.
+
+    El prefijo `cliente:` marca la sesión de un jugador. Las dos clases de
+    sesión viven en la misma tabla `agencia_sesiones` y solo se distinguen por
+    ese prefijo, así que sin este chequeo el token de un jugador pasaba la
+    validación y volvía como `agencia_code = "cliente:701"`.
+    `requiere_cliente` ya exige el prefijo en el sentido contrario; faltaba
+    este lado, y por eso el cruce era de una sola dirección.
+
+    Lo que el código cruzado rompía no es la lectura —ninguna agencia se llama
+    así, y una consulta por ese code no devuelve nada— sino la escritura: hay
+    endpoints que guardan el code sin verificar antes que la agencia exista, y
+    dejaban filas a nombre de nadie (una terminal, un cliente, un combo). El
+    agujero no se veía porque todo lo demás daba 403 o 404 solo.
+
+    403 y no 401: el token es real y no venció. Un 401 significa "no te
+    pudimos identificar, pedí sesión nueva y repetí" —así lo usa la mini-app,
+    ver `requiere_cliente_propio`—, y el jugador volvería a entrar con su
+    clave correcta para chocar contra el mismo 401, en un bucle donde nada
+    está mal. Acá sí se sabe quién es: lo que no le corresponde es la puerta,
+    y 403 es el código que el resto del archivo ya usa para eso ("esa cuenta
+    no es tuya", "ese ticket no es de tu rama").
+
+    Esto es una función y no dos líneas repetidas porque hay más de una
+    puerta: `requiere_agencia` es la de los `Depends`, y los endpoints que
+    aceptan admin O agencia validan la sesión a mano y no pueden usar esa
+    dependencia sin cerrarle la puerta al admin (ver `/api/imprimir`). Dos
+    copias de una regla de seguridad es cómo una se queda vieja: el agujero
+    de `/api/imprimir` existió justamente porque el chequeo estaba en un lado
+    y no en el otro.
+
+    Si alguien saca este chequeo, se ponen rojas las pruebas de
+    `test_token_de_jugador_no_es_token_de_agencia` y las de
+    `test_imprimir_no_acepta_token_de_jugador`.
+    """
+    if str(code).startswith("cliente:"):
+        raise HTTPException(403, "Esta sesión no es de una agencia")
+    return code
+
+
 async def requiere_agencia(authorization: str = Header(None)) -> str:
     """
     Sesión de agencia. Devuelve el código de la agencia autenticada.
@@ -495,34 +538,11 @@ async def requiere_agencia(authorization: str = Header(None)) -> str:
     if not code:
         raise HTTPException(401, "Sesión expirada")
 
-    # El prefijo `cliente:` marca la sesión de un jugador. Las dos clases de
-    # sesión viven en la misma tabla `agencia_sesiones` y solo se distinguen
-    # por ese prefijo, así que sin este chequeo el token de un jugador pasaba
-    # la validación y volvía como `agencia_code = "cliente:701"`.
-    # `requiere_cliente` ya exige el prefijo en el sentido contrario; faltaba
-    # este lado, y por eso el cruce era de una sola dirección.
-    #
-    # Lo que el código cruzado rompía no es la lectura —ninguna agencia se
-    # llama así, y una consulta por ese code no devuelve nada— sino la
-    # escritura: hay endpoints que guardan el code sin verificar antes que la
-    # agencia exista, y dejaban filas a nombre de nadie (una terminal, un
-    # cliente, un combo). El agujero no se veía porque todo lo demás daba 403
-    # o 404 solo.
-    #
-    # 403 y no 401: el token es real y no venció. Un 401 significa "no te
-    # pudimos identificar, pedí sesión nueva y repetí" —así lo usa la
-    # mini-app, ver `requiere_cliente_propio`—, y el jugador volvería a
-    # entrar con su clave correcta para chocar contra el mismo 401, en un
-    # bucle donde nada está mal. Acá sí se sabe quién es: lo que no le
-    # corresponde es la puerta, y 403 es el código que el resto del archivo
-    # ya usa para eso ("esa cuenta no es tuya", "ese ticket no es de tu
-    # rama").
-    #
-    # Si alguien saca estas dos líneas, las pruebas de
-    # `test_token_de_jugador_no_es_token_de_agencia` se ponen rojas.
-    if str(code).startswith("cliente:"):
-        raise HTTPException(403, "Esta sesión no es de una agencia")
-    return code
+    # El prefijo `cliente:` dice que esa sesión es de un jugador y no de una
+    # agencia. La regla y el por qué del 403 están en
+    # `exigir_sesion_de_agencia`, compartida con los endpoints que validan la
+    # sesión a mano porque aceptan admin O agencia.
+    return exigir_sesion_de_agencia(code)
 
 
 # ── ERRORES: que nunca se vean como "sin conexión" ────────────
@@ -1251,6 +1271,20 @@ async def registrar_impresion(request: Request):
         ag = await sesion_buscar(token) if token else None
         if not ag:
             raise HTTPException(401, "No autorizado")
+        # Este endpoint tiene dos puertas —la clave de admin o la sesión de
+        # agencia— y por eso valida a mano: un `Depends(requiere_agencia)` a
+        # secas le cerraría la de admin. Pero validar a mano no exime de la
+        # regla del prefijo, y acá faltaba: `sesion_buscar` devuelve el code
+        # tal cual está guardado, así que el token de un jugador entraba y la
+        # fila quedaba con `agencia_code = "cliente:701"` y `quien` igual, como
+        # si fuera una agencia.
+        #
+        # El chequeo va ANTES del INSERT, no después de insertar y limpiar: el
+        # daño era la fila sucia. `impresiones_log` es el historial que se lee
+        # en cascada por `agencia_code` y nadie lo borra, así que una fila a
+        # nombre de un code que no existe queda contando impresiones de nadie
+        # para siempre.
+        exigir_sesion_de_agencia(ag)
         quien = ag
     pool = await get_db()
     async with pool.acquire() as conn:
