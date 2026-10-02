@@ -876,3 +876,85 @@ def test_el_contador_de_descartes_viaja_a_la_base():
     assert "descartados" in c._UPSERT_CUBO
     assert "t.descartados + EXCLUDED.descartados" in c._UPSERT_CUBO
     assert "$7" in c._UPSERT_CUBO
+
+
+# --- El SQL y la migración dicen lo mismo ---------------------------------
+
+
+def _migraciones_gr8():
+    from pathlib import Path
+
+    raiz = Path(gr8_feed.__file__).resolve().parents[1]
+    return sorted((raiz / "supabase" / "migrations").glob("*_gr8_*.sql"))
+
+
+def _columnas_de_la_migracion() -> dict[str, set[str]]:
+    """Las columnas de las tablas de GR8, leídas de TODAS sus migraciones.
+
+    Es la única forma de comprobar sin base de datos que el código y el
+    esquema hablan de las mismas columnas. Un `nombre_idioma` escrito
+    `idioma_nombre` en uno de los dos lados no falla en ninguna prueba: falla
+    en producción, en el primer lote, y deja de confirmar mensajes.
+
+    Se leen todas las migraciones de GR8 y no solo la de esta unidad porque
+    `gr8_obs_minuto` nace en una anterior y esta le agrega una columna: el
+    esquema real es la suma, igual que en la base.
+    """
+    import re
+
+    tablas: dict[str, set[str]] = {}
+    for archivo in _migraciones_gr8():
+        sql = re.sub(r"--[^\n]*", "", archivo.read_text())  # fuera comentarios
+        for tabla, cuerpo in re.findall(
+                r"CREATE TABLE IF NOT EXISTS public\.(\w+)\s*\((.*?)\n\);", sql, re.S):
+            columnas = tablas.setdefault(tabla, set())
+            for linea in cuerpo.split(","):
+                palabras = linea.split()
+                if palabras and palabras[0].isidentifier():
+                    columnas.add(palabras[0])
+        for tabla, columna in re.findall(
+                r"ALTER TABLE public\.(\w+)\s+ADD COLUMN IF NOT EXISTS (\w+)", sql):
+            tablas.setdefault(tabla, set()).add(columna)
+    return tablas
+
+
+def test_la_migracion_crea_las_tres_tablas():
+    tablas = _columnas_de_la_migracion()
+    assert {"gr8_deporte", "gr8_categoria", "gr8_torneo"} <= set(tablas)
+
+
+def test_cada_upsert_nombra_solo_columnas_que_existen():
+    import re
+
+    c = _sentencias()
+    tablas = _columnas_de_la_migracion()
+    sentencias = (c._UPSERT_DEPORTE, c._UPSERT_CATEGORIA, c._UPSERT_TORNEO,
+                  c._UPSERT_CUBO)
+    for sql in sentencias:
+        tabla = re.search(r"INSERT INTO public\.(\w+)", sql).group(1)
+        columnas = [x.strip() for x in
+                    sql.split("(", 2)[1].split(")")[0].replace("\n", " ").split(",")]
+        faltan = set(columnas) - tablas.get(tabla, set())
+        assert not faltan, f"{tabla}: el código nombra columnas que no existen: {faltan}"
+    # y la columna nueva de observación está en la migración
+    assert "descartados" in tablas["gr8_obs_minuto"]
+
+
+def test_las_tres_columnas_del_idioma_existen_en_las_tres_tablas():
+    # Riesgo: olvidarse `nombre_idioma` en una de las tres y no poder medir
+    # la cobertura justo en la que menos español trae.
+    tablas = _columnas_de_la_migracion()
+    for tabla in ("gr8_deporte", "gr8_categoria", "gr8_torneo"):
+        assert {"nombre", "nombre_idioma", "data_version"} <= tablas[tabla], tabla
+
+
+def test_la_taxonomia_no_tiene_claves_ajenas_entre_si():
+    # Riesgo medido: las tres colas llegan desordenadas entre sí (de 3
+    # `categoryId` distintos de torneos, 1 tenía su categoría observada). Con
+    # clave ajena, el torneo que llega antes que su categoría se rechaza y no
+    # vuelve hasta la próxima republicación de GR8.
+    from pathlib import Path
+
+    raiz = Path(gr8_feed.__file__).resolve().parents[1]
+    sql = (raiz / "supabase" / "migrations" / "20261002210000_gr8_taxonomia.sql").read_text()
+    assert "REFERENCES" not in sql.upper()
