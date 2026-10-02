@@ -270,6 +270,29 @@ def validate_sign(body_raw, x_code, x_time, x_sign):
 # las agencias. Ahora quedan en la base.
 
 
+# ── QUIÉN ES EL DUEÑO DE UNA SESIÓN ───────────────────────────
+#
+# Las tres clases de sesión viven en la MISMA tabla, `agencia_sesiones`, y la
+# columna `agencia_code` guarda al dueño. El prefijo es lo único que las
+# separa:
+#
+#   · una agencia      →  "AG001"            (sin prefijo, el code tal cual)
+#   · un jugador       →  "cliente:701"      (`users.id`)
+#   · una terminal     →  "terminal:12"      (`terminales.id`)
+#
+# POR QUÉ CONSTANTES Y NO EL TEXTO SUELTO. La regla de la agencia es "no
+# empieza con el prefijo de otro", o sea que es la clase que se define por
+# descarte. Mientras los prefijos estaban escritos a mano en cada `if`, sumar
+# una clase nueva significaba acordarse de todos los lugares donde el descarte
+# se hacía, y el que quedara afuera dejaba al nuevo token pasando por agencia.
+# Eso ya pasó una vez con `cliente:` —ver `exigir_sesion_de_agencia`— y la
+# terminal es justamente la clase nueva. Con la tupla, sumar una clase es
+# agregarla acá y el descarte se actualiza solo.
+PREFIJO_CLIENTE = "cliente:"
+PREFIJO_TERMINAL = "terminal:"
+PREFIJOS_NO_AGENCIA = (PREFIJO_CLIENTE, PREFIJO_TERMINAL)
+
+
 class SesionNoGuardada(HTTPException):
     """La sesión no quedó en la base, así que no hay sesión.
 
@@ -385,7 +408,7 @@ async def jugador_de_sesion(authorization: str | None) -> int | None:
         return None
 
     quien = await sesion_buscar(token)
-    if not quien or not str(quien).startswith("cliente:"):
+    if not quien or not str(quien).startswith(PREFIJO_CLIENTE):
         return None
     try:
         return int(str(quien).split(":", 1)[1])
@@ -417,7 +440,7 @@ async def requiere_cliente(authorization: str = Header(default="")):
     # en cada pedido es más lento y es lo correcto.
     quien = await sesion_buscar(token)
 
-    if not quien or not str(quien).startswith("cliente:"):
+    if not quien or not str(quien).startswith(PREFIJO_CLIENTE):
         raise HTTPException(401, "Sesión vencida. Volvé a entrar.")
     return int(str(quien).split(":", 1)[1])
 
@@ -466,14 +489,24 @@ async def requiere_cliente_propio(request: Request,
 def exigir_sesion_de_agencia(code: str) -> str:
     """
     La regla del prefijo, en un solo lugar. Devuelve el code si es de una
-    agencia; si es de un jugador, corta con 403.
+    agencia; si es de un jugador o de una terminal, corta con 403.
 
-    El prefijo `cliente:` marca la sesión de un jugador. Las dos clases de
-    sesión viven en la misma tabla `agencia_sesiones` y solo se distinguen por
-    ese prefijo, así que sin este chequeo el token de un jugador pasaba la
+    Los prefijos `cliente:` y `terminal:` marcan las sesiones que NO son de
+    una agencia, y están enumerados en `PREFIJOS_NO_AGENCIA`. Las tres clases
+    de sesión viven en la misma tabla `agencia_sesiones` y solo se distinguen
+    por ese prefijo, así que sin este chequeo el token de un jugador pasaba la
     validación y volvía como `agencia_code = "cliente:701"`.
     `requiere_cliente` ya exige el prefijo en el sentido contrario; faltaba
     este lado, y por eso el cruce era de una sola dirección.
+
+    LA TERMINAL ENTRA ACÁ POR EL MISMO MOTIVO QUE EL JUGADOR, y es importante
+    que así sea: una terminal es una identidad de local, no de agencia. Si su
+    token pasara por acá tendría de golpe las cien puertas que cuelgan de
+    `requiere_agencia` —cargar saldo, ver cuentas, liquidar, crear otras
+    terminales—, y lo único que necesita es cashear en la ventanilla. Lo que
+    la deja entrar ahí es `requiere_ventanilla`, que la reconoce por su
+    nombre, no este descarte. Una pantalla que cualquiera puede tocar en el
+    mostrador no puede ser la agencia.
 
     Lo que el código cruzado rompía no es la lectura —ninguna agencia se llama
     así, y una consulta por ese code no devuelve nada— sino la escritura: hay
@@ -498,10 +531,11 @@ def exigir_sesion_de_agencia(code: str) -> str:
     y no en el otro.
 
     Si alguien saca este chequeo, se ponen rojas las pruebas de
-    `test_token_de_jugador_no_es_token_de_agencia` y las de
-    `test_imprimir_no_acepta_token_de_jugador`.
+    `test_token_de_jugador_no_es_token_de_agencia`, las de
+    `test_imprimir_no_acepta_token_de_jugador` y las de
+    `test_credencial_de_terminal`.
     """
-    if str(code).startswith("cliente:"):
+    if str(code).startswith(PREFIJOS_NO_AGENCIA):
         raise HTTPException(403, "Esta sesión no es de una agencia")
     return code
 
@@ -543,6 +577,189 @@ async def requiere_agencia(authorization: str = Header(None)) -> str:
     # `exigir_sesion_de_agencia`, compartida con los endpoints que validan la
     # sesión a mano porque aceptan admin O agencia.
     return exigir_sesion_de_agencia(code)
+
+
+# ── LA CREDENCIAL DE LA TERMINAL ──────────────────────────────────
+#
+# El Box es la pantalla de autoconsulta que la agencia deja en el mostrador.
+# No pide iniciar sesión a propósito: es para el que llega con el ticket
+# impreso y no tiene cuenta, o no quiere sacar el teléfono.
+#
+# Hasta ahora no sabía NADA de sí misma más que el código de agencia de su
+# dirección (`/box/AGE002`), y una dirección no es una credencial: la escribe
+# cualquiera. Por eso el cash out del Box exigía un endpoint abierto, y por
+# eso ese endpoint era un agujero. No fue un olvido: era la única forma de que
+# el Box anduviera. Cerrado el agujero, el Box perdió el botón.
+#
+# AHORA LA TERMINAL TIENE UNA CREDENCIAL PROPIA, y el agujero no vuelve: la
+# pantalla se da de alta una vez con un código que la agencia genera desde su
+# panel, lo canjea por un token, y desde ahí manda `Authorization: Bearer`
+# como todos los demás.
+#
+# QUÉ PUEDE Y QUÉ NO. Una terminal es una identidad de LOCAL, no de persona:
+# está en un mostrador y la toca cualquiera que pase. Su token abre
+# exactamente tres puertas y ninguna más:
+#
+#   · GET  /api/terminal/me                        saber quién es
+#   · GET  /api/betslip/{code}/cashout/agencia      el valor
+#   · POST /api/betslip/{code}/cashout/agencia      cerrarlo
+#
+# No carga saldo, no ve cuentas, no liquida, no paga en caja —no tiene cajón—,
+# no crea ni apaga terminales, no lee reportes. Eso NO es una lista de
+# pendientes: es el alcance. Lo que la mantiene afuera de las demás es que su
+# prefijo está en `PREFIJOS_NO_AGENCIA`, o sea que `requiere_agencia` la
+# rechaza igual que al jugador; para sumarle una puerta hay que nombrarla a
+# mano, y eso se ve en una revisión.
+
+
+class TerminalAutenticada(NamedTuple):
+    """La terminal que resolvió su token, con la agencia a la que pertenece.
+
+    La agencia sale de `terminales.agencia_code` —la fila, leída en este
+    pedido—, nunca de la dirección del Box ni del cuerpo. Esa es la diferencia
+    entre una credencial y un `/box/AGE002` que escribe cualquiera.
+    """
+    id: int
+    codigo: str
+    nombre: str
+    agencia_code: str
+
+
+async def _terminal_de_sesion(quien: str) -> TerminalAutenticada:
+    """Resuelve `"terminal:12"` a su fila, y le marca el `ultimo_uso`.
+
+    APAGAR LA TERMINAL CORTA EL ACCESO EN EL ACTO, no cuando venza el token.
+    El `activa = true` está en el WHERE del mismo UPDATE que autoriza, así que
+    no hay forma de autorizar sin haberlo mirado: si la fila no está activa, no
+    vuelve nada y no se escribe nada. Es el criterio que se le aplicó a las
+    sesiones de agencia —leer la base en cada pedido, nunca una caché en
+    memoria, ver `requiere_agencia`— y acá pesa lo mismo: una pantalla en un
+    mostrador se roba o se olvida encendida en un local que cerró, y la agencia
+    tiene que poder desalojarla con el botón que ya existe.
+
+    `ultimo_uso` VIVE EN ESTE MISMO UPDATE y no en una llamada aparte. La
+    columna estaba en la tabla desde el principio y nadie la escribía fuera del
+    escaneo del QR, así que no servía para lo único que importa: ver una
+    terminal que dejó de usarse —el local cerró y la credencial sigue viva— o
+    una que opera cuando el local está cerrado, que es cómo se ve una robada.
+    Atada al mismo statement no puede quedar atrás: si la terminal operó, la
+    fecha se movió.
+    """
+    try:
+        tid = int(str(quien).split(":", 1)[1])
+    except (IndexError, TypeError, ValueError):
+        # Un token con el prefijo y sin un id atrás no identifica ninguna
+        # pantalla. 401 y no 403: no se sabe quién es.
+        raise HTTPException(401, "Credencial de terminal inválida")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        t = await conn.fetchrow("""
+            UPDATE terminales SET ultimo_uso = NOW()
+            WHERE id = $1 AND activa = true
+            RETURNING id, codigo, nombre, agencia_code
+        """, tid)
+        if t:
+            return TerminalAutenticada(
+                id=t["id"], codigo=t["codigo"], nombre=t["nombre"],
+                agencia_code=t["agencia_code"])
+
+        # Sin fila devuelta hay dos motivos distintos y al operador del
+        # mostrador le cambian lo que tiene que hacer: si está apagada, que la
+        # agencia la encienda; si ya no existe, que le dé un código nuevo.
+        # Esta consulta corre SOLO en el camino del error.
+        activa = await conn.fetchval(
+            "SELECT activa FROM terminales WHERE id=$1", tid)
+
+    if activa is False:
+        # 403 y no 401: la credencial es real y no venció, y un código de alta
+        # nuevo no arregla nada mientras la terminal siga apagada. Un 401 la
+        # mandaría a canjear códigos en un bucle donde nada está mal.
+        raise HTTPException(403, "Esta terminal está apagada. "
+                                "Pedile a la agencia que la encienda.")
+    raise HTTPException(401, "Esta terminal ya no existe. "
+                             "Pedile a la agencia un código de alta.")
+
+
+async def requiere_terminal(
+        authorization: str = Header(None)) -> TerminalAutenticada:
+    """Sesión de terminal. Devuelve la terminal y su agencia.
+
+    Igual que `requiere_agencia`: siempre contra la base, nunca contra una
+    caché en memoria. Acá no es solo que la sesión se pueda revocar, es que la
+    terminal se pueda apagar, y las dos cosas tienen que pegar en el pedido
+    siguiente y no en ocho horas.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(401, "Esta pantalla no tiene credencial. "
+                                 "Pedile a la agencia un código de alta.")
+    token = authorization[7:].strip()
+
+    quien = await sesion_buscar(token)
+    # El prefijo se exige en positivo, igual que en `requiere_cliente`: un
+    # token de agencia o de jugador no es una terminal. Si no se mirara, la
+    # sesión de una agencia entraría por acá y `_terminal_de_sesion` buscaría
+    # una terminal con id "AG001".
+    if not quien or not str(quien).startswith(PREFIJO_TERMINAL):
+        raise HTTPException(401, "Esta pantalla no tiene credencial. "
+                                 "Pedile a la agencia un código de alta.")
+    return await _terminal_de_sesion(quien)
+
+
+class Ventanilla(NamedTuple):
+    """Quién atiende del lado del mostrador: la agencia, o una terminal suya.
+
+    `agencia_code` es la agencia cuyas reglas se aplican —el `puede_cashout` y
+    la rama del boleto—, y es la misma para las dos: la de la terminal sale de
+    su fila. `ejecutor` es el rótulo de auditoría, y ahí sí se distinguen,
+    porque "lo cerró la caja" y "lo cerró la pantalla de la entrada" no son el
+    mismo hecho cuando hay que revisar un movimiento.
+    """
+    agencia_code: str
+    ejecutor: str
+
+
+async def requiere_ventanilla(
+        authorization: str = Header(None)) -> Ventanilla:
+    """La puerta del mostrador: la acepta la agencia Y la terminal del local.
+
+    POR QUÉ UNA DEPENDENCIA PROPIA Y NO AGRANDAR `requiere_agencia`. Dejar
+    pasar la terminal por ahí le abriría de una sola vez todas las puertas que
+    cuelgan de esa dependencia, que son casi cien y entre ellas está cargar
+    saldo. La terminal necesita dos. Nombrar las dos cuesta una línea; el
+    atajo cuesta el local.
+
+    Y POR QUÉ UNA DEPENDENCIA Y NO UN `if` ADENTRO DE CADA ENDPOINT: es la
+    misma razón por la que el cash out son dos puertas y no un `if`. Acá la
+    firma del endpoint declara a quién le cree, y el que lea la ruta lo ve sin
+    entrar a leer el cuerpo de la función.
+
+    LAS REGLAS NO CAMBIAN SEGÚN QUIÉN ENTRE. Las dos salen con un
+    `agencia_code` y lo que pasa después es idéntico: `exigir_boleto_de_la_rama`
+    y `_exigir_cashout_habilitado`, sobre esa agencia. La terminal no es una
+    excepción al permiso, es otra forma de presentarse: si la agencia no tiene
+    el cash out habilitado, su terminal tampoco puede, y un boleto de otra
+    rama le da 403 igual que a la caja.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(401, "Falta token de sesión")
+    token = authorization[7:].strip()
+
+    quien = await sesion_buscar(token)
+    if not quien:
+        raise HTTPException(401, "Sesión expirada")
+
+    if str(quien).startswith(PREFIJO_TERMINAL):
+        term = await _terminal_de_sesion(quien)
+        # El rótulo nombra la terminal, no la agencia: el movimiento tiene que
+        # poder leerse como "lo cerró esta pantalla".
+        return Ventanilla(term.agencia_code, f"terminal {term.codigo}")
+
+    # Lo que no es terminal tiene que ser agencia, y el token del jugador corta
+    # acá con el 403 de siempre. La regla no se repite: es la misma función que
+    # usan `requiere_agencia` y los endpoints que aceptan admin O agencia.
+    code = exigir_sesion_de_agencia(quien)
+    return Ventanilla(code, code)
 
 
 # ── ERRORES: que nunca se vean como "sin conexión" ────────────
@@ -8976,6 +9193,189 @@ async def borrar_terminal(tid: int,
     return {"ok": True}
 
 
+# ── EL ALTA DE UNA TERMINAL: UN CÓDIGO DE UN SOLO USO ─────────
+#
+# La agencia genera el código desde su panel y alguien lo tipea una vez en la
+# pantalla del mostrador. Es la misma forma que ya usa `generar_vinculo_cliente`
+# para conectar un Telegram: un código que vence en 24 h, se canjea UNA vez, y
+# queda marcado como usado en su propia tabla.
+#
+# ESTE CÓDIGO NO ES EL CÓDIGO DEL QR, Y ES LA PARTE QUE IMPORTA.
+# `terminales.codigo` —el del QR— es público por diseño: lo publica
+# `terminal_del_box` sin pedir nada y lo lee `abrir_terminal` para cualquiera
+# que escanee, que es justamente para lo que existe. Si el alta se canjeara con
+# ÉL, cualquiera que mirara el QR pegado en la pared —o que llamara al endpoint
+# público— se haría pasar por terminal y cashearía boletos de esa agencia.
+#
+# Así que el código de alta vive en OTRA tabla (`terminal_altas`), en otra
+# columna, y nace de otro sorteo: `TA-` más 24 caracteres al azar, contra los 8
+# del QR. No es que sean difíciles de confundir: es que un código de QR no
+# puede ser un código de alta ni por casualidad, porque el canje busca en una
+# tabla donde los códigos de QR no están. Lo fija
+# `test_el_codigo_publico_del_qr_no_canjea_una_credencial`.
+
+
+def _gen_codigo_alta_terminal() -> str:
+    """El código que se tipea una vez en la pantalla.
+
+    Largo y aleatorio, al contrario del código del QR —que es corto a propósito
+    porque se imprime en papel común y se escanea con poca luz—. Este no se
+    imprime ni se escanea: se lee de la pantalla del panel y se tipea una vez,
+    así que lo único que tiene que ser es imposible de adivinar. El prefijo
+    `TA-` es para reconocerlo cuando alguien lo pega en el campo equivocado.
+    """
+    return "TA-" + secrets.token_urlsafe(18)
+
+
+@app.post("/api/agencias/me/terminales/{tid}/credencial")
+async def generar_alta_terminal(tid: int,
+                                agencia_code: str = Depends(requiere_agencia)):
+    """La agencia emite un código de alta para UNA de sus terminales.
+
+    `requiere_agencia` y la terminal tiene que ser suya: es el mismo candado
+    que `editar_terminal` y `borrar_terminal`, porque emitir la credencial de
+    una terminal ajena es peor que editarla.
+
+    APAGADA NO SE DA DE ALTA. Si el código se pudiera emitir para una terminal
+    inactiva, el canje entregaría un token que `_terminal_de_sesion` rechaza en
+    el pedido siguiente, y el operador quedaría tipeando códigos que "andan" y
+    no abren. El motivo se dice acá, donde se puede arreglar.
+    """
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        t = await conn.fetchrow("""
+            SELECT nombre, activa FROM terminales
+            WHERE id=$1 AND agencia_code=$2
+        """, tid, agencia_code)
+        if not t:
+            raise HTTPException(403, "Esa terminal no es tuya")
+        if not t["activa"]:
+            raise HTTPException(400, "Esa terminal está apagada. "
+                                     "Encendela antes de darla de alta.")
+
+        codigo = _gen_codigo_alta_terminal()
+        expira = datetime.now(timezone.utc) + timedelta(hours=24)
+        await conn.execute("""
+            INSERT INTO terminal_altas
+                (codigo, terminal_id, agencia_code, creado_por, expira_at)
+            VALUES ($1, $2, $3, $3, $4)
+        """, codigo, tid, agencia_code, expira)
+
+    log.info(f"[TERMINAL] alta emitida para la terminal {tid} de {agencia_code}")
+    return {"codigo": codigo, "expira_en_horas": 24,
+            "terminal": t["nombre"]}
+
+
+@app.post("/api/terminal/credencial")
+async def canjear_alta_terminal(request: Request):
+    """La pantalla canjea su código de alta por un token de terminal.
+
+    body: {codigo}
+
+    ABIERTO, Y TIENE QUE SERLO: es el único pedido que la pantalla hace antes
+    de tener credencial. Lo que lo sostiene no es una sesión sino el código
+    mismo —largo, al azar, de un solo uso y con vencimiento—, igual que
+    `/api/telegram/canjear-vinculo`. Abierto no es lo mismo que sin candado: el
+    de antes dejaba cashear con el código del ticket, que va impreso; este pide
+    un secreto que solo existe porque la agencia lo emitió hace menos de un día.
+
+    EL CANJE ES UNA SOLA ESCRITURA CONDICIONAL, no un SELECT y después un
+    UPDATE. Leer "¿está usado?" y escribir "ahora sí" en dos pasos deja la
+    ventana en la que dos canjes del mismo código leen `usado=false` los dos y
+    salen los dos con un token: un código de un solo uso que entrega dos
+    credenciales no es de un solo uso. Con el `usado=false` adentro del WHERE,
+    el segundo no actualiza ninguna fila y no recibe nada — lo decide la base,
+    que es el único lugar donde se puede decidir.
+    """
+    body = await request.json()
+    codigo = (body.get("codigo") or "").strip()
+    if not codigo:
+        raise HTTPException(400, "Falta el código de alta")
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        alta = await conn.fetchrow("""
+            UPDATE terminal_altas
+            SET usado = true, usado_at = NOW()
+            WHERE codigo = $1 AND usado = false AND expira_at > NOW()
+            RETURNING terminal_id
+        """, codigo)
+        if not alta:
+            # Por qué no sirve: ya se usó, venció, o nunca existió. Las tres
+            # dan 410 con el mismo texto que el canje de Telegram, y la
+            # diferencia se consulta SOLO acá, en el camino del error.
+            estado = await conn.fetchrow(
+                "SELECT usado, expira_at FROM terminal_altas WHERE codigo=$1",
+                codigo)
+            if estado and estado["usado"]:
+                raise HTTPException(410, "Ese código ya se usó. "
+                                         "Pedile a la agencia uno nuevo.")
+            if estado:
+                raise HTTPException(410, "El código venció. "
+                                         "Pedile a la agencia uno nuevo.")
+            raise HTTPException(404, "Código inválido")
+
+        # La terminal se vuelve a leer en vez de confiar en la fila del alta:
+        # entre que se emitió el código y se canjeó pueden haber pasado 24 h, y
+        # la agencia pudo apagarla en el medio. Apagada no se da de alta.
+        t = await conn.fetchrow("""
+            SELECT id, codigo, nombre, agencia_code, activa
+            FROM terminales WHERE id=$1
+        """, alta["terminal_id"])
+    if not t or not t["activa"]:
+        raise HTTPException(403, "Esa terminal está apagada. "
+                                "Pedile a la agencia que la encienda.")
+
+    # El token se guarda con el prefijo `terminal:` y el id de la fila, no con
+    # el código del QR: el id no es público y no cambia si mañana se regenera
+    # el QR.
+    token = auth.create_session(f"{PREFIJO_TERMINAL}{t['id']}")
+    # `sesion_guardar` propaga si no pudo escribir, y está bien que lo haga: un
+    # token que no quedó en la base no abre nada, y el código de alta ya se
+    # quemó. Es mejor que la pantalla diga "probá de nuevo" —y la agencia emita
+    # otro— que que se quede con una llave muerta creyendo que se dio de alta.
+    await sesion_guardar(token, f"{PREFIJO_TERMINAL}{t['id']}")
+
+    log.info(f"[TERMINAL] {t['codigo']} de {t['agencia_code']} se dio de alta")
+    return {"ok": True, "token": token,
+            "terminal": {"codigo": t["codigo"], "nombre": t["nombre"],
+                         "agencia_code": t["agencia_code"]}}
+
+
+# IMPORTANTE: esta ruta va ANTES de `/api/terminal/{codigo}`. FastAPI resuelve
+# por orden de registro y `{codigo}` matchea cualquier texto, "me" incluido: si
+# quedara abajo, este endpoint no se alcanzaría nunca y el Box recibiría el 404
+# de "Terminal no disponible" al preguntar quién es. Lo fija
+# `test_la_terminal_sabe_quien_es`.
+@app.get("/api/terminal/me")
+async def terminal_me(term: TerminalAutenticada = Depends(requiere_terminal)):
+    """Quién es esta pantalla, según su credencial.
+
+    Lo llama el Box al arrancar: es cómo sabe si el token que tiene guardado
+    todavía sirve. Si no sirve —venció, o la agencia apagó la terminal— vuelve
+    a pedir el código de alta en vez de mostrar botones que van a fallar.
+
+    Trae `puede_cashout` porque es lo que decide si se muestra el botón. Es el
+    mismo dato que ya consulta la agencia en `/api/agencias/me/puede-cashout`, y
+    mostrarlo no autoriza nada: el permiso se vuelve a verificar, incondicional,
+    cuando se cashea de verdad (`_exigir_cashout_habilitado`).
+    """
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        ag = await conn.fetchrow("""
+            SELECT name, moneda, COALESCE(puede_cashout, FALSE) AS puede_cashout
+            FROM agencias WHERE code=$1
+        """, term.agencia_code)
+    return {
+        "codigo": term.codigo,
+        "nombre": term.nombre,
+        "agencia_code": term.agencia_code,
+        "agencia": (ag["name"] if ag else None) or term.agencia_code,
+        "moneda": (ag["moneda"] if ag else None) or "ARS",
+        "puede_cashout": bool(ag["puede_cashout"]) if ag else False,
+    }
+
+
 @app.get("/api/box/{agencia_code}/terminal")
 async def terminal_del_box(agencia_code: str):
     """
@@ -8983,6 +9383,21 @@ async def terminal_del_box(agencia_code: str):
 
     Público: el Box no maneja sesión de agencia, y el dato que
     devuelve —un código de QR— no es sensible.
+
+    SIGUE SIENDO PÚBLICO A PROPÓSITO, y ahora hay que decir por qué con la
+    credencial de terminal en el medio. `terminales.codigo` es el dato que va
+    impreso en el QR pegado en la pared y que `abrir_terminal` acepta de
+    cualquiera que lo escanee: es público por su función, no por descuido, y
+    esconderlo acá no lo haría secreto.
+
+    LO QUE LO MANTIENE INOFENSIVO ES QUE NO CANJEA NADA. El alta de una
+    terminal se canjea con un código de `terminal_altas`, que esta respuesta no
+    tiene, que nunca sale de una ruta abierta, y que solo emite la agencia
+    autenticada para una terminal suya. Si algún día el canje llegara a aceptar
+    este código, este endpoint pasaría a regalar credenciales a cualquiera que
+    lo llame: eso es lo que fija
+    `test_el_codigo_publico_del_qr_no_canjea_una_credencial`, y por eso la
+    prueba vive al lado del canje y no acá.
     """
     pool = await get_db()
     async with pool.acquire() as conn:
@@ -19470,20 +19885,31 @@ async def cashout_ejecutar(code: str, request: Request):
 
 # ── La puerta del mostrador ───────────────────────────────────────
 
+# Esta puerta la abren DOS identidades, con las mismas reglas: la agencia desde
+# su panel, y la terminal del local con su credencial. Las dos salen de
+# `requiere_ventanilla` con un `agencia_code`, y lo que pasa después no sabe
+# cuál entró. El Box vuelve a tener el botón por acá y no por un endpoint
+# abierto: la terminal ahora es alguien.
+
 @app.get("/api/betslip/{code}/cashout/agencia")
 async def cashout_valor_agencia(code: str,
-                                agencia_code: str = Depends(requiere_agencia)):
-    """La ventanilla consulta el valor de cash out de un boleto de su rama."""
+                                vent: Ventanilla = Depends(requiere_ventanilla)):
+    """La ventanilla consulta el valor de cash out de un boleto de su rama.
+
+    Cerrado con la misma regla que el POST aunque solo lea: el `detalle` que
+    devuelve es el contenido del ticket. Eso vale igual para la terminal — una
+    pantalla de mostrador no tiene por qué poder leer boletos de otra rama.
+    """
     pool = await get_db()
     async with pool.acquire() as conn:
         row = await _fila_de_cashout(conn, code)
-        await exigir_boleto_de_la_rama(conn, row, agencia_code)
+        await exigir_boleto_de_la_rama(conn, row, vent.agencia_code)
     return await _valor_de_cashout(row, code)
 
 
 @app.post("/api/betslip/{code}/cashout/agencia")
 async def cashout_ejecutar_agencia(code: str, request: Request,
-                                   agencia_code: str = Depends(requiere_agencia)):
+                                   vent: Ventanilla = Depends(requiere_ventanilla)):
     """La ventanilla ejecuta el cash out de un boleto de su rama.
 
     body: {valor_esperado?: number, destino?: 'cuenta'|'mostrador'}
@@ -19491,6 +19917,11 @@ async def cashout_ejecutar_agencia(code: str, request: Request,
     La misma pertenencia que `liquidar_apuesta` y `cashout_pagar_caja`:
     `exigir_boleto_de_la_rama`. Y el `puede_cashout` de la agencia que está
     autenticada, no de una que venga escrita en el cuerpo.
+
+    LA TERMINAL NO ES UNA EXCEPCIÓN A NINGUNA DE LAS DOS. Su `agencia_code` sale
+    de su propia fila, así que la rama que se le exige es la de su agencia y el
+    `puede_cashout` que se mira es el de su agencia: si el admin no se lo
+    habilitó, la pantalla del local no cashea, igual que la caja.
     """
     body = {}
     try:
@@ -19503,14 +19934,16 @@ async def cashout_ejecutar_agencia(code: str, request: Request,
     pool = await get_db()
     async with pool.acquire() as conn:
         row = await _fila_de_cashout(conn, code)
-        await exigir_boleto_de_la_rama(conn, row, agencia_code)
-        await _exigir_cashout_habilitado(conn, agencia_code)
+        await exigir_boleto_de_la_rama(conn, row, vent.agencia_code)
+        await _exigir_cashout_habilitado(conn, vent.agencia_code)
 
-        # El rótulo del movimiento es el code de la agencia autenticada. Antes
-        # era el `ejecutor` que mandaba el cliente ('box', 'agencia', o lo que
-        # quisiera): un historial que dice quién cobró, firmado por el que cobra.
+        # El rótulo del movimiento lo pone el servidor y dice QUIÉN cerró, no
+        # solo de qué agencia era. Antes era el `ejecutor` que mandaba el
+        # cliente ('box', 'agencia', o lo que quisiera): un historial que dice
+        # quién cobró, firmado por el que cobra. Ahora la caja firma con su code
+        # y la terminal con el suyo, y los dos los escribe el servidor.
         return await _cerrar_cashout(pool, conn, row, code,
-                                     agencia_code, destino, valor_esperado)
+                                     vent.ejecutor, destino, valor_esperado)
 
 
 @app.post("/api/betslip/{code}/cashout/pagar-caja")

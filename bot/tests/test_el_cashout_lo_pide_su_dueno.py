@@ -802,10 +802,20 @@ def test_la_puerta_del_jugador_saca_la_agencia_del_jugador(api):
 
 @pytest.mark.parametrize("metodo", ["GET", "POST"])
 def test_la_puerta_de_la_agencia_exige_sesion_y_rama(api, metodo):
+    """La puerta del mostrador sigue pidiendo una sesión y sigue mirando la rama.
+
+    La dependencia pasó de `requiere_agencia` a `requiere_ventanilla` cuando la
+    terminal del local recibió su credencial: por esta puerta entran la agencia
+    Y una terminal suya, con las mismas dos reglas. Lo que esta prueba fija no
+    es el nombre de la dependencia sino que haya una, y que la rama se siga
+    mirando. Que `requiere_ventanilla` no deje pasar al jugador lo fija
+    `test_credencial_de_terminal`.
+    """
     ruta = _ruta(api, metodo, "/api/betslip/{code}/cashout/agencia")
     fuente = inspect.getsource(ruta.endpoint)
 
-    assert "requiere_agencia" in fuente, "dejó de pedir sesión de agencia"
+    assert "Depends(requiere_ventanilla)" in fuente, \
+        "dejó de pedir sesión de mostrador"
     assert "exigir_boleto_de_la_rama" in fuente, "dejó de mirar la rama"
 
 
