@@ -920,13 +920,22 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
     // eslint-disable-next-line
   },[]);
 
+  // La ventanilla tiene su propia puerta: `/cashout/agencia`.
+  //
+  // Antes las dos —la del jugador y la del mostrador— eran la misma ruta sin
+  // autenticación, y quién era cada uno salía de un campo del cuerpo. Ahora
+  // esta ruta pide la sesión de agencia (`requiere_agencia`) y exige que el
+  // boleto sea de la rama, igual que liquidar y que pagar-caja. Por eso van
+  // los `authHeaders`: sin ellos es 401, y es correcto que lo sea.
   const consultarCashout=async()=>{
     setCoMsg(""); setCoProc(true); setCoValor(null);
     try{
-      const r=await fetch(`${API_URL}/api/betslip/${slip.code}/cashout`);
+      const r=await fetch(`${API_URL}/api/betslip/${slip.code}/cashout/agencia`,{
+        headers:{...authHeaders(agencia.token)},
+      });
       const d=await r.json();
       if(d.disponible){ setCoValor(d.valor); setStep("cashout"); }
-      else { setCoMsg(d.motivo||"Cash out no disponible"); }
+      else { setCoMsg(d.motivo||d.detail||"Cash out no disponible"); }
     }catch(e){ setCoMsg("Error al consultar"); }
     setCoProc(false);
   };
@@ -935,9 +944,10 @@ function FlujoCodigo({ agencia, onSesionExpirada }){
     if(coProc) return;
     setCoProc(true); setCoMsg("");
     try{
-      const r=await fetch(`${API_URL}/api/betslip/${slip.code}/cashout`,{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ejecutor:"agencia",valor_esperado:coValor}),
+      const r=await fetch(`${API_URL}/api/betslip/${slip.code}/cashout/agencia`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json",...authHeaders(agencia.token)},
+        body:JSON.stringify({valor_esperado:coValor}),
       });
       const d=await r.json();
       if(r.ok&&d.ok){ setSlip(sl=>({...sl,cashed:true,cash_valor:d.valor})); setStep("done_cashout"); }

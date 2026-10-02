@@ -549,39 +549,28 @@ export default function Box(){
   const [enviando,setEnviando]=useState(false);
   const [errEnvio,setErrEnvio]=useState("");
   const [seccion,setSeccion]=useState("armar");    // armar | combos | mejorar | cashout
-  // Cash out
-  const [coCode,setCoCode]=useState("");
-  const [coValor,setCoValor]=useState(null);
-  const [coMsg,setCoMsg]=useState("");
-  const [coProc,setCoProc]=useState(false);
-  const [coHecho,setCoHecho]=useState(null);
-  const consultarCO=async()=>{
-    if(!coCode.trim()||coProc) return;
-    setCoProc(true); setCoMsg(""); setCoValor(null); setCoHecho(null);
-    try{
-      const r=await fetch(`${API}/api/betslip/${coCode.trim().toUpperCase()}/cashout`);
-      const d=await r.json();
-      if(d.disponible) setCoValor(d.valor);
-      else setCoMsg(d.motivo||"Cash out no disponible");
-    }catch(e){ setCoMsg("Error al consultar"); }
-    setCoProc(false);
-  };
-  const [coTieneCuenta,setCoTieneCuenta]=useState(false);
-  const ejecutarCO=async(destino)=>{
-    if(coProc) return;
-    setCoProc(true); setCoMsg("");
-    try{
-      const r=await fetch(`${API}/api/betslip/${coCode.trim().toUpperCase()}/cashout`,{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ejecutor:"box",valor_esperado:coValor,destino}),
-      });
-      const d=await r.json();
-      if(r.ok&&d.ok){ setCoHecho({valor:d.valor,destino:d.destino,code:d.code,mensaje:d.mensaje});
-        setCoValor(null); }
-      else setCoMsg(d.detail||"No se pudo cashear");
-    }catch(e){ setCoMsg("Error al cashear"); }
-    setCoProc(false);
-  };
+  // ── Cash out: el Box no puede ejecutarlo, y no es un faltante ──
+  //
+  // Esta terminal no tiene identidad. Lo dice el comentario de `QRTerminal`
+  // más arriba: "El Box no maneja sesión de agencia". Lo único que sabe de
+  // sí misma es el código que viene en la URL (/box/AGE002), y una URL no
+  // es una credencial: la escribe cualquiera.
+  //
+  // Hasta ahora eso no se notaba porque el endpoint de cash out no pedía
+  // nada: la terminal cerraba boletos con solo tipear el código del ticket,
+  // y lo mismo podía hacer cualquiera desde cualquier parte. Ese era el
+  // agujero, y el Box era la puerta más visible.
+  //
+  // Ahora el cash out lo pide su dueño —el jugador, con su sesión— o la
+  // ventanilla autenticada. La terminal no es ninguno de los dos: tampoco
+  // puede consultar el valor, porque el boleto tampoco es suyo y el detalle
+  // que devuelve esa consulta es el contenido del ticket.
+  //
+  // Así que la sección queda informativa: dice dónde se pide. No se deja el
+  // botón llamando a un endpoint que va a contestar 401 — un cartel rojo en
+  // la terminal del local es peor que decirle a la persona qué tiene que
+  // hacer. Si el dueño quiere el cash out de vuelta acá, lo que falta es una
+  // credencial para la terminal, no sacarle el candado al endpoint.
   // Combos IA
   const [combos,setCombos]=useState(null);
   // Mejorar por captura
@@ -993,84 +982,36 @@ export default function Box(){
           </div>
         )}
 
-        {/* ── SECCIÓN CASH OUT ── */}
+        {/* ── SECCIÓN CASH OUT ──
+            La terminal no ejecuta cash out: no tiene identidad con la que
+            pedirlo. Ver el comentario de los estados, más arriba. */}
         {seccion==="cashout"&&(
           <div>
             <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>
               <Icon name="wallet-cards" size={16}/> Cash out</div>
             <div style={{color:Q.muted,fontSize:12,marginBottom:14,lineHeight:1.4}}>
-              Ingresá el código de tu apuesta para retirar antes de que termine,
-              al valor actual en vivo.
+              Podés retirar antes de que termine el partido, al valor actual
+              en vivo. Se pide desde tu cuenta o en el mostrador.
             </div>
 
-            {!coHecho&&(
-              <div style={{display:"flex",gap:SPACING[8],marginBottom:14}}>
-                <input value={coCode} onChange={e=>setCoCode(e.target.value.toUpperCase())}
-                  onKeyDown={e=>e.key==="Enter"&&consultarCO()}
-                  placeholder="QP-47829"
-                  style={{flex:1,background:ov(0.06),
-                    border:`1.5px solid ${Q.border}`,borderRadius:RADII.md,padding:"12px 16px",
-                    color:Q.text,fontSize:20,fontWeight:700,letterSpacing:2}}/>
-                <button onClick={consultarCO} disabled={!coCode||coProc}
-                  style={{background:`${Q.gold}33`,border:`1.5px solid ${Q.gold}`,
-                    borderRadius:RADII.md,padding:"0 20px",color:Q.gold,fontWeight:700,
-                    fontSize:14,cursor:"pointer"}}>{coProc?"...":"VER"}</button>
+            <div style={{background:`${Q.gold}12`,border:`1px solid ${Q.gold}`,
+              borderRadius:RADII.lg,padding:SPACING[20],lineHeight:1.5}}>
+              <div style={{color:Q.gold,fontWeight:800,fontSize:14,marginBottom:10}}>
+                Dos formas de pedirlo</div>
+              <div style={{color:Q.text,fontSize:13,marginBottom:10}}>
+                <b>Desde tu cuenta.</b> Entrá a Mis apuestas en la app o en el
+                sitio y tocá Cash out en el boleto. Lo cobrás al instante en tu
+                saldo.
               </div>
-            )}
-
-            {coMsg&&<div style={{color:Q.red,fontSize:13,textAlign:"center",marginBottom:12}}>{coMsg}</div>}
-
-            {coValor!=null&&!coHecho&&(
-              <div style={{background:`${Q.gold}12`,border:`1px solid ${Q.gold}`,
-                borderRadius:RADII.lg,padding:SPACING[20],marginBottom:12,textAlign:"center"}}>
-                <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1}}>
-                  Retirás ahora</div>
-                <div style={{color:Q.gold,fontWeight:900,fontSize:36,margin:"6px 0"}}>
-                  ${Math.round(coValor).toLocaleString("es-AR")}</div>
-                <div style={{color:Q.muted,fontSize:12,marginBottom:16}}>¿Cómo querés cobrarlo?</div>
-                <button onClick={()=>ejecutarCO("cuenta")} disabled={coProc}
-                  style={{width:"100%",background:`linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-                    border:"none",borderRadius:RADII.md,padding:SPACING[16],color:"#fff",fontWeight:700,
-                    fontSize:14,cursor:"pointer",marginBottom:8}}>
-                  A mi cuenta (si tengo)</button>
-                <button onClick={()=>ejecutarCO("mostrador")} disabled={coProc}
-                  style={{width:"100%",background:`${Q.gold}22`,
-                    border:`1px solid ${Q.gold}`,borderRadius:RADII.md,padding:SPACING[16],color:Q.gold,
-                    fontWeight:700,fontSize:14,cursor:"pointer"}}>
-                  Código para cobrar en mostrador</button>
-                <button onClick={()=>{setCoValor(null);setCoCode("");}}
-                  style={{marginTop:10,background:"transparent",border:"none",
-                    color:Q.muted,fontSize:12,cursor:"pointer"}}>Cancelar</button>
+              <div style={{color:Q.text,fontSize:13}}>
+                <b>En el mostrador.</b> Acercate con el ticket y lo hacen en la
+                caja. Si lo pagan en efectivo, te lo dan ahí.
               </div>
-            )}
-
-            {coHecho&&(
-              <div style={{background:`${Q.green}12`,border:`1px solid ${Q.green}`,
-                borderRadius:RADII.lg,padding:SPACING[24],textAlign:"center"}}>
-                <div style={{fontSize:48,marginBottom:8}}>
-                  <Icon name={coHecho.destino==="cuenta"?"circle-check":"receipt-text"}
-                    size={48} color={Q.green}/></div>
-                <div style={{color:Q.green,fontWeight:800,fontSize:18,marginBottom:6}}>
-                  Cash out confirmado</div>
-                <div style={{color:Q.text,fontWeight:900,fontSize:30,marginBottom:8}}>
-                  ${Math.round(coHecho.valor).toLocaleString("es-AR")}</div>
-                {coHecho.destino==="cuenta"?(
-                  <div style={{color:Q.muted,fontSize:13}}>Se acreditó a tu cuenta.</div>
-                ):(
-                  <div>
-                    <div style={{color:Q.muted,fontSize:13,marginBottom:10}}>
-                      Mostrá este código en la caja para cobrar en efectivo:</div>
-                    <div style={{background:ov(0.06),border:`1px solid ${Q.gold}`,
-                      borderRadius:RADII.lg,padding:"16px",color:Q.gold,fontWeight:900,fontSize:26,
-                      letterSpacing:3}}>{coHecho.code}</div>
-                  </div>
-                )}
-                <button onClick={()=>{setCoHecho(null);setCoCode("");setCoValor(null);}}
-                  style={{marginTop:16,background:`${Q.violet}22`,border:`1px solid ${Q.violet}`,
-                    borderRadius:RADII.md,padding:"12px 24px",color:Q.violet2||Q.violet,
-                    fontWeight:700,fontSize:13,cursor:"pointer"}}>Listo</button>
+              <div style={{color:Q.muted,fontSize:12,marginTop:12}}>
+                Esta terminal no lo cierra: mueve plata y hace falta saber de
+                quién es el boleto.
               </div>
-            )}
+            </div>
           </div>
         )}
 
