@@ -19140,18 +19140,135 @@ async def _calcular_cashout(picks, stake, odd_total):
     }
 
 
-@app.get("/api/betslip/{code}/cashout")
-async def cashout_valor(code: str):
-    """Consulta el valor de cash out actual de una apuesta (sin ejecutarlo)."""
-    pool = await get_db()
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow("""
-            SELECT code, picks, stake, odd_total, potential_win, status, user_id,
-                   COALESCE(con_bono, FALSE) AS con_bono
-            FROM betslips WHERE code=$1
-        """, code)
+# ── CASH OUT: EL CASH OUT LO PIDE SU DUEÑO ────────────────────────
+#
+# Son dos puertas, no una, y cada una tiene UNA regla:
+#
+#   · el jugador, sobre su propio boleto
+#       GET/POST  /api/betslip/{code}/cashout
+#   · la agencia, en la ventanilla, sobre un boleto de su rama
+#       GET/POST  /api/betslip/{code}/cashout/agencia
+#
+# Antes era una sola puerta y no tenía NINGUNA autenticación. El permiso de
+# la agencia salía del cuerpo del pedido (`agencia_code`) y encima adentro de
+# un `if`: el que no lo mandaba no pasaba por ninguna verificación. Y ningún
+# frontend lo mandaba nunca —ni la app del jugador, ni la pantalla de
+# agencia, ni la terminal del box—, así que el `puede_cashout` que el admin
+# habilita no se estaba mirando jamás. No era un candado flojo: no había.
+#
+# Con el código del boleto, que va impreso en el ticket, cualquiera cerraba
+# un boleto ajeno y lo dejaba acreditado o cobrable en caja. Plata que se
+# mueve sin que nadie diga quién la movió.
+#
+# POR QUÉ DOS PUERTAS Y NO UN `if` ADENTRO DE UNA. Una sola ruta tenía que
+# decidir quién sos según lo que te mandaste vos mismo, y eso no es una
+# identidad: es una declaración del cliente. Separadas, cada ruta declara en
+# su firma a quién le cree —la sesión del jugador en una, `requiere_agencia`
+# en la otra— y el dato del permiso ya no puede llegar de afuera porque de
+# afuera no se lee. El `agencia_code` del cuerpo quedó sin lector a
+# propósito: mandarlo hoy no cambia absolutamente nada.
+#
+# Un dato de permiso que manda el cliente no es un permiso.
+
+
+async def _jugador_del_cashout(conn, request, body):
+    """
+    El jugador autenticado que pide el cash out, como `users.id`.
+
+    Las dos pantallas del jugador se identifican distinto y las dos tienen
+    que poder entrar: la mini-app manda el `init_data` que firma Telegram en
+    el cuerpo, y el sitio manda `Authorization: Bearer` de su sesión de
+    cliente. Se prueba Telegram primero y la sesión después — el mismo orden
+    y el mismo motivo que en `/api/apuesta`: `jugador_de_sesion` nunca lanza
+    justamente para poder encadenar las dos.
+
+    DEVUELVE `users.id`, NO el `telegram_id`. Lo que se compara después es
+    `betslips.user_id`, que es un `users.id`. Mezclar las dos numeraciones
+    acá haría que la comparación diera bien de casualidad y dejara pasar
+    boletos ajenos: son dos secuencias distintas sobre el mismo rango.
+    """
+    user = validar_init_data(body.get("init_data", ""))
+    if user and user.get("id"):
+        fila = await conn.fetchrow(
+            "SELECT id FROM users WHERE telegram_id=$1", int(user["id"]))
+        if fila:
+            return fila["id"]
+
+    # Sin firma de Telegram —o con una que todavía no tiene cuenta— se prueba
+    # la sesión del sitio. Ninguno de los dos caminos deja saber si el jugador
+    # existe: la respuesta es la misma.
+    jugador = await jugador_de_sesion(request.headers.get("authorization"))
+    if jugador is None:
+        # Texto plano, y no el dict `{"reason": "login_required"}` de
+        # `/api/apuesta`: las pantallas que llaman acá muestran `detail` tal
+        # cual (`setCoMsg(d.detail)`), y un objeto ahí les rompe el render.
+        raise HTTPException(401, "Iniciá sesión para pedir tu cash out")
+    return jugador
+
+
+def _exigir_boleto_del_jugador(row, jugador_id):
+    """
+    Corta con 403 si el boleto no es del jugador autenticado.
+
+    `user_id NULL` es el boleto de mostrador: lo compró alguien que no tiene
+    cuenta, así que no es de ningún jugador y por esta puerta no entra nunca.
+    Ese se cashea por la de la agencia, que lo reconoce por la rama.
+    """
+    if row["user_id"] != jugador_id:
+        # Mismo criterio que el resto: el que pregunta ya tiene el código en
+        # la mano, y un 404 acá le haría creer que lo tipeó mal.
+        raise HTTPException(403, "Ese boleto no es tuyo")
+
+
+async def _exigir_cashout_habilitado(conn, agencia_code):
+    """
+    Corta con 403 si esa agencia no tiene el cash out habilitado.
+
+    El permiso lo da el admin, por agencia o por rama
+    (`/api/admin/agencias/{code}/permiso-cashout`). Acá la verificación es
+    INCONDICIONAL, y eso es el arreglo: antes vivía adentro de un `if` sobre
+    un dato del cuerpo, así que se salteaba sola con solo no mandarlo.
+
+    Sin agencia —`users.creado_por` en NULL, o el 'admin' (CASA) del registro
+    web sin referido— no hay fila que habilite nada y se rechaza. Falla
+    cerrado a propósito: la regla es "si la agencia lo tiene habilitado", y
+    un jugador sin agencia no tiene quién se lo habilite.
+    """
+    if not agencia_code:
+        raise HTTPException(403,
+            "Tu cuenta no tiene una agencia que habilite el cash out. "
+            "Pedíselo al administrador.")
+    ok = await conn.fetchval(
+        "SELECT puede_cashout FROM agencias WHERE code=$1", agencia_code)
+    if not ok:
+        raise HTTPException(403,
+            "Tu agencia no tiene habilitado el cash out. "
+            "Pedíselo al administrador.")
+
+
+async def _fila_de_cashout(conn, code):
+    """La fila del boleto para cashear, o 404.
+
+    `paid_by` se lee aunque esta función no lo use: lo necesita
+    `exigir_boleto_de_la_rama` en la puerta de la agencia, que tiene que
+    saber de quién es el boleto antes de dejar escribirlo.
+    """
+    row = await conn.fetchrow("""
+        SELECT code, picks, stake, odd_total, potential_win, status, user_id,
+               paid_by, COALESCE(con_bono, FALSE) AS con_bono
+        FROM betslips WHERE code=$1
+    """, code)
     if not row:
         raise HTTPException(404, "Apuesta no encontrada")
+    return row
+
+
+async def _valor_de_cashout(row, code):
+    """El valor actual del boleto, en la forma que esperan los dos GET.
+
+    La evaluación es la de ellos (`_calcular_cashout`) y no se toca: acá solo
+    se decide si hay algo que evaluar.
+    """
     if row["status"] not in ("active", "paid"):
         return {"disponible": False, "motivo": f"La apuesta está {row['status']}"}
     # Las apuestas con saldo de bono NO tienen cash out (evita sacar el bono sin rollover)
@@ -19167,105 +19284,82 @@ async def cashout_valor(code: str):
     return res
 
 
-@app.post("/api/betslip/{code}/cashout")
-async def cashout_ejecutar(code: str, request: Request):
-    """Ejecuta el cash out: paga el valor calculado al cliente y cierra la apuesta.
-    body: {ejecutor?: 'cliente'|'agencia'|'box', valor_esperado?: number}"""
-    body = {}
-    try:
-        body = await request.json()
-    except Exception:
-        pass
-    valor_esperado = body.get("valor_esperado")
-    ejecutor = (body.get("ejecutor") or "cliente")[:20]
-    # destino: 'cuenta' acredita al saldo; 'mostrador' deja un código cobrable en caja
-    destino = (body.get("destino") or "cuenta")[:12]
-    agencia_ejec = (body.get("agencia_code") or "").upper() or None
+async def _cerrar_cashout(pool, conn, row, code, ejecutor, destino, valor_esperado):
+    """
+    Fija el valor y cierra el boleto. El movimiento de plata, uno solo.
 
-    pool = await get_db()
-    async with pool.acquire() as conn:
-        # Si lo ejecuta una agencia, tiene que tenerlo habilitado. El
-        # permiso lo da el admin, por agencia o por rama.
-        if agencia_ejec:
-            ok = await conn.fetchval(
-                "SELECT puede_cashout FROM agencias WHERE code=$1", agencia_ejec)
-            if not ok:
-                raise HTTPException(403,
-                    "Tu agencia no tiene habilitado el cash out. "
-                    "Pedíselo al administrador.")
-        row = await conn.fetchrow("""
-            SELECT code, picks, stake, odd_total, potential_win, status, user_id,
-                   COALESCE(con_bono, FALSE) AS con_bono
-            FROM betslips WHERE code=$1
-        """, code)
-        if not row:
-            raise HTTPException(404, "Apuesta no encontrada")
-        if row["status"] not in ("active", "paid"):
-            raise HTTPException(400, f"La apuesta está {row['status']}, no se puede cashear")
-        # Las apuestas con bono no tienen cash out
-        if row["con_bono"]:
-            raise HTTPException(400, "Las apuestas con bono no tienen cash out")
+    Vive en una función y no duplicado en las dos puertas porque es la parte
+    que mueve el saldo: dos copias se separan con el primer arreglo que se
+    haga en una sola, y la que quede atrás paga mal sin que nadie la mire.
+    Las puertas deciden QUIÉN puede; esto hace QUÉ pasa.
 
-        # ¿La apuesta tiene una cuenta real detrás? (telegram_id > 0 = cuenta de usuario)
-        tiene_cuenta = False
-        if row["user_id"]:
-            tg = await conn.fetchval(
-                "SELECT telegram_id FROM users WHERE id=$1", row["user_id"])
-            tiene_cuenta = (tg or 0) > 0
-        # Si pidió acreditar a cuenta pero no hay cuenta, forzar mostrador
-        if destino == "cuenta" and not tiene_cuenta:
-            destino = "mostrador"
+    `ejecutor` lo pone el servidor, nunca el cuerpo del pedido: queda escrito
+    en el `method` del movimiento de billetera, y un rótulo de auditoría que
+    elige el cliente es una firma que se puede falsificar.
+    """
+    if row["status"] not in ("active", "paid"):
+        raise HTTPException(400, f"La apuesta está {row['status']}, no se puede cashear")
+    # Las apuestas con bono no tienen cash out
+    if row["con_bono"]:
+        raise HTTPException(400, "Las apuestas con bono no tienen cash out")
 
+    # ¿La apuesta tiene una cuenta real detrás? (telegram_id > 0 = cuenta de usuario)
+    tiene_cuenta = False
+    if row["user_id"]:
+        tg = await conn.fetchval(
+            "SELECT telegram_id FROM users WHERE id=$1", row["user_id"])
+        tiene_cuenta = (tg or 0) > 0
+    # Si pidió acreditar a cuenta pero no hay cuenta, forzar mostrador
+    if destino == "cuenta" and not tiene_cuenta:
+        destino = "mostrador"
+
+    res = await _valor_de_cashout(row, code)
+    if not res.get("disponible"):
+        raise HTTPException(400, res.get("motivo", "Cash out no disponible"))
+
+    valor = res["valor"]
+    # Protección: si el valor cambió mucho desde que el usuario lo vio, rechazar
+    if valor_esperado is not None:
         try:
-            picks = ast.literal_eval(row["picks"]) if row["picks"] else []
-        except Exception:
-            picks = []
-        res = await _calcular_cashout(picks, row["stake"], row["odd_total"])
-        if not res.get("disponible"):
-            raise HTTPException(400, res.get("motivo", "Cash out no disponible"))
+            ve = float(valor_esperado)
+            if abs(ve - valor) > max(1.0, valor * 0.05):
+                raise HTTPException(409, f"El valor cambió (ahora {valor}). Reintentá.")
+        except (TypeError, ValueError):
+            pass
 
-        valor = res["valor"]
-        # Protección: si el valor cambió mucho desde que el usuario lo vio, rechazar
-        if valor_esperado is not None:
+    async with conn.transaction():
+        if destino == "cuenta":
+            # Acreditar el valor al usuario (balance en centavos)
+            await conn.execute(
+                "UPDATE users SET balance = balance + $2 WHERE id=$1",
+                row["user_id"], int(round(valor * 100)))
+            await conn.execute("""
+                UPDATE betslips
+                SET status='cashed_out', potential_win=$2, resultado='cashout'
+                WHERE code=$1
+            """, code, valor)
             try:
-                ve = float(valor_esperado)
-                if abs(ve - valor) > max(1.0, valor * 0.05):
-                    raise HTTPException(409, f"El valor cambió (ahora {valor}). Reintentá.")
-            except (TypeError, ValueError):
+                await conn.execute("""
+                    INSERT INTO wallet_transactions (user_id, type, amount, method, status)
+                    VALUES ($1, 'cashout', $2, $3, 'done')
+                """, row["user_id"], int(round(valor * 100)),
+                    f"apuesta {code} por {ejecutor}")
+            except Exception:
                 pass
-
-        async with conn.transaction():
-            if destino == "cuenta":
-                # Acreditar el valor al usuario (balance en centavos)
-                await conn.execute(
-                    "UPDATE users SET balance = balance + $2 WHERE id=$1",
-                    row["user_id"], int(round(valor * 100)))
-                await conn.execute("""
-                    UPDATE betslips
-                    SET status='cashed_out', potential_win=$2, resultado='cashout'
-                    WHERE code=$1
-                """, code, valor)
-                try:
-                    await conn.execute("""
-                        INSERT INTO wallet_transactions (user_id, type, amount, method, status)
-                        VALUES ($1, 'cashout', $2, $3, 'done')
-                    """, row["user_id"], int(round(valor * 100)),
-                        f"apuesta {code} por {ejecutor}")
-                except Exception:
-                    pass
-            else:
-                # MOSTRADOR: cerrar la apuesta y dejarla lista para cobrar en caja.
-                # status 'cashout_pending' = el valor está fijado, falta que la caja pague.
-                await conn.execute("""
-                    UPDATE betslips
-                    SET status='cashout_pending', potential_win=$2, resultado='cashout'
-                    WHERE code=$1
-                """, code, valor)
+        else:
+            # MOSTRADOR: cerrar la apuesta y dejarla lista para cobrar en caja.
+            # status 'cashout_pending' = el valor está fijado, falta que la caja pague.
+            await conn.execute("""
+                UPDATE betslips
+                SET status='cashout_pending', potential_win=$2, resultado='cashout'
+                WHERE code=$1
+            """, code, valor)
 
     saldo = None
     if destino == "cuenta":
-        async with pool.acquire() as conn:
-            saldo = await conn.fetchval("SELECT balance FROM users WHERE id=$1", row["user_id"])
+        async with pool.acquire() as conn2:
+            saldo = await conn2.fetchval(
+                "SELECT balance FROM users WHERE id=$1", row["user_id"])
         saldo = (saldo or 0) / 100
 
     return {"ok": True, "valor": valor, "code": code, "destino": destino,
@@ -19273,6 +19367,116 @@ async def cashout_ejecutar(code: str, request: Request):
             "saldo": saldo,
             "mensaje": ("Acreditado a tu cuenta" if destino == "cuenta"
                         else f"Mostrá el código {code} en la caja para cobrar {round(valor)}")}
+
+
+# ── La puerta del jugador ─────────────────────────────────────────
+
+@app.get("/api/betslip/{code}/cashout")
+async def cashout_valor(code: str, request: Request):
+    """El jugador consulta el valor de cash out de SU apuesta (sin ejecutarlo).
+
+    Cerrado con la misma regla que el POST aunque solo lea. No devuelve un
+    número suelto: `detalle` trae selección por selección con su cuota
+    original y la viva, o sea el contenido del ticket. Y el código va
+    impreso: abierto, alcanzaba con tipear códigos para leer boletos ajenos y
+    para saber cuál conviene cerrar antes de cerrarlo.
+    """
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        jugador = await _jugador_del_cashout(conn, request, body)
+        row = await _fila_de_cashout(conn, code)
+        _exigir_boleto_del_jugador(row, jugador)
+    # Fuera del `async with`: `_calcular_cashout` sale a buscar cuotas vivas y
+    # no tiene por qué tener una conexión de la base tomada mientras espera.
+    return await _valor_de_cashout(row, code)
+
+
+@app.post("/api/betslip/{code}/cashout")
+async def cashout_ejecutar(code: str, request: Request):
+    """El jugador ejecuta el cash out de SU apuesta.
+
+    body: {init_data?: str, valor_esperado?: number, destino?: 'cuenta'|'mostrador'}
+
+    Tres candados, en este orden: quién sos, que el boleto sea tuyo, y que TU
+    agencia tenga el cash out habilitado. La agencia sale de
+    `users.creado_por` del jugador autenticado, nunca del cuerpo del pedido.
+    `ejecutor` y `agencia_code` del cuerpo ya no se leen.
+    """
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    valor_esperado = body.get("valor_esperado")
+    # destino: 'cuenta' acredita al saldo; 'mostrador' deja un código cobrable en caja
+    destino = (body.get("destino") or "cuenta")[:12]
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        jugador = await _jugador_del_cashout(conn, request, body)
+        row = await _fila_de_cashout(conn, code)
+        _exigir_boleto_del_jugador(row, jugador)
+        # La agencia del JUGADOR, no la del pedido. Este `fetchval` es el
+        # corazón del arreglo: el permiso se busca a partir de la identidad
+        # que el servidor verificó, así que no hay nada que mandar para
+        # torcerlo.
+        agencia_del_jugador = await conn.fetchval(
+            "SELECT creado_por FROM users WHERE id=$1", jugador)
+        await _exigir_cashout_habilitado(conn, agencia_del_jugador)
+
+        return await _cerrar_cashout(pool, conn, row, code,
+                                     "cliente", destino, valor_esperado)
+
+
+# ── La puerta del mostrador ───────────────────────────────────────
+
+@app.get("/api/betslip/{code}/cashout/agencia")
+async def cashout_valor_agencia(code: str,
+                                agencia_code: str = Depends(requiere_agencia)):
+    """La ventanilla consulta el valor de cash out de un boleto de su rama."""
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        row = await _fila_de_cashout(conn, code)
+        await exigir_boleto_de_la_rama(conn, row, agencia_code)
+    return await _valor_de_cashout(row, code)
+
+
+@app.post("/api/betslip/{code}/cashout/agencia")
+async def cashout_ejecutar_agencia(code: str, request: Request,
+                                   agencia_code: str = Depends(requiere_agencia)):
+    """La ventanilla ejecuta el cash out de un boleto de su rama.
+
+    body: {valor_esperado?: number, destino?: 'cuenta'|'mostrador'}
+
+    La misma pertenencia que `liquidar_apuesta` y `cashout_pagar_caja`:
+    `exigir_boleto_de_la_rama`. Y el `puede_cashout` de la agencia que está
+    autenticada, no de una que venga escrita en el cuerpo.
+    """
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    valor_esperado = body.get("valor_esperado")
+    destino = (body.get("destino") or "cuenta")[:12]
+
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        row = await _fila_de_cashout(conn, code)
+        await exigir_boleto_de_la_rama(conn, row, agencia_code)
+        await _exigir_cashout_habilitado(conn, agencia_code)
+
+        # El rótulo del movimiento es el code de la agencia autenticada. Antes
+        # era el `ejecutor` que mandaba el cliente ('box', 'agencia', o lo que
+        # quisiera): un historial que dice quién cobró, firmado por el que cobra.
+        return await _cerrar_cashout(pool, conn, row, code,
+                                     agencia_code, destino, valor_esperado)
 
 
 @app.post("/api/betslip/{code}/cashout/pagar-caja")

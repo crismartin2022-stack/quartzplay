@@ -1880,22 +1880,33 @@ function CashOutBtn({ code, moneda, onHecho }){
   const [msg,setMsg]=useState("");
   const mon = moneda || "ARS";
 
+  // Los dos pedidos van por `fetchConSesion`, no por `fetch` pelado.
+  //
+  // El cash out es el único movimiento de plata que pedía el jugador sin
+  // mandar quién era: el servidor lo cerraba con solo el código del boleto,
+  // que va impreso en el ticket. Ahora las dos puertas piden identidad, así
+  // que acá hay que mandarla — y es la misma sesión que ya usan el historial
+  // y el soporte, con su reintento si el token venció con la app abierta.
+  //
+  // `ejecutor` salió del cuerpo: lo elegía el cliente y terminaba escrito en
+  // el historial de la billetera, o sea una firma que el firmante elegía. Lo
+  // pone el servidor.
   const consultar=async()=>{
     setEstado("cargando"); setMsg("");
     try{
-      const r=await fetch(`${API}/api/betslip/${code}/cashout`);
+      const r=await fetchConSesion(`${API}/api/betslip/${code}/cashout`);
       const d=await r.json();
       if(d.disponible){ setValor(d.valor); setEstado("confirmar"); }
-      else { setMsg(d.motivo||"No disponible ahora"); setEstado("error"); }
+      else { setMsg(d.motivo||d.detail||"No disponible ahora"); setEstado("error"); }
     }catch(e){ setMsg("Error al consultar"); setEstado("error"); }
   };
 
   const ejecutar=async()=>{
     setEstado("ejecutando");
     try{
-      const r=await fetch(`${API}/api/betslip/${code}/cashout`,{
+      const r=await fetchConSesion(`${API}/api/betslip/${code}/cashout`,{
         method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ejecutor:"cliente",valor_esperado:valor}),
+        body:JSON.stringify({valor_esperado:valor}),
       });
       const d=await r.json();
       if(r.ok&&d.ok){ setEstado("ok"); setMsg(`Cobraste ${money(d.valor,mon)}`);
