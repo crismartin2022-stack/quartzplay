@@ -1,4 +1,4 @@
-"""Consumidor del feed de GR8 (etapa 0: conectarse y registrar lo que llega).
+"""Consumidor del feed de GR8: registra lo que llega y escribe la taxonomía.
 
 Proceso aparte, declarado como `feed` en el Procfile. UNA sola réplica: los
 consumidores de una misma cola se reparten los mensajes, así que un segundo
@@ -17,7 +17,13 @@ Las reglas que no se negocian, y por qué:
 - Reconexión con espera creciente, sin intervención humana.
 
 Qué hace con los mensajes: contarlos y guardar unas pocas muestras (ver
-`gr8_feed.Lote`). No los interpreta.
+`gr8_feed.Lote`), y de las tres colas de taxonomía —deportes, categorías y
+torneos— escribir una fila por entidad. Las otras seis siguen sin
+interpretarse: se cuentan y se muestrean, nada más.
+
+La observación manda sobre la interpretación: un mensaje de taxonomía que no
+se entiende se cuenta en `descartados` y se sigue. Dejar de contar TODAS las
+colas por un mensaje raro de una sola es un cambio malo.
 """
 
 from __future__ import annotations
@@ -49,13 +55,14 @@ from gr8_feed import (
 log = logging.getLogger("gr8")
 
 _UPSERT_CUBO = """
-INSERT INTO public.gr8_obs_minuto AS t (cola, minuto, mensajes, bytes, bytes_max, reentregados)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO public.gr8_obs_minuto AS t (cola, minuto, mensajes, bytes, bytes_max, reentregados, descartados)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (cola, minuto) DO UPDATE SET
     mensajes     = t.mensajes + EXCLUDED.mensajes,
     bytes        = t.bytes + EXCLUDED.bytes,
     bytes_max    = GREATEST(t.bytes_max, EXCLUDED.bytes_max),
-    reentregados = t.reentregados + EXCLUDED.reentregados
+    reentregados = t.reentregados + EXCLUDED.reentregados,
+    descartados  = t.descartados + EXCLUDED.descartados
 """
 
 _INSERTAR_MUESTRA = """
@@ -73,6 +80,90 @@ WHERE cola = $1
       WHERE cola = $1 ORDER BY id DESC LIMIT $2
   )
 """
+
+# --- Taxonomía -----------------------------------------------------------
+#
+# Las tres escrituras comparten la misma puerta: `WHERE EXCLUDED.data_version
+# > t.data_version`. Un mensaje con versión menor o igual no escribe nada.
+# Va en el `ON CONFLICT` y no en un "leer y después escribir" porque leer
+# primero deja una ventana en la que dos mensajes de la misma entidad se
+# pisan; acá la comparación y la escritura son el mismo statement.
+#
+# Lo que NO se usa acá, y es a propósito: `IS DISTINCT FROM`. En la cola de
+# mercados es parte del diseño, porque ahí rota el 35% de las claves por
+# mensaje. Acá sería un error: si la versión avanza y el contenido no
+# cambió, saltear la escritura dejaría `data_version` atrasada, y entonces
+# un mensaje intermedio y desordenado le ganaría a uno que ya habíamos
+# visto. Son 39, 1.301 y 26.913 mensajes EN TOTAL: no hay nada que ahorrar
+# y sí una regla de orden que no se puede aflojar.
+
+_UPSERT_DEPORTE = """
+INSERT INTO public.gr8_deporte AS t
+    (id, nombre, nombre_idioma, slug, data_version, actualizado_at)
+VALUES ($1, $2, $3, $4, $5, now())
+ON CONFLICT (id) DO UPDATE SET
+    nombre         = EXCLUDED.nombre,
+    nombre_idioma  = EXCLUDED.nombre_idioma,
+    slug           = EXCLUDED.slug,
+    data_version   = EXCLUDED.data_version,
+    actualizado_at = now()
+WHERE EXCLUDED.data_version > t.data_version
+"""
+
+_UPSERT_CATEGORIA = """
+INSERT INTO public.gr8_categoria AS t
+    (id, deporte_id, nombre, nombre_idioma, slug, data_version, actualizado_at)
+VALUES ($1, $2, $3, $4, $5, $6, now())
+ON CONFLICT (id) DO UPDATE SET
+    deporte_id     = EXCLUDED.deporte_id,
+    nombre         = EXCLUDED.nombre,
+    nombre_idioma  = EXCLUDED.nombre_idioma,
+    slug           = EXCLUDED.slug,
+    data_version   = EXCLUDED.data_version,
+    actualizado_at = now()
+WHERE EXCLUDED.data_version > t.data_version
+"""
+
+_UPSERT_TORNEO = """
+INSERT INTO public.gr8_torneo AS t
+    (id, categoria_id, deporte_id, nombre, nombre_idioma, slug, data_version, actualizado_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+ON CONFLICT (id) DO UPDATE SET
+    categoria_id   = EXCLUDED.categoria_id,
+    deporte_id     = EXCLUDED.deporte_id,
+    nombre         = EXCLUDED.nombre,
+    nombre_idioma  = EXCLUDED.nombre_idioma,
+    slug           = EXCLUDED.slug,
+    data_version   = EXCLUDED.data_version,
+    actualizado_at = now()
+WHERE EXCLUDED.data_version > t.data_version
+"""
+
+
+def sentencia_taxonomia(fila: gr8_feed.Taxonomia) -> tuple[str, tuple]:
+    """La escritura de una fila de taxonomía, con sus parámetros en orden.
+
+    Separado de `escribir_lote` para poder fijar en una prueba qué se manda a
+    la base sin necesitar una base: el orden de los parámetros de un upsert
+    es justo lo que se equivoca en silencio.
+    """
+    if fila.clase == "deporte":
+        return _UPSERT_DEPORTE, (
+            fila.id, fila.nombre, fila.nombre_idioma, fila.slug, fila.data_version,
+        )
+    if fila.clase == "categoria":
+        return _UPSERT_CATEGORIA, (
+            fila.id, fila.deporte_id, fila.nombre, fila.nombre_idioma, fila.slug,
+            fila.data_version,
+        )
+    if fila.clase == "torneo":
+        return _UPSERT_TORNEO, (
+            fila.id, fila.categoria_id, fila.deporte_id, fila.nombre,
+            fila.nombre_idioma, fila.slug, fila.data_version,
+        )
+    # Una clase que no se conoce no se adivina: fallar acá es un error de
+    # programación nuestro, no un mensaje raro de GR8.
+    raise ValueError(f"clase de taxonomía desconocida: {fila.clase!r}")
 
 
 async def abrir_pool() -> asyncpg.Pool:
@@ -101,7 +192,15 @@ async def escribir_lote(pool: asyncpg.Pool, lote: Lote) -> None:
                     await conn.execute(
                         _UPSERT_CUBO, cola, minuto,
                         c.mensajes, c.bytes, c.bytes_max, c.reentregados,
+                        c.descartados,
                     )
+                # La taxonomía va en la MISMA transacción que la observación,
+                # y por lo tanto antes de confirmar: si esto falla, nada se
+                # confirma y el broker devuelve los mensajes. Un torneo
+                # perdido no se recupera mirando los contadores.
+                for fila in lote.taxonomia.values():
+                    sql, args = sentencia_taxonomia(fila)
+                    await conn.execute(sql, *args)
                 for m in lote.muestras:
                     await conn.execute(
                         _INSERTAR_MUESTRA, m.cola, m.bytes, m.truncado, m.cuerpo,

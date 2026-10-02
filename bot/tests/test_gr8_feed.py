@@ -5,6 +5,7 @@ conexión real: las credenciales de GR8 son del dueño y se están rotando.
 """
 
 import asyncio
+import json
 
 import pytest
 
@@ -384,3 +385,494 @@ def test_un_error_de_tipeo_no_frena_la_observacion():
     for basura in ("", "  ", "mucho", "0", "-1", "12.5"):
         assert gr8_feed.muestra_max_bytes({"GR8_FEED_MUESTRA_BYTES": basura}) \
             == gr8_feed.MUESTRA_MAX_BYTES_POR_DEFECTO, f"falló con {basura!r}"
+
+
+# ── La taxonomía: deportes, categorías y torneos (G3) ──────────
+#
+# Los cuerpos de ejemplo tienen la forma REAL medida sobre las 30 muestras de
+# estas tres colas (mismos campos, mismo formato de id: "Bandy" en deportes y
+# 32 hex en las otras dos). Lo único recortado son los mapas de nombres, que
+# en el feed traen hasta 41 idiomas y no aportan nada a la prueba.
+
+
+def _cuerpo(obj) -> bytes:
+    return json.dumps(obj).encode()
+
+
+DEPORTE = {
+    "id": "Bandy",
+    "name": {"pl": "Bandy", "ru": "Хоккей с мячем", "es": "Bandy", "en": "Bandy"},
+    "nameMobile": {},
+    "timestamp": "2026-10-02T12:34:10.3527363Z",
+    "sourceTimestamp": "2026-10-02T12:34:10.3041244Z",
+    "dataVersion": 46,
+    "slug": "bandy",
+}
+
+CATEGORIA = {
+    "id": "b70e95fbab014e50a84ea378a0fc538f",
+    "name": {"en": "Trinidad and Tobago", "ru": "Тринидад и Тобаго"},
+    "nameMobile": {},
+    "dataVersion": 10,
+    "slug": "trinidad-and-tobago",
+    "labels": {"iconCode": "TTO", "isCybersport": "False", "isActive": "True"},
+    "sport": "Basketball",
+    "metadataSport": 0,
+}
+
+TORNEO = {
+    "id": "0ff594c47b2d4dd3afad0ba938b9da96",
+    "categoryId": "79491576917246a3869da73d52f2ffd5",
+    "name": {"ru": "Мадрид Челленджер", "en": "Madrid Challenger"},
+    "nameMobile": {},
+    "dataVersion": 2,
+    "isInternational": False,
+    "gender": "None",
+    "stage": None,
+    "slug": "madrid-challenger",
+    "labels": {"isCybersport": "False", "isActive": "False"},
+    "sport": "Basketball",
+    "metadataSport": 3,
+}
+
+
+# --- Qué cola trae qué -----------------------------------------------------
+
+
+def test_solo_estas_tres_colas_se_interpretan():
+    # Riesgo: empezar a interpretar `markets` (62 KB y 20/s) por accidente,
+    # que es justo lo que esta unidad NO toca.
+    assert gr8_feed.clase_de_cola("sports-queue") == "deporte"
+    assert gr8_feed.clase_de_cola("categories-queue") == "categoria"
+    assert gr8_feed.clase_de_cola("tournaments-queue") == "torneo"
+    for otra in ("markets-queue", "market-results-queue", "events-queue",
+                 "scores-queue", "event-free-form-templates-queue",
+                 "line-items-dependency-pairs-queue"):
+        assert gr8_feed.clase_de_cola(otra) is None, otra
+    assert len(gr8_feed.COLAS_TAXONOMIA) == 3
+    # y las tres que se interpretan son de verdad colas del feed
+    assert set(gr8_feed.COLAS_TAXONOMIA) <= set(COLAS_BASE)
+
+
+def test_el_sufijo_del_entorno_no_esconde_la_cola():
+    # Riesgo medido: el sufijo real es `-int` en minúscula, no `-INT`. Si la
+    # clase se decidiera por igualdad exacta, en staging no se interpretaría
+    # nada y la tabla quedaría vacía sin un solo error en el registro.
+    for sufijo in ("-int", "-INT", "-TEST", ""):
+        assert gr8_feed.clase_de_cola(f"tournaments-queue{sufijo}") == "torneo"
+        assert gr8_feed.clase_de_cola(f"markets-queue{sufijo}") is None
+
+
+# --- Un mensaje llena su fila ---------------------------------------------
+
+
+def test_un_mensaje_de_deporte_llena_su_fila():
+    fila = gr8_feed.interpretar_taxonomia("deporte", _cuerpo(DEPORTE))
+    assert (fila.clase, fila.id, fila.data_version) == ("deporte", "Bandy", 46)
+    assert (fila.nombre, fila.nombre_idioma) == ("Bandy", "es")
+    assert fila.slug == "bandy"
+    # un deporte no tiene padre
+    assert fila.deporte_id is None and fila.categoria_id is None
+
+
+def test_un_mensaje_de_categoria_llena_su_fila_con_su_deporte():
+    fila = gr8_feed.interpretar_taxonomia("categoria", _cuerpo(CATEGORIA))
+    assert fila.id == "b70e95fbab014e50a84ea378a0fc538f"
+    assert fila.deporte_id == "Basketball"
+    assert (fila.nombre, fila.nombre_idioma) == ("Trinidad and Tobago", "en")
+    assert fila.data_version == 10
+
+
+def test_un_mensaje_de_torneo_llena_su_fila_con_categoria_y_deporte():
+    fila = gr8_feed.interpretar_taxonomia("torneo", _cuerpo(TORNEO))
+    assert fila.id == "0ff594c47b2d4dd3afad0ba938b9da96"
+    assert fila.categoria_id == "79491576917246a3869da73d52f2ffd5"
+    assert fila.deporte_id == "Basketball"
+    assert (fila.nombre, fila.nombre_idioma) == ("Madrid Challenger", "en")
+
+
+def test_el_id_del_deporte_no_es_un_guid():
+    # Riesgo: validar la forma del id y perder los 39 deportes, cuyo id es
+    # el nombre en inglés y no un guid como en las otras dos colas.
+    assert gr8_feed.interpretar_taxonomia("deporte", _cuerpo(DEPORTE)).id == "Bandy"
+
+
+# --- El orden: `dataVersion`, no `sourceDataVersion` ----------------------
+
+
+def test_el_orden_se_decide_con_dataversion():
+    # Riesgo: usar `sourceDataVersion` como en `markets` y `events`. Acá no
+    # viene (0 de 30 muestras), y los dos campos van desfasados: confundirlos
+    # es pisar un dato nuevo con uno viejo.
+    fila = gr8_feed.interpretar_taxonomia(
+        "torneo", _cuerpo({**TORNEO, "dataVersion": 7, "sourceDataVersion": 999}))
+    assert fila.data_version == 7
+
+
+def test_sin_dataversion_el_mensaje_no_se_guarda_con_version_inventada():
+    # Riesgo: poner 0 cuando falta. Con 0 guardado, el próximo mensaje
+    # cualquiera le gana, y la puerta de versión deja de servir.
+    for roto in ({k: v for k, v in TORNEO.items() if k != "dataVersion"},
+                 {**TORNEO, "dataVersion": None},
+                 {**TORNEO, "dataVersion": "2"},
+                 {**TORNEO, "dataVersion": 2.5},
+                 {**TORNEO, "dataVersion": True}):
+        with pytest.raises(gr8_feed.MensajeIlegible):
+            gr8_feed.interpretar_taxonomia("torneo", _cuerpo(roto))
+
+
+def test_una_version_menor_no_pisa_a_una_mayor_dentro_del_lote():
+    # Riesgo medido: la ráfaga de arranque trajo el MISMO torneo siete veces
+    # en el mismo instante. Si gana el último en llegar, queda el viejo.
+    lote = Lote()
+    for v in (9, 2, 5):
+        lote.registrar("tournaments-queue-int",
+                       _cuerpo({**TORNEO, "dataVersion": v,
+                                "name": {"en": f"v{v}"}}),
+                       f"m{v}", 1000.0)
+    (fila,) = lote.taxonomia.values()
+    assert fila.data_version == 9 and fila.nombre == "v9"
+    # los tres mensajes se cuentan y se confirman igual: lo que no se guarda
+    # es la FILA vieja, no el mensaje.
+    assert len(lote.pendientes) == 3
+    assert lote.cubos[("tournaments-queue-int", minuto_de(1000.0))].mensajes == 3
+
+
+def test_una_version_igual_tampoco_pisa():
+    # Estrictamente mayor: una republicación idéntica no tiene que reescribir.
+    lote = Lote()
+    lote.registrar("tournaments-queue", _cuerpo({**TORNEO, "dataVersion": 4,
+                                                 "name": {"en": "primero"}}), "a", 0.0)
+    lote.registrar("tournaments-queue", _cuerpo({**TORNEO, "dataVersion": 4,
+                                                 "name": {"en": "segundo"}}), "b", 0.0)
+    (fila,) = lote.taxonomia.values()
+    assert fila.nombre == "primero"
+
+
+def test_cada_entidad_es_una_fila_aunque_vengan_mezcladas():
+    lote = Lote()
+    lote.registrar("sports-queue", _cuerpo(DEPORTE), "a", 0.0)
+    lote.registrar("categories-queue", _cuerpo(CATEGORIA), "b", 0.0)
+    lote.registrar("tournaments-queue", _cuerpo(TORNEO), "c", 0.0)
+    lote.registrar("tournaments-queue", _cuerpo({**TORNEO, "id": "otro",
+                                                 "dataVersion": 1}), "d", 0.0)
+    assert sorted(c for c, _ in lote.taxonomia) == ["categoria", "deporte",
+                                                    "torneo", "torneo"]
+    assert len(lote.taxonomia) == 4
+
+
+def test_el_lote_que_se_reintenta_conserva_la_version_mas_alta():
+    # Riesgo: tras un fallo de la base, juntar los dos lotes y quedarse con
+    # la versión equivocada porque el orden del merge decide.
+    rec = Recolector()
+    rec.actual.registrar("tournaments-queue", _cuerpo({**TORNEO, "dataVersion": 8}),
+                         "m0", 1000.0)
+    fallido = rec.tomar()
+    rec.actual.registrar("tournaments-queue", _cuerpo({**TORNEO, "dataVersion": 3}),
+                         "m1", 1010.0)
+    rec.devolver(fallido)
+    (fila,) = rec.actual.taxonomia.values()
+    assert fila.data_version == 8
+    assert rec.actual.pendientes == ["m0", "m1"]
+
+
+# --- La regla de respaldo del idioma --------------------------------------
+
+
+def test_el_respaldo_elige_espanol_cuando_esta():
+    assert gr8_feed.elegir_nombre({"en": "Basketball", "es": "Baloncesto"}) \
+        == ("Baloncesto", "es")
+
+
+def test_el_respaldo_elige_ingles_cuando_no_hay_espanol():
+    # Medido: `categories.name` trae `es` 0 de 10 veces. Sin este respaldo,
+    # las categorías no tendrían nombre.
+    assert gr8_feed.elegir_nombre({"ru": "Тринидад", "en": "Trinidad"}) \
+        == ("Trinidad", "en")
+
+
+def test_sin_espanol_ni_ingles_se_toma_la_primera_que_haya():
+    # Un nombre en un idioma cualquiera es mejor que ninguno. CASO NUNCA
+    # OBSERVADO: en las 30 muestras reales `en` vino siempre. Se prueba
+    # sintético a propósito, y que pase no demuestra que GR8 lo mande.
+    assert gr8_feed.elegir_nombre({"ko": "밴디", "ja": "バンディ"}) == ("밴디", "ko")
+
+
+def test_un_nombre_vacio_no_le_gana_al_respaldo():
+    # Riesgo: `es` presente pero en blanco deja la pantalla sin texto y
+    # además tapa al inglés, que sí tenía algo.
+    assert gr8_feed.elegir_nombre({"es": "   ", "en": "Madrid"}) == ("Madrid", "en")
+    assert gr8_feed.elegir_nombre({"es": "", "en": "", "it": "Madrid"}) == ("Madrid", "it")
+
+
+def test_no_se_inventa_un_nombre_cuando_no_hay_ninguno():
+    for vacio in ({}, None, {"es": ""}, {"es": None}, [], "Bandy", {"es": 5}):
+        assert gr8_feed.elegir_nombre(vacio) is None, vacio
+
+
+def test_sin_nombre_la_fila_existe_igual_y_lo_dice():
+    # Riesgo: descartar la entidad por no tener nombre y romper el enganche
+    # de todos sus eventos. La fila va, con el idioma en None para poder
+    # contarlas.
+    fila = gr8_feed.interpretar_taxonomia(
+        "torneo", _cuerpo({**TORNEO, "name": {}}))
+    assert fila.nombre is None and fila.nombre_idioma is None
+    assert fila.id == TORNEO["id"] and fila.categoria_id == TORNEO["categoryId"]
+
+
+def test_el_slug_nunca_se_usa_como_nombre():
+    # Riesgo: rellenar con el slug es inventar un nombre, y además es texto
+    # técnico: "madrid-challenger" no es algo que un jugador deba leer.
+    fila = gr8_feed.interpretar_taxonomia("torneo", _cuerpo({**TORNEO, "name": {}}))
+    assert fila.slug == "madrid-challenger"
+    assert fila.nombre != fila.slug
+
+
+def test_la_columna_de_idioma_dice_la_verdad():
+    # Riesgo: anotar siempre "es" y no poder medir la cobertura. Es la razón
+    # por la que la columna existe: sin ella, la cobertura se descubre cuando
+    # un jugador ve una categoría en inglés.
+    casos = {
+        "es": {"es": "Baloncesto", "en": "Basketball"},
+        "en": {"en": "Trinidad and Tobago", "ru": "Тринидад"},
+        "ko": {"ko": "밴디"},
+    }
+    for esperado, nombres in casos.items():
+        fila = gr8_feed.interpretar_taxonomia(
+            "categoria", _cuerpo({**CATEGORIA, "name": nombres}))
+        assert fila.nombre_idioma == esperado
+        assert fila.nombre == nombres[esperado]
+
+
+def test_la_cobertura_de_espanol_se_puede_contar_con_la_columna():
+    # La consulta que mide la puerta, hecha en memoria: tres entidades, una
+    # con español. La columna tiene que dar 1 de 3, no 3 de 3.
+    nombres = [{"es": "Fútbol", "en": "Football"}, {"en": "Cricket"}, {"ru": "Бокс"}]
+    idiomas = [gr8_feed.interpretar_taxonomia(
+        "deporte", _cuerpo({**DEPORTE, "id": f"d{i}", "name": n})).nombre_idioma
+        for i, n in enumerate(nombres)]
+    assert idiomas.count("es") == 1
+    assert idiomas == ["es", "en", "ru"]
+
+
+# --- Lo que no se entiende se cuenta, no se traga ni tumba nada -----------
+
+
+@pytest.mark.parametrize("cuerpo", [
+    b"",                       # medido: hay mensajes de longitud cero
+    b"   ",
+    b"{no es json",
+    b"[]",                     # JSON válido pero no un objeto
+    b'"Bandy"',
+    b"{}",                     # sin id ni versión
+    b'{"dataVersion": 3}',     # sin id
+    b'{"id": "  "}',           # id en blanco
+])
+def test_un_mensaje_ilegible_se_cuenta_aparte(cuerpo):
+    # Riesgo: tragarlo en un try/except mudo. Si GR8 cambia el esquema,
+    # desaparecerían torneos y nadie sabría cuántos.
+    lote = Lote()
+    lote.registrar("tournaments-queue-int", cuerpo, "m", 1000.0)
+    cubo = lote.cubos[("tournaments-queue-int", minuto_de(1000.0))]
+    assert cubo.descartados == 1
+    assert lote.taxonomia == {}
+    # y se cuenta como mensaje recibido igual: llegó, aunque no se entienda
+    assert cubo.mensajes == 1
+
+
+def test_un_mensaje_ilegible_se_confirma_igual():
+    # Riesgo: no confirmarlo. El broker lo devuelve para siempre y esa cola
+    # no vuelve a avanzar nunca: un solo mensaje raro congela la taxonomía.
+    lote = Lote()
+    lote.registrar("tournaments-queue", b"{roto", "m", 0.0)
+    assert lote.pendientes == ["m"]
+
+
+def test_lo_ilegible_no_arrastra_a_lo_bueno():
+    lote = Lote()
+    lote.registrar("tournaments-queue", b"{roto", "a", 0.0)
+    lote.registrar("tournaments-queue", _cuerpo(TORNEO), "b", 0.0)
+    lote.registrar("tournaments-queue", b"", "c", 0.0)
+    assert len(lote.taxonomia) == 1
+    assert lote.cubos[("tournaments-queue", minuto_de(0.0))].descartados == 2
+    assert lote.pendientes == ["a", "b", "c"]
+
+
+def test_los_descartes_se_suman_al_reintentar_el_lote():
+    rec = Recolector()
+    rec.actual.registrar("sports-queue", b"{roto", "a", 0.0)
+    fallido = rec.tomar()
+    rec.actual.registrar("sports-queue", b"{roto", "b", 0.0)
+    rec.devolver(fallido)
+    assert rec.actual.cubos[("sports-queue", minuto_de(0.0))].descartados == 2
+
+
+def test_una_cola_que_no_es_taxonomia_no_se_intenta_interpretar():
+    # Riesgo: contar como descarte el 100% de `markets`, que no se interpreta
+    # en esta unidad, y dejar la cuenta de descartes inservible.
+    lote = Lote()
+    lote.registrar("markets-queue-int", b"{esto no es json", "m", 0.0)
+    assert lote.cubos[("markets-queue-int", minuto_de(0.0))].descartados == 0
+    assert lote.taxonomia == {}
+
+
+# --- El camino de observación sigue intacto -------------------------------
+
+
+def test_la_observacion_sigue_contando_y_muestreando_la_taxonomia():
+    # Riesgo: el cambio que más duele. Si mañana hay que volver a mirar qué
+    # llega, ese mecanismo no puede haberse roto.
+    muestreo = Muestreo(cada=10.0)
+    lote = Lote()
+    cuerpo = _cuerpo(TORNEO)
+    lote.registrar("tournaments-queue-int", cuerpo, "a", 1000.0,
+                   muestreo=muestreo)
+    lote.registrar("tournaments-queue-int", cuerpo + b" " * 50, "b", 1001.0,
+                   reentregado=True, muestreo=muestreo)
+    # un tercero del minuto siguiente, que además cierra la ventana de muestreo
+    lote.registrar("tournaments-queue-int", _cuerpo({**TORNEO, "dataVersion": 99}),
+                   "c", 1070.0, muestreo=muestreo)
+
+    cubo = lote.cubos[("tournaments-queue-int", minuto_de(1000.0))]
+    assert cubo.mensajes == 2
+    assert cubo.bytes == len(cuerpo) * 2 + 50
+    assert cubo.bytes_max == len(cuerpo) + 50
+    assert cubo.reentregados == 1
+    assert cubo.descartados == 0
+    # el minuto siguiente es su propio cubo, como siempre
+    assert lote.cubos[("tournaments-queue-int", minuto_de(1070.0))].mensajes == 1
+    # y la muestra sigue siendo la mayor de la ventana, con el cuerpo crudo
+    (muestra,) = lote.muestras
+    assert muestra.bytes == len(cuerpo) + 50 and muestra.mayor_de_ventana
+    assert muestra.cuerpo.startswith("{")
+    # la interpretación es ADEMÁS, no EN LUGAR DE
+    assert len(lote.taxonomia) == 1
+
+
+def test_la_observacion_de_las_otras_seis_colas_no_cambio():
+    lote = Lote()
+    lote.registrar("markets-queue", b"x" * 100, "a", 120.0)
+    lote.registrar("markets-queue", b"x" * 300, "b", 150.0, reentregado=True)
+    lote.registrar("scores-queue", b"x" * 10, "d", 125.0)
+    m1 = lote.cubos[("markets-queue", minuto_de(120.0))]
+    assert (m1.mensajes, m1.bytes, m1.bytes_max, m1.reentregados) == (2, 400, 300, 1)
+    assert lote.cubos[("scores-queue", minuto_de(125.0))].bytes == 10
+    assert lote.taxonomia == {} and m1.descartados == 0
+
+
+def test_la_taxonomia_se_escribe_antes_de_confirmar():
+    # Riesgo: confirmar un torneo que no se escribió. El broker no lo
+    # devuelve y ese torneo no vuelve hasta la próxima republicación de GR8.
+    eventos = []
+    lote = Lote()
+    lote.registrar("tournaments-queue", _cuerpo(TORNEO), "m", 0.0)
+
+    async def escribir(l):
+        eventos.append(f"escribir {len(l.taxonomia)} filas")
+
+    async def confirmar(m):
+        eventos.append(f"ack {m}")
+
+    _correr(vaciar(lote, escribir, confirmar))
+    assert eventos == ["escribir 1 filas", "ack m"]
+
+
+def test_si_falla_la_escritura_de_la_taxonomia_no_se_confirma_nada():
+    confirmados = []
+    lote = Lote()
+    lote.registrar("sports-queue", _cuerpo(DEPORTE), "m", 0.0)
+
+    async def escribir(_):
+        raise EscrituraFallida("UniqueViolationError")
+
+    async def confirmar(m):
+        confirmados.append(m)
+
+    with pytest.raises(EscrituraFallida):
+        _correr(vaciar(lote, escribir, confirmar))
+    assert confirmados == []
+
+
+# --- Lo que se le manda a la base -----------------------------------------
+
+
+def _sentencias():
+    import gr8_consumidor
+
+    return gr8_consumidor
+
+
+def test_las_tres_escrituras_tienen_la_puerta_de_version():
+    # Riesgo: que una de las tres se olvide la puerta y pise un nombre nuevo
+    # con uno viejo. Se mira el SQL porque es donde vive la regla.
+    c = _sentencias()
+    for sql in (c._UPSERT_DEPORTE, c._UPSERT_CATEGORIA, c._UPSERT_TORNEO):
+        assert "ON CONFLICT (id) DO UPDATE" in sql
+        assert "WHERE EXCLUDED.data_version > t.data_version" in sql
+        # estrictamente mayor, nunca >=
+        assert ">= t.data_version" not in sql
+
+
+def test_los_parametros_van_en_el_orden_de_las_columnas():
+    # Riesgo: un upsert con los parámetros corridos guarda el nombre en el
+    # slug, el idioma en el nombre, o la categoría del torneo en su deporte.
+    # No tira un solo error: queda una taxonomía cruzada en silencio, que es
+    # el mismo defecto que cruza local con visitante.
+    #
+    # Se comprueba COLUMNA POR COLUMNA, todas, y no una muestra: cada columna
+    # de la tabla tiene que recibir el atributo del mismo nombre. Mirar solo
+    # algunas es dejar justo el par que se puede cruzar sin que se note
+    # (`categoria_id` y `deporte_id`, los dos TEXT y los dos opcionales).
+    c = _sentencias()
+    for clase, cuerpo in (("deporte", DEPORTE), ("categoria", CATEGORIA),
+                          ("torneo", TORNEO)):
+        fila = gr8_feed.interpretar_taxonomia(clase, _cuerpo(cuerpo))
+        sql, args = c.sentencia_taxonomia(fila)
+        columnas = sql.split("(", 2)[1].split(")")[0].replace("\n", " ")
+        columnas = [x.strip() for x in columnas.split(",")]
+        # `actualizado_at` lo pone la base con now(), no viaja como parámetro
+        assert columnas[-1] == "actualizado_at", clase
+        assert len(args) == len(columnas) - 1, clase
+        for columna, valor in zip(columnas, args):
+            esperado = getattr(fila, columna)
+            assert valor == esperado, f"{clase}.{columna}: {valor!r} != {esperado!r}"
+        assert f"${len(args)}" in sql and f"${len(args) + 1}" not in sql
+
+
+def test_el_torneo_guarda_su_categoria_y_su_deporte_sin_cruzarlos():
+    # Riesgo: `categoryId` y `sport` son los dos TEXT y los dos opcionales,
+    # así que cruzarlos no rompe nada: deja torneos colgados de una categoría
+    # que no existe y el catálogo vacío sin un error.
+    c = _sentencias()
+    fila = gr8_feed.interpretar_taxonomia("torneo", _cuerpo(TORNEO))
+    sql, args = c.sentencia_taxonomia(fila)
+    assert "gr8_torneo" in sql
+    columnas = [x.strip() for x in
+                sql.split("(", 2)[1].split(")")[0].replace("\n", " ").split(",")]
+    valores = dict(zip(columnas, args))
+    assert valores["categoria_id"] == TORNEO["categoryId"]
+    assert valores["deporte_id"] == "Basketball"
+
+
+def test_la_categoria_guarda_su_deporte():
+    c = _sentencias()
+    fila = gr8_feed.interpretar_taxonomia("categoria", _cuerpo(CATEGORIA))
+    sql, args = c.sentencia_taxonomia(fila)
+    assert "gr8_categoria" in sql and "Basketball" in args
+
+
+def test_una_clase_desconocida_no_se_adivina():
+    c = _sentencias()
+    fila = gr8_feed.Taxonomia(clase="mercado", id="x", data_version=1,
+                              nombre=None, nombre_idioma=None, slug=None)
+    with pytest.raises(ValueError, match="mercado"):
+        c.sentencia_taxonomia(fila)
+
+
+def test_el_contador_de_descartes_viaja_a_la_base():
+    # Riesgo: contar los descartes en memoria y no escribirlos, que es igual
+    # a no contarlos.
+    c = _sentencias()
+    assert "descartados" in c._UPSERT_CUBO
+    assert "t.descartados + EXCLUDED.descartados" in c._UPSERT_CUBO
+    assert "$7" in c._UPSERT_CUBO

@@ -6,13 +6,21 @@ que `mensajeria.py` deja el contrato del proveedor aparte del envío: de qué
 colas se lee, con qué nombre según el entorno, cuánto se espera antes de
 reconectar, y la contabilidad de lo observado.
 
-La etapa 0 es mirar, no interpretar. Nada de este módulo lee el contenido de
-un mensaje: solo cuenta cuántos llegan, cuánto pesan, y guarda unas pocas
-muestras acotadas.
+La etapa 0 era mirar, no interpretar: contar cuántos mensajes llegan, cuánto
+pesan, y guardar unas pocas muestras acotadas. Ese camino sigue intacto y es
+el que hay que poder volver a usar cualquier día que haya que mirar qué llega.
+
+G3 agrega lo PRIMERO que sí se interpreta: la taxonomía (deportes, categorías
+y torneos). Son las tres colas chicas y quietas, elegidas a propósito como el
+lugar barato para equivocarse antes de tocar la de 20 mensajes por segundo.
+La interpretación va aparte y no puede tumbar la observación: un mensaje que
+no se entiende se cuenta como descartado y se sigue, porque un mensaje que
+tumba al consumidor deja de contar TODAS las colas.
 """
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -216,6 +224,166 @@ def espera_reconexion(
     return espera
 
 
+# --- Taxonomía (G3) ------------------------------------------------------
+
+# Las tres colas que esta etapa interpreta, y a qué tabla va cada una. Las
+# otras seis se siguen contando y muestreando sin mirarles el contenido.
+#
+# Se compara por prefijo porque el nombre real lleva sufijo de entorno
+# (`sports-queue-int`). Ninguno de los nueve nombres base es prefijo de otro
+# —`markets-queue` y `market-results-queue` no se pisan— así que el prefijo
+# alcanza y no hay que deshacer el sufijo, que es configurable.
+COLAS_TAXONOMIA = {
+    "sports-queue": "deporte",
+    "categories-queue": "categoria",
+    "tournaments-queue": "torneo",
+}
+
+# El idioma que queremos y el que aceptamos si no está. Medido sobre las 30
+# muestras reales de estas tres colas: `sports.name` trae `es` 10 de 10,
+# `tournaments.name` 6 de 10 y `categories.name` 0 de 10; `en` está en las 30.
+# Sin respaldo, dos de cada tres categorías no tendrían nombre. Un nombre en
+# inglés es peor que uno en español y mucho mejor que ninguno.
+IDIOMA_PREFERIDO = "es"
+IDIOMA_RESPALDO = "en"
+
+
+class MensajeIlegible(ValueError):
+    """Un mensaje de una cola de taxonomía del que no se puede sacar una fila.
+
+    No se traga en silencio ni tumba el consumidor: se cuenta en
+    `gr8_obs_minuto.descartados`. Si GR8 cambia el esquema, la cuenta de
+    descartados sube y se ve en una consulta; con un `try/except` mudo
+    desaparecerían torneos y nadie sabría cuántos.
+    """
+
+
+@dataclass(frozen=True)
+class Taxonomia:
+    """Una fila de taxonomía lista para escribir, ya elegido el idioma."""
+
+    clase: str                      # "deporte" | "categoria" | "torneo"
+    id: str
+    data_version: int
+    # Puede quedar en None: hay entidades sin un solo nombre usable. Se
+    # guarda la fila igual, porque lo que la pantalla necesita primero es el
+    # enganche (torneo -> categoría -> deporte), y una fila sin nombre se
+    # mide con una consulta mientras que una fila que no existe rompe el
+    # enganche de todos sus eventos. Nunca se inventa un nombre ni se usa el
+    # `slug`: el slug es texto técnico, no algo que un jugador deba leer.
+    nombre: str | None
+    nombre_idioma: str | None
+    slug: str | None
+    deporte_id: str | None = None   # `sport` en el mensaje
+    categoria_id: str | None = None # `categoryId`, solo en torneos
+
+
+def clase_de_cola(cola: str) -> str | None:
+    """Qué clase de taxonomía trae esta cola, o None si no trae ninguna."""
+    for base, clase in COLAS_TAXONOMIA.items():
+        if cola.startswith(base):
+            return clase
+    return None
+
+
+def elegir_nombre(nombres: Any) -> tuple[str, str] | None:
+    """El nombre a mostrar y el idioma en que quedó: `es` → `en` → la primera.
+
+    Devuelve None si no hay ninguno usable.
+
+    La tercera rama (una entidad sin `es` ni `en`) NO SE OBSERVÓ: en las 30
+    muestras reales `en` vino siempre. Queda escrita porque el feed trae 41
+    idiomas y un evento listó quince sin español, así que suponer que `en`
+    está siempre es la clase de suposición que este documento viene cobrando.
+    Toma la primera en el orden en que GR8 mandó las claves; si GR8 reordena
+    entre republicaciones, el nombre elegido puede cambiar. Es aceptable
+    porque `nombre_idioma` deja ver que ese nombre es de respaldo.
+    """
+    if not isinstance(nombres, Mapping):
+        return None
+
+    def usable(valor: Any) -> str | None:
+        # Un nombre en blanco es tan inútil como uno ausente, y además
+        # tapa al respaldo: si `es` viene vacío y `en` tiene texto, hay que
+        # quedarse con el inglés, no con el vacío en español.
+        return valor.strip() if isinstance(valor, str) and valor.strip() else None
+
+    for idioma in (IDIOMA_PREFERIDO, IDIOMA_RESPALDO):
+        texto = usable(nombres.get(idioma))
+        if texto is not None:
+            return texto, idioma
+    for idioma, valor in nombres.items():
+        texto = usable(valor)
+        if texto is not None and isinstance(idioma, str):
+            return texto, idioma
+    return None
+
+
+def _texto_opcional(valor: Any) -> str | None:
+    return valor.strip() if isinstance(valor, str) and valor.strip() else None
+
+
+def interpretar_taxonomia(clase: str, cuerpo: bytes) -> Taxonomia:
+    """Un mensaje de taxonomía a una fila. Lanza `MensajeIlegible` si no se puede.
+
+    El orden se decide con `dataVersion` y NO con `sourceDataVersion`.
+    Verificado sobre las 30 muestras reales de estas tres colas:
+    `sourceDataVersion` no viene en NINGUNA (0 de 30) y `dataVersion` viene en
+    todas (30 de 30). En `markets` y `events` pasa lo contrario: ahí manda
+    `sourceDataVersion`, y los dos campos van desfasados por una cantidad
+    variable. Confundirlos es pisar un dato nuevo con uno viejo, y en un feed
+    de cuotas eso se paga.
+
+    Tampoco se ordena por los timestamps: vienen con centinelas
+    (`"0001-01-01"`) y precisión variable. Sirven para medir atraso, no para
+    ordenar.
+    """
+    if not cuerpo:
+        # Medido en `events` y `scores`: hay mensajes de longitud cero y no
+        # se sabe si son latido o borrado. Se cuentan aparte en vez de
+        # suponer: si fueran borrados y los tomáramos por nada, quedarían
+        # torneos fantasma en el catálogo.
+        raise MensajeIlegible("cuerpo vacío")
+    try:
+        mensaje = json.loads(cuerpo)
+    except (ValueError, UnicodeDecodeError) as error:
+        raise MensajeIlegible(f"no es JSON: {type(error).__name__}") from error
+    if not isinstance(mensaje, Mapping):
+        raise MensajeIlegible("el mensaje no es un objeto")
+
+    identidad = _texto_opcional(mensaje.get("id"))
+    if identidad is None:
+        raise MensajeIlegible("sin id")
+    # `sports.id` es "Football", no un guid, y los otros dos son 32 hex. No se
+    # valida la forma a propósito: rechazar por forma sería perder entidades
+    # el día que GR8 cambie el formato de sus ids, y la forma no es nuestra.
+
+    version = mensaje.get("dataVersion")
+    # `bool` es `int` en Python y un `true` acá sería un esquema distinto, no
+    # una versión 1.
+    if not isinstance(version, int) or isinstance(version, bool):
+        # Sin versión no hay forma de saber si este mensaje es más nuevo que
+        # lo guardado. Inventar un 0 dejaría que un mensaje viejo le ganara
+        # después a uno nuevo, que es exactamente el daño que la puerta de
+        # versión existe para evitar.
+        raise MensajeIlegible("sin dataVersion entero")
+
+    elegido = elegir_nombre(mensaje.get("name"))
+    # `nameMobile` viene `{}` en las 30 muestras: no se lee hasta que traiga algo.
+    nombre, idioma = elegido if elegido is not None else (None, None)
+
+    return Taxonomia(
+        clase=clase,
+        id=identidad,
+        data_version=version,
+        nombre=nombre,
+        nombre_idioma=idioma,
+        slug=_texto_opcional(mensaje.get("slug")),
+        deporte_id=_texto_opcional(mensaje.get("sport")),
+        categoria_id=_texto_opcional(mensaje.get("categoryId")),
+    )
+
+
 # --- Observación ---------------------------------------------------------
 
 
@@ -293,21 +461,33 @@ class Cubo:
     bytes: int = 0
     bytes_max: int = 0
     reentregados: int = 0
+    # Mensajes de una cola de taxonomía que no se pudieron interpretar. Vive
+    # en el cubo de observación porque el grano (cola, minuto) ya es el
+    # correcto para la única pregunta que importa: de lo que llegó en este
+    # minuto, ¿entendimos todo? Un descarte que solo fuera a un log se
+    # pierde entre millones de líneas.
+    descartados: int = 0
 
 
 @dataclass
 class Lote:
     """Lo recibido desde el último vaciado.
 
-    Guarda los contadores, las muestras y los mensajes SIN confirmar. Los
-    tres viajan juntos a propósito: lo único que autoriza confirmar un
-    mensaje es que sus contadores ya estén escritos, y mientras vivan en el
-    mismo objeto no hay forma de confirmar uno sin haber escrito el otro.
+    Guarda los contadores, las muestras, la taxonomía interpretada y los
+    mensajes SIN confirmar. Los cuatro viajan juntos a propósito: lo único
+    que autoriza confirmar un mensaje es que lo suyo ya esté escrito, y
+    mientras vivan en el mismo objeto no hay forma de confirmar uno sin
+    haber escrito el otro.
     """
 
     cubos: dict[tuple[str, datetime], Cubo] = field(default_factory=dict)
     muestras: list[Muestra] = field(default_factory=list)
     pendientes: list[Any] = field(default_factory=list)
+    # Una sola entrada por entidad, con la versión más alta vista en el lote.
+    # No es una optimización de lujo: la ráfaga de arranque medida trajo el
+    # MISMO torneo siete veces y la misma categoría diez veces. Sin esto, un
+    # lote de cien mensajes serían cien escrituras para dejar tres filas.
+    taxonomia: dict[tuple[str, str], Taxonomia] = field(default_factory=dict)
 
     def registrar(
         self,
@@ -330,7 +510,30 @@ class Lote:
             cerrada = muestreo.ofrecer(cola, ahora, tamano, cuerpo)
             if cerrada is not None:
                 self.muestras.append(cerrada)
+        # La interpretación va DESPUÉS de contar y muestrear, y encerrada.
+        # Ese orden es la regla: el camino de observación tiene que seguir
+        # funcionando igual aunque la interpretación falle, porque el día que
+        # haya que volver a mirar qué llega va a ser justo el día en que algo
+        # dejó de entenderse.
+        clase = clase_de_cola(cola)
+        if clase is not None:
+            try:
+                self.agregar_taxonomia(interpretar_taxonomia(clase, cuerpo))
+            except MensajeIlegible:
+                cubo.descartados += 1
         self.pendientes.append(mensaje)
+
+    def agregar_taxonomia(self, fila: Taxonomia) -> None:
+        """Deja la versión más alta de cada entidad dentro del lote.
+
+        Es la misma regla que aplica la base (solo gana una versión
+        estrictamente mayor), escrita también acá para que dos mensajes de la
+        misma entidad en un lote no dependan del orden en que se escriban.
+        """
+        clave = (fila.clase, fila.id)
+        previa = self.taxonomia.get(clave)
+        if previa is None or fila.data_version > previa.data_version:
+            self.taxonomia[clave] = fila
 
     def absorber(self, otro: "Lote") -> None:
         """Suma lo de `otro` (lo llegado mientras este lote fallaba)."""
@@ -340,7 +543,10 @@ class Lote:
             propio.bytes += c.bytes
             propio.bytes_max = max(propio.bytes_max, c.bytes_max)
             propio.reentregados += c.reentregados
+            propio.descartados += c.descartados
         self.muestras.extend(otro.muestras)
+        for fila in otro.taxonomia.values():
+            self.agregar_taxonomia(fila)
         self.pendientes.extend(otro.pendientes)
 
     def __len__(self) -> int:
