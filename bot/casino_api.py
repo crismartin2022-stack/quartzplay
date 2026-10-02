@@ -772,6 +772,53 @@ async def puede_ver(conn, agencia_code, objetivo_code):
     return objetivo_code in rama
 
 
+async def exigir_boleto_de_la_rama(conn, row, agencia_code):
+    """
+    Corta con 403 si el boleto de `row` no es de la rama de `agencia_code`.
+
+    `betslips` no tiene columna de agencia. `liquidado_por`, `pagado_por` y
+    `anulado_por` dicen quién actuó, no de quién es, así que no sirven para
+    decidir esto: se escriben justo cuando ya es tarde.
+
+    La pertenencia de un boleto es la que ya usa el historial de la rama
+    (`/api/agencias/me/historial/apuestas`): es de la rama si lo es el
+    jugador —`users.creado_por`— o si lo cobró la rama —`paid_by`—. Las dos
+    condiciones hacen falta, no una con la otra de respaldo:
+
+      · El boleto de mostrador no tiene jugador. `box_crear_betslip` lo
+        inserta con `user_id NULL` y solo el nombre a mano, porque el que
+        compra en la ventanilla no tiene cuenta. Ese boleto es de quien lo
+        vendió y de nadie más.
+      · El jugador de la casa no es de ninguna agencia. El registro web sin
+        código de referido lo deja en `creado_por='admin'` (CASA), que no
+        está en la rama de nadie. Si se mirara solo el jugador, la agencia
+        que le cobró el boleto en el mostrador no podría liquidárselo
+        después, y eso es una venta de todos los días.
+
+    Sin jugador conocido y sin cobrador, el boleto no es de nadie y se
+    rechaza. No se puede haber llegado a liquidarlo sin venderlo primero.
+
+    Que faltara este candado era el agujero: liquidar, pagar el premio y
+    pagar un cash out buscaban el boleto por código y escribían sin
+    preguntar de quién era. El código va impreso en el ticket, así que con verlo una
+    agencia podía marcar ganado o perdido —y cobrar— el boleto de otra.
+    Compiten entre ellas y es plata.
+    """
+    rama = await codes_de_la_rama(conn, agencia_code)
+
+    del_jugador = None
+    if row["user_id"]:
+        del_jugador = await conn.fetchval(
+            "SELECT creado_por FROM users WHERE id=$1", row["user_id"])
+
+    if del_jugador not in rama and row["paid_by"] not in rama:
+        # Mismo texto que el resto de la rama. Sí, confirma que el código
+        # existe, igual que `get_retiro` o la anulación: el que pregunta ya
+        # tiene el código en la mano, y un 404 acá le haría creer al cajero
+        # que tipeó mal un boleto que está ahí.
+        raise HTTPException(403, "Ese boleto no es de tu rama")
+
+
 # ── AGENCIAS — CREAR (solo admin) ─────────────────────────────
 @app.post("/api/agencias")
 async def create_agencia(request: Request, _=Depends(auth.require_admin)):
@@ -17200,6 +17247,7 @@ async def liquidar_apuesta(request: Request,
         row = await conn.fetchrow("SELECT * FROM betslips WHERE code=$1", code)
         if not row:
             raise HTTPException(404, "Código no encontrado")
+        await exigir_boleto_de_la_rama(conn, row, agencia_code)
         await conn.execute("""
             UPDATE betslips
             SET resultado = $2, liquidado_at = NOW(), liquidado_por = $3
@@ -17229,6 +17277,7 @@ async def pagar_premio(request: Request,
                 "SELECT * FROM betslips WHERE code=$1 FOR UPDATE", code)
             if not row:
                 raise HTTPException(404, "Código no encontrado")
+            await exigir_boleto_de_la_rama(conn, row, agencia_code)
             if row["resultado"] != "ganada":
                 raise HTTPException(400,
                     "La apuesta no está marcada como ganada")
@@ -19232,10 +19281,14 @@ async def cashout_pagar_caja(code: str, request: Request,
     """La caja paga en efectivo un cash out que quedó pendiente (destino mostrador)."""
     pool = await get_db()
     async with pool.acquire() as conn:
+        # user_id y paid_by no se usan acá abajo: los pide la verificación de
+        # rama, que necesita saber de quién es el boleto antes de pagarlo.
         row = await conn.fetchrow(
-            "SELECT code, potential_win, status FROM betslips WHERE code=$1", code.upper())
+            "SELECT code, potential_win, status, user_id, paid_by "
+            "FROM betslips WHERE code=$1", code.upper())
         if not row:
             raise HTTPException(404, "Código no encontrado")
+        await exigir_boleto_de_la_rama(conn, row, agencia_code)
         if row["status"] != "cashout_pending":
             raise HTTPException(400, f"Este código no está pendiente de cash out (está {row['status']})")
         valor = row["potential_win"]
