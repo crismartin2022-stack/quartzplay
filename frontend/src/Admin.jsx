@@ -1218,6 +1218,7 @@ function TabCierre({ adminKey, onNoAutorizado }){
       </>}
 
       {vista==="cashout"&&<>
+        <InterruptorCashoutCasa adminKey={adminKey} onNoAutorizado={onNoAutorizado}/>
         <div style={{color:Q.muted,fontSize:12,textTransform:"uppercase",
           letterSpacing:1,marginBottom:8,marginLeft:4,
           fontFamily:F_BODY}}>
@@ -9627,6 +9628,89 @@ function InterruptorSportsbook({ adminKey, onNoAutorizado }){
         hechas se siguen liquidando y pagando: un jugador que apostó ayer
         cobra hoy aunque lo apagues.</div>
     </div>
+  );
+}
+
+// El interruptor del cash out para los jugadores SIN agencia.
+//
+// El cash out se habilita por agencia (`puede_cashout`), pero el jugador que
+// se registró en la web sin código de referido no tiene ninguna: es de la
+// casa. Es justo el que más margen deja, porque no hay comisión de agencia de
+// por medio, y también el que más cuesta si el cash out se maneja mal. Por eso
+// arranca apagado y lo prende el dueño a conciencia.
+// NO toca a los jugadores que sí tienen agencia: siguen dependiendo del
+// permiso de la suya, esté como esté este.
+function InterruptorCashoutCasa({ adminKey, onNoAutorizado }){
+  const [activo,setActivo]=useState(null);
+  const [guardando,setGuardando]=useState(false);
+  const [msg,setMsg]=useState("");
+
+  useEffect(()=>{
+    let vigente=true;
+    fetch(`${API}/api/admin/cashout-casa`,{headers:adminHeaders(adminKey)})
+      .then(r=>{
+        if(r.status===401){ onNoAutorizado(); return null; }
+        return r.ok?r.json():null;
+      })
+      .then(d=>{
+        if(!vigente) return;
+        if(d) setActivo(!!d.activo);
+        else setMsg("No se pudo leer el estado del cash out de la casa.");
+      })
+      .catch(()=>{ if(vigente) setMsg("No se pudo leer el estado del cash out de la casa."); });
+    return()=>{ vigente=false; };
+    // eslint-disable-next-line
+  },[adminKey]);
+
+  const cambiar=async()=>{
+    if(activo===null||guardando) return;
+    setGuardando(true); setMsg("");
+    try{
+      const r=await fetch(`${API}/api/admin/cashout-casa`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json",...adminHeaders(adminKey)},
+        body:JSON.stringify({activo:!activo})});
+      if(r.status===401){ onNoAutorizado(); return; }
+      if(!r.ok) throw new Error();
+      // Se muestra lo que el servidor guardó, no lo que se pidió.
+      const d=await r.json();
+      setActivo(!!d.activo);
+    }catch(e){ setMsg("No se pudo guardar. El interruptor sigue como estaba."); }
+    setGuardando(false);
+  };
+
+  if(activo===null&&!msg) return null;
+
+  return(
+    <GCard glow={activo?Q.green:Q.violet} style={{padding:SPACING[16],marginBottom:12}}>
+      <div style={{display:"flex",alignItems:"center",
+        justifyContent:"space-between",gap:SPACING[12]}}>
+        <div>
+          <div style={{color:Q.text,fontWeight:700,fontSize:14,
+            fontFamily:F_BODY}}>Cash out para jugadores sin agencia</div>
+          <div style={{color:Q.muted,fontSize:12,marginTop:2,lineHeight:1.5,
+            fontFamily:F_BODY}}>
+            {activo
+              ?"Prendido: los jugadores que se registraron sin código de referido pueden hacer cash out."
+              :"Apagado: los jugadores que se registraron sin código de referido no pueden hacer cash out. Arranca apagado."}
+            {" "}Los jugadores con agencia siguen dependiendo del permiso de su agencia.
+          </div>
+        </div>
+        <button role="switch" aria-checked={!!activo}
+          aria-label="Cash out para jugadores sin agencia"
+          disabled={activo===null||guardando} onClick={cambiar}
+          style={{flexShrink:0,width:48,height:26,borderRadius:RADII.lg,
+            border:"none",padding:0,position:"relative",
+            background:activo?Q.green:Q.border,
+            cursor:guardando?"wait":"pointer",transition:"all .2s"}}>
+          <span style={{display:"block",width:20,height:20,
+            borderRadius:RADII.md,background:"#fff",position:"absolute",
+            top:3,left:activo?25:3,transition:"all .2s"}}/>
+        </button>
+      </div>
+      {msg&&<div style={{color:Q.red,fontSize:12,marginTop:8,
+        fontFamily:F_BODY}}>{msg}</div>}
+    </GCard>
   );
 }
 
