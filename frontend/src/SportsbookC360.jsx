@@ -4,12 +4,14 @@
 // Es una pantalla y no una grilla: el sportsbook llega como UN juego del
 // catálogo de Content360 y se abre con el mismo lanzamiento que cualquier
 // slot (`/api/casino/sesion`), enmarcado por `JuegoEnMarco`. No hay nada
-// que elegir; hay un solo botón.
+// que elegir, así que entrar a la pantalla ya es querer abrirlo: se abre
+// solo. El botón queda únicamente para el camino roto (reintentar) y para
+// volver a abrirlo después de cerrar el marco.
 //
 // Las dos pantallas la montan igual y le pasan lo que cambia entre ellas:
 // el saldo ya formateado (cada una tiene su manera de mostrarlo) y cómo
 // refrescarlo al volver.
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getFrontendConfig } from "./config";
 import { oscuro as Q, F_BODY, inkOn, RADII, SPACING } from "./theme";
 import Icon from "./Icon";
@@ -21,33 +23,75 @@ import {
 
 const { apiUrl: API } = getFrontendConfig();
 
+// Los lanzamientos que están en vuelo, por jugador y juego. Abrir crea una
+// sesión del lado del proveedor: si dos montajes (modo estricto de React en
+// desarrollo, un re-render que desmonta, volver atrás y entrar de nuevo)
+// lanzaran cada uno el suyo, el proveedor contaría dos sesiones y la
+// primera quedaría colgada. Vive afuera del componente a propósito: un
+// `useRef` muere con el montaje y no ve al montaje anterior. El segundo
+// montaje se cuelga de la misma promesa en vez de lanzar otra, y la entrada
+// se borra al terminar, así reintentar o volver a abrir sí lanza de nuevo.
+const lanzamientosEnVuelo = new Map();
+
+function lanzarUnaVez(userId, juego) {
+  const clave = `${userId}|${juego.integracion}|${juego.id}`;
+  const enVuelo = lanzamientosEnVuelo.get(clave);
+  if (enVuelo) return enVuelo;
+
+  const promesa = (async () => {
+    const r = await fetch(`${API}/api/casino/sesion`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      // La integración va aunque el id parezca único: sin ella el
+      // servidor abre el de menor prioridad si otro proveedor repite el id.
+      body: JSON.stringify({ user_id: userId, game_id: juego.id,
+                             integracion: juego.integracion,
+                             language: "es" }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || "No se pudo abrir");
+    const url = urlDeJuego(d.url);
+    if (!url) throw new Error("El sportsbook devolvió un enlace que no se puede abrir");
+    return { url, titulo: juego.titulo };
+  })().finally(() => lanzamientosEnVuelo.delete(clave));
+  lanzamientosEnVuelo.set(clave, promesa);
+  return promesa;
+}
+
 export default function SportsbookC360({ user, saldo, onRefrescar }) {
   const config = useSportsbookC360(user?.id);
   const [abriendo, setAbriendo] = useState(false);
   const [err, setErr] = useState("");
   // La pantalla sigue montada debajo del marco: al volver queda como estaba.
   const [juego, setJuego] = useState(null);
+  // Una respuesta que llega con la pantalla ya desmontada no tiene dónde
+  // escribirse: se descarta en vez de tocar el estado de un componente muerto.
+  const montado = useRef(true);
+
+  const userId = user?.id;
+  const juegoId = config.juego?.id;
+  const juegoIntegracion = config.juego?.integracion;
+  const juegoTitulo = config.juego?.titulo;
 
   const abrir = async () => {
-    if (!user?.id) { setErr("Entrá a tu cuenta para jugar"); return; }
-    if (!config?.juego) return;
+    if (!userId) { setErr("Entrá a tu cuenta para jugar"); return; }
+    if (!juegoId) return;
     setAbriendo(true); setErr("");
     try {
-      const r = await fetch(`${API}/api/casino/sesion`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        // La integración va aunque el id parezca único: sin ella el
-        // servidor abre el de menor prioridad si otro proveedor repite el id.
-        body: JSON.stringify({ user_id: user.id, game_id: config.juego.id,
-                               integracion: config.juego.integracion,
-                               language: "es" }) });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.detail || "No se pudo abrir");
-      const url = urlDeJuego(d.url);
-      if (!url) throw new Error("El sportsbook devolvió un enlace que no se puede abrir");
-      setJuego({ url, titulo: config.juego.titulo });
-    } catch (e) { setErr(e.message); }
-    setAbriendo(false);
+      const abierto = await lanzarUnaVez(userId,
+        { id: juegoId, integracion: juegoIntegracion, titulo: juegoTitulo });
+      if (montado.current) setJuego(abierto);
+    } catch (e) { if (montado.current) setErr(e.message); }
+    if (montado.current) setAbriendo(false);
   };
+
+  // Se abre solo apenas hay con qué: entrar acá es querer abrirlo. Depende
+  // de valores primitivos y no del objeto `config` (que es nuevo en cada
+  // render): con el objeto, cada render volvería a lanzar. Tras un error no
+  // vuelve a correr sola; el reintento es del jugador, con el botón.
+  useEffect(() => {
+    montado.current = true;
+    if (config.activo && userId && juegoId) abrir();
+    return () => { montado.current = false; };
+  }, [config.activo, userId, juegoId, juegoIntegracion]);
 
   if (!config.listo) return (
     <div style={{ padding: "40px 20px", textAlign: "center", color: Q.muted,
@@ -89,16 +133,36 @@ export default function SportsbookC360({ user, saldo, onRefrescar }) {
         margin: "8px 0 24px", fontFamily: F_BODY }}>
         Más deportes y mercados, de nuestro proveedor Content360.
         Se abre acá adentro: tu saldo es el mismo.</div>
-      <button onClick={abrir} disabled={abriendo}
-        style={{ width: "100%", maxWidth: 320,
-          background: `linear-gradient(135deg,${Q.violet},${Q.cyan})`,
-          border: "none", borderRadius: RADII.md, padding: "16px",
-          color: inkOn(Q.violet, Q.cyan), fontSize: 14, fontWeight: 800,
-          cursor: abriendo ? "wait" : "pointer", fontFamily: F_BODY }}>
-        {abriendo ? "Abriendo…" : "Abrir el sportsbook"}</button>
+      <style>{`
+        @keyframes marcoGira{to{transform:rotate(360deg)}}
+        @media (prefers-reduced-motion: reduce){.marco-giro{animation:none!important}}
+      `}</style>
+      {abriendo && (
+        <div role="status" style={{ display: "flex", flexDirection: "column",
+          alignItems: "center", gap: SPACING[12] }}>
+          <div className="marco-giro" aria-hidden="true"
+            style={{ width: 32, height: 32, borderRadius: RADII.full,
+              border: `3px solid ${Q.border}`, borderTopColor: Q.violet,
+              animation: "marcoGira .9s linear infinite" }} />
+          <div style={{ color: Q.muted, fontSize: 13, fontFamily: F_BODY }}>
+            Abriendo el sportsbook…</div>
+        </div>
+      )}
       {err && (
-        <div style={{ color: Q.red, fontSize: 12.5, marginTop: 12,
-          fontFamily: F_BODY }}>{err}</div>
+        <div role="alert" style={{ color: Q.red, fontSize: 12.5,
+          marginBottom: 12, fontFamily: F_BODY }}>{err}</div>
+      )}
+      {/* Sin esto, al fallar o al cerrar el marco el jugador queda mirando
+          una pantalla sin salida: la pantalla intermedia salió del camino
+          feliz, no del roto. */}
+      {!abriendo && !juego && (
+        <button onClick={abrir}
+          style={{ width: "100%", maxWidth: 320,
+            background: `linear-gradient(135deg,${Q.violet},${Q.cyan})`,
+            border: "none", borderRadius: RADII.md, padding: "16px",
+            color: inkOn(Q.violet, Q.cyan), fontSize: 14, fontWeight: 800,
+            cursor: "pointer", fontFamily: F_BODY }}>
+          {err ? "Reintentar" : "Abrir el sportsbook"}</button>
       )}
     </div>
   );
