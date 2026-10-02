@@ -54,7 +54,36 @@ VACIADO_SEGUNDOS = 2.0
 # para ver si cambia con el horario o con el partido.
 MUESTRAS_POR_COLA = 10
 MUESTRA_CADA_SEGUNDOS = 900.0
-MUESTRA_MAX_BYTES = 4096
+
+# El corte por defecto alcanza para ver de qué habla cada cola, pero no para
+# modelarla: un mensaje de `markets` pesa 62 KB, así que con 4096 se ve el 6%
+# de la estructura que hay que traducir a tablas. `GR8_FEED_MUESTRA_BYTES`
+# permite subirlo un rato para capturar mensajes enteros y después volver.
+#
+# No se sube de forma permanente a propósito: son diez muestras por cola y
+# nueve colas, así que el tope manda directo sobre el tamaño de la tabla.
+MUESTRA_MAX_BYTES_POR_DEFECTO = 4096
+MUESTRA_MAX_BYTES_TOPE = 1_048_576
+
+
+def muestra_max_bytes(env=None) -> int:
+    """Cuánto de cada mensaje se guarda. Un valor inválido no rompe la
+    observación: vuelve al de siempre, porque dejar de medir por un error de
+    tipeo en una variable es peor que medir de menos."""
+    env = os.environ if env is None else env
+    crudo = (env.get("GR8_FEED_MUESTRA_BYTES") or "").strip()
+    if not crudo:
+        return MUESTRA_MAX_BYTES_POR_DEFECTO
+    try:
+        valor = int(crudo)
+    except ValueError:
+        return MUESTRA_MAX_BYTES_POR_DEFECTO
+    if valor < 1:
+        return MUESTRA_MAX_BYTES_POR_DEFECTO
+    return min(valor, MUESTRA_MAX_BYTES_TOPE)
+
+
+MUESTRA_MAX_BYTES = muestra_max_bytes()
 
 ESPERA_BASE = 1.0
 ESPERA_TOPE = 60.0

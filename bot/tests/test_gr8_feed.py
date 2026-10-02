@@ -283,3 +283,30 @@ def test_el_muestreo_vuelve_a_tomar_pasado_el_intervalo():
     assert m.debe_tomar("q", 0.0)
     assert not m.debe_tomar("q", 899.0)
     assert m.debe_tomar("q", 901.0)
+
+
+# ── El tope de la muestra ──────────────────────────────────────
+
+def test_sin_variable_vale_el_tope_de_siempre():
+    assert gr8_feed.muestra_max_bytes({}) == gr8_feed.MUESTRA_MAX_BYTES_POR_DEFECTO
+
+
+def test_se_puede_subir_para_capturar_un_mensaje_entero():
+    """Un mensaje de `markets` pesa 62 KB: con el tope de siempre se ve el 6%
+    de la estructura que hay que modelar."""
+    assert gr8_feed.muestra_max_bytes({"GR8_FEED_MUESTRA_BYTES": "131072"}) == 131072
+
+
+def test_un_valor_absurdo_no_deja_sin_memoria_al_proceso():
+    """El tope del tope existe porque son diez muestras por cola y nueve
+    colas: el valor manda directo sobre el tamaño de la tabla."""
+    enorme = str(gr8_feed.MUESTRA_MAX_BYTES_TOPE * 100)
+    assert gr8_feed.muestra_max_bytes({"GR8_FEED_MUESTRA_BYTES": enorme}) == gr8_feed.MUESTRA_MAX_BYTES_TOPE
+
+
+def test_un_error_de_tipeo_no_frena_la_observacion():
+    """Dejar de medir por una variable mal escrita es peor que medir de
+    menos, así que cualquier cosa rara vuelve al valor de siempre."""
+    for basura in ("", "  ", "mucho", "0", "-1", "12.5"):
+        assert gr8_feed.muestra_max_bytes({"GR8_FEED_MUESTRA_BYTES": basura}) \
+            == gr8_feed.MUESTRA_MAX_BYTES_POR_DEFECTO, f"falló con {basura!r}"
