@@ -21,3 +21,6 @@ frontend/build/
 
 # Local AI runtime state
 .atl/
+
+# Árboles de trabajo de los agentes: nunca van al repo
+.claude/
