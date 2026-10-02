@@ -19669,30 +19669,78 @@ def _exigir_boleto_del_jugador(row, jugador_id):
         raise HTTPException(403, "Ese boleto no es tuyo")
 
 
+CASHOUT_CASA_CLAVE = "cashout_casa_activo"
+
+
+async def _cashout_casa_activo(conn):
+    """El interruptor del jugador sin agencia. Arranca APAGADO: es lo que
+    pasaba antes de que existiera, y prenderlo es una decisión del dueño, no
+    un efecto de desplegar. Cualquier valor que no sea 'true' (ausente,
+    vacío, basura) cuenta como apagado, igual que `psp_activo`."""
+    valor = await conn.fetchval(
+        "SELECT valor FROM app_config WHERE clave=$1", CASHOUT_CASA_CLAVE)
+    return (valor or "").strip().lower() == "true"
+
+
 async def _exigir_cashout_habilitado(conn, agencia_code):
     """
-    Corta con 403 si esa agencia no tiene el cash out habilitado.
+    Corta con 403 si no hay quién habilite el cash out de este jugador.
 
     El permiso lo da el admin, por agencia o por rama
     (`/api/admin/agencias/{code}/permiso-cashout`). Acá la verificación es
     INCONDICIONAL, y eso es el arreglo: antes vivía adentro de un `if` sobre
     un dato del cuerpo, así que se salteaba sola con solo no mandarlo.
 
-    Sin agencia —`users.creado_por` en NULL, o el 'admin' (CASA) del registro
-    web sin referido— no hay fila que habilite nada y se rechaza. Falla
-    cerrado a propósito: la regla es "si la agencia lo tiene habilitado", y
-    un jugador sin agencia no tiene quién se lo habilite.
+    EL JUGADOR DE LA CASA NO TIENE AGENCIA. `users.creado_por` en NULL, o el
+    'admin' (CASA) del registro web sin referido: no hay fila de `agencias`
+    que le habilite nada. Para ellos el permiso lo da un interruptor propio
+    (`cashout_casa_activo`), que el admin prende desde el panel y arranca
+    apagado. Se resuelve ACÁ y no en las puertas, para que el permiso se
+    siga mirando en un solo lugar.
+
+    EL INTERRUPTOR NO ES UNA LLAVE MAESTRA. Solo se consulta cuando el
+    jugador no tiene agencia: quien SÍ tiene una sigue dependiendo del
+    `puede_cashout` de la suya, esté como esté el de la casa. Si no, prender
+    el de la casa le habilitaría el cash out a agencias que el admin dejó
+    apagadas a propósito.
     """
-    if not agencia_code:
+    if not agencia_code or agencia_code == CASA:
+        if await _cashout_casa_activo(conn):
+            return
+        # El mensaje cuenta que no es algo suyo: no hay una agencia a la que
+        # pedírselo, y mandarlo a buscarla lo deja dando vueltas.
         raise HTTPException(403,
-            "Tu cuenta no tiene una agencia que habilite el cash out. "
-            "Pedíselo al administrador.")
+            "El cash out no está disponible para tu cuenta por ahora. "
+            "No es un error tuyo: todavía no está habilitado.")
     ok = await conn.fetchval(
         "SELECT puede_cashout FROM agencias WHERE code=$1", agencia_code)
     if not ok:
         raise HTTPException(403,
             "Tu agencia no tiene habilitado el cash out. "
             "Pedíselo al administrador.")
+
+
+@app.get("/api/admin/cashout-casa")
+async def admin_cashout_casa(_=Depends(auth.require_admin)):
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        return {"activo": await _cashout_casa_activo(conn)}
+
+
+@app.post("/api/admin/cashout-casa")
+async def admin_cashout_casa_set(request: Request,
+                                 _=Depends(auth.require_admin)):
+    """body: {activo: bool}. Solo el booleano true prende; cualquier otra
+    cosa guarda 'false', para que un cuerpo mal armado nunca habilite plata."""
+    body = await request.json()
+    activo = "true" if body.get("activo") is True else "false"
+    pool = await get_db()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO app_config (clave, valor, updated_at) VALUES ($1,$2,NOW())
+            ON CONFLICT (clave) DO UPDATE SET valor=$2, updated_at=NOW()
+        """, CASHOUT_CASA_CLAVE, activo)
+    return {"ok": True, "activo": activo == "true"}
 
 
 async def _fila_de_cashout(conn, code):

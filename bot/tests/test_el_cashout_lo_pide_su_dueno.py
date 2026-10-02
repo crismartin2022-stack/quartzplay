@@ -141,6 +141,9 @@ class FakeConnection:
 
     def __init__(self):
         self.consultas = []
+        # `app_config` (clave -> valor como texto). Vacío = el interruptor del
+        # jugador de la casa apagado, que es como arranca en producción.
+        self.config = {}
 
     def _anotar(self, query, args):
         self.consultas.append((_norm(query), args))
@@ -194,6 +197,8 @@ class FakeConnection:
             return datos["agencia"] if datos else None
         if "SELECT puede_cashout FROM agencias WHERE code=$1" in q:
             return PUEDE_CASHOUT.get(args[0])
+        if "SELECT valor FROM app_config WHERE clave=$1" in q:
+            return self.config.get(args[0])
         if "SELECT telegram_id FROM users WHERE id=$1" in q:
             datos = JUGADORES.get(args[0])
             return datos["telegram_id"] if datos else None
@@ -457,12 +462,22 @@ def test_el_dueno_sin_permiso_no_escribe_nada(api):
     assert api.base_de_mentira.escrituras == []
 
 
-def test_el_jugador_de_la_casa_no_tiene_quien_le_habilite(api):
+MENSAJE_DE_LA_CASA = (
+    "El cash out no está disponible para tu cuenta por ahora. "
+    "No es un error tuyo: todavía no está habilitado.")
+
+
+def _prender_la_casa(api):
+    api.base_de_mentira.config["cashout_casa_activo"] = "true"
+
+
+def test_el_jugador_de_la_casa_con_el_interruptor_apagado_no_puede(api):
     """`creado_por='admin'` (CASA): el registro web sin código de referido.
 
-    No hay agencia que le habilite nada, así que falla cerrado. Queda fijado
-    acá porque es una consecuencia de producto, no un detalle: si el dueño
-    quiere que la casa también pueda, hay que habilitarlo explícitamente.
+    No hay agencia que le habilite nada, y el interruptor de la casa arranca
+    apagado: prenderlo es una decisión del dueño, no un efecto de desplegar.
+    (Antes esta prueba fijaba el 403 incondicional; ahora fija el 403 del
+    interruptor apagado.)
     """
     respuesta = post(api, PUERTA_JUGADOR, "QP-704", TOKENS_JUGADOR[704])
 
@@ -470,7 +485,7 @@ def test_el_jugador_de_la_casa_no_tiene_quien_le_habilite(api):
     assert api.base_de_mentira.escrituras == []
 
 
-def test_el_jugador_sin_agencia_tampoco(api):
+def test_el_jugador_sin_agencia_con_el_interruptor_apagado_no_puede(api):
     """`creado_por NULL`. Mismo razonamiento: sin agencia no hay permiso."""
     respuesta = post(api, PUERTA_JUGADOR, "QP-706", TOKENS_JUGADOR[706])
 
@@ -478,20 +493,77 @@ def test_el_jugador_sin_agencia_tampoco(api):
     assert api.base_de_mentira.escrituras == []
 
 
-def test_el_que_no_tiene_agencia_recibe_su_propio_mensaje(api):
-    """Sin agencia y 'mi agencia no lo tiene habilitado' no son lo mismo.
+@pytest.mark.parametrize("valor", ["false", "", "1", "si", "TRUEE", None])
+def test_solo_el_texto_true_prende_el_interruptor_de_la_casa(api, valor):
+    """Cualquier cosa que no sea 'true' cuenta como apagado, como `psp_activo`."""
+    api.base_de_mentira.config["cashout_casa_activo"] = valor
 
-    Los dos son 403 —sacar la guarda de `agencia_code` vacío no cambia el
-    código, porque `WHERE code=NULL` no trae fila y el segundo candado corta
-    igual— así que el mensaje es lo único que los distingue. Al jugador de la
-    casa decirle "pedíselo a tu agencia" lo manda a buscar a alguien que no
-    existe.
-    """
+    respuesta = post(api, PUERTA_JUGADOR, "QP-704", TOKENS_JUGADOR[704])
+
+    assert respuesta.status_code == 403, respuesta.text
+
+
+def test_el_jugador_de_la_casa_con_el_interruptor_prendido_puede(api):
+    _prender_la_casa(api)
+
+    respuesta = post(api, PUERTA_JUGADOR, "QP-704", TOKENS_JUGADOR[704])
+
+    assert respuesta.status_code == 200, respuesta.text
+    assert respuesta.json()["valor"] == VALOR
+    assert api.base_de_mentira.escrituras_de_boletos
+    assert api.base_de_mentira.escrituras_de_saldo
+
+
+def test_el_jugador_sin_agencia_con_el_interruptor_prendido_puede(api):
+    _prender_la_casa(api)
+
     respuesta = post(api, PUERTA_JUGADOR, "QP-706", TOKENS_JUGADOR[706])
 
+    assert respuesta.status_code == 200, respuesta.text
+    assert api.base_de_mentira.escrituras_de_boletos
+
+
+def test_prendido_el_de_la_casa_el_jugador_con_agencia_depende_de_la_suya(api):
+    """LA QUE EVITA LA LLAVE MAESTRA. 703 es de AG-SIN, que no tiene el cash
+    out habilitado: que el admin prenda el de la casa no le abre nada."""
+    _prender_la_casa(api)
+
+    respuesta = post(api, PUERTA_JUGADOR, "QP-703", TOKENS_JUGADOR[703])
+
+    assert respuesta.status_code == 403, respuesta.text
     assert respuesta.json()["detail"] == (
-        "Tu cuenta no tiene una agencia que habilite el cash out. "
+        "Tu agencia no tiene habilitado el cash out. "
         "Pedíselo al administrador.")
+    assert api.base_de_mentira.escrituras == []
+
+
+def test_prendido_el_de_la_casa_el_jugador_con_agencia_habilitada_sigue_pudiendo(api):
+    _prender_la_casa(api)
+
+    respuesta = post(api, PUERTA_JUGADOR, "QP-701", TOKENS_JUGADOR[701])
+
+    assert respuesta.status_code == 200, respuesta.text
+
+
+def test_el_de_la_casa_no_se_consulta_si_el_jugador_tiene_agencia(api):
+    """Ni siquiera se lee: la agencia manda y el interruptor no entra."""
+    post(api, PUERTA_JUGADOR, "QP-701", TOKENS_JUGADOR[701])
+
+    assert not [q for q, _ in api.base_de_mentira.consultas
+                if "app_config" in q]
+
+
+def test_el_mensaje_de_la_casa_no_culpa_ni_manda_a_buscar_una_agencia(api):
+    """Sin agencia y 'mi agencia no lo tiene habilitado' no son lo mismo.
+
+    Los dos son 403, así que el mensaje es lo único que los distingue. Al
+    jugador de la casa decirle "pedíselo a tu agencia" lo manda a buscar a
+    alguien que no existe, y no hay nada que prometerle: no decimos cuándo.
+    """
+    for jid, code in ((704, "QP-704"), (706, "QP-706")):
+        respuesta = post(api, PUERTA_JUGADOR, code, TOKENS_JUGADOR[jid])
+
+        assert respuesta.json()["detail"] == MENSAJE_DE_LA_CASA
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -850,3 +922,23 @@ def test_el_rotulo_del_movimiento_no_sale_del_cuerpo(api):
             continue
         fuente = inspect.getsource(_ruta(api, metodo, path).endpoint)
         assert 'body.get("ejecutor")' not in fuente, path
+
+
+# ── El interruptor de la casa: su endpoint de admin ───────────────
+
+def test_el_interruptor_de_la_casa_se_guarda_en_app_config(api):
+    """Mismo patrón que `sportsbook_c360_activo`: fila clave/valor en texto."""
+    fuente = inspect.getsource(api.admin_cashout_casa_set)
+
+    assert "app_config" in fuente
+    assert api.CASHOUT_CASA_CLAVE == "cashout_casa_activo"
+    assert 'body.get("activo") is True' in fuente, (
+        "solo el booleano true prende: un cuerpo mal armado no habilita plata")
+
+
+def test_el_interruptor_de_la_casa_lo_mueve_solo_el_admin(api):
+    """Prenderlo habilita plata de la casa: las dos rutas exigen admin. Se
+    mira la firma porque en el entorno de prueba no hay clave de admin
+    configurada y `require_admin` contesta 503 antes de llegar al cuerpo."""
+    for fn in (api.admin_cashout_casa, api.admin_cashout_casa_set):
+        assert "require_admin" in str(inspect.signature(fn)), fn.__name__
