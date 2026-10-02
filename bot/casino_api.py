@@ -574,9 +574,114 @@ async def requiere_agencia(authorization: str = Header(None)) -> str:
 
     # El prefijo `cliente:` dice que esa sesión es de un jugador y no de una
     # agencia. La regla y el por qué del 403 están en
-    # `exigir_sesion_de_agencia`, compartida con los endpoints que validan la
-    # sesión a mano porque aceptan admin O agencia.
+    # `exigir_sesion_de_agencia`, compartida con `requiere_admin_o_agencia`,
+    # la otra puerta del par.
     return exigir_sesion_de_agencia(code)
+
+
+class AdminOAgencia(NamedTuple):
+    """Quién entró por la puerta que acepta la casa O una agencia.
+
+    `agencia_code` es None cuando entró el admin, y eso NO es un detalle de
+    implementación: la mitad de estos endpoints hace cosas distintas según el
+    caso —el admin ve todos los influencers y la agencia los de su rama, la
+    impresión del admin no es de ninguna agencia— así que el resultado tiene
+    que poder decir cuál de las dos fue. Un `str` a secas con `"admin"` adentro
+    obligaría a comparar contra esa palabra, y un code de agencia que se
+    llamara así entraría como la casa.
+
+    `ejecutor` es el rótulo de auditoría: lo que se guarda en la columna
+    `quien` de `impresiones_log` y `bloqueos_log`. Está separado de
+    `agencia_code` por la misma razón que en `Ventanilla`: "lo hizo la casa" y
+    "lo hizo AG001" son dos hechos distintos cuando hay que revisar un
+    movimiento, y la fila tiene que poder decirlo aunque `agencia_code` sea
+    None.
+    """
+    es_admin: bool
+    agencia_code: str | None
+    ejecutor: str
+
+
+async def requiere_admin_o_agencia(
+        x_admin_key: str = Header(None),
+        authorization: str = Header(None)) -> AdminOAgencia:
+    """La puerta de los endpoints que acepta la clave de admin O una sesión de
+    agencia.
+
+    POR QUÉ EXISTE ESTA FUNCIÓN. Siete endpoints resolvían esto a mano, con la
+    misma línea copiada siete veces:
+
+        token = request.headers.get("Authorization","").replace("Bearer ","")
+
+    y ninguna de las siete miraba la clase de sesión. `sesion_buscar` devuelve
+    el code tal cual está guardado, así que el token de un jugador pasaba y el
+    endpoint seguía adelante con `agencia_code = "cliente:701"`. Estaban
+    cerrados por accidente: chocaban después contra una consulta que no
+    devuelve nada —ninguna agencia se llama así— y el jugador recibía 403 o
+    404. `listar_influencers` ni eso: le contestaba 200 con una lista vacía,
+    que es la forma más clara de ver que la puerta estaba abierta y lo que
+    faltaba era la consulta.
+
+    El que sí hizo daño fue `/api/imprimir`: escribía ese code en
+    `impresiones_log` y dejaba filas a nombre de nadie. Los otros seis estaban
+    a un refactor de distancia de hacer lo mismo, porque lo único que los
+    salvaba era el orden de las consultas que venían después.
+
+    POR QUÉ UNA DEPENDENCIA Y NO UNA FUNCIÓN QUE SE LLAME DESDE EL CUERPO. Es
+    la misma razón por la que `requiere_ventanilla` es una dependencia: así la
+    autenticación se DECLARA EN LA FIRMA. El que lee `async def bloquear(...,
+    quien: AdminOAgencia = Depends(requiere_admin_o_agencia))` sabe a quién le
+    cree ese endpoint sin bajar a leer el cuerpo, y el que escriba el próximo
+    endpoint va a copiar una firma que dice qué hace en vez de veinte líneas
+    que hay que entender. Con el chequeo en el cuerpo, la próxima persona copia
+    el de al lado sin saber qué está copiando: es exactamente cómo se
+    multiplicó por siete la línea de arriba.
+
+    LA REGLA NO SE REPITE ACÁ: el descarte de prefijos es
+    `exigir_sesion_de_agencia`, la misma que usa `requiere_agencia`. Este
+    agujero existió porque el chequeo estaba escrito adentro de esa dependencia
+    y los que validaban a mano no lo tenían; dos copias de una regla de
+    seguridad es cómo una se queda vieja.
+
+    EL `Bearer` SE EXIGE, no se recorta. El `.replace("Bearer ","")` de antes
+    sacaba esa palabra de cualquier parte del valor, así que un
+    `Authorization: <token-pelado>` autenticaba igual. Acá se pide el prefijo
+    como en `requiere_agencia`, `requiere_terminal` y `requiere_ventanilla`:
+    una sola forma de leer la cabecera en todo el archivo. Todos los clientes
+    mandan `Bearer ${token}` —`authHeaders` en `Agencia.jsx`,
+    `cabeceraDeSesion` en `sesionTelegram.js`, `credencialTerminal.js`— así que
+    no hay nadie afuera; lo que deja de funcionar es el token pelado, que nunca
+    fue un formato válido.
+
+    QUÉ NO HACE: no valida la rama, los permisos ni el estado de la cuenta.
+    Eso es regla de negocio y sigue en el cuerpo de cada endpoint, donde están
+    el `conn` y el objetivo del pedido. Acá solo se establece QUIÉN SOS.
+    """
+    # El admin primero y sin tocar la base: entra con `X-Admin-Key` y sin
+    # ningún Bearer, que es la razón por la que estos endpoints no pueden usar
+    # `Depends(requiere_agencia)` a secas.
+    if (x_admin_key and auth.ADMIN_API_KEY
+            and hmac.compare_digest(x_admin_key, auth.ADMIN_API_KEY)):
+        # `agencia_code` None: lo que hace la casa no es de ninguna agencia, y
+        # `impresiones_log` guarda esa fila con la columna en NULL a propósito.
+        return AdminOAgencia(True, None, "admin")
+
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(401, "No autorizado")
+    token = authorization[7:].strip()
+    if not token:
+        raise HTTPException(401, "No autorizado")
+
+    code = await sesion_buscar(token)
+    if not code:
+        raise HTTPException(401, "No autorizado")
+
+    # 403 y no 401 para un jugador o una terminal, y el motivo está entero en
+    # `exigir_sesion_de_agencia`: el token es real y no venció, así que un 401
+    # mandaría a la mini-app a pedir sesión nueva y a chocar con el mismo 401
+    # para siempre.
+    code = exigir_sesion_de_agencia(code)
+    return AdminOAgencia(False, code, code)
 
 
 # ── LA CREDENCIAL DE LA TERMINAL ──────────────────────────────────
@@ -1119,7 +1224,9 @@ async def create_agencia(request: Request, _=Depends(auth.require_admin)):
             "pct_ggr":pct_ggr, "pct_ventas":pct_ventas}
 
 @app.post("/api/influencers")
-async def crear_influencer(request: Request):
+async def crear_influencer(
+        request: Request,
+        quien: AdminOAgencia = Depends(requiere_admin_o_agencia)):
     """
     Crea un influencer. Puede crearlo el admin (X-Admin-Key) o una agencia
     (token) dentro de su rama. El influencer NO maneja saldo.
@@ -1145,24 +1252,37 @@ async def crear_influencer(request: Request):
     if not (0 <= pct_ggr <= 100) or not (0 <= pct_ventas <= 100):
         raise HTTPException(400, "Los porcentajes deben estar entre 0 y 100")
 
-    # ¿Quién crea? admin o agencia
-    admin_key = request.headers.get("X-Admin-Key")
-    es_admin = admin_key and auth.ADMIN_API_KEY and hmac.compare_digest(admin_key, auth.ADMIN_API_KEY)
+    # Quién crea lo dice la firma. El `parent_code` del cuerpo solo lo puede
+    # elegir la casa: una agencia cuelga el influencer de sí misma y no de
+    # otra rama, así que acá se sobrescribe con el code de la sesión.
     parent_code = (body.get("parent_code") or "").strip().upper() or None
-    if not es_admin:
-        token = request.headers.get("Authorization","").replace("Bearer ","")
-        solicitante = await sesion_buscar(token) if token else None
-        if not solicitante:
-            raise HTTPException(401, "No autorizado")
-        # La agencia crea el influencer colgando de sí misma
-        parent_code = solicitante
+    if not quien.es_admin:
+        parent_code = quien.agencia_code
 
     pool = await get_db()
     async with pool.acquire() as conn:
         # Si crea una agencia, validar que tenga permiso para influencers
-        if not es_admin:
-            quien = await agencia_por_code(conn, parent_code)
-            permiso = (quien.get("permiso") if quien else "ambos") or "ambos"
+        if not quien.es_admin:
+            mi_agencia = await agencia_por_code(conn, parent_code)
+            # NO ENCONTRAR AL SOLICITANTE CIERRA, NO ABRE. Acá había
+            # `(mi_agencia.get("permiso") if mi_agencia else "ambos") or "ambos"`:
+            # si la fila no aparecía, el default era el permiso MÁS AMPLIO, o
+            # sea que una sesión cuya agencia no está en `agencias` pasaba este
+            # chequeo. No hacía daño porque dos líneas más abajo el mismo code
+            # da 404 al buscar al padre, igual que el cruce de sesiones estaba
+            # cerrado por la consulta siguiente y no por el chequeo. El orden de
+            # esas dos consultas no es una garantía de seguridad: alcanza con
+            # mover el 404, o con agregar un camino que escriba antes, para que
+            # el default abra de verdad.
+            #
+            # El `or "ambos"` que queda es otra cosa y tiene que quedarse: una
+            # fila que SÍ existe con `permiso` en NULL es una cuenta vieja de
+            # antes de que la columna existiera, y para esas el default del
+            # sistema es "ambos" (lo mismo hacen `configurar_cuenta` y el
+            # listado de cuentas). Lo que se cierra es la fila que no está.
+            if not mi_agencia:
+                raise HTTPException(403, "Tu agencia ya no existe")
+            permiso = mi_agencia.get("permiso") or "ambos"
             if permiso not in ("crea_influencers", "ambos"):
                 raise HTTPException(403, "Tu agencia no tiene permiso para crear influencers")
         if parent_code:
@@ -1205,24 +1325,27 @@ async def crear_influencer(request: Request):
 
 
 @app.get("/api/influencers")
-async def listar_influencers(request: Request):
-    """Lista influencers. Admin ve todos; agencia ve los de su rama."""
-    admin_key = request.headers.get("X-Admin-Key")
-    es_admin = admin_key and auth.ADMIN_API_KEY and hmac.compare_digest(admin_key, auth.ADMIN_API_KEY)
+async def listar_influencers(
+        quien: AdminOAgencia = Depends(requiere_admin_o_agencia)):
+    """Lista influencers. Admin ve todos; agencia ve los de su rama.
+
+    ESTE ERA EL MÁS VISIBLE DE LOS SIETE. Validaba a mano y no miraba la clase
+    de sesión, así que el token de un jugador entraba, `codes_de_la_rama`
+    devolvía `["cliente:701"]` —ninguna agencia se llama así—, y la API le
+    contestaba 200 con una lista vacía. No era que estuviera cerrado: era que
+    la consulta no encontraba nada. Los otros seis daban 403 o 404 por el
+    mismo motivo y parecían cerrados; este devolvía 200 y mostraba el agujero.
+    """
     pool = await get_db()
     async with pool.acquire() as conn:
-        if es_admin:
+        if quien.es_admin:
             rows = await conn.fetch("""
                 SELECT code, name, username, codigo_ref, pct_ggr, pct_ventas,
                        parent_code, nivel, status
                 FROM agencias WHERE tipo='influencer' ORDER BY ruta
             """)
         else:
-            token = request.headers.get("Authorization","").replace("Bearer ","")
-            solicitante = await sesion_buscar(token) if token else None
-            if not solicitante:
-                raise HTTPException(401, "No autorizado")
-            rama = await codes_de_la_rama(conn, solicitante)
+            rama = await codes_de_la_rama(conn, quien.agencia_code)
             rows = await conn.fetch("""
                 SELECT code, name, username, codigo_ref, pct_ggr, pct_ventas,
                        parent_code, nivel, status
@@ -1474,35 +1597,35 @@ async def agencia_cierre(desde: str = "", hasta: str = "", cliente: str = "",
 
 # IMPRESIONES Y COMBOS — historial en cascada
 @app.post("/api/imprimir")
-async def registrar_impresion(request: Request):
+async def registrar_impresion(
+        request: Request,
+        pide: AdminOAgencia = Depends(requiere_admin_o_agencia)):
+    """Registra una impresión. La pide el admin (X-Admin-Key) o una agencia.
+
+    ESTE FUE EL PRIMERO DE LOS NUEVE EN ARREGLARSE y el único que había hecho
+    daño: validaba a mano, no miraba la clase de sesión, y escribía el code tal
+    cual venía, así que el token de un jugador dejaba una fila con
+    `agencia_code = "cliente:701"`. El historial se lee en cascada por esa
+    columna y nadie lo borra: la fila queda contando impresiones de nadie para
+    siempre. Ver `test_imprimir_no_acepta_token_de_jugador`.
+
+    El arreglo de entonces llamaba a `exigir_sesion_de_agencia` desde el
+    cuerpo, que cerraba el agujero pero dejaba la validación donde nadie la ve.
+    Ahora entra por la misma `requiere_admin_o_agencia` que los otros ocho, y el
+    cuerpo solo se ocupa de la fila. Lo que decide sigue siendo la misma
+    función compartida; lo que cambió es que ahora se declara en la firma.
+    """
     body = await request.json()
     tipo = (body.get("tipo") or "ticket")[:40]
     referencia = (body.get("referencia") or "")[:80] or None
     detalle = (body.get("detalle") or "")[:200] or None
-    admin_key = request.headers.get("X-Admin-Key")
-    es_admin = admin_key and auth.ADMIN_API_KEY and hmac.compare_digest(admin_key, auth.ADMIN_API_KEY)
-    if es_admin:
-        quien = "admin"; ag = None
-    else:
-        token = request.headers.get("Authorization","").replace("Bearer ","")
-        ag = await sesion_buscar(token) if token else None
-        if not ag:
-            raise HTTPException(401, "No autorizado")
-        # Este endpoint tiene dos puertas —la clave de admin o la sesión de
-        # agencia— y por eso valida a mano: un `Depends(requiere_agencia)` a
-        # secas le cerraría la de admin. Pero validar a mano no exime de la
-        # regla del prefijo, y acá faltaba: `sesion_buscar` devuelve el code
-        # tal cual está guardado, así que el token de un jugador entraba y la
-        # fila quedaba con `agencia_code = "cliente:701"` y `quien` igual, como
-        # si fuera una agencia.
-        #
-        # El chequeo va ANTES del INSERT, no después de insertar y limpiar: el
-        # daño era la fila sucia. `impresiones_log` es el historial que se lee
-        # en cascada por `agencia_code` y nadie lo borra, así que una fila a
-        # nombre de un code que no existe queda contando impresiones de nadie
-        # para siempre.
-        exigir_sesion_de_agencia(ag)
-        quien = ag
+
+    # `ag` va a la columna `agencia_code` y es None para el admin: la impresión
+    # de la casa no es de ninguna agencia, y poner cualquier otra cosa la haría
+    # aparecer en la cascada de alguien. `quien` es el rótulo de auditoría.
+    ag = pide.agencia_code
+    quien = pide.ejecutor
+
     pool = await get_db()
     async with pool.acquire() as conn:
         await conn.execute("""
@@ -4735,7 +4858,8 @@ async def influencer_me(desde: str = "", hasta: str = "",
 
 
 @app.post("/api/bloquear")
-async def bloquear(request: Request):
+async def bloquear(request: Request,
+                   pide: AdminOAgencia = Depends(requiere_admin_o_agencia)):
     """
     Bloquea/desbloquea una agencia o cliente que esté debajo del que pide.
     Autenticación: admin (X-Admin-Key) o agencia (token). Registra quién.
@@ -4747,17 +4871,14 @@ async def bloquear(request: Request):
     cascada = bool(body.get("cascada", False))
     motivo = (body.get("motivo") or "").strip()[:200] or None
 
-    # ¿Quién pide? admin o agencia
-    admin_key = request.headers.get("X-Admin-Key")
-    es_admin = admin_key and auth.ADMIN_API_KEY and hmac.compare_digest(admin_key, auth.ADMIN_API_KEY)
-    quien = "admin"
-    ag_solicitante = None
-    if not es_admin:
-        token = request.headers.get("Authorization","").replace("Bearer ","")
-        ag_solicitante = await sesion_buscar(token) if token else None
-        if not ag_solicitante:
-            raise HTTPException(401, "No autorizado")
-        quien = ag_solicitante
+    # Los dos nombres que ya usaba el cuerpo, ahora sacados de la credencial en
+    # vez de resueltos acá: `quien` es el rótulo que va a `bloqueos_log` —"lo
+    # bloqueó la casa" y "lo bloqueó AG001" son dos hechos distintos cuando hay
+    # que revisar por qué una cuenta está cerrada— y `ag_solicitante` es la
+    # agencia cuya rama se compara, que para el admin es None porque no tiene.
+    es_admin = pide.es_admin
+    quien = pide.ejecutor
+    ag_solicitante = pide.agencia_code
 
     pool = await get_db()
     async with pool.acquire() as conn:
@@ -4916,7 +5037,9 @@ async def mi_arbol(agencia_code: str = Depends(requiere_agencia)):
 
 # ── AGENCIAS — ACTUALIZAR (solo admin) ────────────────────────
 @app.post("/api/cuenta/{code}/configurar")
-async def configurar_cuenta(code: str, request: Request):
+async def configurar_cuenta(
+        code: str, request: Request,
+        quien: AdminOAgencia = Depends(requiere_admin_o_agencia)):
     """
     Edición completa de una cuenta ya creada (agencia/sub/influencer).
     El usuario NO se toca. Todo lo demás sí: nombre, contacto, %,
@@ -4926,8 +5049,6 @@ async def configurar_cuenta(code: str, request: Request):
     """
     code = code.upper()
     body = await request.json()
-    admin_key = request.headers.get("X-Admin-Key")
-    es_admin = admin_key and auth.ADMIN_API_KEY and hmac.compare_digest(admin_key, auth.ADMIN_API_KEY)
 
     pool = await get_db()
     async with pool.acquire() as conn:
@@ -4935,12 +5056,11 @@ async def configurar_cuenta(code: str, request: Request):
         if not obj:
             raise HTTPException(404, "Cuenta no encontrada")
 
-        # Permisos: admin cualquiera; agencia solo su rama (y no a sí misma)
-        if not es_admin:
-            token = request.headers.get("Authorization","").replace("Bearer ","")
-            solicitante = await sesion_buscar(token) if token else None
-            if not solicitante:
-                raise HTTPException(401, "No autorizado")
+        # Permisos: admin cualquiera; agencia solo su rama (y no a sí misma).
+        # Esto sigue en el cuerpo a propósito: es regla de negocio y necesita el
+        # `conn` y el objetivo del pedido. Lo que se fue a la firma es quién sos.
+        if not quien.es_admin:
+            solicitante = quien.agencia_code
             rama = await codes_de_la_rama(conn, solicitante)
             if code == solicitante or code not in rama:
                 raise HTTPException(403, "Esa cuenta no es de tu rama")
@@ -14670,15 +14790,16 @@ async def app_combos_manuales():
 
 
 @app.post("/api/influencers/{code}/liquidar")
-async def liquidar_influencer(code: str, request: Request):
+async def liquidar_influencer(
+        code: str, request: Request,
+        quien: AdminOAgencia = Depends(requiere_admin_o_agencia)):
     """Genera y guarda la liquidación de comisión de un influencer.
     Admin o agencia de su rama."""
     code = code.upper()
     body = await request.json()
     desde = body.get("desde"); hasta = body.get("hasta")
     d1, d2 = _rango_periodo(desde, hasta)
-    admin_key = request.headers.get("X-Admin-Key")
-    es_admin = admin_key and auth.ADMIN_API_KEY and hmac.compare_digest(admin_key, auth.ADMIN_API_KEY)
+    es_admin = quien.es_admin
     pool = await get_db()
     async with pool.acquire() as conn:
         inf = await conn.fetchrow(
@@ -14686,11 +14807,7 @@ async def liquidar_influencer(code: str, request: Request):
         if not inf:
             raise HTTPException(404, "Influencer no encontrado")
         if not es_admin:
-            token = request.headers.get("Authorization","").replace("Bearer ","")
-            solicitante = await sesion_buscar(token) if token else None
-            if not solicitante:
-                raise HTTPException(401, "No autorizado")
-            rama = await codes_de_la_rama(conn, solicitante)
+            rama = await codes_de_la_rama(conn, quien.agencia_code)
             if inf["parent_code"] not in rama:
                 raise HTTPException(403, "Ese influencer no es de tu rama")
         rep = await _reporte_influencer(conn, code, d1, d2)
@@ -15001,26 +15118,21 @@ async def agencia_reporte_influencers(desde: str = "", hasta: str = "",
 
 
 @app.get("/api/influencers/{code}/detalle")
-async def influencer_detalle(code: str, request: Request,
-                             desde: str = "", hasta: str = ""):
+async def influencer_detalle(
+        code: str, desde: str = "", hasta: str = "",
+        quien: AdminOAgencia = Depends(requiere_admin_o_agencia)):
     """Detalle de un influencer: sus combos + últimas jugadas firmadas.
     Admin ve cualquiera; agencia solo los de su rama."""
     code = code.upper()
     d1, d2 = _rango_periodo(desde, hasta)
-    admin_key = request.headers.get("X-Admin-Key")
-    es_admin = admin_key and auth.ADMIN_API_KEY and hmac.compare_digest(admin_key, auth.ADMIN_API_KEY)
     pool = await get_db()
     async with pool.acquire() as conn:
         inf = await conn.fetchrow(
             "SELECT parent_code FROM agencias WHERE code=$1 AND tipo='influencer'", code)
         if not inf:
             raise HTTPException(404, "Influencer no encontrado")
-        if not es_admin:
-            token = request.headers.get("Authorization","").replace("Bearer ","")
-            solicitante = await sesion_buscar(token) if token else None
-            if not solicitante:
-                raise HTTPException(401, "No autorizado")
-            rama = await codes_de_la_rama(conn, solicitante)
+        if not quien.es_admin:
+            rama = await codes_de_la_rama(conn, quien.agencia_code)
             if inf["parent_code"] not in rama:
                 raise HTTPException(403, "Ese influencer no es de tu rama")
         rep = await _reporte_influencer(conn, code, d1, d2)
@@ -15085,13 +15197,37 @@ def _procesar_picks_combo(picks):
 
 
 async def _requiere_influencer(authorization: str = Header(None)):
-    """Valida sesión y que sea un influencer. Devuelve su code."""
+    """Valida sesión y que sea un influencer. Devuelve su code.
+
+    ESTA PUERTA NO ACEPTA LA CLAVE DE ADMIN, y no se le agregó. Es el panel
+    propio del influencer —sus combos, sus escaneos, su comisión— y el admin
+    tiene los suyos (`/api/admin/...` y `/api/influencers/{code}/detalle`).
+    Darle entrada acá no le daría nada que no tenga y haría que el `code` que
+    devuelve esta función pudiera no ser de ningún influencer, que es justo lo
+    que todos los endpoints que cuelgan de ella usan para filtrar.
+
+    LO QUE SE ARREGLÓ ACÁ ES EL DESCARTE DE CLASE. Faltaba el prefijo: el token
+    de un jugador pasaba `sesion_buscar`, y lo que lo frenaba era la consulta
+    siguiente —`SELECT tipo FROM agencias WHERE code='cliente:701'` no devuelve
+    fila— así que el 403 salía por "no es influencer" y no por "no es una
+    sesión de agencia". Es el mismo cierre por accidente que tenían los otros
+    siete: funcionaba por el orden de las consultas, no porque alguien lo
+    hubiera decidido. Un influencer vive en `agencias` con su code a secas
+    (`INF001`), o sea que ES una sesión de clase agencia, y por eso el descarte
+    correcto es el compartido y después se angosta por `tipo`.
+    """
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(401, "No autorizado")
-    token = authorization.split(" ",1)[1]
+    token = authorization[7:].strip()
     code = await sesion_buscar(token)
     if not code:
         raise HTTPException(401, "Sesión inválida")
+
+    # La misma función que `requiere_agencia` y `requiere_admin_o_agencia`, no
+    # una copia: un jugador y una terminal se van con 403 acá, antes de que su
+    # code llegue a una consulta.
+    code = exigir_sesion_de_agencia(code)
+
     pool = await get_db()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT tipo FROM agencias WHERE code=$1", code)
@@ -15962,22 +16098,34 @@ def _gen_link_code():
 
 
 @app.post("/api/cliente/{user_id}/vincular-telegram")
-async def generar_vinculo_cliente(user_id: int, request: Request):
+async def generar_vinculo_cliente(
+        user_id: int,
+        quien: AdminOAgencia = Depends(requiere_admin_o_agencia)):
     """Genera un código para que un cliente conecte su Telegram.
-    Lo puede pedir el admin (X-Admin-Key) o la agencia dueña (Bearer)."""
-    admin_key = request.headers.get("X-Admin-Key")
-    es_admin = admin_key and auth.ADMIN_API_KEY and hmac.compare_digest(admin_key, auth.ADMIN_API_KEY)
+    Lo puede pedir el admin (X-Admin-Key) o la agencia dueña (Bearer).
+
+    DE LOS OCHO, ESTE ERA EL ÚNICO QUE NO ESTABA CERRADO DE CASUALIDAD: la
+    comparación contra la rama es una verificación de verdad, y el token de un
+    jugador caía ahí porque `codes_de_la_rama("cliente:701")` devuelve
+    `["cliente:701"]` y ninguna columna `creado_por` vale eso. Esa comparación
+    SIGUE ACÁ, intacta: lo que se movió a la firma es quién sos, no de quién es
+    el cliente. Lo que suma el cambio es que ahora el rechazo del jugador es
+    explícito y ocurre antes de leer la base, en vez de depender de que la
+    consulta de la rama no encuentre nada.
+
+    EFECTO SECUNDARIO QUERIDO: la credencial se mira ANTES de buscar al
+    cliente, así que un pedido sin credencial ya no contesta 404 para un id que
+    no existe y 401 para uno que sí. Los ids son correlativos —es el mismo
+    motivo por el que existe `requiere_cliente_propio`— y ese par de códigos
+    distintos dejaba contar clientes sin tener sesión.
+    """
     pool = await get_db()
     async with pool.acquire() as conn:
         u = await conn.fetchrow("SELECT id, creado_por, nombre_completo FROM users WHERE id=$1", user_id)
         if not u:
             raise HTTPException(404, "Cliente no encontrado")
-        if not es_admin:
-            token = request.headers.get("Authorization","").replace("Bearer ","")
-            solicitante = await sesion_buscar(token) if token else None
-            if not solicitante:
-                raise HTTPException(401, "No autorizado")
-            rama = await codes_de_la_rama(conn, solicitante)
+        if not quien.es_admin:
+            rama = await codes_de_la_rama(conn, quien.agencia_code)
             if u["creado_por"] not in rama:
                 raise HTTPException(403, "Ese cliente no es de tu rama")
         codigo = _gen_link_code()
@@ -15985,7 +16133,7 @@ async def generar_vinculo_cliente(user_id: int, request: Request):
         await conn.execute("""
             INSERT INTO vinculos_telegram (codigo, tipo, objetivo, creado_por, expira_at)
             VALUES ($1, 'cliente', $2, $3, $4)
-        """, codigo, str(user_id), ("admin" if es_admin else "agencia"), expira)
+        """, codigo, str(user_id), ("admin" if quien.es_admin else "agencia"), expira)
     link = f"https://t.me/{TELEGRAM_BOT_USER}?start=link_{codigo}"
     return {"codigo": codigo, "link": link, "expira_en_horas": 24,
             "nombre": u["nombre_completo"]}
