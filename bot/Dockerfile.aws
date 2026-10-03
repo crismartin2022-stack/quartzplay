@@ -1,0 +1,21 @@
+# QuartzPlay: una sola imagen para qp-api, qp-worker, qp-bot y qp-feed.
+# Contexto de construcción: la carpeta bot/ del repo.
+# Lo que cambia entre servicios es el comando (CMD) que da ECS.
+FROM python:3.12-slim-trixie
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PORT=8000
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+RUN useradd --system --uid 1000 --no-create-home app && chown -R app /app
+USER app
+
+EXPOSE 8000
+# Por defecto arranca la API. ECS cambia el comando para el worker, el bot y el feed.
+CMD ["bash", "start-api.sh"]
